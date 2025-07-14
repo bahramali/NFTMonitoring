@@ -1,3 +1,4 @@
+import React from 'react';
 import SensorDashboard from './SensorDashboard';
 
 function App() {

@@ -15,11 +15,11 @@ import { trimOldEntries, normalizeSensorData } from "./utils";
 
 const topic = "azadFarm/sensorData";
 
-
 function SensorDashboard() {
     const [sensorData, setSensorData] = useState({});
     const [dailyData, setDailyData] = useState([]);
     const [selectedBand, setSelectedBand] = useState("F6");
+
     useEffect(() => {
         const client = mqtt.connect(import.meta.env.VITE_MQTT_BROKER_URL, {
             username: import.meta.env.VITE_MQTT_USERNAME,
@@ -71,6 +71,13 @@ function SensorDashboard() {
     const bandOptions = ["F1","F2","F3","F4","F5","F6","F7","F8","clear","nir"];
 
 
+    const chartData = dailyData.map(d => ({
+        time: new Date(d.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        intensity: d[selectedBand]
+    }));
+
+    const bandOptions = ["F1","F2","F3","F4","F5","F6","F7","F8","clear","nir"];
+
     return (
         <div style={{ padding: 20 }}>
             <h1>🌿 AzadFarm - Sensor & Camera Dashboard</h1>
@@ -95,7 +102,8 @@ function SensorDashboard() {
                     ))}
                 </select>
             </div>
-            <DailyBandChart data={chartData} band={selectedBand} />
+
+           <DailyBandChart data={chartData} band={selectedBand} />
         </div>
     );
 }

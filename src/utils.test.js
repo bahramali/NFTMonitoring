@@ -16,3 +16,4 @@ test('normalizes ch-prefixed keys to F1-F8', () => {
     expect(result.F1).toBe(1);
     expect(result.F6).toBe(6);
 });
+
