@@ -4,8 +4,9 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
     plugins: [react()],
+    base: '/NFTMonitoring/',
     test: {
-        globals: true,             // ✅ expect رو global میکنه
-        environment: 'jsdom'       // ✅ برای اجرای React در DOM مجازی
+        globals: true,
+        environment: 'jsdom'
     }
 });
