@@ -63,12 +63,12 @@ function SensorDashboard() {
         { name: "Clear", value: sensorData.clear },
         { name: "NIR", value: sensorData.nir }
     ];
-    const lineData = dailyData.map(d => ({
+    const chartData = dailyData.map(d => ({
         time: new Date(d.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         intensity: d[selectedBand]
     }));
 
-    const bands = ["F1","F2","F3","F4","F5","F6","F7","F8","clear","nir"];
+    const bandOptions = ["F1","F2","F3","F4","F5","F6","F7","F8","clear","nir"];
 
 
     return (
@@ -90,12 +90,12 @@ function SensorDashboard() {
             <div style={{ marginTop: 40 }}>
                 <label htmlFor="band-select">Select Band: </label>
                 <select id="band-select" value={selectedBand} onChange={e => setSelectedBand(e.target.value)}>
-                    {bands.map(b => (
+                    {bandOptions.map(b => (
                         <option key={b} value={b}>{b}</option>
                     ))}
                 </select>
             </div>
-            <DailyBandChart data={lineData} band={selectedBand} />
+            <DailyBandChart data={chartData} band={selectedBand} />
         </div>
     );
 }
