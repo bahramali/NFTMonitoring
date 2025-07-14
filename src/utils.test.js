@@ -17,3 +17,9 @@ test('normalizes ch-prefixed keys to F1-F8', () => {
     expect(result.F6).toBe(6);
 });
 
+test('defaults missing values to zero and keeps temperature', () => {
+    const raw = { temperature: 22.5 };
+    const result = normalizeSensorData(raw);
+    expect(result.F1).toBe(0);
+    expect(result.temperature).toBe(22.5);
+});

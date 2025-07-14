@@ -1,6 +1,6 @@
 # NFT Monitoring
 
-This project is a React dashboard that subscribes to an MQTT broker and visualises spectral sensor data.
+This project is a React dashboard that subscribes to an MQTT broker and visualises spectral sensor data and temperature readings.
 
 ## Setup
 
@@ -18,6 +18,7 @@ VITE_MQTT_PASSWORD=
 ```
 
 These variables are used to establish the MQTT connection.
+Make sure the file is named `.env` and each variable starts with the `VITE_` prefix so that Vite exposes them to the frontend.
 
 Incoming MQTT messages are expected to provide channel values such as
 `ch415`, `ch445`, … `ch680`. The dashboard normalizes these keys to
