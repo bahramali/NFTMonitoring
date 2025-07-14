@@ -63,13 +63,6 @@ function SensorDashboard() {
         { name: "Clear", value: sensorData.clear },
         { name: "NIR", value: sensorData.nir }
     ];
-    const chartData = dailyData.map(d => ({
-        time: new Date(d.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        intensity: d[selectedBand]
-    }));
-
-    const bandOptions = ["F1","F2","F3","F4","F5","F6","F7","F8","clear","nir"];
-
 
     const chartData = dailyData.map(d => ({
         time: new Date(d.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
