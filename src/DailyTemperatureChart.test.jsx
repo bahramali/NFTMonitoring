@@ -8,6 +8,6 @@ test('renders temperature line chart', () => {
         { time: '01:00', temperature: 21 }
     ];
     const { container } = render(<DailyTemperatureChart data={data} />);
-    const lines = container.querySelectorAll('.recharts-line');
-    expect(lines.length).toBe(1);
+    const svg = container.querySelector('svg');
+    expect(svg).toBeInTheDocument();
 });

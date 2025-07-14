@@ -15,7 +15,14 @@ const DailyTemperatureChart = ({ data }) => (
         <ResponsiveContainer>
             <LineChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 50 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="time" angle={-30} textAnchor="end" interval={0} height={60} />
+                <XAxis
+                    dataKey="time"
+                    type="number"
+                    domain={[0, 23]}
+                    ticks={[...Array(24).keys()]}
+                    tickFormatter={h => String(h).padStart(2, '0')}
+                    interval={0}
+                />
                 <YAxis>
                     <Label value="°C" angle={-90} position="insideLeft" />
                 </YAxis>

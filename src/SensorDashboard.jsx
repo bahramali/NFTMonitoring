@@ -31,7 +31,13 @@ function SensorDashboard() {
         temperature: 0,
         lux: 0,
     });
-    const [dailyData, setDailyData] = useState([]);
+    const [dailyData, setDailyData] = useState(() => {
+        const stored = localStorage.getItem("dailyData");
+        const now = Date.now();
+        const initial = stored ? trimOldEntries(JSON.parse(stored), now) : [];
+        localStorage.setItem("dailyData", JSON.stringify(initial));
+        return initial;
+    });
     const [selectedBand, setSelectedBand] = useState("F6");
 
     useEffect(() => {
@@ -56,8 +62,9 @@ function SensorDashboard() {
                     setSensorData(normalized);
                     const timestamp = Date.now();
                     setDailyData(prev => {
-                        const updated = [...prev, { timestamp, ...normalized }];
-                        return trimOldEntries(updated, timestamp);
+                        const updated = trimOldEntries([...prev, { timestamp, ...normalized }], timestamp);
+                        localStorage.setItem("dailyData", JSON.stringify(updated));
+                        return updated;
                     });
                 } catch (e) {
                     console.error("Invalid JSON", e);
@@ -82,18 +89,12 @@ function SensorDashboard() {
     ];
 
     const bandChartData = dailyData.map(d => ({
-        time: new Date(d.timestamp).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-        }),
+        time: new Date(d.timestamp).getHours(),
         intensity: d[selectedBand],
     }));
 
     const tempChartData = dailyData.map(d => ({
-        time: new Date(d.timestamp).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-        }),
+        time: new Date(d.timestamp).getHours(),
         temperature: d.temperature,
     }));
 

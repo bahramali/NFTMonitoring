@@ -20,6 +20,12 @@ VITE_MQTT_PASSWORD=
 These variables are used to establish the MQTT connection.
 Make sure the file is named `.env` and each variable starts with the `VITE_` prefix so that Vite exposes them to the frontend.
 
+The dashboard shows a bar chart of the most recent spectral intensities and two line charts plotting the selected band and temperature over the last 24 hours.
+
 Incoming MQTT messages are expected to provide channel values such as
 `ch415`, `ch445`, … `ch680`. The dashboard normalizes these keys to
 bands `F1`–`F8` internally.
+
+Sensor readings are saved to `localStorage` so that the daily charts
+persist across page reloads. Entries older than 24 hours are removed
+automatically.

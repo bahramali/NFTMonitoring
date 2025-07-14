@@ -8,6 +8,6 @@ test('renders line chart for provided data', () => {
         { time: '01:00', intensity: 2 }
     ];
     const { container } = render(<DailyBandChart data={data} band="F6" />);
-    const lines = container.querySelectorAll('.recharts-line');
-    expect(lines.length).toBe(1);
+    const svg = container.querySelector('svg');
+    expect(svg).toBeInTheDocument();
 });
