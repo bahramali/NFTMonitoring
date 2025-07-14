@@ -27,3 +27,4 @@ const DailyBandChart = ({ data, band }) => (
 );
 
 export default DailyBandChart;
+

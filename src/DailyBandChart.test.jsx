@@ -11,3 +11,4 @@ test('renders line chart for provided data', () => {
     const lines = container.querySelectorAll('.recharts-line');
     expect(lines.length).toBe(1);
 });
+
