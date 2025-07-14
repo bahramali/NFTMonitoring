@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
 import mqtt from "mqtt";
-
-
 import {
     BarChart,
     Bar,
@@ -12,17 +10,21 @@ import {
     ResponsiveContainer,
     Label
 } from "recharts";
+import DailyBandChart from "./DailyBandChart";
+import { trimOldEntries, normalizeSensorData } from "./utils";
 
 const topic = "azadFarm/sensorData";
 
 
 function SensorDashboard() {
     const [sensorData, setSensorData] = useState({});
-
+    const [dailyData, setDailyData] = useState([]);
+    const [selectedBand, setSelectedBand] = useState("F6");
     useEffect(() => {
-        const client = mqtt.connect("wss://1457f4a458cd4b4e9175ae1816356ce1.s1.eu.hivemq.cloud:8884/mqtt", {
-            username: "hivemq.webclient.1752186412216",
-            password: "5FIH&19,GK8J#lrhax>e"
+        const client = mqtt.connect(import.meta.env.VITE_MQTT_BROKER_URL, {
+            username: import.meta.env.VITE_MQTT_USERNAME,
+            password: import.meta.env.VITE_MQTT_PASSWORD,
+            protocol: "wss"
         });
 
         client.on("connect", () => {
@@ -32,8 +34,14 @@ function SensorDashboard() {
         client.on("message", (t, message) => {
             if (t === topic) {
                 try {
-                    const json = JSON.parse(message.toString());
-                    setSensorData(json);
+                    const raw = JSON.parse(message.toString());
+                    const normalized = normalizeSensorData(raw);
+                    setSensorData(normalized);
+                    const timestamp = Date.now();
+                    setDailyData(prev => {
+                        const updated = [...prev, { timestamp, ...normalized }];
+                        return trimOldEntries(updated, timestamp);
+                    });
                 } catch (e) {
                     console.error("Invalid JSON", e);
                 }
@@ -55,6 +63,13 @@ function SensorDashboard() {
         { name: "Clear", value: sensorData.clear },
         { name: "NIR", value: sensorData.nir }
     ];
+    const lineData = dailyData.map(d => ({
+        time: new Date(d.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        intensity: d[selectedBand]
+    }));
+
+    const bands = ["F1","F2","F3","F4","F5","F6","F7","F8","clear","nir"];
+
 
     return (
         <div style={{ padding: 20 }}>
@@ -72,8 +87,15 @@ function SensorDashboard() {
                 </BarChart>
             </ResponsiveContainer>
 
-
-
+            <div style={{ marginTop: 40 }}>
+                <label htmlFor="band-select">Select Band: </label>
+                <select id="band-select" value={selectedBand} onChange={e => setSelectedBand(e.target.value)}>
+                    {bands.map(b => (
+                        <option key={b} value={b}>{b}</option>
+                    ))}
+                </select>
+            </div>
+            <DailyBandChart data={lineData} band={selectedBand} />
         </div>
     );
 }
