@@ -17,3 +17,4 @@ export function normalizeSensorData(data = {}) {
         nir: data.nir,
     };
 }
+
