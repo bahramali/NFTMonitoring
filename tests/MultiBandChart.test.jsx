@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import MultiBandChart from './MultiBandChart';
+import MultiBandChart from '../src/components/MultiBandChart';
 
 test('renders multi-band line chart', () => {
     const data = [

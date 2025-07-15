@@ -1,5 +1,5 @@
 import React from 'react';
-import SensorDashboard from './SensorDashboard';
+import SensorDashboard from './components/SensorDashboard';
 
 function App() {
     return (

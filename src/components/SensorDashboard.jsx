@@ -13,7 +13,7 @@ import {
 import DailyTemperatureChart from "./DailyTemperatureChart";
 import MultiBandChart from "./MultiBandChart";
 import Header from "./Header";
-import { trimOldEntries, normalizeSensorData } from "./utils";
+import { trimOldEntries, normalizeSensorData } from "../utils";
 
 const topic = "azadFarm/sensorData";
 

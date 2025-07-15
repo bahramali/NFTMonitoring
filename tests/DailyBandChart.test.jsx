@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import DailyBandChart from './DailyBandChart';
+import DailyBandChart from '../src/components/DailyBandChart';
 
 test('renders line chart for provided data', () => {
     const data = [

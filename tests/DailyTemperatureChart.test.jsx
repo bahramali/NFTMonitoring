@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import DailyTemperatureChart from './DailyTemperatureChart';
+import DailyTemperatureChart from '../src/components/DailyTemperatureChart';
 
 test('renders temperature line chart', () => {
     const data = [

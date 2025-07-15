@@ -1,4 +1,4 @@
-import { trimOldEntries, normalizeSensorData } from './utils';
+import { trimOldEntries, normalizeSensorData } from '../src/utils';
 
 test('removes entries older than 24h', () => {
     const now = Date.now();
