@@ -19,3 +19,28 @@ export function normalizeSensorData(data = {}) {
         lux: data.lux ?? 0,
     };
 }
+
+export function filterNoise(reading, opts = {}) {
+    const {
+        bandMin = 0,
+        bandMax = 10000,
+        tempMin = -50,
+        tempMax = 60,
+        luxMin = 0,
+        luxMax = 100000,
+    } = opts;
+    const bands = ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'];
+    for (const key of bands) {
+        const val = reading[key];
+        if (val < bandMin || val > bandMax) {
+            return null;
+        }
+    }
+    if (reading.temperature < tempMin || reading.temperature > tempMax) {
+        return null;
+    }
+    if (reading.lux < luxMin || reading.lux > luxMax) {
+        return null;
+    }
+    return reading;
+}

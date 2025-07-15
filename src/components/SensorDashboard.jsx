@@ -13,7 +13,8 @@ import {
 import DailyTemperatureChart from "./DailyTemperatureChart";
 import MultiBandChart from "./MultiBandChart";
 import Header from "./Header";
-import { trimOldEntries, normalizeSensorData } from "../utils";
+import { trimOldEntries, normalizeSensorData, filterNoise } from "../utils";
+
 
 const topic = "azadFarm/sensorData";
 
@@ -42,9 +43,7 @@ function SensorDashboard() {
     const [filterStart, setFilterStart] = useState("00:00");
     const [filterEnd, setFilterEnd] = useState("23:59");
     const [rangeData, setRangeData] = useState([]);
-
     const [tempRangeData, setTempRangeData] = useState([]);
-
     const [xDomain, setXDomain] = useState([0, 23]);
     const [yMin, setYMin] = useState("");
     const [yMax, setYMax] = useState("");
@@ -64,9 +63,7 @@ function SensorDashboard() {
                 ...d,
             }));
         setRangeData(filtered);
-
         setTempRangeData(filtered.map(d => ({ time: d.time, temperature: d.temperature })));
-
         setXDomain([startHour, endHour]);
     };
 
@@ -93,10 +90,12 @@ function SensorDashboard() {
                 try {
                     const raw = JSON.parse(message.toString());
                     const normalized = normalizeSensorData(raw);
-                    setSensorData(normalized);
+                    const cleaned = filterNoise(normalized);
+                    if (!cleaned) return;
+                    setSensorData(cleaned);
                     const timestamp = Date.now();
                     setDailyData(prev => {
-                        const updated = trimOldEntries([...prev, { timestamp, ...normalized }], timestamp);
+                        const updated = trimOldEntries([...prev, { timestamp, ...cleaned }], timestamp);
                         localStorage.setItem("dailyData", JSON.stringify(updated));
                         return updated;
                     });

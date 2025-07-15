@@ -1,4 +1,4 @@
-import { trimOldEntries, normalizeSensorData } from '../src/utils';
+import { trimOldEntries, normalizeSensorData, filterNoise } from '../src/utils';
 
 test('removes entries older than 24h', () => {
     const now = Date.now();
@@ -22,4 +22,16 @@ test('defaults missing values to zero and keeps temperature', () => {
     const result = normalizeSensorData(raw);
     expect(result.F1).toBe(0);
     expect(result.temperature).toBe(22.5);
+});
+
+test('filterNoise discards out of range values', () => {
+    const clean = {
+        F1: 100, F2: 100, F3: 100, F4: 100,
+        F5: 100, F6: 100, F7: 100, F8: 100,
+        clear: 100, nir: 100, temperature: 20, lux: 50,
+    };
+    expect(filterNoise(clean)).toEqual(clean);
+
+    const noisy = { ...clean, F1: 20000 };
+    expect(filterNoise(noisy)).toBeNull();
 });
