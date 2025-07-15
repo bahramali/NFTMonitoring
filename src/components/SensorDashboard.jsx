@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
+
 import mqtt from "mqtt";
 import {
     BarChart,
@@ -46,6 +47,14 @@ function SensorDashboard() {
     const [xDomain, setXDomain] = useState([0, 23]);
     const [yMin, setYMin] = useState("");
     const [yMax, setYMax] = useState("");
+
+    const yDomain = useMemo(
+        () => [
+            yMin === '' ? 'auto' : Number(yMin),
+            yMax === '' ? 'auto' : Number(yMax)
+        ],
+        [yMin, yMax]
+    );
 
     const applyFilter = () => {
         const startHour = parseInt(filterStart.split(":")[0], 10);
@@ -166,7 +175,7 @@ function SensorDashboard() {
             <MultiBandChart
                 data={rangeData}
                 xDomain={xDomain}
-                yDomain={[yMin === '' ? 'auto' : Number(yMin), yMax === '' ? 'auto' : Number(yMax)]}
+                yDomain={yDomain}
             />
         </div>
     );
