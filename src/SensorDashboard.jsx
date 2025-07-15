@@ -39,9 +39,7 @@ function SensorDashboard() {
         return initial;
     });
     const [selectedBand, setSelectedBand] = useState("F6");
-
     const [now, setNow] = useState(() => new Date());
-
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 1000);
         const client = mqtt.connect(
@@ -135,9 +133,7 @@ function SensorDashboard() {
                     ))}
                 </select>
             </div>
-
             <DailyBandChart data={bandChartData} band={selectedBand} />
-
             <h3 style={{ marginTop: 40 }}>Temperature</h3>
             <DailyTemperatureChart data={tempChartData} />
         </div>
