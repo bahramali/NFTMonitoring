@@ -8,7 +8,11 @@ test('renders spectrum bar chart', () => {
         F5: 5, F6: 6, F7: 7, F8: 8,
         clear: 9, nir: 10,
     };
-    const { container } = render(<SpectrumBarChart sensorData={data} />);
+    const { container } = render(
+        <div style={{ width: 800, height: 400 }}>
+            <SpectrumBarChart sensorData={data} />
+        </div>
+    );
     const svg = container.querySelector('svg');
     expect(svg).toBeInTheDocument();
 });
