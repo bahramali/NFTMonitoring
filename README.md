@@ -21,17 +21,16 @@ These variables are used to establish the MQTT connection.
 Make sure the file is named `.env` and each variable starts with the `VITE_` prefix so that Vite exposes them to the frontend.
 
 The header at the top of the dashboard displays the current time, the MQTT topic,
-the latest temperature and light intensity readings, and status indicators for
-each sensor. A green dot means the sensor is responsive while a red dot shows a
-problem reported in the incoming `health` object.
+the latest temperature, humidity and light intensity readings, and status
+indicators for each sensor. A green dot means the sensor is responsive while a
+red dot shows a problem reported in the incoming `health` object.
 
-The dashboard shows a bar chart of the most recent spectral intensities and a temperature line chart. Historical band data can be explored with a separate line chart.
+The dashboard shows a bar chart of the most recent spectral intensities and a temperature line chart. Historical band data can be explored in a separate section where you pick a time range.
+The previous Daily Band chart has been removed; use the Historical Bands controls to inspect past readings.
 
-Below the live bar chart there is a **Daily Band** section. Use the dropdown to choose any band (F1–F8, clear or NIR) and see how its intensity changed over the last 24 hours.
-
-Incoming MQTT messages are expected to provide channel values such as
-`ch415`, `ch445`, … `ch680`. The dashboard normalizes these keys to
-bands `F1`–`F8` internally.
+Incoming MQTT messages are expected to contain a `timestamp` field and channel
+values such as `ch415`, `ch445`, … `ch680` along with `temperature`, `humidity`
+and `lux`. The dashboard normalizes these keys to bands `F1`–`F8` internally.
 
 Sensor readings are saved to `localStorage` so that the daily charts
 persist across page reloads. Entries older than 24 hours are removed
@@ -42,13 +41,13 @@ with band values outside 0–10,000 PPFD or temperatures outside -50–60 °C
 are discarded before being stored.
 
 Both the temperature chart and the historical bands chart show the data for the
-selected time range only. They remain static until you press **Apply** again to
-refresh the view.
+selected time range. They refresh automatically as new readings arrive, but you
+still need to press **Apply** after changing the filters to update the view.
 
 You can inspect past readings by selecting a time range with the
 "Historical Bands" controls in the dashboard. After choosing start and
 end times, press **Apply** to render a line chart of all bands for that
-period. The chart does not refresh automatically, so you can examine
-historical trends without incoming data shifting the view. You can also
-specify minimum and maximum PPFD values to adjust the chart's Y axis
+period. New readings automatically extend the chart while the selected
+range is active. You can also specify minimum and maximum PPFD values to
+adjust the chart's Y axis
 and zoom in on particular intensity ranges.

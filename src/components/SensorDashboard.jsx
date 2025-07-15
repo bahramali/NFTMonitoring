@@ -11,10 +11,10 @@ import {
     Label
 } from "recharts";
 import DailyTemperatureChart from "./DailyTemperatureChart";
-import DailyBandChart from "./DailyBandChart";
 import MultiBandChart from "./MultiBandChart";
 import Header from "./Header";
 import { trimOldEntries, normalizeSensorData, filterNoise } from "../utils";
+import styles from './SensorDashboard.module.css';
 
 const topic = "azadFarm/sensorData";
 
@@ -31,8 +31,9 @@ function SensorDashboard() {
         clear: 0,
         nir: 0,
         temperature: 0,
+        humidity: 0,
         lux: 0,
-        health: { veml7700: true, as7341: true, ds18b20: true },
+        health: { veml7700: true, as7341: true, sht3x: true },
     });
     const [dailyData, setDailyData] = useState(() => {
         const stored = localStorage.getItem("dailyData");
@@ -48,17 +49,6 @@ function SensorDashboard() {
     const [xDomain, setXDomain] = useState([0, 23]);
     const [yMin, setYMin] = useState("");
     const [yMax, setYMax] = useState("");
-    const [selectedBand, setSelectedBand] = useState("F6");
-
-    const bandOptions = ["F1","F2","F3","F4","F5","F6","F7","F8","clear","nir"];
-
-    const dailyBandData = useMemo(
-        () => dailyData.map(d => ({
-            time: new Date(d.timestamp).getHours(),
-            intensity: d[selectedBand] ?? 0,
-        })),
-        [dailyData, selectedBand]
-    );
 
     const yDomain = useMemo(
         () => [
@@ -83,13 +73,17 @@ function SensorDashboard() {
                 ...d,
             }));
         setRangeData(filtered);
-        setTempRangeData(filtered.map(d => ({ time: d.time, temperature: d.temperature })));
+        setTempRangeData(filtered.map(d => ({
+            time: d.time,
+            temperature: d.temperature,
+            humidity: d.humidity,
+        })));
         setXDomain([startHour, endHour]);
     };
 
     useEffect(() => {
         applyFilter();
-    }, []);
+    }, [dailyData]);
 
     useEffect(() => {
         const client = mqtt.connect(
@@ -113,7 +107,7 @@ function SensorDashboard() {
                     const cleaned = filterNoise(normalized);
                     if (!cleaned) return;
                     setSensorData(cleaned);
-                    const timestamp = Date.now();
+                    const timestamp = raw.timestamp ? Date.parse(raw.timestamp) : Date.now();
                     setDailyData(prev => {
                         const updated = trimOldEntries([...prev, { timestamp, ...cleaned }], timestamp);
                         localStorage.setItem("dailyData", JSON.stringify(updated));
@@ -145,10 +139,11 @@ function SensorDashboard() {
 
 
     return (
-        <div style={{ padding: 20 }}>
+        <div className={styles.dashboard}>
             <Header
                 topic={topic}
                 temperature={sensorData.temperature}
+                humidity={sensorData.humidity}
                 lux={sensorData.lux}
                 health={sensorData.health}
             />
@@ -169,41 +164,28 @@ function SensorDashboard() {
                 </BarChart>
             </ResponsiveContainer>
 
-            <h3 style={{ marginTop: 40 }}>Daily Band</h3>
-            <div style={{ marginBottom: 10 }}>
-                <label>
-                    Band:
-                    <select value={selectedBand} onChange={e => setSelectedBand(e.target.value)} style={{ marginLeft: 5 }}>
-                        {bandOptions.map(b => (
-                            <option key={b} value={b}>{b}</option>
-                        ))}
-                    </select>
-                </label>
-            </div>
-            <DailyBandChart data={dailyBandData} />
-
-            <h3 style={{ marginTop: 40 }}>Temperature</h3>
+            <h3 className={styles.sectionTitle}>Temperature</h3>
             <DailyTemperatureChart data={tempRangeData} />
 
-            <h3 style={{ marginTop: 40 }}>Historical Bands</h3>
-            <div style={{ marginBottom: 10 }}>
+            <h3 className={styles.sectionTitle}>Historical Bands</h3>
+            <div className={styles.filterRow}>
                 <label>
                     Start:
                     <input type="time" value={filterStart} onChange={e => setFilterStart(e.target.value)} />
                 </label>
-                <label style={{ marginLeft: 10 }}>
+                <label className={styles.filterLabel}>
                     End:
                     <input type="time" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} />
                 </label>
-                <label style={{ marginLeft: 10 }}>
+                <label className={styles.filterLabel}>
                     Y min:
-                    <input type="number" value={yMin} onChange={e => setYMin(e.target.value)} style={{ width: 70 }} />
+                    <input type="number" value={yMin} onChange={e => setYMin(e.target.value)} className={styles.numberInput} />
                 </label>
-                <label style={{ marginLeft: 10 }}>
+                <label className={styles.filterLabel}>
                     Y max:
-                    <input type="number" value={yMax} onChange={e => setYMax(e.target.value)} style={{ width: 70 }} />
+                    <input type="number" value={yMax} onChange={e => setYMax(e.target.value)} className={styles.numberInput} />
                 </label>
-                <button style={{ marginLeft: 10 }} onClick={applyFilter}>Apply</button>
+                <button className={styles.applyButton} onClick={applyFilter}>Apply</button>
             </div>
             <MultiBandChart
                 data={rangeData}
