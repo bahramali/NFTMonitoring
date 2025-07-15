@@ -29,3 +29,9 @@ bands `F1`–`F8` internally.
 Sensor readings are saved to `localStorage` so that the daily charts
 persist across page reloads. Entries older than 24 hours are removed
 automatically.
+
+You can inspect past readings by selecting a time range with the
+"Historical Bands" controls in the dashboard. After choosing start and
+end times, press **Apply** to render a line chart of all bands for that
+period. The chart does not refresh automatically, so you can examine
+historical trends without incoming data shifting the view.

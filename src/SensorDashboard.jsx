@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import DailyBandChart from "./DailyBandChart";
 import DailyTemperatureChart from "./DailyTemperatureChart";
+import MultiBandChart from "./MultiBandChart";
 import { trimOldEntries, normalizeSensorData } from "./utils";
 
 const topic = "azadFarm/sensorData";
@@ -39,7 +40,33 @@ function SensorDashboard() {
         return initial;
     });
     const [selectedBand, setSelectedBand] = useState("F6");
+    const [filterStart, setFilterStart] = useState("00:00");
+    const [filterEnd, setFilterEnd] = useState("23:59");
+    const [rangeData, setRangeData] = useState([]);
+
     const [now, setNow] = useState(() => new Date());
+
+    const applyFilter = () => {
+        const startHour = parseInt(filterStart.split(":")[0], 10);
+        const endHour = parseInt(filterEnd.split(":")[0], 10);
+        const filtered = dailyData
+            .filter(d => {
+                const h = new Date(d.timestamp).getHours();
+                return startHour <= endHour
+                    ? h >= startHour && h <= endHour
+                    : h >= startHour || h <= endHour;
+            })
+            .map(d => ({
+                time: new Date(d.timestamp).getHours(),
+                ...d,
+            }));
+        setRangeData(filtered);
+    };
+
+    useEffect(() => {
+        applyFilter();
+    }, []);
+
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 1000);
         const client = mqtt.connect(
@@ -134,8 +161,23 @@ function SensorDashboard() {
                 </select>
             </div>
             <DailyBandChart data={bandChartData} band={selectedBand} />
+
             <h3 style={{ marginTop: 40 }}>Temperature</h3>
             <DailyTemperatureChart data={tempChartData} />
+
+            <h3 style={{ marginTop: 40 }}>Historical Bands</h3>
+            <div style={{ marginBottom: 10 }}>
+                <label>
+                    Start:
+                    <input type="time" value={filterStart} onChange={e => setFilterStart(e.target.value)} />
+                </label>
+                <label style={{ marginLeft: 10 }}>
+                    End:
+                    <input type="time" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} />
+                </label>
+                <button style={{ marginLeft: 10 }} onClick={applyFilter}>Apply</button>
+            </div>
+            <MultiBandChart data={rangeData} />
         </div>
     );
 }
