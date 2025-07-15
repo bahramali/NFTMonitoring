@@ -24,6 +24,13 @@ test('defaults missing values to zero and keeps temperature', () => {
     expect(result.temperature).toBe(22.5);
 });
 
+test('includes health statuses', () => {
+    const raw = { health: { veml7700: false, as7341: true } };
+    const result = normalizeSensorData(raw);
+    expect(result.health.veml7700).toBe(false);
+    expect(result.health.as7341).toBe(true);
+});
+
 test('filterNoise discards out of range values', () => {
     const clean = {
         F1: 100, F2: 100, F3: 100, F4: 100,

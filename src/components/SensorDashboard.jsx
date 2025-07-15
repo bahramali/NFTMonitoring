@@ -32,6 +32,7 @@ function SensorDashboard() {
         nir: 0,
         temperature: 0,
         lux: 0,
+        health: { veml7700: true, as7341: true, ds18b20: true },
     });
     const [dailyData, setDailyData] = useState(() => {
         const stored = localStorage.getItem("dailyData");
@@ -134,8 +135,12 @@ function SensorDashboard() {
 
     return (
         <div style={{ padding: 20 }}>
-            <Header topic={topic} temperature={sensorData.temperature} />
-            <h1>🌿 AzadFarm - Sensor & Camera Dashboard</h1>
+            <Header
+                topic={topic}
+                temperature={sensorData.temperature}
+                lux={sensorData.lux}
+                health={sensorData.health}
+            />
 
             <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={spectrumData} margin={{ top: 20, right: 30, left: 0, bottom: 50 }}>

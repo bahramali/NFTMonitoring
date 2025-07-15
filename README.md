@@ -20,6 +20,12 @@ VITE_MQTT_PASSWORD=
 These variables are used to establish the MQTT connection.
 Make sure the file is named `.env` and each variable starts with the `VITE_` prefix so that Vite exposes them to the frontend.
 
+The header at the top of the dashboard displays the current time, the MQTT topic,
+the latest temperature and light intensity readings, and status indicators for
+each sensor. A green dot means the sensor is responsive while a red dot shows a
+problem reported in the incoming `health` object.
+
+
 The dashboard shows a bar chart of the most recent spectral intensities and a temperature line chart. Historical band data can be explored with a separate line chart.
 
 Incoming MQTT messages are expected to provide channel values such as

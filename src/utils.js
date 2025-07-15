@@ -17,6 +17,11 @@ export function normalizeSensorData(data = {}) {
         nir: data.nir ?? 0,
         temperature: data.temperature ?? 0,
         lux: data.lux ?? 0,
+        health: {
+            veml7700: data.health?.veml7700 ?? true,
+            as7341: data.health?.as7341 ?? true,
+            ds18b20: data.health?.ds18b20 ?? true,
+        },
     };
 }
 
