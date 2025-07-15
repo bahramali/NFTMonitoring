@@ -123,8 +123,6 @@ function SensorDashboard() {
         };
     }, []);
 
-    // Render latest spectrum readings with SpectrumBarChart
-
     return (
         <div className={styles.dashboard}>
             <Header topic={topic} />
