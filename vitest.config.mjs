@@ -7,6 +7,7 @@ export default defineConfig({
     test: {
         globals: true,
         environment: 'jsdom',
-        setupFiles: ['./__mocks__/resizeObserver.js']  // ⬅ این خط مهمه!
+        // Include the mock so tests have a ResizeObserver implementation.
+        setupFiles: ['./__mocks__/resizeObserver.js']
     }
 });
