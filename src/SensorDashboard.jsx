@@ -160,7 +160,6 @@ function SensorDashboard() {
                     ))}
                 </select>
             </div>
-
             <DailyBandChart data={bandChartData} band={selectedBand} />
 
             <h3 style={{ marginTop: 40 }}>Temperature</h3>
