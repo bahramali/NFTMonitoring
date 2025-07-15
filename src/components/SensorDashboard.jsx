@@ -14,6 +14,7 @@ import DailyTemperatureChart from "./DailyTemperatureChart";
 import MultiBandChart from "./MultiBandChart";
 import Header from "./Header";
 import { trimOldEntries, normalizeSensorData, filterNoise } from "../utils";
+import styles from './SensorDashboard.module.css';
 
 const topic = "azadFarm/sensorData";
 
@@ -138,7 +139,7 @@ function SensorDashboard() {
 
 
     return (
-        <div style={{ padding: 20 }}>
+        <div className={styles.dashboard}>
             <Header
                 topic={topic}
                 temperature={sensorData.temperature}
@@ -163,28 +164,29 @@ function SensorDashboard() {
                 </BarChart>
             </ResponsiveContainer>
 
-            <h3 style={{ marginTop: 40 }}>Temperature</h3>
+            <h3 className={styles.sectionTitle}>Temperature</h3>
+
             <DailyTemperatureChart data={tempRangeData} />
 
-            <h3 style={{ marginTop: 40 }}>Historical Bands</h3>
-            <div style={{ marginBottom: 10 }}>
+            <h3 className={styles.sectionTitle}>Historical Bands</h3>
+            <div className={styles.filterRow}>
                 <label>
                     Start:
                     <input type="time" value={filterStart} onChange={e => setFilterStart(e.target.value)} />
                 </label>
-                <label style={{ marginLeft: 10 }}>
+                <label className={styles.filterLabel}>
                     End:
                     <input type="time" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} />
                 </label>
-                <label style={{ marginLeft: 10 }}>
+                <label className={styles.filterLabel}>
                     Y min:
-                    <input type="number" value={yMin} onChange={e => setYMin(e.target.value)} style={{ width: 70 }} />
+                    <input type="number" value={yMin} onChange={e => setYMin(e.target.value)} className={styles.numberInput} />
                 </label>
-                <label style={{ marginLeft: 10 }}>
+                <label className={styles.filterLabel}>
                     Y max:
-                    <input type="number" value={yMax} onChange={e => setYMax(e.target.value)} style={{ width: 70 }} />
+                    <input type="number" value={yMax} onChange={e => setYMax(e.target.value)} className={styles.numberInput} />
                 </label>
-                <button style={{ marginLeft: 10 }} onClick={applyFilter}>Apply</button>
+                <button className={styles.applyButton} onClick={applyFilter}>Apply</button>
             </div>
             <MultiBandChart
                 data={rangeData}
