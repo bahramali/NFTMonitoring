@@ -1,15 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import mqtt from "mqtt";
-import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    Label
-} from "recharts";
+import SpectrumBarChart from "./SpectrumBarChart";
 import DailyTemperatureChart from "./DailyTemperatureChart";
 import MultiBandChart from "./MultiBandChart";
 import Header from "./Header";
@@ -33,7 +24,7 @@ function SensorDashboard() {
         temperature: 0,
         humidity: 0,
         lux: 0,
-        health: { veml7700: false, as7341: false, sht3x: false },
+        health: { veml7700: true, as7341: true, sht3x: true },
     });
     const [dailyData, setDailyData] = useState(() => {
         const stored = localStorage.getItem("dailyData");
@@ -124,18 +115,7 @@ function SensorDashboard() {
         };
     }, []);
 
-    const spectrumData = [
-        { name: "415 nm (F1)", value: sensorData.F1 },
-        { name: "445 nm (F2)", value: sensorData.F2 },
-        { name: "480 nm (F3)", value: sensorData.F3 },
-        { name: "515 nm (F4)", value: sensorData.F4 },
-        { name: "555 nm (F5)", value: sensorData.F5 },
-        { name: "590 nm (F6)", value: sensorData.F6 },
-        { name: "630 nm (F7)", value: sensorData.F7 },
-        { name: "680 nm (F8)", value: sensorData.F8 },
-        { name: "Clear", value: sensorData.clear },
-        { name: "NIR", value: sensorData.nir }
-    ];
+    // spectrumData rendered via SpectrumBarChart to avoid label flicker
 
 
     return (
@@ -147,23 +127,7 @@ function SensorDashboard() {
                 lux={sensorData.lux}
                 health={sensorData.health}
             />
-
-            <ResponsiveContainer width="100%" height={400}>
-                <BarChart
-                    data={spectrumData}
-                    margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
-                    isAnimationActive={false}
-                >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} height={60} />
-                    <YAxis>
-                        <Label value="PPFD" angle={-90} position="insideLeft" />
-                    </YAxis>
-                    <Tooltip />
-                    <Bar dataKey="value" fill="#82ca9d" isAnimationActive={false} />
-                </BarChart>
-            </ResponsiveContainer>
-
+            <SpectrumBarChart sensorData={sensorData} />
             <h3 className={styles.sectionTitle}>Temperature</h3>
             <DailyTemperatureChart data={tempRangeData} />
 

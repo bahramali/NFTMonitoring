@@ -25,7 +25,7 @@ the latest temperature, humidity and light intensity readings, and status
 indicators for each sensor. A green dot means the sensor is responsive while a
 red dot shows a problem reported in the incoming `health` object.
 
-The dashboard shows a bar chart of the most recent spectral intensities and a temperature line chart. Historical band data can be explored in a separate section where you pick a time range.
+The dashboard shows a bar chart of the most recent spectral intensities and a temperature line chart. The bar chart is memoized so its labels stay stable as new data arrives. Historical band data can be explored in a separate section where you pick a time range.
 The previous Daily Band chart has been removed; use the Historical Bands controls to inspect past readings.
 
 Incoming MQTT messages are expected to contain a `timestamp` field and channel
