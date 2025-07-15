@@ -22,11 +22,12 @@ export function normalizeSensorData(data = {}) {
         clear: toNumber(data.clear, 0),
         nir: toNumber(data.nir, 0),
         temperature: toNumber(data.temperature, 0),
+        humidity: toNumber(data.humidity, 0),
         lux: toNumber(data.lux, 0),
         health: {
             veml7700: data.health?.veml7700 ?? true,
             as7341: data.health?.as7341 ?? true,
-            ds18b20: data.health?.ds18b20 ?? true,
+            sht3x: data.health?.sht3x ?? true,
         },
     };
 }
@@ -37,6 +38,8 @@ export function filterNoise(reading, opts = {}) {
         bandMax = 10000,
         tempMin = -50,
         tempMax = 60,
+        humidityMin = 0,
+        humidityMax = 100,
         luxMin = 0,
         luxMax = 100000,
     } = opts;
@@ -48,6 +51,9 @@ export function filterNoise(reading, opts = {}) {
         }
     }
     if (reading.temperature < tempMin || reading.temperature > tempMax) {
+        return null;
+    }
+    if (reading.humidity < humidityMin || reading.humidity > humidityMax) {
         return null;
     }
     if (reading.lux < luxMin || reading.lux > luxMax) {

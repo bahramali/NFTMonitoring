@@ -11,7 +11,6 @@ import {
     Label
 } from "recharts";
 import DailyTemperatureChart from "./DailyTemperatureChart";
-import DailyBandChart from "./DailyBandChart";
 import MultiBandChart from "./MultiBandChart";
 import Header from "./Header";
 import { trimOldEntries, normalizeSensorData, filterNoise } from "../utils";
@@ -31,8 +30,9 @@ function SensorDashboard() {
         clear: 0,
         nir: 0,
         temperature: 0,
+        humidity: 0,
         lux: 0,
-        health: { veml7700: true, as7341: true, ds18b20: true },
+        health: { veml7700: true, as7341: true, sht3x: true },
     });
     const [dailyData, setDailyData] = useState(() => {
         const stored = localStorage.getItem("dailyData");
@@ -48,17 +48,6 @@ function SensorDashboard() {
     const [xDomain, setXDomain] = useState([0, 23]);
     const [yMin, setYMin] = useState("");
     const [yMax, setYMax] = useState("");
-    const [selectedBand, setSelectedBand] = useState("F6");
-
-    const bandOptions = ["F1","F2","F3","F4","F5","F6","F7","F8","clear","nir"];
-
-    const dailyBandData = useMemo(
-        () => dailyData.map(d => ({
-            time: new Date(d.timestamp).getHours(),
-            intensity: d[selectedBand] ?? 0,
-        })),
-        [dailyData, selectedBand]
-    );
 
     const yDomain = useMemo(
         () => [
@@ -83,7 +72,11 @@ function SensorDashboard() {
                 ...d,
             }));
         setRangeData(filtered);
-        setTempRangeData(filtered.map(d => ({ time: d.time, temperature: d.temperature })));
+        setTempRangeData(filtered.map(d => ({
+            time: d.time,
+            temperature: d.temperature,
+            humidity: d.humidity,
+        })));
         setXDomain([startHour, endHour]);
     };
 
@@ -113,7 +106,7 @@ function SensorDashboard() {
                     const cleaned = filterNoise(normalized);
                     if (!cleaned) return;
                     setSensorData(cleaned);
-                    const timestamp = Date.now();
+                    const timestamp = raw.timestamp ? Date.parse(raw.timestamp) : Date.now();
                     setDailyData(prev => {
                         const updated = trimOldEntries([...prev, { timestamp, ...cleaned }], timestamp);
                         localStorage.setItem("dailyData", JSON.stringify(updated));
@@ -149,6 +142,7 @@ function SensorDashboard() {
             <Header
                 topic={topic}
                 temperature={sensorData.temperature}
+                humidity={sensorData.humidity}
                 lux={sensorData.lux}
                 health={sensorData.health}
             />
@@ -168,19 +162,6 @@ function SensorDashboard() {
                     <Bar dataKey="value" fill="#82ca9d" isAnimationActive={false} />
                 </BarChart>
             </ResponsiveContainer>
-
-            <h3 style={{ marginTop: 40 }}>Daily Band</h3>
-            <div style={{ marginBottom: 10 }}>
-                <label>
-                    Band:
-                    <select value={selectedBand} onChange={e => setSelectedBand(e.target.value)} style={{ marginLeft: 5 }}>
-                        {bandOptions.map(b => (
-                            <option key={b} value={b}>{b}</option>
-                        ))}
-                    </select>
-                </label>
-            </div>
-            <DailyBandChart data={dailyBandData} />
 
             <h3 style={{ marginTop: 40 }}>Temperature</h3>
             <DailyTemperatureChart data={tempRangeData} />
