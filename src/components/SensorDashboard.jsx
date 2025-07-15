@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+
 import mqtt from "mqtt";
 import {
     BarChart,
@@ -150,6 +151,7 @@ function SensorDashboard() {
                     </YAxis>
                     <Tooltip />
                     <Bar dataKey="value" fill="#82ca9d" isAnimationActive={false} />
+
                 </BarChart>
             </ResponsiveContainer>
 

@@ -25,6 +25,7 @@ the latest temperature and light intensity readings, and status indicators for
 each sensor. A green dot means the sensor is responsive while a red dot shows a
 problem reported in the incoming `health` object.
 
+
 The dashboard shows a bar chart of the most recent spectral intensities and a temperature line chart. Historical band data can be explored with a separate line chart.
 
 Incoming MQTT messages are expected to provide channel values such as
