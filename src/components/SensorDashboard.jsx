@@ -10,6 +10,13 @@ import styles from './SensorDashboard.module.css';
 
 const topic = "azadFarm/sensorData";
 
+// Which sensor fields should be shown in each card
+const sensorFieldMap = {
+    veml7700: ['lux'],
+    sht3x: ['temperature', 'humidity'],
+    as7341: ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir']
+};
+
 function SensorDashboard() {
     const [sensorData, setSensorData] = useState({
         F1: 0,
@@ -115,12 +122,6 @@ function SensorDashboard() {
             client.end();
         };
     }, []);
-
-    const sensorFieldMap = {
-        veml7700: ['lux'],
-        sht3x: ['temperature', 'humidity'],
-        as7341: ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir']
-    };
 
     return (
         <div className={styles.dashboard}>
