@@ -42,6 +42,9 @@ function SensorDashboard() {
     const [filterStart, setFilterStart] = useState("00:00");
     const [filterEnd, setFilterEnd] = useState("23:59");
     const [rangeData, setRangeData] = useState([]);
+    const [xDomain, setXDomain] = useState([0, 23]);
+    const [yMin, setYMin] = useState("");
+    const [yMax, setYMax] = useState("");
 
     const applyFilter = () => {
         const startHour = parseInt(filterStart.split(":")[0], 10);
@@ -58,6 +61,7 @@ function SensorDashboard() {
                 ...d,
             }));
         setRangeData(filtered);
+        setXDomain([startHour, endHour]);
     };
 
     useEffect(() => {
@@ -114,11 +118,6 @@ function SensorDashboard() {
         { name: "NIR", value: sensorData.nir }
     ];
 
-    const multiDayData = dailyData.map(d => ({
-        time: new Date(d.timestamp).getHours(),
-        ...d,
-    }));
-
     const tempChartData = dailyData.map(d => ({
         time: new Date(d.timestamp).getHours(),
         temperature: d.temperature,
@@ -141,9 +140,6 @@ function SensorDashboard() {
                 </BarChart>
             </ResponsiveContainer>
 
-            <h3 style={{ marginTop: 40 }}>Daily Bands</h3>
-            <MultiBandChart data={multiDayData} />
-
             <h3 style={{ marginTop: 40 }}>Temperature</h3>
             <DailyTemperatureChart data={tempChartData} />
 
@@ -157,9 +153,21 @@ function SensorDashboard() {
                     End:
                     <input type="time" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} />
                 </label>
+                <label style={{ marginLeft: 10 }}>
+                    Y min:
+                    <input type="number" value={yMin} onChange={e => setYMin(e.target.value)} style={{ width: 70 }} />
+                </label>
+                <label style={{ marginLeft: 10 }}>
+                    Y max:
+                    <input type="number" value={yMax} onChange={e => setYMax(e.target.value)} style={{ width: 70 }} />
+                </label>
                 <button style={{ marginLeft: 10 }} onClick={applyFilter}>Apply</button>
             </div>
-            <MultiBandChart data={rangeData} />
+            <MultiBandChart
+                data={rangeData}
+                xDomain={xDomain}
+                yDomain={[yMin === '' ? 'auto' : Number(yMin), yMax === '' ? 'auto' : Number(yMax)]}
+            />
         </div>
     );
 }

@@ -20,7 +20,7 @@ VITE_MQTT_PASSWORD=
 These variables are used to establish the MQTT connection.
 Make sure the file is named `.env` and each variable starts with the `VITE_` prefix so that Vite exposes them to the frontend.
 
-The dashboard shows a bar chart of the most recent spectral intensities and two line charts plotting all bands and temperature over the last 24 hours.
+The dashboard shows a bar chart of the most recent spectral intensities and a temperature line chart. Historical band data can be explored with a separate line chart.
 
 Incoming MQTT messages are expected to provide channel values such as
 `ch415`, `ch445`, … `ch680`. The dashboard normalizes these keys to
@@ -34,4 +34,6 @@ You can inspect past readings by selecting a time range with the
 "Historical Bands" controls in the dashboard. After choosing start and
 end times, press **Apply** to render a line chart of all bands for that
 period. The chart does not refresh automatically, so you can examine
-historical trends without incoming data shifting the view.
+historical trends without incoming data shifting the view. You can also
+specify minimum and maximum PPFD values to adjust the chart's Y axis
+and zoom in on particular intensity ranges.
