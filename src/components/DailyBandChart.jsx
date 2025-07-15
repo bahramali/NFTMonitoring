@@ -6,11 +6,12 @@ import {
     YAxis,
     CartesianGrid,
     Tooltip,
-    ResponsiveContainer,
+
     Label
 } from 'recharts';
 
-const DailyBandChart = ({ data, band, width = 600, height = 300 }) => (
+const DailyBandChart = ({ data, width = 600, height = 300 }) => (
+
     <LineChart width={width} height={height} data={data} margin={{ top: 20, right: 30, left: 0, bottom: 50 }}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis
@@ -29,4 +30,5 @@ const DailyBandChart = ({ data, band, width = 600, height = 300 }) => (
     </LineChart>
 );
 
-export default DailyBandChart;
+
+export default React.memo(DailyBandChart);
