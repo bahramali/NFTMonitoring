@@ -32,7 +32,6 @@ Incoming MQTT messages are expected to contain a `timestamp` field and channel
 values such as `ch415`, `ch445`, … `ch680` along with `temperature`, `humidity`
 and `lux`. The dashboard normalizes these keys to bands `F1`–`F8` internally.
 
-
 Sensor readings are saved to `localStorage` so that the daily charts
 persist across page reloads. Entries older than 24 hours are removed
 automatically.
@@ -42,13 +41,13 @@ with band values outside 0–10,000 PPFD or temperatures outside -50–60 °C
 are discarded before being stored.
 
 Both the temperature chart and the historical bands chart show the data for the
-selected time range only. They remain static until you press **Apply** again to
-refresh the view.
+selected time range. They refresh automatically as new readings arrive, but you
+still need to press **Apply** after changing the filters to update the view.
 
 You can inspect past readings by selecting a time range with the
 "Historical Bands" controls in the dashboard. After choosing start and
 end times, press **Apply** to render a line chart of all bands for that
-period. The chart does not refresh automatically, so you can examine
-historical trends without incoming data shifting the view. You can also
-specify minimum and maximum PPFD values to adjust the chart's Y axis
+period. New readings automatically extend the chart while the selected
+range is active. You can also specify minimum and maximum PPFD values to
+adjust the chart's Y axis
 and zoom in on particular intensity ranges.

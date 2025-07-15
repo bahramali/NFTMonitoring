@@ -83,7 +83,7 @@ function SensorDashboard() {
 
     useEffect(() => {
         applyFilter();
-    }, []);
+    }, [dailyData]);
 
     useEffect(() => {
         const client = mqtt.connect(
@@ -165,7 +165,6 @@ function SensorDashboard() {
             </ResponsiveContainer>
 
             <h3 className={styles.sectionTitle}>Temperature</h3>
-
             <DailyTemperatureChart data={tempRangeData} />
 
             <h3 className={styles.sectionTitle}>Historical Bands</h3>
