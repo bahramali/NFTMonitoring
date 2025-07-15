@@ -20,18 +20,7 @@ const bandMeta = [
 function SpectrumBarChart({ sensorData }) {
     const data = useMemo(
         () => bandMeta.map(([key, label]) => ({ name: label, value: sensorData[key] || 0 })),
-        [
-            sensorData.F1,
-            sensorData.F2,
-            sensorData.F3,
-            sensorData.F4,
-            sensorData.F5,
-            sensorData.F6,
-            sensorData.F7,
-            sensorData.F8,
-            sensorData.clear,
-            sensorData.nir,
-        ]
+        [sensorData]
     );
 
     return (
