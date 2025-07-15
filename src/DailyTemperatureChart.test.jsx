@@ -4,8 +4,8 @@ import DailyTemperatureChart from './DailyTemperatureChart';
 
 test('renders temperature line chart', () => {
     const data = [
-        { time: '00:00', temperature: 20 },
-        { time: '01:00', temperature: 21 }
+        { time: 0, temperature: 20 },
+        { time: 1, temperature: 21 }
     ];
     const { container } = render(<DailyTemperatureChart data={data} />);
     const svg = container.querySelector('svg');
