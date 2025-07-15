@@ -42,6 +42,9 @@ function SensorDashboard() {
     const [filterStart, setFilterStart] = useState("00:00");
     const [filterEnd, setFilterEnd] = useState("23:59");
     const [rangeData, setRangeData] = useState([]);
+
+    const [tempRangeData, setTempRangeData] = useState([]);
+
     const [xDomain, setXDomain] = useState([0, 23]);
     const [yMin, setYMin] = useState("");
     const [yMax, setYMax] = useState("");
@@ -61,6 +64,9 @@ function SensorDashboard() {
                 ...d,
             }));
         setRangeData(filtered);
+
+        setTempRangeData(filtered.map(d => ({ time: d.time, temperature: d.temperature })));
+
         setXDomain([startHour, endHour]);
     };
 
@@ -118,10 +124,6 @@ function SensorDashboard() {
         { name: "NIR", value: sensorData.nir }
     ];
 
-    const tempChartData = dailyData.map(d => ({
-        time: new Date(d.timestamp).getHours(),
-        temperature: d.temperature,
-    }));
 
     return (
         <div style={{ padding: 20 }}>
@@ -141,7 +143,7 @@ function SensorDashboard() {
             </ResponsiveContainer>
 
             <h3 style={{ marginTop: 40 }}>Temperature</h3>
-            <DailyTemperatureChart data={tempChartData} />
+            <DailyTemperatureChart data={tempRangeData} />
 
             <h3 style={{ marginTop: 40 }}>Historical Bands</h3>
             <div style={{ marginBottom: 10 }}>

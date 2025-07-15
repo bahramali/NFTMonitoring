@@ -29,4 +29,5 @@ const DailyTemperatureChart = ({ data, width = 600, height = 300 }) => (
     </LineChart>
 );
 
-export default DailyTemperatureChart;
+export default React.memo(DailyTemperatureChart);
+

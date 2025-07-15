@@ -30,6 +30,11 @@ Sensor readings are saved to `localStorage` so that the daily charts
 persist across page reloads. Entries older than 24 hours are removed
 automatically.
 
+Both the temperature chart and the historical bands chart show the data for the
+selected time range only. They remain static until you press **Apply** again to
+refresh the view.
+
+
 You can inspect past readings by selecting a time range with the
 "Historical Bands" controls in the dashboard. After choosing start and
 end times, press **Apply** to render a line chart of all bands for that
@@ -37,3 +42,4 @@ period. The chart does not refresh automatically, so you can examine
 historical trends without incoming data shifting the view. You can also
 specify minimum and maximum PPFD values to adjust the chart's Y axis
 and zoom in on particular intensity ranges.
+
