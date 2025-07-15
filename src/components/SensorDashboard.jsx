@@ -116,9 +116,6 @@ function SensorDashboard() {
         };
     }, []);
 
-    // Spectrum data rendered via dedicated component to avoid label flicker
-
-
     const sensorFieldMap = {
         veml7700: ['lux'],
         sht3x: ['temperature', 'humidity'],
