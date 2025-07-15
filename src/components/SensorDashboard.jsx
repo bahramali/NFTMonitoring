@@ -15,6 +15,7 @@ import MultiBandChart from "./MultiBandChart";
 import Header from "./Header";
 import { trimOldEntries, normalizeSensorData, filterNoise } from "../utils";
 
+
 const topic = "azadFarm/sensorData";
 
 function SensorDashboard() {
