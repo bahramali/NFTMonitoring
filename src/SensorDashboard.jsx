@@ -39,8 +39,9 @@ function SensorDashboard() {
         return initial;
     });
     const [selectedBand, setSelectedBand] = useState("F6");
-
+    const [now, setNow] = useState(() => new Date());
     useEffect(() => {
+        const timer = setInterval(() => setNow(new Date()), 1000);
         const client = mqtt.connect(
             import.meta.env.VITE_MQTT_BROKER_URL || "wss://1457f4a458cd4b4e9175ae1816356ce1.s1.eu.hivemq.cloud:8884/mqtt",
             {
@@ -72,7 +73,10 @@ function SensorDashboard() {
             }
         });
 
-        return () => client.end();
+        return () => {
+            client.end();
+            clearInterval(timer);
+        };
     }, []);
 
     const spectrumData = [
@@ -102,6 +106,11 @@ function SensorDashboard() {
 
     return (
         <div style={{ padding: 20 }}>
+            <header style={{ marginBottom: 20 }}>
+                <div>Time: {now.toLocaleTimeString()}</div>
+                <div>Topic: {topic}</div>
+                <div>Temperature: {sensorData.temperature.toFixed(1)}°C</div>
+            </header>
             <h1>🌿 AzadFarm - Sensor & Camera Dashboard</h1>
 
             <ResponsiveContainer width="100%" height={400}>
