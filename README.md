@@ -32,6 +32,7 @@ Incoming MQTT messages are expected to contain a `timestamp` field and channel
 values such as `ch415`, `ch445`, … `ch680` along with `temperature`, `humidity`
 and `lux`. The dashboard normalizes these keys to bands `F1`–`F8` internally.
 
+
 Sensor readings are saved to `localStorage` so that the daily charts
 persist across page reloads. Entries older than 24 hours are removed
 automatically.
