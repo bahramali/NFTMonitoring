@@ -33,7 +33,13 @@ const MultiBandChart = ({
         ticks.push(i);
     }
     return (
-        <LineChart width={width} height={height} data={data} margin={{ top: 20, right: 30, left: 0, bottom: 50 }}>
+        <LineChart
+            width={width}
+            height={height}
+            data={data}
+            margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
+            isAnimationActive={false}
+        >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
                 dataKey="time"

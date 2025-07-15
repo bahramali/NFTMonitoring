@@ -154,7 +154,11 @@ function SensorDashboard() {
             />
 
             <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={spectrumData} margin={{ top: 20, right: 30, left: 0, bottom: 50 }}>
+                <BarChart
+                    data={spectrumData}
+                    margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
+                    isAnimationActive={false}
+                >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} height={60} />
                     <YAxis>
