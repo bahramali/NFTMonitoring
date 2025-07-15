@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
 import mqtt from "mqtt";
-
-
 import {
     BarChart,
     Bar,
@@ -12,18 +10,69 @@ import {
     ResponsiveContainer,
     Label
 } from "recharts";
+import DailyTemperatureChart from "./DailyTemperatureChart";
+import MultiBandChart from "./MultiBandChart";
+import Header from "./Header";
+import { trimOldEntries, normalizeSensorData } from "./utils";
 
 const topic = "azadFarm/sensorData";
 
-
 function SensorDashboard() {
-    const [sensorData, setSensorData] = useState({});
+    const [sensorData, setSensorData] = useState({
+        F1: 0,
+        F2: 0,
+        F3: 0,
+        F4: 0,
+        F5: 0,
+        F6: 0,
+        F7: 0,
+        F8: 0,
+        clear: 0,
+        nir: 0,
+        temperature: 0,
+        lux: 0,
+    });
+    const [dailyData, setDailyData] = useState(() => {
+        const stored = localStorage.getItem("dailyData");
+        const now = Date.now();
+        const initial = stored ? trimOldEntries(JSON.parse(stored), now) : [];
+        localStorage.setItem("dailyData", JSON.stringify(initial));
+        return initial;
+    });
+    const [filterStart, setFilterStart] = useState("00:00");
+    const [filterEnd, setFilterEnd] = useState("23:59");
+    const [rangeData, setRangeData] = useState([]);
+
+    const applyFilter = () => {
+        const startHour = parseInt(filterStart.split(":")[0], 10);
+        const endHour = parseInt(filterEnd.split(":")[0], 10);
+        const filtered = dailyData
+            .filter(d => {
+                const h = new Date(d.timestamp).getHours();
+                return startHour <= endHour
+                    ? h >= startHour && h <= endHour
+                    : h >= startHour || h <= endHour;
+            })
+            .map(d => ({
+                time: new Date(d.timestamp).getHours(),
+                ...d,
+            }));
+        setRangeData(filtered);
+    };
 
     useEffect(() => {
-        const client = mqtt.connect("wss://1457f4a458cd4b4e9175ae1816356ce1.s1.eu.hivemq.cloud:8884/mqtt", {
-            username: "hivemq.webclient.1752186412216",
-            password: "5FIH&19,GK8J#lrhax>e"
-        });
+        applyFilter();
+    }, []);
+
+    useEffect(() => {
+        const client = mqtt.connect(
+            import.meta.env.VITE_MQTT_BROKER_URL || "wss://1457f4a458cd4b4e9175ae1816356ce1.s1.eu.hivemq.cloud:8884/mqtt",
+            {
+                username: import.meta.env.VITE_MQTT_USERNAME || "hivemq.webclient.1752186412216",
+                password: import.meta.env.VITE_MQTT_PASSWORD || "5FIH&19,GK8J#lrhax>e",
+                protocol: "wss",
+            }
+        );
 
         client.on("connect", () => {
             client.subscribe(topic);
@@ -32,15 +81,24 @@ function SensorDashboard() {
         client.on("message", (t, message) => {
             if (t === topic) {
                 try {
-                    const json = JSON.parse(message.toString());
-                    setSensorData(json);
+                    const raw = JSON.parse(message.toString());
+                    const normalized = normalizeSensorData(raw);
+                    setSensorData(normalized);
+                    const timestamp = Date.now();
+                    setDailyData(prev => {
+                        const updated = trimOldEntries([...prev, { timestamp, ...normalized }], timestamp);
+                        localStorage.setItem("dailyData", JSON.stringify(updated));
+                        return updated;
+                    });
                 } catch (e) {
                     console.error("Invalid JSON", e);
                 }
             }
         });
 
-        return () => client.end();
+        return () => {
+            client.end();
+        };
     }, []);
 
     const spectrumData = [
@@ -56,8 +114,19 @@ function SensorDashboard() {
         { name: "NIR", value: sensorData.nir }
     ];
 
+    const multiDayData = dailyData.map(d => ({
+        time: new Date(d.timestamp).getHours(),
+        ...d,
+    }));
+
+    const tempChartData = dailyData.map(d => ({
+        time: new Date(d.timestamp).getHours(),
+        temperature: d.temperature,
+    }));
+
     return (
         <div style={{ padding: 20 }}>
+            <Header topic={topic} temperature={sensorData.temperature} />
             <h1>🌿 AzadFarm - Sensor & Camera Dashboard</h1>
 
             <ResponsiveContainer width="100%" height={400}>
@@ -72,8 +141,25 @@ function SensorDashboard() {
                 </BarChart>
             </ResponsiveContainer>
 
+            <h3 style={{ marginTop: 40 }}>Daily Bands</h3>
+            <MultiBandChart data={multiDayData} />
 
+            <h3 style={{ marginTop: 40 }}>Temperature</h3>
+            <DailyTemperatureChart data={tempChartData} />
 
+            <h3 style={{ marginTop: 40 }}>Historical Bands</h3>
+            <div style={{ marginBottom: 10 }}>
+                <label>
+                    Start:
+                    <input type="time" value={filterStart} onChange={e => setFilterStart(e.target.value)} />
+                </label>
+                <label style={{ marginLeft: 10 }}>
+                    End:
+                    <input type="time" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} />
+                </label>
+                <button style={{ marginLeft: 10 }} onClick={applyFilter}>Apply</button>
+            </div>
+            <MultiBandChart data={rangeData} />
         </div>
     );
 }
