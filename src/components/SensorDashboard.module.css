@@ -1,6 +1,10 @@
 .dashboard {
     padding: 20px;
 }
+.sensorGrid {
+    display: flex;
+    flex-wrap: wrap;
+}
 .sectionTitle {
     margin-top: 40px;
 }
