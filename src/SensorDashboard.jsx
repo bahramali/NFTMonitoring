@@ -10,9 +10,9 @@ import {
     ResponsiveContainer,
     Label
 } from "recharts";
-import DailyBandChart from "./DailyBandChart";
 import DailyTemperatureChart from "./DailyTemperatureChart";
 import MultiBandChart from "./MultiBandChart";
+import Header from "./Header";
 import { trimOldEntries, normalizeSensorData } from "./utils";
 
 const topic = "azadFarm/sensorData";
@@ -39,13 +39,9 @@ function SensorDashboard() {
         localStorage.setItem("dailyData", JSON.stringify(initial));
         return initial;
     });
-    const [selectedBand, setSelectedBand] = useState("F6");
     const [filterStart, setFilterStart] = useState("00:00");
     const [filterEnd, setFilterEnd] = useState("23:59");
     const [rangeData, setRangeData] = useState([]);
-
-    const [now, setNow] = useState(() => new Date());
-
     const applyFilter = () => {
         const startHour = parseInt(filterStart.split(":")[0], 10);
         const endHour = parseInt(filterEnd.split(":")[0], 10);
@@ -68,7 +64,6 @@ function SensorDashboard() {
     }, []);
 
     useEffect(() => {
-        const timer = setInterval(() => setNow(new Date()), 1000);
         const client = mqtt.connect(
             import.meta.env.VITE_MQTT_BROKER_URL || "wss://1457f4a458cd4b4e9175ae1816356ce1.s1.eu.hivemq.cloud:8884/mqtt",
             {
@@ -102,7 +97,6 @@ function SensorDashboard() {
 
         return () => {
             client.end();
-            clearInterval(timer);
         };
     }, []);
 
@@ -119,9 +113,9 @@ function SensorDashboard() {
         { name: "NIR", value: sensorData.nir }
     ];
 
-    const bandChartData = dailyData.map(d => ({
+    const multiDayData = dailyData.map(d => ({
         time: new Date(d.timestamp).getHours(),
-        intensity: d[selectedBand],
+        ...d,
     }));
 
     const tempChartData = dailyData.map(d => ({
@@ -129,15 +123,9 @@ function SensorDashboard() {
         temperature: d.temperature,
     }));
 
-    const bandChoices = ["F1","F2","F3","F4","F5","F6","F7","F8","clear","nir"];
-
     return (
         <div style={{ padding: 20 }}>
-            <header style={{ marginBottom: 20 }}>
-                <div>Time: {now.toLocaleTimeString()}</div>
-                <div>Topic: {topic}</div>
-                <div>Temperature: {sensorData.temperature.toFixed(1)}°C</div>
-            </header>
+            <Header topic={topic} temperature={sensorData.temperature} />
             <h1>🌿 AzadFarm - Sensor & Camera Dashboard</h1>
 
             <ResponsiveContainer width="100%" height={400}>
@@ -152,16 +140,8 @@ function SensorDashboard() {
                 </BarChart>
             </ResponsiveContainer>
 
-            <div style={{ marginTop: 40 }}>
-                <label htmlFor="band-select">Select Band: </label>
-                <select id="band-select" value={selectedBand} onChange={e => setSelectedBand(e.target.value)}>
-                    {bandChoices.map(b => (
-                        <option key={b} value={b}>{b}</option>
-                    ))}
-                </select>
-            </div>
-            <DailyBandChart data={bandChartData} band={selectedBand} />
-
+            <h3 style={{ marginTop: 40 }}>Daily Bands</h3>
+            <MultiBandChart data={multiDayData} />
             <h3 style={{ marginTop: 40 }}>Temperature</h3>
             <DailyTemperatureChart data={tempChartData} />
 
