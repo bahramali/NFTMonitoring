@@ -116,7 +116,6 @@ function SensorDashboard() {
         };
     }, []);
 
-    // Render spectrum bands using SpectrumBarChart to avoid label flicker
     const sensorFieldMap = {
         veml7700: ['lux'],
         sht3x: ['temperature', 'humidity'],
