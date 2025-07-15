@@ -15,7 +15,7 @@ function StatusDot({ ok }) {
     );
 }
 
-function Header({ topic, temperature, lux, health = {} }) {
+function Header({ topic, temperature, humidity = 0, lux, health = {} }) {
     const [now, setNow] = useState(() => new Date());
 
     useEffect(() => {
@@ -29,6 +29,7 @@ function Header({ topic, temperature, lux, health = {} }) {
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                 <span>Time: {now.toLocaleTimeString()}</span>
                 <span>Temp: {temperature.toFixed(1)}°C</span>
+                <span>Humidity: {humidity.toFixed(1)}%</span>
                 <span>Lux: {lux.toFixed(1)}</span>
                 <span>Topic: {topic}</span>
                 {Object.entries(health).map(([name, ok]) => (

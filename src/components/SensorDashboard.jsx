@@ -30,8 +30,9 @@ function SensorDashboard() {
         clear: 0,
         nir: 0,
         temperature: 0,
+        humidity: 0,
         lux: 0,
-        health: { veml7700: true, as7341: true, ds18b20: true },
+        health: { veml7700: true, as7341: true, sht3x: true },
     });
     const [dailyData, setDailyData] = useState(() => {
         const stored = localStorage.getItem("dailyData");
@@ -71,7 +72,11 @@ function SensorDashboard() {
                 ...d,
             }));
         setRangeData(filtered);
-        setTempRangeData(filtered.map(d => ({ time: d.time, temperature: d.temperature })));
+        setTempRangeData(filtered.map(d => ({
+            time: d.time,
+            temperature: d.temperature,
+            humidity: d.humidity,
+        })));
         setXDomain([startHour, endHour]);
     };
 
@@ -101,7 +106,7 @@ function SensorDashboard() {
                     const cleaned = filterNoise(normalized);
                     if (!cleaned) return;
                     setSensorData(cleaned);
-                    const timestamp = Date.now();
+                    const timestamp = raw.timestamp ? Date.parse(raw.timestamp) : Date.now();
                     setDailyData(prev => {
                         const updated = trimOldEntries([...prev, { timestamp, ...cleaned }], timestamp);
                         localStorage.setItem("dailyData", JSON.stringify(updated));
@@ -137,6 +142,7 @@ function SensorDashboard() {
             <Header
                 topic={topic}
                 temperature={sensorData.temperature}
+                humidity={sensorData.humidity}
                 lux={sensorData.lux}
                 health={sensorData.health}
             />
