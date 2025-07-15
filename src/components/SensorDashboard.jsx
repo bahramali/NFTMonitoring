@@ -150,7 +150,8 @@ function SensorDashboard() {
                         <Label value="PPFD" angle={-90} position="insideLeft" />
                     </YAxis>
                     <Tooltip />
-                    <Bar dataKey="value" fill="#82ca9d" />
+                    <Bar dataKey="value" fill="#82ca9d" isAnimationActive={false} />
+
                 </BarChart>
             </ResponsiveContainer>
 
