@@ -10,6 +10,13 @@ import styles from './SensorDashboard.module.css';
 
 const topic = "azadFarm/sensorData";
 
+// Which sensor fields should be shown in each card
+const sensorFieldMap = {
+    veml7700: ['lux'],
+    sht3x: ['temperature', 'humidity'],
+    as7341: ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir']
+};
+
 function SensorDashboard() {
     const [sensorData, setSensorData] = useState({
         F1: 0,
@@ -116,14 +123,7 @@ function SensorDashboard() {
         };
     }, []);
 
-    // spectrumData rendered via SpectrumBarChart to avoid label flicker
-
-
-    const sensorFieldMap = {
-        veml7700: ['lux'],
-        sht3x: ['temperature', 'humidity'],
-        as7341: ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir']
-    };
+    // Render latest spectrum readings with SpectrumBarChart
 
     return (
         <div className={styles.dashboard}>
@@ -139,21 +139,7 @@ function SensorDashboard() {
                 ))}
             </div>
 
-            <ResponsiveContainer width="100%" height={400}>
-                <BarChart
-                    data={spectrumData}
-                    margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
-                    isAnimationActive={false}
-                >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} height={60} />
-                    <YAxis>
-                        <Label value="PPFD" angle={-90} position="insideLeft" />
-                    </YAxis>
-                    <Tooltip />
-                    <Bar dataKey="value" fill="#82ca9d" isAnimationActive={false} />
-                </BarChart>
-            </ResponsiveContainer>
+            <SpectrumBarChart sensorData={sensorData} />
 
             <h3 className={styles.sectionTitle}>Temperature</h3>
             <DailyTemperatureChart data={tempRangeData} />
