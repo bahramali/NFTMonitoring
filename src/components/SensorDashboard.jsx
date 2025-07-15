@@ -33,7 +33,7 @@ function SensorDashboard() {
         temperature: 0,
         humidity: 0,
         lux: 0,
-        health: { veml7700: true, as7341: true, sht3x: true },
+        health: { veml7700: false, as7341: false, sht3x: false },
     });
     const [dailyData, setDailyData] = useState(() => {
         const stored = localStorage.getItem("dailyData");
