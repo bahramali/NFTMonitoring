@@ -1,12 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styles from './Header.module.css';
 
-function StatusDot({ ok }) {
-    const className = `${styles.statusDot} ${ok ? styles.ok : styles.bad}`;
-    return <span className={className} />;
-}
-
-function Header({ topic, temperature, humidity = 0, lux, health = {} }) {
+function Header({ topic }) {
     const [now, setNow] = useState(() => new Date());
 
     useEffect(() => {
@@ -16,20 +11,8 @@ function Header({ topic, temperature, humidity = 0, lux, health = {} }) {
 
     return (
         <header className={styles.header}>
-            <h1 className={styles.title}>🌿 AzadFarm Dashboard</h1>
-            <div className={styles.info}>
-                <span>Time: {now.toLocaleTimeString()}</span>
-                <span>Temp: {temperature.toFixed(1)}°C</span>
-                <span>Humidity: {humidity.toFixed(1)}%</span>
-                <span>Lux: {lux.toFixed(1)}</span>
-                <span>Topic: {topic}</span>
-                {Object.entries(health).map(([name, ok]) => (
-                    <span key={name} className={styles.sensor}>
-                        {name}
-                        <StatusDot ok={ok} />
-                    </span>
-                ))}
-            </div>
+            <h1 className={styles.title}>{topic} Dashboard</h1>
+            <div className={styles.time}>{now.toLocaleTimeString()}</div>
         </header>
     );
 }
