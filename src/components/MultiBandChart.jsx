@@ -53,4 +53,6 @@ const MultiBandChart = ({
     );
 };
 
+
 export default React.memo(MultiBandChart);
+

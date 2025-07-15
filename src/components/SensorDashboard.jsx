@@ -42,7 +42,9 @@ function SensorDashboard() {
     const [filterStart, setFilterStart] = useState("00:00");
     const [filterEnd, setFilterEnd] = useState("23:59");
     const [rangeData, setRangeData] = useState([]);
+
     const [tempRangeData, setTempRangeData] = useState([]);
+
     const [xDomain, setXDomain] = useState([0, 23]);
     const [yMin, setYMin] = useState("");
     const [yMax, setYMax] = useState("");
@@ -62,7 +64,9 @@ function SensorDashboard() {
                 ...d,
             }));
         setRangeData(filtered);
+
         setTempRangeData(filtered.map(d => ({ time: d.time, temperature: d.temperature })));
+
         setXDomain([startHour, endHour]);
     };
 

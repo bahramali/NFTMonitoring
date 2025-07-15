@@ -10,7 +10,7 @@ import {
     Label
 } from 'recharts';
 
-const DailyTemperatureChart = ({ data, width = 600, height = 300 }) => (
+const DailyBandChart = ({ data, band, width = 600, height = 300 }) => (
     <LineChart width={width} height={height} data={data} margin={{ top: 20, right: 30, left: 0, bottom: 50 }}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis
@@ -22,12 +22,11 @@ const DailyTemperatureChart = ({ data, width = 600, height = 300 }) => (
             interval={0}
         />
         <YAxis>
-            <Label value="°C" angle={-90} position="insideLeft" />
+            <Label value="PPFD" angle={-90} position="insideLeft" />
         </YAxis>
         <Tooltip />
-        <Line type="monotone" dataKey="temperature" stroke="#ff7300" dot={false} />
+        <Line type="monotone" dataKey="intensity" stroke="#8884d8" dot={false} />
     </LineChart>
 );
 
-export default React.memo(DailyTemperatureChart);
-
+export default DailyBandChart;
