@@ -1,6 +1,17 @@
+import React from 'react';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { vi } from 'vitest';
 import SpectrumBarChart from '../src/components/SpectrumBarChart';
+
+vi.mock('recharts', async () => {
+    const actual = await vi.importActual('recharts');
+    return {
+        ...actual,
+        ResponsiveContainer: ({ width = 800, height = 400, children }) =>
+            React.cloneElement(children, { width, height }),
+    };
+});
 
 test('renders spectrum bar chart', () => {
     const data = {
