@@ -116,7 +116,7 @@ function SensorDashboard() {
         };
     }, []);
 
-    // spectrumData rendered via SpectrumBarChart to avoid label flicker
+    // Spectrum data rendered via dedicated component to avoid label flicker
 
 
     const sensorFieldMap = {
@@ -139,21 +139,7 @@ function SensorDashboard() {
                 ))}
             </div>
 
-            <ResponsiveContainer width="100%" height={400}>
-                <BarChart
-                    data={spectrumData}
-                    margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
-                    isAnimationActive={false}
-                >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} height={60} />
-                    <YAxis>
-                        <Label value="PPFD" angle={-90} position="insideLeft" />
-                    </YAxis>
-                    <Tooltip />
-                    <Bar dataKey="value" fill="#82ca9d" isAnimationActive={false} />
-                </BarChart>
-            </ResponsiveContainer>
+            <SpectrumBarChart sensorData={sensorData} />
 
             <h3 className={styles.sectionTitle}>Temperature</h3>
             <DailyTemperatureChart data={tempRangeData} />
