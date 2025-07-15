@@ -1,15 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import mqtt from "mqtt";
-import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    Label
-} from "recharts";
+import SpectrumBarChart from "./SpectrumBarChart";
 import DailyTemperatureChart from "./DailyTemperatureChart";
 import MultiBandChart from "./MultiBandChart";
 import Header from "./Header";
@@ -34,7 +25,7 @@ function SensorDashboard() {
         temperature: 0,
         humidity: 0,
         lux: 0,
-        health: { veml7700: false, as7341: false, sht3x: false },
+        health: { veml7700: true, as7341: true, sht3x: true },
     });
     const [dailyData, setDailyData] = useState(() => {
         const stored = localStorage.getItem("dailyData");
@@ -125,18 +116,7 @@ function SensorDashboard() {
         };
     }, []);
 
-    const spectrumData = [
-        { name: "415 nm (F1)", value: sensorData.F1 },
-        { name: "445 nm (F2)", value: sensorData.F2 },
-        { name: "480 nm (F3)", value: sensorData.F3 },
-        { name: "515 nm (F4)", value: sensorData.F4 },
-        { name: "555 nm (F5)", value: sensorData.F5 },
-        { name: "590 nm (F6)", value: sensorData.F6 },
-        { name: "630 nm (F7)", value: sensorData.F7 },
-        { name: "680 nm (F8)", value: sensorData.F8 },
-        { name: "Clear", value: sensorData.clear },
-        { name: "NIR", value: sensorData.nir }
-    ];
+    // spectrumData rendered via SpectrumBarChart to avoid label flicker
 
 
     const sensorFieldMap = {
