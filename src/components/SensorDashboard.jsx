@@ -165,6 +165,7 @@ function SensorDashboard() {
             </ResponsiveContainer>
 
             <h3 className={styles.sectionTitle}>Temperature</h3>
+
             <DailyTemperatureChart data={tempRangeData} />
 
             <h3 className={styles.sectionTitle}>Historical Bands</h3>
