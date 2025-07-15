@@ -25,9 +25,8 @@ the latest temperature and light intensity readings, and status indicators for
 each sensor. A green dot means the sensor is responsive while a red dot shows a
 problem reported in the incoming `health` object.
 
-The dashboard shows a bar chart of the most recent spectral intensities and a temperature line chart. Historical band data can be explored with a separate line chart.
-
-Below the live bar chart there is a **Daily Band** section. Use the dropdown to choose any band (F1–F8, clear or NIR) and see how its intensity changed over the last 24 hours.
+The dashboard shows a bar chart of the most recent spectral intensities and a temperature line chart. Historical band data can be explored in a separate section where you pick a time range.
+The previous Daily Band chart has been removed; use the Historical Bands controls to inspect past readings.
 
 Incoming MQTT messages are expected to provide channel values such as
 `ch415`, `ch445`, … `ch680`. The dashboard normalizes these keys to
