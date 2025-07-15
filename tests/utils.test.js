@@ -31,6 +31,14 @@ test('includes health statuses', () => {
     expect(result.health.as7341).toBe(true);
 });
 
+test('parses numeric strings into numbers', () => {
+    const raw = { ch415: '10', temperature: '21.5', lux: '30' };
+    const result = normalizeSensorData(raw);
+    expect(result.F1).toBe(10);
+    expect(result.temperature).toBe(21.5);
+    expect(result.lux).toBe(30);
+});
+
 test('filterNoise discards out of range values', () => {
     const clean = {
         F1: 100, F2: 100, F3: 100, F4: 100,
