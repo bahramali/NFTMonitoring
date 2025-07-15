@@ -42,7 +42,6 @@ function SensorDashboard() {
     const [filterStart, setFilterStart] = useState("00:00");
     const [filterEnd, setFilterEnd] = useState("23:59");
     const [rangeData, setRangeData] = useState([]);
-
     const applyFilter = () => {
         const startHour = parseInt(filterStart.split(":")[0], 10);
         const endHour = parseInt(filterEnd.split(":")[0], 10);
@@ -143,7 +142,6 @@ function SensorDashboard() {
 
             <h3 style={{ marginTop: 40 }}>Daily Bands</h3>
             <MultiBandChart data={multiDayData} />
-
             <h3 style={{ marginTop: 40 }}>Temperature</h3>
             <DailyTemperatureChart data={tempChartData} />
 
