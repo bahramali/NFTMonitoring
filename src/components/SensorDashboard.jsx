@@ -169,7 +169,7 @@ function SensorDashboard() {
                 </BarChart>
             </ResponsiveContainer>
 
-            <h3 style={{ marginTop: 40 }}>Daily Band</h3>
+            <h3 style={{ marginTop: 40 }}>Historical Bands</h3>
             <div style={{ marginBottom: 10 }}>
                 <label>
                     Band:
