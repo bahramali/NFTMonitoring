@@ -13,6 +13,7 @@ import {
 import DailyTemperatureChart from "./DailyTemperatureChart";
 import MultiBandChart from "./MultiBandChart";
 import Header from "./Header";
+import SensorCard from "./SensorCard";
 import { trimOldEntries, normalizeSensorData, filterNoise } from "../utils";
 import styles from './SensorDashboard.module.css';
 
@@ -138,15 +139,25 @@ function SensorDashboard() {
     ];
 
 
+    const sensorFieldMap = {
+        veml7700: ['lux'],
+        sht3x: ['temperature', 'humidity'],
+        as7341: ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir']
+    };
+
     return (
         <div className={styles.dashboard}>
-            <Header
-                topic={topic}
-                temperature={sensorData.temperature}
-                humidity={sensorData.humidity}
-                lux={sensorData.lux}
-                health={sensorData.health}
-            />
+            <Header topic={topic} />
+
+            <div className={styles.sensorGrid}>
+                {Object.entries(sensorData.health).map(([name, ok]) => (
+                    <SensorCard key={name} name={name} ok={ok}>
+                        {sensorFieldMap[name]?.map(field => (
+                            <div key={field}>{field}: {Number(sensorData[field]).toFixed ? Number(sensorData[field]).toFixed(1) : sensorData[field]}</div>
+                        ))}
+                    </SensorCard>
+                ))}
+            </div>
 
             <ResponsiveContainer width="100%" height={400}>
                 <BarChart

@@ -1,0 +1,26 @@
+.card {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    overflow: hidden;
+    width: 200px;
+    margin: 10px;
+}
+
+.header {
+    color: white;
+    text-align: center;
+    padding: 4px 0;
+}
+
+.on {
+    background-color: green;
+}
+
+.off {
+    background-color: red;
+}
+
+.body {
+    padding: 8px;
+}
+
