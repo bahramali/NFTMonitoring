@@ -22,10 +22,11 @@ const DailyTemperatureChart = ({ data, width = 600, height = 300 }) => (
             interval={0}
         />
         <YAxis>
-            <Label value="°C" angle={-90} position="insideLeft" />
+            <Label value="°C / %" angle={-90} position="insideLeft" />
         </YAxis>
         <Tooltip />
         <Line type="monotone" dataKey="temperature" stroke="#ff7300" dot={false} />
+        <Line type="monotone" dataKey="humidity" stroke="#8884d8" dot={false} />
     </LineChart>
 );
 
