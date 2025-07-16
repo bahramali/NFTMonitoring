@@ -157,7 +157,7 @@ function SensorDashboard() {
             <SpectrumBarChart sensorData={sensorData} />
 
             <h3 className={styles.sectionTitle}>Temperature</h3>
-            <DailyTemperatureChart data={tempRangeData} />
+            <DailyTemperatureChart data={tempRangeData} xDomain={xDomain} />
 
             <h3 className={styles.sectionTitle}>Historical Bands</h3>
             <div className={styles.filterRow}>
