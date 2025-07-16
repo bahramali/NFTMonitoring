@@ -1,12 +1,53 @@
-# React + Vite
+# NFT Monitoring
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project is a React dashboard that subscribes to an MQTT broker and visualises spectral sensor data and temperature readings.
 
-Currently, two official plugins are available:
+## Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1. Copy `.env.example` to `.env` and fill in your MQTT credentials and broker URL.
+2. Install dependencies with `npm install` (requires internet access).
+3. Run the development server with `npm run dev`.
+4. Execute tests with `npm test`.
 
-## Expanding the ESLint configuration
+## Environment variables
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```
+VITE_MQTT_BROKER_URL=
+VITE_MQTT_USERNAME=
+VITE_MQTT_PASSWORD=
+```
+
+These variables are used to establish the MQTT connection.
+Make sure the file is named `.env` and each variable starts with the `VITE_` prefix so that Vite exposes them to the frontend.
+
+The header at the top of the dashboard displays the current time, the MQTT topic,
+the latest temperature, humidity and light intensity readings, and status
+indicators for each sensor. A green dot means the sensor is responsive while a
+red dot shows a problem reported in the incoming `health` object.
+
+The dashboard shows a bar chart of the most recent spectral intensities and a temperature line chart. The bar chart is memoized so its labels stay stable as new data arrives. Historical band data can be explored in a separate section where you pick a time range.
+The previous Daily Band chart has been removed; use the Historical Bands controls to inspect past readings.
+
+Incoming MQTT messages are expected to contain a `timestamp` field and channel
+values such as `ch415`, `ch445`, … `ch680` along with `temperature`, `humidity`
+and `lux`. The dashboard normalizes these keys to bands `F1`–`F8` internally.
+
+Sensor readings are saved to `localStorage` so that the daily charts
+persist across page reloads. Entries older than 24 hours are removed
+automatically.
+
+Extreme outliers are ignored to reduce noise in the graphs. Readings
+with band values outside 0–10,000 PPFD or temperatures outside -50–60 °C
+are discarded before being stored.
+
+Both the temperature chart and the historical bands chart show the data for the
+selected time range. They refresh automatically as new readings arrive, but you
+still need to press **Apply** after changing the filters to update the view.
+
+You can inspect past readings by selecting a time range with the
+"Historical Bands" controls in the dashboard. After choosing start and
+end times, press **Apply** to render a line chart of all bands for that
+period. New readings automatically extend the chart while the selected
+range is active. You can also specify minimum and maximum PPFD values to
+adjust the chart's Y axis
+and zoom in on particular intensity ranges.
