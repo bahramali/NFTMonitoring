@@ -1,0 +1,22 @@
+.dashboard {
+    padding: 20px;
+}
+.sensorGrid {
+    display: flex;
+    flex-wrap: wrap;
+}
+.sectionTitle {
+    margin-top: 40px;
+}
+.filterRow {
+    margin-bottom: 10px;
+}
+.filterLabel {
+    margin-left: 10px;
+}
+.numberInput {
+    width: 70px;
+}
+.applyButton {
+    margin-left: 10px;
+}
