@@ -60,9 +60,9 @@ function SensorDashboard() {
     const formatTime = (t) => {
         const d = new Date(t);
         return (
-            d.getFullYear().toString() +
-            String(d.getMonth() + 1).padStart(2, '0') +
-            String(d.getDate()).padStart(2, '0') + 'T' +
+            d.getFullYear().toString() + '-' +
+            String(d.getMonth() + 1).padStart(2, '0') + '-' +
+            String(d.getDate()).padStart(2, '0') + ' ' +
             String(d.getHours()).padStart(2, '0') + ':' +
             String(d.getMinutes()).padStart(2, '0')
         );
@@ -156,10 +156,6 @@ function SensorDashboard() {
 
             <SpectrumBarChart sensorData={sensorData} />
 
-            <h3 className={styles.sectionTitle}>Temperature</h3>
-            <DailyTemperatureChart data={tempRangeData} xDomain={xDomain} />
-
-            <h3 className={styles.sectionTitle}>Historical Bands</h3>
             <div className={styles.filterRow}>
                 <label>
                     Range:
@@ -174,8 +170,13 @@ function SensorDashboard() {
                 </label>
             </div>
             <div className={styles.rangeLabel}>
-                {`Start: ${formatTime(startTime)} → ${formatTime(endTime)}`}
+                {`From: ${formatTime(startTime)} until: ${formatTime(endTime)}`}
             </div>
+
+            <h3 className={styles.sectionTitle}>Temperature</h3>
+            <DailyTemperatureChart data={tempRangeData} xDomain={xDomain} />
+
+            <h3 className={styles.sectionTitle}>Historical Bands</h3>
             <MultiBandChart
                 data={rangeData}
                 xDomain={xDomain}
