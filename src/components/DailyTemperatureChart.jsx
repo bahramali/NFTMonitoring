@@ -10,7 +10,13 @@ import {
 } from 'recharts';
 
 const DailyTemperatureChart = ({ data, width = 600, height = 300 }) => (
-    <LineChart width={width} height={height} data={data} margin={{ top: 20, right: 30, left: 0, bottom: 50 }}>
+    <LineChart
+        width={width}
+        height={height}
+        data={data}
+        margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
+        isAnimationActive={false}
+    >
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis
             dataKey="time"
@@ -24,8 +30,20 @@ const DailyTemperatureChart = ({ data, width = 600, height = 300 }) => (
             <Label value="°C / %" angle={-90} position="insideLeft" />
         </YAxis>
         <Tooltip />
-        <Line type="monotone" dataKey="temperature" stroke="#ff7300" dot={false} />
-        <Line type="monotone" dataKey="humidity" stroke="#8884d8" dot={false} />
+        <Line
+            type="monotone"
+            dataKey="temperature"
+            stroke="#ff7300"
+            dot={false}
+            isAnimationActive={false}
+        />
+        <Line
+            type="monotone"
+            dataKey="humidity"
+            stroke="#8884d8"
+            dot={false}
+            isAnimationActive={false}
+        />
     </LineChart>
 );
 
