@@ -1,4 +1,5 @@
-name: CI: Test, Build, Deploy and Page Link
+name: |
+  CI: Test, Build, Deploy and Page Link
 
 on:
   push:
