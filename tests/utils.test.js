@@ -10,6 +10,16 @@ test('removes entries older than 24h', () => {
     expect(result.length).toBe(1);
 });
 
+test('honors custom maxAge', () => {
+    const now = Date.now();
+    const entries = [
+        { timestamp: now - 5 },
+        { timestamp: now - 40 }
+    ];
+    const result = trimOldEntries(entries, now, 20);
+    expect(result.length).toBe(1);
+});
+
 test('normalizes ch-prefixed keys to F1-F8', () => {
     const raw = { ch415: 1, ch445: 2, ch480: 3, ch515: 4, ch555: 5, ch590: 6, ch630: 7, ch680: 8 };
     const result = normalizeSensorData(raw);

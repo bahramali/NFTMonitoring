@@ -37,52 +37,43 @@ function SensorDashboard() {
     const [dailyData, setDailyData] = useState(() => {
         const stored = localStorage.getItem("dailyData");
         const now = Date.now();
-        const initial = stored ? trimOldEntries(JSON.parse(stored), now) : [];
+        const initial = stored ? trimOldEntries(JSON.parse(stored), now, 30 * 24 * 60 * 60 * 1000) : [];
         localStorage.setItem("dailyData", JSON.stringify(initial));
         return initial;
     });
-    const [filterStart, setFilterStart] = useState("00:00");
-    const [filterEnd, setFilterEnd] = useState("23:59");
+    const [timeRange, setTimeRange] = useState('24h');
     const [rangeData, setRangeData] = useState([]);
     const [tempRangeData, setTempRangeData] = useState([]);
-    const [xDomain, setXDomain] = useState([0, 23]);
-    const [yMin, setYMin] = useState("");
-    const [yMax, setYMax] = useState("");
+    const [xDomain, setXDomain] = useState([Date.now() - 24 * 60 * 60 * 1000, Date.now()]);
 
-    const yDomain = useMemo(
-        () => [
-            yMin === '' ? 'auto' : Number(yMin),
-            yMax === '' ? 'auto' : Number(yMax)
-        ],
-        [yMin, yMax]
-    );
+    const rangeMap = useMemo(() => ({
+        '6h': 6 * 60 * 60 * 1000,
+        '12h': 12 * 60 * 60 * 1000,
+        '24h': 24 * 60 * 60 * 1000,
+        '3days': 3 * 24 * 60 * 60 * 1000,
+        '7days': 7 * 24 * 60 * 60 * 1000,
+        '1month': 30 * 24 * 60 * 60 * 1000,
+    }), []);
 
     const applyFilter = () => {
-        const startHour = parseInt(filterStart.split(":")[0], 10);
-        const endHour = parseInt(filterEnd.split(":")[0], 10);
+        const now = Date.now();
+        const rangeMs = rangeMap[timeRange] || rangeMap['24h'];
+        const start = now - rangeMs;
         const filtered = dailyData
-            .filter(d => {
-                const h = new Date(d.timestamp).getHours();
-                return startHour <= endHour
-                    ? h >= startHour && h <= endHour
-                    : h >= startHour || h <= endHour;
-            })
-            .map(d => ({
-                time: new Date(d.timestamp).getHours(),
-                ...d,
-            }));
+            .filter(d => d.timestamp >= start)
+            .map(d => ({ time: d.timestamp, ...d }));
         setRangeData(filtered);
         setTempRangeData(filtered.map(d => ({
             time: d.time,
             temperature: d.temperature,
             humidity: d.humidity,
         })));
-        setXDomain([startHour, endHour]);
+        setXDomain([start, now]);
     };
 
     useEffect(() => {
         applyFilter();
-    }, [dailyData]);
+    }, [dailyData, timeRange]);
 
     useEffect(() => {
         const client = mqtt.connect(
@@ -108,7 +99,11 @@ function SensorDashboard() {
                     setSensorData(cleaned);
                     const timestamp = raw.timestamp ? Date.parse(raw.timestamp) : Date.now();
                     setDailyData(prev => {
-                        const updated = trimOldEntries([...prev, { timestamp, ...cleaned }], timestamp);
+                        const updated = trimOldEntries(
+                            [...prev, { timestamp, ...cleaned }],
+                            timestamp,
+                            30 * 24 * 60 * 60 * 1000
+                        );
                         localStorage.setItem("dailyData", JSON.stringify(updated));
                         return updated;
                     });
@@ -145,27 +140,21 @@ function SensorDashboard() {
             <h3 className={styles.sectionTitle}>Historical Bands</h3>
             <div className={styles.filterRow}>
                 <label>
-                    Start:
-                    <input type="time" value={filterStart} onChange={e => setFilterStart(e.target.value)} />
+                    Range:
+                    <select value={timeRange} onChange={e => setTimeRange(e.target.value)}>
+                        <option value="6h">6h</option>
+                        <option value="12h">12h</option>
+                        <option value="24h">24h</option>
+                        <option value="3days">3 days</option>
+                        <option value="7days">7 days</option>
+                        <option value="1month">1 month</option>
+                    </select>
                 </label>
-                <label className={styles.filterLabel}>
-                    End:
-                    <input type="time" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} />
-                </label>
-                <label className={styles.filterLabel}>
-                    Y min:
-                    <input type="number" value={yMin} onChange={e => setYMin(e.target.value)} className={styles.numberInput} />
-                </label>
-                <label className={styles.filterLabel}>
-                    Y max:
-                    <input type="number" value={yMax} onChange={e => setYMax(e.target.value)} className={styles.numberInput} />
-                </label>
-                <button className={styles.applyButton} onClick={applyFilter}>Apply</button>
             </div>
             <MultiBandChart
                 data={rangeData}
                 xDomain={xDomain}
-                yDomain={yDomain}
+                yDomain={["auto", "auto"]}
             />
         </div>
     );
