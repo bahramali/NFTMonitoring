@@ -23,15 +23,24 @@ const MultiBandChart = ({
     data,
     width = 600,
     height = 300,
-    xDomain = [0, 23],
+    xDomain = [Date.now() - 24 * 60 * 60 * 1000, Date.now()],
     yDomain = ['auto', 'auto'],
 }) => {
     const start = xDomain[0];
     const end = xDomain[1];
+    const day = 24 * 60 * 60 * 1000;
+    const hour = 60 * 60 * 1000;
+    const interval = end - start <= day * 2 ? hour : day;
     const ticks = [];
-    for (let i = Math.ceil(start); i <= Math.floor(end); i++) {
-        ticks.push(i);
+    for (let t = Math.ceil(start / interval) * interval; t <= end; t += interval) {
+        ticks.push(t);
     }
+    const tickFormatter = (val) => {
+        const d = new Date(val);
+        return end - start <= day * 2
+            ? `${String(d.getHours()).padStart(2, '0')}`
+            : `${d.getMonth() + 1}/${d.getDate()}`;
+    };
     return (
         <LineChart
             width={width}
@@ -46,8 +55,8 @@ const MultiBandChart = ({
                 type="number"
                 domain={xDomain}
                 ticks={ticks}
-                tickFormatter={h => String(h).padStart(2, '0')}
-                interval={0}
+                tickFormatter={tickFormatter}
+                scale="time"
             />
             <YAxis domain={yDomain} allowDataOverflow />
             <Tooltip />
