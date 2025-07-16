@@ -25,14 +25,19 @@ function SpectrumBarChart({ sensorData }) {
 
     return (
         <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 50 }} isAnimationActive={false}>
+            <BarChart
+                data={data}
+                margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
+                isAnimationActive={false}
+                animationDuration={0}
+            >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} height={60} />
                 <YAxis>
                     <Label value="PPFD" angle={-90} position="insideLeft" />
                 </YAxis>
                 <Tooltip />
-                <Bar dataKey="value" fill="#82ca9d" isAnimationActive={false} />
+                <Bar dataKey="value" fill="#82ca9d" isAnimationActive={false} animationDuration={0} />
             </BarChart>
         </ResponsiveContainer>
     );

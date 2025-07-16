@@ -62,7 +62,14 @@ const MultiBandChart = ({
             <Tooltip />
             <Legend />
             {bandKeys.map((key, idx) => (
-                <Line key={key} type="monotone" dataKey={key} stroke={colors[idx % colors.length]} dot={false} />
+                <Line
+                    key={key}
+                    type="monotone"
+                    dataKey={key}
+                    stroke={colors[idx % colors.length]}
+                    dot={false}
+                    isAnimationActive={false}
+                />
             ))}
         </LineChart>
     );
