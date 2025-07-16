@@ -8,6 +8,17 @@ function toNumber(value, fallback = 0) {
     return Number.isFinite(n) ? n : fallback;
 }
 
+function toBool(value, fallback = true) {
+    if (value === undefined || value === null) return fallback;
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+        const lower = value.toLowerCase();
+        if (lower === 'true') return true;
+        if (lower === 'false') return false;
+    }
+    return Boolean(value);
+}
+
 export function normalizeSensorData(data = {}) {
     return {
         F1: toNumber(data.ch415 ?? data.F1, 0),
@@ -24,9 +35,9 @@ export function normalizeSensorData(data = {}) {
         humidity: toNumber(data.humidity, 0),
         lux: toNumber(data.lux, 0),
         health: {
-            veml7700: data.health?.veml7700 ?? true,
-            as7341: data.health?.as7341 ?? true,
-            sht3x: data.health?.sht3x ?? true,
+            veml7700: toBool(data.health?.veml7700, true),
+            as7341: toBool(data.health?.as7341, true),
+            sht3x: toBool(data.health?.sht3x, true),
         },
     };
 }

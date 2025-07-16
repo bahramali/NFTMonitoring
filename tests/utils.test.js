@@ -43,6 +43,14 @@ test('includes health statuses', () => {
     expect(result.health.sht3x).toBe(false);
 });
 
+test('parses string and numeric health values', () => {
+    const raw = { health: { veml7700: 'false', as7341: 'true', sht3x: 0 } };
+    const result = normalizeSensorData(raw);
+    expect(result.health.veml7700).toBe(false);
+    expect(result.health.as7341).toBe(true);
+    expect(result.health.sht3x).toBe(false);
+});
+
 test('parses numeric strings into numbers', () => {
     const raw = { ch415: '10', temperature: '21.5', humidity: '55', lux: '30' };
     const result = normalizeSensorData(raw);
