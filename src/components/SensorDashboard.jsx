@@ -45,6 +45,8 @@ function SensorDashboard() {
     const [rangeData, setRangeData] = useState([]);
     const [tempRangeData, setTempRangeData] = useState([]);
     const [xDomain, setXDomain] = useState([Date.now() - 24 * 60 * 60 * 1000, Date.now()]);
+    const [startTime, setStartTime] = useState(xDomain[0]);
+    const [endTime, setEndTime] = useState(xDomain[1]);
 
     const rangeMap = useMemo(() => ({
         '6h': 6 * 60 * 60 * 1000,
@@ -55,12 +57,23 @@ function SensorDashboard() {
         '1month': 30 * 24 * 60 * 60 * 1000,
     }), []);
 
+    const formatTime = (t) => {
+        const d = new Date(t);
+        return (
+            d.getFullYear().toString() +
+            String(d.getMonth() + 1).padStart(2, '0') +
+            String(d.getDate()).padStart(2, '0') + 'T' +
+            String(d.getHours()).padStart(2, '0') + ':' +
+            String(d.getMinutes()).padStart(2, '0')
+        );
+    };
+
     const applyFilter = () => {
         const now = Date.now();
         const rangeMs = rangeMap[timeRange] || rangeMap['24h'];
         const start = now - rangeMs;
         const filtered = dailyData
-            .filter(d => d.timestamp >= start)
+            .filter(d => d.timestamp >= start && d.timestamp <= now)
             .map(d => ({ time: d.timestamp, ...d }));
         setRangeData(filtered);
         setTempRangeData(filtered.map(d => ({
@@ -69,11 +82,20 @@ function SensorDashboard() {
             humidity: d.humidity,
         })));
         setXDomain([start, now]);
+        setStartTime(start);
+        setEndTime(now);
     };
 
     useEffect(() => {
         applyFilter();
-    }, [dailyData, timeRange]);
+    }, [timeRange]);
+
+    useEffect(() => {
+        // keep rangeData in sync with stored readings on first load
+        if (rangeData.length === 0) {
+            applyFilter();
+        }
+    }, [dailyData]);
 
     useEffect(() => {
         const client = mqtt.connect(
@@ -150,6 +172,9 @@ function SensorDashboard() {
                         <option value="1month">1 month</option>
                     </select>
                 </label>
+            </div>
+            <div className={styles.rangeLabel}>
+                {`Start: ${formatTime(startTime)} → ${formatTime(endTime)}`}
             </div>
             <MultiBandChart
                 data={rangeData}

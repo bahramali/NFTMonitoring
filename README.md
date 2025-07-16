@@ -41,9 +41,11 @@ with band values outside 0–10,000 PPFD or temperatures outside -50–60 °C
 are discarded before being stored.
 
 Both the temperature chart and the historical bands chart show the data for the
-selected time range. They refresh automatically as new readings arrive.
+
+selected time range.
 
 You can inspect past readings by selecting one of the preset periods in the
 "Historical Bands" dropdown. Options include 6 h, 12 h, 24 h, 3 days, 7 days and
-1 month. Changing the selection immediately updates the chart to show all bands
-from the chosen window.
+1 month. Selecting a period freezes the window so it does not keep advancing as
+new readings arrive. The start and end timestamps of the chosen range are shown
+below the dropdown.
