@@ -6,7 +6,8 @@ import {
     YAxis,
     CartesianGrid,
     Tooltip,
-    Legend
+    Legend,
+    ResponsiveContainer
 } from 'recharts';
 
 const colors = [
@@ -42,36 +43,38 @@ const MultiBandChart = ({
             : `${d.getMonth() + 1}/${d.getDate()}`;
     };
     return (
-        <LineChart
-            width={width}
-            height={height}
-            data={data}
-            margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
-            isAnimationActive={false}
-        >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis
-                dataKey="time"
-                type="number"
-                domain={xDomain}
-                ticks={ticks}
-                tickFormatter={tickFormatter}
-                scale="time"
-            />
-            <YAxis domain={yDomain} allowDataOverflow />
-            <Tooltip />
-            <Legend />
-            {bandKeys.map((key, idx) => (
-                <Line
-                    key={key}
-                    type="monotone"
-                    dataKey={key}
-                    stroke={colors[idx % colors.length]}
-                    dot={false}
-                    isAnimationActive={false}
+        <ResponsiveContainer width="100%" height={height} debounce={200}>
+            <LineChart
+                width={width}
+                height={height}
+                data={data}
+                margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
+                isAnimationActive={false}
+            >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                    dataKey="time"
+                    type="number"
+                    domain={xDomain}
+                    ticks={ticks}
+                    tickFormatter={tickFormatter}
+                    scale="time"
                 />
-            ))}
-        </LineChart>
+                <YAxis domain={yDomain} allowDataOverflow />
+                <Tooltip />
+                <Legend />
+                {bandKeys.map((key, idx) => (
+                    <Line
+                        key={key}
+                        type="monotone"
+                        dataKey={key}
+                        stroke={colors[idx % colors.length]}
+                        dot={false}
+                        isAnimationActive={false}
+                    />
+                ))}
+            </LineChart>
+        </ResponsiveContainer>
     );
 };
 
