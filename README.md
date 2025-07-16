@@ -41,6 +41,7 @@ with band values outside 0–10,000 PPFD or temperatures outside -50–60 °C
 are discarded before being stored.
 
 Both the temperature chart and the historical bands chart show the data for the
+
 selected time range.
 
 You can inspect past readings by selecting one of the preset periods in the
