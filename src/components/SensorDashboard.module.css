@@ -20,3 +20,8 @@
 .applyButton {
     margin-left: 10px;
 }
+
+.rangeLabel {
+    margin-bottom: 10px;
+    font-size: 0.9em;
+}

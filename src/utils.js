@@ -1,6 +1,5 @@
-export function trimOldEntries(entries, now = Date.now()) {
-    const DAY = 24 * 60 * 60 * 1000;
-    return entries.filter(e => now - e.timestamp < DAY);
+export function trimOldEntries(entries, now = Date.now(), maxAge = 24 * 60 * 60 * 1000) {
+    return entries.filter(e => now - e.timestamp < maxAge);
 }
 
 function toNumber(value, fallback = 0) {
