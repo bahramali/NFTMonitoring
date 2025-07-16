@@ -1,7 +1,17 @@
 import React from 'react';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { vi } from 'vitest';
 import MultiBandChart from '../src/components/MultiBandChart';
+
+vi.mock('recharts', async () => {
+    const actual = await vi.importActual('recharts');
+    return {
+        ...actual,
+        ResponsiveContainer: ({ width = 800, height = 300, children }) =>
+            React.cloneElement(children, { width, height }),
+    };
+});
 
 test('renders multi-band line chart', () => {
     const data = [

@@ -24,7 +24,7 @@ function SpectrumBarChart({ sensorData }) {
     );
 
     return (
-        <ResponsiveContainer width="100%" height={400}>
+        <ResponsiveContainer width="100%" height={400} debounce={200}>
             <BarChart
                 data={data}
                 margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
