@@ -141,14 +141,19 @@ function SensorDashboard() {
             <div className={styles.sensorGrid}>
                 {Object.entries(sensorData.health).map(([name, ok]) => (
                     <SensorCard key={name} name={name} ok={ok}>
-                        {sensorFieldMap[name]?.map(field => (
-                            <div key={field}>
-                                {field}: {sensorData[field]?.value?.toFixed
-                                ? sensorData[field].value.toFixed(1)
-                                : sensorData[field].value}{' '}
-                                {sensorData[field]?.unit || ''}
-                            </div>
-                        ))}
+                        {sensorFieldMap[name]?.map(field => {
+                            const data = sensorData[field];
+                            const value = (data && typeof data === 'object' && 'value' in data)
+                                ? data.value
+                                : data;
+                            const display = typeof value === 'number' ? value.toFixed(1) : value;
+                            const unit = (data && typeof data === 'object') ? (data.unit || '') : '';
+                            return (
+                                <div key={field}>
+                                    {field}: {display} {unit}
+                                </div>
+                            );
+                        })}
                     </SensorCard>
                 ))}
             </div>
