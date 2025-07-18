@@ -13,7 +13,9 @@ const topic = "azadFarm/sensorData";
 const sensorFieldMap = {
     veml7700: ['lux'],
     sht3x: ['temperature', 'humidity'],
-    as7341: ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir']
+    as7341: ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'],
+    tds: ['tds', 'ec'],
+    ph: []
 };
 
 function SensorDashboard() {
@@ -25,7 +27,7 @@ function SensorDashboard() {
         lux: { value: 0, unit: "lux" },
         tds: { value: 0, unit: "ppm" },
         ec: { value: 0, unit: "mS/cm" },
-        health: { veml7700: false, as7341: false, sht3x: false },
+        health: { veml7700: false, as7341: false, sht3x: false, tds: false, ph: false },
     });
     const [dailyData, setDailyData] = useState(() => {
         const stored = localStorage.getItem("dailyData");
@@ -139,14 +141,19 @@ function SensorDashboard() {
             <div className={styles.sensorGrid}>
                 {Object.entries(sensorData.health).map(([name, ok]) => (
                     <SensorCard key={name} name={name} ok={ok}>
-                        {sensorFieldMap[name]?.map(field => (
-                            <div key={field}>
-                                {field}: {sensorData[field]?.value?.toFixed
-                                ? sensorData[field].value.toFixed(1)
-                                : sensorData[field].value}{' '}
-                                {sensorData[field]?.unit || ''}
-                            </div>
-                        ))}
+                        {sensorFieldMap[name]?.map(field => {
+                            const data = sensorData[field];
+                            const value = (data && typeof data === 'object' && 'value' in data)
+                                ? data.value
+                                : data;
+                            const display = typeof value === 'number' ? value.toFixed(1) : value;
+                            const unit = (data && typeof data === 'object') ? (data.unit || '') : '';
+                            return (
+                                <div key={field}>
+                                    {field}: {display} {unit}
+                                </div>
+                            );
+                        })}
                     </SensorCard>
                 ))}
             </div>
