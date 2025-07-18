@@ -13,7 +13,9 @@ const topic = "azadFarm/sensorData";
 const sensorFieldMap = {
     veml7700: ['lux'],
     sht3x: ['temperature', 'humidity'],
-    as7341: ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir']
+    as7341: ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'],
+    tds: ['tds', 'ec'],
+    ph: []
 };
 
 function SensorDashboard() {
@@ -25,7 +27,7 @@ function SensorDashboard() {
         lux: { value: 0, unit: "lux" },
         tds: { value: 0, unit: "ppm" },
         ec: { value: 0, unit: "mS/cm" },
-        health: { veml7700: false, as7341: false, sht3x: false },
+        health: { veml7700: false, as7341: false, sht3x: false, tds: false, ph: false },
     });
     const [dailyData, setDailyData] = useState(() => {
         const stored = localStorage.getItem("dailyData");
