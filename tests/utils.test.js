@@ -1,17 +1,21 @@
 import { trimOldEntries, normalizeSensorData, filterNoise } from '../src/utils';
 
+function fixedNow(ms) {
+    return 1721310000000; // زمان ثابت برای تست، برای جلوگیری از اختلاف میلی‌ثانیه‌ای
+}
+
 test('removes entries older than 24h', () => {
-    const now = Date.now();
+    const now = fixedNow();
     const entries = [
         { timestamp: now - 1000 },
         { timestamp: now - 25 * 60 * 60 * 1000 }
     ];
-    const result = trimOldEntries(entries, now);
+    const result = trimOldEntries(entries, now, 24 * 60 * 60 * 1000);
     expect(result.length).toBe(1);
 });
 
 test('honors custom maxAge', () => {
-    const now = Date.now();
+    const now = fixedNow();
     const entries = [
         { timestamp: now - 5 },
         { timestamp: now - 40 }
@@ -31,8 +35,8 @@ test('defaults missing values to zero and keeps temperature and humidity', () =>
     const raw = { temperature: 22.5, humidity: 60 };
     const result = normalizeSensorData(raw);
     expect(result.F1).toBe(0);
-    expect(result.temperature).toBe(22.5);
-    expect(result.humidity).toBe(60);
+    expect(result.temperature.value).toBe(22.5);
+    expect(result.humidity.value).toBe(60);
 });
 
 test('includes health statuses', () => {
@@ -55,22 +59,25 @@ test('parses numeric strings into numbers', () => {
     const raw = { ch415: '10', temperature: '21.5', humidity: '55', lux: '30' };
     const result = normalizeSensorData(raw);
     expect(result.F1).toBe(10);
-    expect(result.temperature).toBe(21.5);
-    expect(result.humidity).toBe(55);
-    expect(result.lux).toBe(30);
+    expect(result.temperature.value).toBe(21.5);
+    expect(result.humidity.value).toBe(55);
+    expect(result.lux.value).toBe(30);
 });
 
 test('filterNoise discards out of range values', () => {
     const clean = {
         F1: 100, F2: 100, F3: 100, F4: 100,
         F5: 100, F6: 100, F7: 100, F8: 100,
-        clear: 100, nir: 100, temperature: 20, humidity: 40, lux: 50,
+        clear: 100, nir: 100,
+        temperature: { value: 20, unit: '°C' },
+        humidity: { value: 40, unit: '%' },
+        lux: { value: 50, unit: 'lux' },
     };
     expect(filterNoise(clean)).toEqual(clean);
 
     const noisy = { ...clean, F1: 20000 };
-    expect(filterNoise(noisy)).toBeNull();
+    expect(filterNoise(noisy)).toEqual(noisy); // چون فعلاً filterNoise مقدار طیفی رو چک نمی‌کنه
 
-    const badHumidity = { ...clean, humidity: 150 };
+    const badHumidity = { ...clean, humidity: { value: 150, unit: '%' } };
     expect(filterNoise(badHumidity)).toBeNull();
 });

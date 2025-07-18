@@ -49,7 +49,7 @@ const DailyTemperatureChart = ({
                 scale="time"
             />
             <YAxis>
-                <Label value="°C / %" angle={-90} position="insideLeft" />
+                <Label value="Temp (°C) / Humidity (%)" angle={-90} position="insideLeft" />
             </YAxis>
             <Tooltip />
             <Line

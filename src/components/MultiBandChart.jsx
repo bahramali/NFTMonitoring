@@ -7,7 +7,8 @@ import {
     CartesianGrid,
     Tooltip,
     Legend,
-    ResponsiveContainer
+    ResponsiveContainer,
+    Label
 } from 'recharts';
 
 const colors = [
@@ -60,7 +61,9 @@ const MultiBandChart = ({
                     tickFormatter={tickFormatter}
                     scale="time"
                 />
-                <YAxis domain={yDomain} allowDataOverflow />
+                <YAxis domain={yDomain} allowDataOverflow>
+                    <Label value="Spectrum Value" angle={-90} position="insideLeft" />
+                </YAxis>
                 <Tooltip />
                 <Legend />
                 {bandKeys.map((key, idx) => (

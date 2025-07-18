@@ -34,7 +34,7 @@ function SpectrumBarChart({ sensorData }) {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" angle={-30} textAnchor="end" interval={0} height={60} />
                 <YAxis>
-                    <Label value="PPFD" angle={-90} position="insideLeft" />
+                    <Label value="Raw Intensity" angle={-90} position="insideLeft" />
                 </YAxis>
                 <Tooltip />
                 <Bar dataKey="value" fill="#82ca9d" isAnimationActive={false} animationDuration={0} />

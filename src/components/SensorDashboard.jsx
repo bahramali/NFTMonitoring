@@ -10,7 +10,6 @@ import styles from './SensorDashboard.module.css';
 
 const topic = "azadFarm/sensorData";
 
-// Which sensor fields should be shown in each card
 const sensorFieldMap = {
     veml7700: ['lux'],
     sht3x: ['temperature', 'humidity'],
@@ -19,19 +18,13 @@ const sensorFieldMap = {
 
 function SensorDashboard() {
     const [sensorData, setSensorData] = useState({
-        F1: 0,
-        F2: 0,
-        F3: 0,
-        F4: 0,
-        F5: 0,
-        F6: 0,
-        F7: 0,
-        F8: 0,
-        clear: 0,
-        nir: 0,
-        temperature: 0,
-        humidity: 0,
-        lux: 0,
+        F1: 0, F2: 0, F3: 0, F4: 0, F5: 0,
+        F6: 0, F7: 0, F8: 0, clear: 0, nir: 0,
+        temperature: { value: 0, unit: "°C" },
+        humidity: { value: 0, unit: "%" },
+        lux: { value: 0, unit: "lux" },
+        tds: { value: 0, unit: "ppm" },
+        ec: { value: 0, unit: "mS/cm" },
         health: { veml7700: false, as7341: false, sht3x: false },
     });
     const [dailyData, setDailyData] = useState(() => {
@@ -78,8 +71,8 @@ function SensorDashboard() {
         setRangeData(filtered);
         setTempRangeData(filtered.map(d => ({
             time: d.time,
-            temperature: d.temperature,
-            humidity: d.humidity,
+            temperature: d.temperature?.value ?? 0,
+            humidity: d.humidity?.value ?? 0,
         })));
         setXDomain([start, now]);
         setStartTime(start);
@@ -91,7 +84,6 @@ function SensorDashboard() {
     }, [timeRange]);
 
     useEffect(() => {
-        // keep rangeData in sync with stored readings on first load
         if (rangeData.length === 0) {
             applyFilter();
         }
@@ -148,7 +140,12 @@ function SensorDashboard() {
                 {Object.entries(sensorData.health).map(([name, ok]) => (
                     <SensorCard key={name} name={name} ok={ok}>
                         {sensorFieldMap[name]?.map(field => (
-                            <div key={field}>{field}: {Number(sensorData[field]).toFixed ? Number(sensorData[field]).toFixed(1) : sensorData[field]}</div>
+                            <div key={field}>
+                                {field}: {sensorData[field]?.value?.toFixed
+                                ? sensorData[field].value.toFixed(1)
+                                : sensorData[field].value}{' '}
+                                {sensorData[field]?.unit || ''}
+                            </div>
                         ))}
                     </SensorCard>
                 ))}
