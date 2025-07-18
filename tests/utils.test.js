@@ -64,6 +64,43 @@ test('parses numeric strings into numbers', () => {
     expect(result.lux.value).toBe(30);
 });
 
+test('normalizes sensors array structure', () => {
+    const raw = {
+        sensors: [
+            { type: 'temperature', value: 26.5, unit: '°C' },
+            { type: 'humidity', value: 50, unit: '%' },
+            { type: 'light', value: 9, unit: 'lux' },
+            {
+                type: 'colorSpectrum',
+                value: {
+                    '415nm': 3,
+                    '445nm': 4,
+                    '480nm': 7,
+                    '515nm': 9,
+                    '555nm': 15,
+                    '590nm': 24,
+                    '630nm': 27,
+                    '680nm': 26
+                },
+                unit: 'raw'
+            },
+            { type: 'tds', value: 89, unit: 'ppm' },
+            { type: 'ec', value: 0.14, unit: 'mS/cm' }
+        ],
+        health: { sht3x: true, veml7700: true, as7341: true, tds: true, ph: false }
+    };
+    const result = normalizeSensorData(raw);
+    expect(result.F1).toBe(3);
+    expect(result.F8).toBe(26);
+    expect(result.temperature.value).toBe(26.5);
+    expect(result.humidity.value).toBe(50);
+    expect(result.lux.value).toBe(9);
+    expect(result.tds.value).toBe(89);
+    expect(result.ec.value).toBe(0.14);
+    expect(result.health.tds).toBe(true);
+    expect(result.health.ph).toBe(false);
+});
+
 test('filterNoise discards out of range values', () => {
     const clean = {
         F1: 100, F2: 100, F3: 100, F4: 100,
