@@ -108,8 +108,11 @@ function SensorDashboard() {
         client.on("message", (t, message) => {
             if (t === topic) {
                 try {
+                    console.debug("Raw MQTT message:", message.toString());
                     const raw = JSON.parse(message.toString());
+                    console.debug("Parsed message:", raw);
                     const normalized = normalizeSensorData(raw);
+                    console.debug("Normalized data:", normalized);
                     const cleaned = filterNoise(normalized);
                     if (!cleaned) return;
                     setSensorData(cleaned);
