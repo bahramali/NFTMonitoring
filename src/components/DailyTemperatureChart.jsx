@@ -1,4 +1,5 @@
 import React from 'react';
+import idealRanges from '../idealRangeConfig';
 import {
     LineChart,
     Line,
@@ -6,7 +7,8 @@ import {
     YAxis,
     CartesianGrid,
     Tooltip,
-    Label
+    Label,
+    ReferenceArea
 } from 'recharts';
 
 const DailyTemperatureChart = ({
@@ -51,6 +53,34 @@ const DailyTemperatureChart = ({
             <YAxis>
                 <Label value="Temp (°C) / Humidity (%)" angle={-90} position="insideLeft" />
             </YAxis>
+            {(() => {
+                const tRange = idealRanges.temperature?.idealRange;
+                const hRange = idealRanges.humidity?.idealRange;
+                return (
+                    <>
+                        {tRange && (
+                            <ReferenceArea
+                                y1={tRange.min}
+                                y2={tRange.max}
+                                x1={start}
+                                x2={end}
+                                fill="rgba(255,115,0,0.1)"
+                                stroke="none"
+                            />
+                        )}
+                        {hRange && (
+                            <ReferenceArea
+                                y1={hRange.min}
+                                y2={hRange.max}
+                                x1={start}
+                                x2={end}
+                                fill="rgba(136,132,216,0.1)"
+                                stroke="none"
+                            />
+                        )}
+                    </>
+                );
+            })()}
             <Tooltip />
             <Line
                 type="monotone"

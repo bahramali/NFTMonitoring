@@ -172,7 +172,9 @@ function SensorDashboard() {
             </div>
 
             <h3 className={styles.sectionTitle}>Temperature</h3>
-            <DailyTemperatureChart data={tempRangeData} xDomain={xDomain} />
+            <div className={styles.dailyTempChartWrapper}>
+                <DailyTemperatureChart data={tempRangeData} xDomain={xDomain} />
+            </div>
 
             <h3 className={styles.sectionTitle}>Historical Bands</h3>
             <div className={styles.multiBandChartWrapper}>

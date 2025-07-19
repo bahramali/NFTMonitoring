@@ -36,12 +36,20 @@
     width: 100%;
 }
 
+.dailyTempChartWrapper {
+    width: 100%;
+}
+
 @media (min-width: 1000px) {
     .multiBandChartWrapper {
         width: 50%;
         margin: 0 auto;
     }
     .spectrumBarChartWrapper {
+        width: 50%;
+        margin: 0 auto;
+    }
+    .dailyTempChartWrapper {
         width: 50%;
         margin: 0 auto;
     }
