@@ -36,7 +36,9 @@ function SensorDashboard() {
         localStorage.setItem("dailyData", JSON.stringify(initial));
         return initial;
     });
-    const [timeRange, setTimeRange] = useState('24h');
+    const [timeRange, setTimeRange] = useState(() => {
+        return localStorage.getItem('timeRange') || '24h';
+    });
     const [rangeData, setRangeData] = useState([]);
     const [tempRangeData, setTempRangeData] = useState([]);
     const [xDomain, setXDomain] = useState([Date.now() - 24 * 60 * 60 * 1000, Date.now()]);
@@ -83,6 +85,10 @@ function SensorDashboard() {
 
     useEffect(() => {
         applyFilter();
+    }, [timeRange]);
+
+    useEffect(() => {
+        localStorage.setItem('timeRange', timeRange);
     }, [timeRange]);
 
     useEffect(() => {
@@ -154,22 +160,25 @@ function SensorDashboard() {
                 <SpectrumBarChart sensorData={sensorData} />
             </div>
 
-            <div className={styles.filterRow}>
-                <label>
-                    Range:
-                    <select value={timeRange} onChange={e => setTimeRange(e.target.value)}>
-                        <option value="6h">6h</option>
-                        <option value="12h">12h</option>
-                        <option value="24h">24h</option>
-                        <option value="3days">3 days</option>
-                        <option value="7days">7 days</option>
-                        <option value="1month">1 month</option>
-                    </select>
-                </label>
-            </div>
-            <div className={styles.rangeLabel}>
-                {`From: ${formatTime(startTime)} until: ${formatTime(endTime)}`}
-            </div>
+            <fieldset className={styles.historyControls}>
+                <legend className={styles.historyLegend}>Historical Range</legend>
+                <div className={styles.filterRow}>
+                    <label>
+                        Range:
+                        <select value={timeRange} onChange={e => setTimeRange(e.target.value)}>
+                            <option value="6h">6h</option>
+                            <option value="12h">12h</option>
+                            <option value="24h">24h</option>
+                            <option value="3days">3 days</option>
+                            <option value="7days">7 days</option>
+                            <option value="1month">1 month</option>
+                        </select>
+                    </label>
+                </div>
+                <div className={styles.rangeLabel}>
+                    {`From: ${formatTime(startTime)} until: ${formatTime(endTime)}`}
+                </div>
+            </fieldset>
 
             <h3 className={styles.sectionTitle}>Temperature</h3>
             <div className={styles.dailyTempChartWrapper}>

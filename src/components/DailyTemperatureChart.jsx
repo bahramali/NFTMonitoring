@@ -53,7 +53,7 @@ const DailyTemperatureChart = ({
                 scale="time"
             />
             <YAxis>
-                <Label value="Temp (°C) / Humidity (%)" angle={-90} position="insideLeft" />
+                <Label value="Temp (°C) / Humidity (%)" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
             </YAxis>
             {(() => {
                 const tRange = idealRanges.temperature?.idealRange;
