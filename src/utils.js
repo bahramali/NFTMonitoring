@@ -17,6 +17,7 @@ export function normalizeSensorData(data) {
         lux: { value: 0, unit: "lux" },
         tds: { value: 0, unit: "ppm" },
         ec: { value: 0, unit: "mS/cm" },
+        ph: { value: 0, unit: '' },
         F1: 0, F2: 0, F3: 0, F4: 0, F5: 0,
         F6: 0, F7: 0, F8: 0, clear: 0, nir: 0,
         health: {}
@@ -51,6 +52,12 @@ export function normalizeSensorData(data) {
                         unit: sensor.unit || ''
                 };
                 break;
+            case 'ph':
+                result.ph = {
+                        value: val,
+                        unit: sensor.unit || ''
+                };
+                break;
             case 'colorSpectrum':
                     const bands = ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'];
                 let i = 0;
@@ -73,6 +80,8 @@ export function normalizeSensorData(data) {
             result.tds = { value: Number(data.tds), unit: 'ppm' };
         if ('ec' in data)
             result.ec = { value: Number(data.ec), unit: 'mS/cm' };
+        if ('ph' in data)
+            result.ph = { value: Number(data.ph), unit: '' };
 
         const mapping = {
             ch415: 'F1', ch445: 'F2', ch480: 'F3', ch515: 'F4',

@@ -101,6 +101,16 @@ test('normalizes sensors array structure', () => {
     expect(result.health.ph).toBe(false);
 });
 
+test('handles ph sensor readings', () => {
+    const raw = {
+        sensors: [
+            { type: 'ph', value: 6.2, unit: '' }
+        ]
+    };
+    const result = normalizeSensorData(raw);
+    expect(result.ph.value).toBe(6.2);
+});
+
 test('filterNoise discards out of range values', () => {
     const clean = {
         F1: 100, F2: 100, F3: 100, F4: 100,
