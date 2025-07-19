@@ -56,3 +56,12 @@
     font-size: 0.8em;
 }
 
+.noteTitle {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.note ul {
+    padding-left: 20px;
+    margin: 0;
+}

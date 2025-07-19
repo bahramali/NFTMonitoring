@@ -16,7 +16,10 @@ const bandMap = {
 function getRowColor(value, range) {
     if (!range) return '';
     if (value < range.min || value > range.max) return '#f8d7da';
-    if (value < range.min + 10 || value > range.max - 10) return '#fff3cd';
+    const threshold = (range.max - range.min) * 0.1;
+    if (value < range.min + threshold || value > range.max - threshold) {
+        return '#fff3cd';
+    }
     return '';
 }
 
@@ -68,7 +71,14 @@ function SensorCard({ name, ok, fields = [], sensorData }) {
                     <tbody>{rows}</tbody>
                 </table>
                 {descriptions.length > 0 && (
-                    <div className={styles.note}>{descriptions.join(' ')}</div>
+                    <div className={styles.note}>
+                        <div className={styles.noteTitle}>Note:</div>
+                        <ul>
+                            {descriptions.map((d, i) => (
+                                <li key={i}>{d}</li>
+                            ))}
+                        </ul>
+                    </div>
                 )}
             </div>
         </div>
