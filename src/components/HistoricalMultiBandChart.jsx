@@ -23,7 +23,7 @@ const bandKeys = [
     'F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'
 ];
 
-const MultiBandChart = ({
+const HistoricalMultiBandChart = ({
     data,
     width = 600,
     height = 300,
@@ -100,4 +100,4 @@ const MultiBandChart = ({
     );
 };
 
-export default React.memo(MultiBandChart);
+export default React.memo(HistoricalMultiBandChart);
