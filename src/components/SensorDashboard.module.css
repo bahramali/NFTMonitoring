@@ -85,6 +85,14 @@
     width: 100%;
 }
 
+.phChartWrapper {
+    width: 100%;
+}
+
+.ecTdsChartWrapper {
+    width: 100%;
+}
+
 .historyChartsRow {
     display: flex;
     flex-direction: column;
@@ -103,7 +111,9 @@
         width: 50%;
     }
     .multiBandChartWrapper,
-    .dailyTempChartWrapper {
+    .dailyTempChartWrapper,
+    .phChartWrapper,
+    .ecTdsChartWrapper {
         width: 100%;
         margin: 0;
     }

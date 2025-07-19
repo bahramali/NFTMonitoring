@@ -3,6 +3,8 @@ import mqtt from "mqtt";
 import SpectrumBarChart from "./SpectrumBarChart";
 import HistoricalTemperatureChart from "./HistoricalTemperatureChart";
 import HistoricalMultiBandChart from "./HistoricalMultiBandChart";
+import HistoricalPhChart from "./HistoricalPhChart";
+import HistoricalEcTdsChart from "./HistoricalEcTdsChart";
 import Header from "./Header";
 import SensorCard from "./SensorCard";
 import { trimOldEntries, normalizeSensorData, filterNoise } from "../utils";
@@ -42,6 +44,8 @@ function SensorDashboard() {
     });
     const [rangeData, setRangeData] = useState([]);
     const [tempRangeData, setTempRangeData] = useState([]);
+    const [phRangeData, setPhRangeData] = useState([]);
+    const [ecTdsRangeData, setEcTdsRangeData] = useState([]);
     const [xDomain, setXDomain] = useState([Date.now() - 24 * 60 * 60 * 1000, Date.now()]);
     const [startTime, setStartTime] = useState(xDomain[0]);
     const [endTime, setEndTime] = useState(xDomain[1]);
@@ -78,6 +82,15 @@ function SensorDashboard() {
             time: d.time,
             temperature: d.temperature?.value ?? 0,
             humidity: d.humidity?.value ?? 0,
+        })));
+        setPhRangeData(filtered.map(d => ({
+            time: d.time,
+            ph: d.ph?.value ?? 0,
+        })));
+        setEcTdsRangeData(filtered.map(d => ({
+            time: d.time,
+            ec: d.ec?.value ?? 0,
+            tds: d.tds?.value ?? 0,
         })));
         setXDomain([start, now]);
         setStartTime(start);
@@ -204,6 +217,20 @@ function SensorDashboard() {
                                     data={rangeData}
                                     xDomain={xDomain}
                                 />
+                            </div>
+                        </div>
+                    </div>
+                    <div className={styles.historyChartsRow}>
+                        <div className={styles.historyChartColumn}>
+                            <h3 className={styles.sectionTitle}>pH</h3>
+                            <div className={styles.phChartWrapper}>
+                                <HistoricalPhChart data={phRangeData} xDomain={xDomain} />
+                            </div>
+                        </div>
+                        <div className={styles.historyChartColumn}>
+                            <h3 className={styles.sectionTitle}>EC &amp; TDS</h3>
+                            <div className={styles.ecTdsChartWrapper}>
+                                <HistoricalEcTdsChart data={ecTdsRangeData} xDomain={xDomain} />
                             </div>
                         </div>
                     </div>
