@@ -8,7 +8,8 @@ import {
     CartesianGrid,
     Tooltip,
     Label,
-    ReferenceArea
+    ReferenceArea,
+    ResponsiveContainer,
 } from 'recharts';
 
 const DailyTemperatureChart = ({
@@ -34,13 +35,14 @@ const DailyTemperatureChart = ({
     };
 
     return (
-        <LineChart
-            width={width}
-            height={height}
-            data={data}
-            margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
-            isAnimationActive={false}
-        >
+        <ResponsiveContainer width="100%" height={height} debounce={200}>
+            <LineChart
+                width={width}
+                height={height}
+                data={data}
+                margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
+                isAnimationActive={false}
+            >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
                 dataKey="time"
@@ -97,6 +99,7 @@ const DailyTemperatureChart = ({
                 isAnimationActive={false}
             />
         </LineChart>
+        </ResponsiveContainer>
     );
 };
 
