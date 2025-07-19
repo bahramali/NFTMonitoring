@@ -15,7 +15,7 @@ const sensorFieldMap = {
     sht3x: ['temperature', 'humidity'],
     as7341: ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'],
     tds: ['tds', 'ec'],
-    ph: []
+    ph: ['ph']
 };
 
 function SensorDashboard() {
@@ -27,6 +27,7 @@ function SensorDashboard() {
         lux: { value: 0, unit: "lux" },
         tds: { value: 0, unit: "ppm" },
         ec: { value: 0, unit: "mS/cm" },
+        ph: { value: 0, unit: '' },
         health: { veml7700: false, as7341: false, sht3x: false, tds: false, ph: false },
     });
     const [dailyData, setDailyData] = useState(() => {
