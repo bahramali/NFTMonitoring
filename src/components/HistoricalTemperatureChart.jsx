@@ -12,7 +12,7 @@ import {
     ResponsiveContainer,
 } from 'recharts';
 
-const DailyTemperatureChart = ({
+const HistoricalTemperatureChart = ({
     data,
     width = 600,
     height = 300,
@@ -103,4 +103,4 @@ const DailyTemperatureChart = ({
     );
 };
 
-export default React.memo(DailyTemperatureChart);
+export default React.memo(HistoricalTemperatureChart);

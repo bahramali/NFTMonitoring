@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from "react";
 import mqtt from "mqtt";
 import SpectrumBarChart from "./SpectrumBarChart";
-import DailyTemperatureChart from "./DailyTemperatureChart";
-import MultiBandChart from "./MultiBandChart";
+import HistoricalTemperatureChart from "./HistoricalTemperatureChart";
+import HistoricalMultiBandChart from "./HistoricalMultiBandChart";
 import Header from "./Header";
 import SensorCard from "./SensorCard";
 import { trimOldEntries, normalizeSensorData, filterNoise } from "../utils";
@@ -183,12 +183,12 @@ function SensorDashboard() {
 
             <h3 className={styles.sectionTitle}>Temperature</h3>
             <div className={styles.dailyTempChartWrapper}>
-                <DailyTemperatureChart data={tempRangeData} xDomain={xDomain} />
+                <HistoricalTemperatureChart data={tempRangeData} xDomain={xDomain} />
             </div>
 
             <h3 className={styles.sectionTitle}>Historical Bands</h3>
             <div className={styles.multiBandChartWrapper}>
-                <MultiBandChart
+                <HistoricalMultiBandChart
                     data={rangeData}
                     xDomain={xDomain}
                 />

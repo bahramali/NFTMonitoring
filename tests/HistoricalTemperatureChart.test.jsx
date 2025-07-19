@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import DailyTemperatureChart from '../src/components/DailyTemperatureChart';
+import HistoricalTemperatureChart from '../src/components/HistoricalTemperatureChart';
 import { vi } from 'vitest';
 
 vi.mock('../idealRangeConfig', () => ({
@@ -23,7 +23,7 @@ beforeAll(() => {
     });
 });
 
-describe('DailyTemperatureChart', () => {
+describe('HistoricalTemperatureChart', () => {
     const mockData = [
         {
             time: Date.now() - 3600 * 1000,
@@ -38,11 +38,11 @@ describe('DailyTemperatureChart', () => {
     ];
 
     it('renders without crashing', () => {
-        render(<DailyTemperatureChart data={mockData} />);
+        render(<HistoricalTemperatureChart data={mockData} />);
     });
 
     it('renders a recharts container', () => {
-        const { container } = render(<DailyTemperatureChart data={mockData} />);
+        const { container } = render(<HistoricalTemperatureChart data={mockData} />);
         const rechartsWrapper = container.querySelector('.recharts-responsive-container');
         expect(rechartsWrapper).toBeTruthy(); // فقط وجود container کافی است
     });
