@@ -2,14 +2,29 @@
     border: 1px solid #ccc;
     border-radius: 4px;
     overflow: hidden;
-    width: 200px;
+    width: 220px;
     margin: 10px;
 }
 
 .header {
-    color: white;
-    text-align: center;
-    padding: 4px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: #eef6ff;
+    padding: 8px 12px;
+    font-weight: bold;
+}
+
+.name {
+    text-transform: uppercase;
+}
+
+.indicator {
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    margin-left: 8px;
 }
 
 .on {
@@ -22,5 +37,32 @@
 
 .body {
     padding: 8px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th,
+.table td {
+    border: 1px solid #ddd;
+    padding: 4px;
+    text-align: center;
+}
+
+.note {
+    margin-top: 8px;
+    font-size: 0.8em;
+}
+
+.noteTitle {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.note ul {
+    padding-left: 20px;
+    margin: 0;
 }
 
