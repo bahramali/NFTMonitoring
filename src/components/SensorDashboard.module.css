@@ -9,12 +9,25 @@
 .sectionHeader {
     text-align: center;
     font-size: 1.5em;
-    margin-bottom: 10px;
+    margin: 0;
+    padding: 10px;
+    color: white;
+    border-radius: 4px 4px 0 0;
+}
+
+.liveHeader {
+    background-color: #43a047;
+}
+
+.reportHeader {
+    background-color: #1976d2;
 }
 
 .sectionBody {
     border: 1px solid #ddd;
+    border-top: none;
     padding: 20px;
+    border-radius: 0 0 4px 4px;
 }
 
 .divider {

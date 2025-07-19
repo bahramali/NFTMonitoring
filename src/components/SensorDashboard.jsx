@@ -143,11 +143,10 @@ function SensorDashboard() {
 
     return (
         <div className={styles.dashboard}>
+            <Header topic={topic} />
             <div className={styles.section}>
-                <h2 className={styles.sectionHeader}>Live Data</h2>
+                <h2 className={`${styles.sectionHeader} ${styles.liveHeader}`}>Live Data</h2>
                 <div className={styles.sectionBody}>
-                    <Header topic={topic} />
-
                     <div className={styles.sensorGrid}>
                         {Object.entries(sensorData.health).map(([name, ok]) => (
                             <SensorCard
@@ -169,7 +168,7 @@ function SensorDashboard() {
             <div className={styles.divider}></div>
 
             <div className={styles.section}>
-                <h2 className={styles.sectionHeader}>Reports</h2>
+                <h2 className={`${styles.sectionHeader} ${styles.reportHeader}`}>Reports</h2>
                 <div className={styles.sectionBody}>
                     <fieldset className={styles.historyControls}>
                         <legend className={styles.historyLegend}>Historical Range</legend>
