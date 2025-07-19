@@ -1,6 +1,26 @@
 .dashboard {
     padding: 20px;
 }
+
+.section {
+    margin-bottom: 40px;
+}
+
+.sectionHeader {
+    text-align: center;
+    font-size: 1.5em;
+    margin-bottom: 10px;
+}
+
+.sectionBody {
+    border: 1px solid #ddd;
+    padding: 20px;
+}
+
+.divider {
+    border-bottom: 2px solid #ccc;
+    margin: 40px 0;
+}
 .sensorGrid {
     display: flex;
     flex-wrap: wrap;
