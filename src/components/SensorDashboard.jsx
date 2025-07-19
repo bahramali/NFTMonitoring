@@ -144,54 +144,66 @@ function SensorDashboard() {
     return (
         <div className={styles.dashboard}>
             <Header topic={topic} />
+            <div className={styles.section}>
+                <h2 className={`${styles.sectionHeader} ${styles.liveHeader}`}>Live Data</h2>
+                <div className={styles.sectionBody}>
 
-            <div className={styles.sensorGrid}>
-                {Object.entries(sensorData.health).map(([name, ok]) => (
-                    <SensorCard
-                        key={name}
-                        name={name}
-                        ok={ok}
-                        fields={sensorFieldMap[name] || []}
-                        sensorData={sensorData}
-                    />
-                ))}
-            </div>
+                    <div className={styles.sensorGrid}>
+                        {Object.entries(sensorData.health).map(([name, ok]) => (
+                            <SensorCard
+                                key={name}
+                                name={name}
+                                ok={ok}
+                                fields={sensorFieldMap[name] || []}
+                                sensorData={sensorData}
+                            />
+                        ))}
+                    </div>
 
-            <div className={styles.spectrumBarChartWrapper}>
-                <SpectrumBarChart sensorData={sensorData} />
-            </div>
-
-            <fieldset className={styles.historyControls}>
-                <legend className={styles.historyLegend}>Historical Range</legend>
-                <div className={styles.filterRow}>
-                    <label>
-                        Range:
-                        <select value={timeRange} onChange={e => setTimeRange(e.target.value)}>
-                            <option value="6h">6h</option>
-                            <option value="12h">12h</option>
-                            <option value="24h">24h</option>
-                            <option value="3days">3 days</option>
-                            <option value="7days">7 days</option>
-                            <option value="1month">1 month</option>
-                        </select>
-                    </label>
+                    <div className={styles.spectrumBarChartWrapper}>
+                        <SpectrumBarChart sensorData={sensorData} />
+                    </div>
                 </div>
-                <div className={styles.rangeLabel}>
-                    {`From: ${formatTime(startTime)} until: ${formatTime(endTime)}`}
-                </div>
-            </fieldset>
-
-            <h3 className={styles.sectionTitle}>Temperature</h3>
-            <div className={styles.dailyTempChartWrapper}>
-                <HistoricalTemperatureChart data={tempRangeData} xDomain={xDomain} />
             </div>
 
-            <h3 className={styles.sectionTitle}>Historical Bands</h3>
-            <div className={styles.multiBandChartWrapper}>
-                <HistoricalMultiBandChart
-                    data={rangeData}
-                    xDomain={xDomain}
-                />
+            <div className={styles.divider}></div>
+
+            <div className={styles.section}>
+                <h2 className={`${styles.sectionHeader} ${styles.reportHeader}`}>Reports</h2>
+                <div className={styles.sectionBody}>
+                    <fieldset className={styles.historyControls}>
+                        <legend className={styles.historyLegend}>Historical Range</legend>
+                        <div className={styles.filterRow}>
+                            <label>
+                                Range:
+                                <select value={timeRange} onChange={e => setTimeRange(e.target.value)}>
+                                    <option value="6h">6h</option>
+                                    <option value="12h">12h</option>
+                                    <option value="24h">24h</option>
+                                    <option value="3days">3 days</option>
+                                    <option value="7days">7 days</option>
+                                    <option value="1month">1 month</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div className={styles.rangeLabel}>
+                            {`From: ${formatTime(startTime)} until: ${formatTime(endTime)}`}
+                        </div>
+                    </fieldset>
+
+                    <h3 className={styles.sectionTitle}>Temperature</h3>
+                    <div className={styles.dailyTempChartWrapper}>
+                        <HistoricalTemperatureChart data={tempRangeData} xDomain={xDomain} />
+                    </div>
+
+                    <h3 className={styles.sectionTitle}>Historical Bands</h3>
+                    <div className={styles.multiBandChartWrapper}>
+                        <HistoricalMultiBandChart
+                            data={rangeData}
+                            xDomain={xDomain}
+                        />
+                    </div>
+                </div>
             </div>
         </div>
     );
