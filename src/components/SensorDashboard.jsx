@@ -150,7 +150,9 @@ function SensorDashboard() {
                 ))}
             </div>
 
-            <SpectrumBarChart sensorData={sensorData} />
+            <div className={styles.spectrumBarChartWrapper}>
+                <SpectrumBarChart sensorData={sensorData} />
+            </div>
 
             <div className={styles.filterRow}>
                 <label>
@@ -170,14 +172,17 @@ function SensorDashboard() {
             </div>
 
             <h3 className={styles.sectionTitle}>Temperature</h3>
-            <DailyTemperatureChart data={tempRangeData} xDomain={xDomain} />
+            <div className={styles.dailyTempChartWrapper}>
+                <DailyTemperatureChart data={tempRangeData} xDomain={xDomain} />
+            </div>
 
             <h3 className={styles.sectionTitle}>Historical Bands</h3>
-            <MultiBandChart
-                data={rangeData}
-                xDomain={xDomain}
-                yDomain={["auto", "auto"]}
-            />
+            <div className={styles.multiBandChartWrapper}>
+                <MultiBandChart
+                    data={rangeData}
+                    xDomain={xDomain}
+                />
+            </div>
         </div>
     );
 }
