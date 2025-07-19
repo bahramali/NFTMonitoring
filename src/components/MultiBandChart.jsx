@@ -64,7 +64,7 @@ const MultiBandChart = ({
                     scale="time"
                 />
                 <YAxis domain={yDomain} allowDataOverflow>
-                    <Label value="Spectrum Value" angle={-90} position="insideLeft" />
+                    <Label value="Spectrum Value" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
                 </YAxis>
                 {bandKeys.map((key, idx) => {
                     const range = idealRanges[key]?.idealRange;
