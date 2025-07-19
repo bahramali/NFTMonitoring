@@ -9,9 +9,14 @@
 .header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 4px 8px;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 12px;
     font-weight: bold;
+}
+
+.name {
+    text-transform: uppercase;
 }
 
 .indicator {

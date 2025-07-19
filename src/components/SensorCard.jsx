@@ -40,7 +40,7 @@ function SensorCard({ name, ok, fields = [], sensorData }) {
     return (
         <div className={styles.card}>
             <div className={styles.header}>
-                <span>{name}</span>
+                <span className={styles.name}>{name.toUpperCase()}</span>
                 <span className={`${styles.indicator} ${ok ? styles.on : styles.off}`} />
             </div>
             <div className={styles.body}>
