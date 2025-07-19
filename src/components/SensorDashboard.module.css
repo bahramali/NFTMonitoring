@@ -14,6 +14,15 @@
 .filterRow {
     margin-bottom: 10px;
 }
+.historyControls {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 20px;
+}
+.historyLegend {
+    font-weight: bold;
+    padding: 0 5px;
+}
 .filterLabel {
     margin-left: 10px;
 }
