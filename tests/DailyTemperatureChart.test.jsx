@@ -4,7 +4,6 @@ import '@testing-library/jest-dom';
 import DailyTemperatureChart from '../src/components/DailyTemperatureChart';
 import { vi } from 'vitest';
 
-// 🧪 mock کردن محدوده‌های ایده‌آل دما و رطوبت
 vi.mock('../idealRangeConfig', () => ({
     __esModule: true,
     default: {
@@ -13,7 +12,6 @@ vi.mock('../idealRangeConfig', () => ({
     },
 }));
 
-// ⚠️ Recharts به offsetWidth/Height نیاز داره
 beforeAll(() => {
     Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
         configurable: true,
