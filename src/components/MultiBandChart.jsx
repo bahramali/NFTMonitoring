@@ -1,4 +1,5 @@
 import React from 'react';
+import idealRanges from '../idealRangeConfig';
 import {
     LineChart,
     Line,
@@ -8,7 +9,8 @@ import {
     Tooltip,
     Legend,
     ResponsiveContainer,
-    Label
+    Label,
+    ReferenceArea
 } from 'recharts';
 
 const colors = [
@@ -26,7 +28,7 @@ const MultiBandChart = ({
     width = 600,
     height = 300,
     xDomain = [Date.now() - 24 * 60 * 60 * 1000, Date.now()],
-    yDomain = ['auto', 'auto'],
+    yDomain = [0, 2100],
 }) => {
     const start = xDomain[0];
     const end = xDomain[1];
@@ -64,6 +66,23 @@ const MultiBandChart = ({
                 <YAxis domain={yDomain} allowDataOverflow>
                     <Label value="Spectrum Value" angle={-90} position="insideLeft" />
                 </YAxis>
+                {bandKeys.map((key, idx) => {
+                    const range = idealRanges[key]?.idealRange;
+                    return (
+                        range && (
+                            <ReferenceArea
+                                key={`range-${key}`}
+                                y1={range.min}
+                                y2={range.max}
+                                x1={start}
+                                x2={end}
+                                fill={colors[idx % colors.length]}
+                                fillOpacity={0.1}
+                                stroke="none"
+                            />
+                        )
+                    );
+                })}
                 <Tooltip />
                 <Legend />
                 {bandKeys.map((key, idx) => (
