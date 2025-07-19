@@ -4,6 +4,8 @@
 .sensorGrid {
     display: flex;
     flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
 }
 .sectionTitle {
     margin-top: 40px;

@@ -6,6 +6,14 @@
     margin: 10px;
 }
 
+@media (max-width: 600px) {
+    .card {
+        width: 100%;
+        max-width: 320px;
+        margin: 10px auto;
+    }
+}
+
 .header {
     display: flex;
     align-items: center;
@@ -53,7 +61,7 @@
 
 .note {
     margin-top: 8px;
-    font-size: 0.8em;
+    font-size: 0.7em;
 }
 
 .noteTitle {
