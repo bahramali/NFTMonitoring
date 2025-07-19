@@ -11,6 +11,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+    background-color: #eef6ff;
     padding: 8px 12px;
     font-weight: bold;
 }

@@ -23,19 +23,35 @@ const idealRangeConfig = {
         idealRange: { min: 5.8, max: 6.5 },
         description: 'pH affects nutrient absorption. 6.0 is optimal for basil.'
     },
-    F1: {
+    '415nm': {
         idealRange: { min: 100, max: 500 },
         description: 'Supports early cell growth.'
     },
-    F2: {
+    '445nm': {
         idealRange: { min: 200, max: 600 },
         description: 'Key for chlorophyll and leafy growth.'
     },
-    F7: {
+    '480nm': {
+        idealRange: { min: 150, max: 500 },
+        description: 'Blue-green light; supports vegetative growth and pigment production.'
+    },
+    '515nm': {
+        idealRange: { min: 120, max: 400 },
+        description: 'Green light; penetrates deeper into leaves and regulates growth balance.'
+    },
+    '555nm': {
+        idealRange: { min: 80, max: 350 },
+        description: 'Mid-green light; complements blue and red for fuller spectrum balance.'
+    },
+    '590nm': {
+        idealRange: { min: 100, max: 300 },
+        description: 'Yellow light; minor effect on photosynthesis but supports photomorphogenesis.'
+    },
+    '630nm': {
         idealRange: { min: 300, max: 800 },
         description: 'Helps in flowering and general development.'
     },
-    F8: {
+    '680nm': {
         idealRange: { min: 400, max: 900 },
         description: 'Peak light absorption for photosynthesis.'
     },
