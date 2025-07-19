@@ -36,7 +36,9 @@ function SensorDashboard() {
         localStorage.setItem("dailyData", JSON.stringify(initial));
         return initial;
     });
-    const [timeRange, setTimeRange] = useState('24h');
+    const [timeRange, setTimeRange] = useState(() => {
+        return localStorage.getItem('timeRange') || '24h';
+    });
     const [rangeData, setRangeData] = useState([]);
     const [tempRangeData, setTempRangeData] = useState([]);
     const [xDomain, setXDomain] = useState([Date.now() - 24 * 60 * 60 * 1000, Date.now()]);
@@ -83,6 +85,10 @@ function SensorDashboard() {
 
     useEffect(() => {
         applyFilter();
+    }, [timeRange]);
+
+    useEffect(() => {
+        localStorage.setItem('timeRange', timeRange);
     }, [timeRange]);
 
     useEffect(() => {
