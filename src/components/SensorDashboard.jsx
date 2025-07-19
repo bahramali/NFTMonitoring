@@ -150,7 +150,9 @@ function SensorDashboard() {
                 ))}
             </div>
 
-            <SpectrumBarChart sensorData={sensorData} />
+            <div className={styles.spectrumBarChartWrapper}>
+                <SpectrumBarChart sensorData={sensorData} />
+            </div>
 
             <div className={styles.filterRow}>
                 <label>
