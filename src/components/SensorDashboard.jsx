@@ -190,17 +190,22 @@ function SensorDashboard() {
                         </div>
                     </fieldset>
 
-                    <h3 className={styles.sectionTitle}>Temperature</h3>
-                    <div className={styles.dailyTempChartWrapper}>
-                        <HistoricalTemperatureChart data={tempRangeData} xDomain={xDomain} />
-                    </div>
-
-                    <h3 className={styles.sectionTitle}>Historical Bands</h3>
-                    <div className={styles.multiBandChartWrapper}>
-                        <HistoricalMultiBandChart
-                            data={rangeData}
-                            xDomain={xDomain}
-                        />
+                    <div className={styles.historyChartsRow}>
+                        <div className={styles.historyChartColumn}>
+                            <h3 className={styles.sectionTitle}>Temperature</h3>
+                            <div className={styles.dailyTempChartWrapper}>
+                                <HistoricalTemperatureChart data={tempRangeData} xDomain={xDomain} />
+                            </div>
+                        </div>
+                        <div className={styles.historyChartColumn}>
+                            <h3 className={styles.sectionTitle}>Historical Bands</h3>
+                            <div className={styles.multiBandChartWrapper}>
+                                <HistoricalMultiBandChart
+                                    data={rangeData}
+                                    xDomain={xDomain}
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

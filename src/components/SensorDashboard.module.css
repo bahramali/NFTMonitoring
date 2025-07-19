@@ -51,10 +51,12 @@
     border: 1px solid #ccc;
     padding: 10px;
     margin-bottom: 20px;
+    background-color: #eef6ff;
 }
 .historyLegend {
     font-weight: bold;
     padding: 0 5px;
+    background-color: #eef6ff;
 }
 .filterLabel {
     margin-left: 10px;
@@ -83,16 +85,29 @@
     width: 100%;
 }
 
+.historyChartsRow {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+.historyChartColumn {
+    width: 100%;
+}
+
 @media (min-width: 1000px) {
-    .multiBandChartWrapper {
+    .historyChartsRow {
+        flex-direction: row;
+    }
+    .historyChartColumn {
         width: 50%;
-        margin: 0 auto;
+    }
+    .multiBandChartWrapper,
+    .dailyTempChartWrapper {
+        width: 100%;
+        margin: 0;
     }
     .spectrumBarChartWrapper {
-        width: 50%;
-        margin: 0 auto;
-    }
-    .dailyTempChartWrapper {
         width: 50%;
         margin: 0 auto;
     }
