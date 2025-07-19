@@ -147,7 +147,6 @@ function SensorDashboard() {
             <div className={styles.section}>
                 <h2 className={`${styles.sectionHeader} ${styles.liveHeader}`}>Live Data</h2>
                 <div className={styles.sectionBody}>
-
                     <div className={styles.sensorGrid}>
                         {Object.entries(sensorData.health).map(([name, ok]) => (
                             <SensorCard
