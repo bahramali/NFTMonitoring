@@ -1,9 +1,9 @@
 import React from 'react';
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
-import HistoricalMultiBandChart from '../src/components/HistoricalMultiBandChart';
+import HistoricalBlueBandChart from '../src/components/HistoricalBlueBandChart';
 
-describe('HistoricalMultiBandChart', () => {
+describe('HistoricalBlueBandChart', () => {
     const now = Date.now();
     const mockData = [
         {
@@ -23,7 +23,7 @@ describe('HistoricalMultiBandChart', () => {
     ];
 
     it('renders without crashing', () => {
-        const { container } = render(<HistoricalMultiBandChart data={mockData} />);
+        const { container } = render(<HistoricalBlueBandChart data={mockData} />);
         expect(container).toBeTruthy();
     });
 });
