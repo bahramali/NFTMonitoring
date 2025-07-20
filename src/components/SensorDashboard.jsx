@@ -78,7 +78,11 @@ function SensorDashboard() {
         const start = now - rangeMs;
         const filtered = dailyData
             .filter(d => d.timestamp >= start && d.timestamp <= now)
-            .map(d => ({ time: d.timestamp, ...d }));
+            .map(d => ({
+                time: d.timestamp,
+                ...d,
+                lux: d.lux?.value ?? 0,
+            }));
         setRangeData(filtered);
         setTempRangeData(filtered.map(d => ({
             time: d.time,
