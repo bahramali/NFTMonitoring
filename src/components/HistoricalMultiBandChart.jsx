@@ -28,8 +28,21 @@ const HistoricalMultiBandChart = ({
     width = 600,
     height = 300,
     xDomain = [Date.now() - 24 * 60 * 60 * 1000, Date.now()],
-    yDomain = [0, 2100],
+    yDomain,
 }) => {
+    const computedMax = React.useMemo(() => {
+        let maxVal = 0;
+        for (const entry of data || []) {
+            for (const key of bandKeys) {
+                const v = Number(entry[key]);
+                if (v > maxVal) {
+                    maxVal = v;
+                }
+            }
+        }
+        return maxVal || 1;
+    }, [data]);
+    const actualYDomain = yDomain || [0, computedMax];
     const start = xDomain[0];
     const end = xDomain[1];
     const day = 24 * 60 * 60 * 1000;
@@ -63,7 +76,7 @@ const HistoricalMultiBandChart = ({
                     tickFormatter={tickFormatter}
                     scale="time"
                 />
-                <YAxis domain={yDomain} allowDataOverflow>
+                <YAxis domain={actualYDomain} allowDataOverflow>
                     <Label value="Spectrum Value" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
                 </YAxis>
                 {bandKeys.map((key, idx) => {
