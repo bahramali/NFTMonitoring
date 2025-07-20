@@ -4,9 +4,22 @@ import { render } from '@testing-library/react';
 import HistoricalMultiBandChart from '../src/components/HistoricalMultiBandChart';
 
 describe('HistoricalMultiBandChart', () => {
+    const now = Date.now();
     const mockData = [
-        { timestamp: '2025-07-15T00:00:00Z', min: 1, max: 5, avg: 3 },
-        { timestamp: '2025-07-15T01:00:00Z', min: 2, max: 6, avg: 4 },
+        {
+            time: now - 3600 * 1000,
+            F1: 100,
+            F2: 150,
+            clear: 200,
+            nir: 30,
+        },
+        {
+            time: now,
+            F1: 110,
+            F2: 160,
+            clear: 210,
+            nir: 40,
+        },
     ];
 
     it('renders without crashing', () => {

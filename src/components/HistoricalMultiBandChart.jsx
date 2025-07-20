@@ -20,8 +20,19 @@ const colors = [
 ];
 
 const bandKeys = [
-    'F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'
+    'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'clear', 'nir'
 ];
+
+const bandMap = {
+    F1: '415nm',
+    F2: '445nm',
+    F3: '480nm',
+    F4: '515nm',
+    F5: '555nm',
+    F6: '590nm',
+    F7: '630nm',
+    F8: '680nm'
+};
 
 const HistoricalMultiBandChart = ({
     data,
@@ -30,9 +41,25 @@ const HistoricalMultiBandChart = ({
     xDomain = [Date.now() - 24 * 60 * 60 * 1000, Date.now()],
     yDomain,
 }) => {
+    const processedData = React.useMemo(() => {
+        return (data || []).map(entry => {
+            const result = { ...entry };
+            for (const key of bandKeys) {
+                const lookup = bandMap[key] || key;
+                const range = idealRanges[lookup]?.idealRange;
+                const value = Number(entry[key]);
+                if (range && Number.isFinite(value)) {
+                    result[`${key}Out`] = value < range.min || value > range.max;
+                } else {
+                    result[`${key}Out`] = false;
+                }
+            }
+            return result;
+        });
+    }, [data]);
     const computedMax = React.useMemo(() => {
         let maxVal = 0;
-        for (const entry of data || []) {
+        for (const entry of processedData) {
             for (const key of bandKeys) {
                 const v = Number(entry[key]);
                 if (v > maxVal) {
@@ -41,7 +68,7 @@ const HistoricalMultiBandChart = ({
             }
         }
         return maxVal || 1;
-    }, [data]);
+    }, [processedData]);
     const actualYDomain = yDomain || [0, computedMax];
     const start = xDomain[0];
     const end = xDomain[1];
@@ -63,7 +90,7 @@ const HistoricalMultiBandChart = ({
             <LineChart
                 width={width}
                 height={height}
-                data={data}
+                data={processedData}
                 margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
                 isAnimationActive={false}
             >
@@ -104,7 +131,9 @@ const HistoricalMultiBandChart = ({
                         type="monotone"
                         dataKey={key}
                         stroke={colors[idx % colors.length]}
-                        dot={false}
+                        dot={({ payload }) =>
+                            payload[`${key}Out`] ? <circle r={3} fill="red" /> : null
+                        }
                         isAnimationActive={false}
                     />
                 ))}
