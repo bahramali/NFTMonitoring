@@ -34,6 +34,16 @@ const HistoricalPhChart = ({
             : `${d.getMonth() + 1}/${d.getDate()}`;
     };
 
+    const computedMax = React.useMemo(() => {
+        let max = 0;
+        for (const entry of data || []) {
+            const v = Number(entry.ph);
+            if (v > max) max = v;
+        }
+        return max || 1;
+    }, [data]);
+    const yDomain = [0, computedMax];
+
     const phRange = idealRanges.ph?.idealRange;
 
     return (
@@ -54,7 +64,7 @@ const HistoricalPhChart = ({
                     tickFormatter={tickFormatter}
                     scale="time"
                 />
-                <YAxis>
+                <YAxis domain={yDomain} allowDataOverflow>
                     <Label value="pH" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
                 </YAxis>
                 {phRange && (
