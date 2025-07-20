@@ -213,23 +213,28 @@ function SensorDashboard() {
                             </div>
                         </div>
                         <div className={styles.historyChartColumn}>
-                            <h3 className={styles.sectionTitle}>Historical Bands</h3>
-                            <div className={styles.bandChartsGrid}>
-                                <div className={styles.blueBandChartWrapper}>
-                                    <h4 className={styles.chartTitle}>Blue Bands</h4>
-                                    <HistoricalBlueBandChart data={rangeData} xDomain={xDomain} />
-                                </div>
-                                <div className={styles.redBandChartWrapper}>
-                                    <h4 className={styles.chartTitle}>Red Bands</h4>
-                                    <HistoricalRedBandChart data={rangeData} xDomain={xDomain} />
-                                </div>
-                                <div className={styles.clearLuxChartWrapper}>
-                                    <h4 className={styles.chartTitle}>Lux_Clear</h4>
-                                    <HistoricalClearLuxChart data={rangeData} xDomain={xDomain} />
-                                </div>
+                            <h3 className={styles.sectionTitle}>Blue Bands</h3>
+                            <div className={styles.blueBandChartWrapper}>
+                                <HistoricalBlueBandChart data={rangeData} xDomain={xDomain} />
                             </div>
                         </div>
                     </div>
+
+                    <div className={styles.historyChartsRow}>
+                        <div className={styles.historyChartColumn}>
+                            <h3 className={styles.sectionTitle}>Red Bands</h3>
+                            <div className={styles.redBandChartWrapper}>
+                                <HistoricalRedBandChart data={rangeData} xDomain={xDomain} />
+                            </div>
+                        </div>
+                        <div className={styles.historyChartColumn}>
+                            <h3 className={styles.sectionTitle}>Lux_Clear</h3>
+                            <div className={styles.clearLuxChartWrapper}>
+                                <HistoricalClearLuxChart data={rangeData} xDomain={xDomain} />
+                            </div>
+                        </div>
+                    </div>
+
                     <div className={styles.historyChartsRow}>
                         <div className={styles.historyChartColumn}>
                             <h3 className={styles.sectionTitle}>pH</h3>
