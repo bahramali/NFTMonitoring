@@ -9,7 +9,7 @@ import HistoricalPhChart from "./HistoricalPhChart";
 import HistoricalEcTdsChart from "./HistoricalEcTdsChart";
 import Header from "./Header";
 import SensorCard from "./SensorCard";
-import { trimOldEntries, normalizeSensorData, filterNoise } from "../utils";
+import { trimOldEntries, normalizeSensorData, filterNoise, parseSensorJson } from "../utils";
 import styles from './SensorDashboard.module.css';
 
 const topic = "azadFarm/sensorData";
@@ -133,7 +133,7 @@ function SensorDashboard() {
                 try {
                     console.log("message: "+message);
                     console.log(message.toString());
-                    const raw = JSON.parse(message.toString());
+                    const raw = parseSensorJson(message.toString());
                     const normalized = normalizeSensorData(raw);
                     const cleaned = filterNoise(normalized);
                     if (!cleaned) return;

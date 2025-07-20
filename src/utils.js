@@ -103,3 +103,13 @@ export function normalizeSensorData(data) {
     return result;
 }
 
+export function parseSensorJson(str) {
+    try {
+        return JSON.parse(str);
+    } catch (e) {
+        // Attempt to fix missing commas between sensor objects
+        const fixed = str.replace(/}\s*{"sensorId":/g, '},{"sensorId":');
+        return JSON.parse(fixed);
+    }
+}
+

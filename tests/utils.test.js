@@ -1,4 +1,4 @@
-import { trimOldEntries, normalizeSensorData, filterNoise } from '../src/utils';
+import { trimOldEntries, normalizeSensorData, filterNoise, parseSensorJson } from '../src/utils';
 
 function fixedNow(ms) {
     return 1721310000000; // زمان ثابت برای تست، برای جلوگیری از اختلاف میلی‌ثانیه‌ای
@@ -127,4 +127,12 @@ test('filterNoise discards out of range values', () => {
 
     const badHumidity = { ...clean, humidity: { value: 150, unit: '%' } };
     expect(filterNoise(badHumidity)).toBeNull();
+});
+
+test('parseSensorJson fixes missing commas between sensor objects', () => {
+    const malformed = '{"sensors":[{"sensorId":"a","type":"temperature","value":1}{"sensorId":"b","type":"humidity","value":2}]}';
+    const parsed = parseSensorJson(malformed);
+    expect(Array.isArray(parsed.sensors)).toBe(true);
+    expect(parsed.sensors.length).toBe(2);
+    expect(parsed.sensors[1].sensorId).toBe('b');
 });
