@@ -38,6 +38,32 @@ const HistoricalEcTdsChart = ({
     const ecRange = idealRanges.ec?.idealRange;
     const tdsRange = idealRanges.tds?.idealRange;
 
+    const ecDomain = React.useMemo(() => {
+        let min = ecRange?.min ?? 0;
+        let max = ecRange?.max ?? 0;
+        for (const entry of data || []) {
+            const val = Number(entry.ec);
+            if (!Number.isNaN(val)) {
+                if (val < min) min = val;
+                if (val > max) max = val;
+            }
+        }
+        return [min, max];
+    }, [data, ecRange]);
+
+    const tdsDomain = React.useMemo(() => {
+        let min = tdsRange?.min ?? 0;
+        let max = tdsRange?.max ?? 0;
+        for (const entry of data || []) {
+            const val = Number(entry.tds);
+            if (!Number.isNaN(val)) {
+                if (val < min) min = val;
+                if (val > max) max = val;
+            }
+        }
+        return [min, max];
+    }, [data, tdsRange]);
+
     return (
         <ResponsiveContainer width="100%" height={height} debounce={200}>
             <LineChart
@@ -56,10 +82,10 @@ const HistoricalEcTdsChart = ({
                     tickFormatter={tickFormatter}
                     scale="time"
                 />
-                <YAxis yAxisId="left">
+                <YAxis yAxisId="left" domain={tdsDomain} allowDataOverflow>
                     <Label value="TDS (ppm)" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
                 </YAxis>
-                <YAxis yAxisId="right" orientation="right">
+                <YAxis yAxisId="right" orientation="right" domain={ecDomain} allowDataOverflow>
                     <Label value="EC (mS/cm)" angle={-90} position="insideRight" style={{ textAnchor: 'middle' }} />
                 </YAxis>
                 {tdsRange && (
