@@ -2,7 +2,9 @@ import React, { useEffect, useState, useMemo } from "react";
 import mqtt from "mqtt";
 import SpectrumBarChart from "./SpectrumBarChart";
 import HistoricalTemperatureChart from "./HistoricalTemperatureChart";
-import HistoricalMultiBandChart from "./HistoricalMultiBandChart";
+import HistoricalBlueBandChart from "./HistoricalBlueBandChart";
+import HistoricalRedBandChart from "./HistoricalRedBandChart";
+import HistoricalClearLuxChart from "./HistoricalClearLuxChart";
 import HistoricalPhChart from "./HistoricalPhChart";
 import HistoricalEcTdsChart from "./HistoricalEcTdsChart";
 import Header from "./Header";
@@ -212,11 +214,14 @@ function SensorDashboard() {
                         </div>
                         <div className={styles.historyChartColumn}>
                             <h3 className={styles.sectionTitle}>Historical Bands</h3>
-                            <div className={styles.multiBandChartWrapper}>
-                                <HistoricalMultiBandChart
-                                    data={rangeData}
-                                    xDomain={xDomain}
-                                />
+                            <div className={styles.blueBandChartWrapper}>
+                                <HistoricalBlueBandChart data={rangeData} xDomain={xDomain} />
+                            </div>
+                            <div className={styles.redBandChartWrapper}>
+                                <HistoricalRedBandChart data={rangeData} xDomain={xDomain} />
+                            </div>
+                            <div className={styles.clearLuxChartWrapper}>
+                                <HistoricalClearLuxChart data={rangeData} xDomain={xDomain} />
                             </div>
                         </div>
                     </div>
