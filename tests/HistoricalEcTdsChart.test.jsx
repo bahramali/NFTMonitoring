@@ -38,4 +38,10 @@ describe('HistoricalEcTdsChart', () => {
         const rechartsWrapper = container.querySelector('.recharts-responsive-container');
         expect(rechartsWrapper).toBeTruthy();
     });
+
+    it('shows reference areas for ideal ranges', () => {
+        const { container } = render(<HistoricalEcTdsChart data={mockData} />);
+        const refs = container.querySelectorAll('.recharts-reference-area-rect');
+        expect(refs.length).toBeGreaterThan(0);
+    });
 });
