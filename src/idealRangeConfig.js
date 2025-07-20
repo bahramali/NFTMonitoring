@@ -24,43 +24,43 @@ const idealRangeConfig = {
         description: 'pH affects nutrient absorption. 6.0 is optimal for basil.'
     },
     '415nm': {
-        idealRange: { min: 100, max: 500 },
+        idealRange: { min: 2, max: 50 },
         description: 'Supports early cell growth.'
     },
     '445nm': {
-        idealRange: { min: 200, max: 600 },
+        idealRange: { min: 80, max: 200 },
         description: 'Key for chlorophyll and leafy growth.'
     },
     '480nm': {
-        idealRange: { min: 150, max: 500 },
+        idealRange: { min: 70, max: 180 },
         description: 'Blue-green light; supports vegetative growth and pigment production.'
     },
     '515nm': {
-        idealRange: { min: 120, max: 400 },
+        idealRange: { min: 40, max: 150 },
         description: 'Green light; penetrates deeper into leaves and regulates growth balance.'
     },
     '555nm': {
-        idealRange: { min: 80, max: 350 },
+        idealRange: { min: 80, max: 200 },
         description: 'Mid-green light; complements blue and red for fuller spectrum balance.'
     },
     '590nm': {
-        idealRange: { min: 100, max: 300 },
+        idealRange: { min: 50, max: 140 },
         description: 'Yellow light; minor effect on photosynthesis but supports photomorphogenesis.'
     },
     '630nm': {
-        idealRange: { min: 300, max: 800 },
+        idealRange: { min: 120, max: 300 },
         description: 'Helps in flowering and general development.'
     },
     '680nm': {
-        idealRange: { min: 400, max: 900 },
+        idealRange: { min: 130, max: 320 },
         description: 'Peak light absorption for photosynthesis.'
     },
     clear: {
-        idealRange: { min: 500, max: 2000 },
+        idealRange: { min: 300, max: 900 },
         description: 'Total visible light intensity. General index of light.'
     },
     nir: {
-        idealRange: { min: 0, max: 200 },
+        idealRange: { min: 20, max: 100 },
         description: 'Higher NIR may indicate heat. Keep it low indoors.'
     }
 };
