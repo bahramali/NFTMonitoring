@@ -2,7 +2,9 @@ import React, { useEffect, useState, useMemo } from "react";
 import mqtt from "mqtt";
 import SpectrumBarChart from "./SpectrumBarChart";
 import HistoricalTemperatureChart from "./HistoricalTemperatureChart";
-import HistoricalMultiBandChart from "./HistoricalMultiBandChart";
+import HistoricalBlueBandChart from "./HistoricalBlueBandChart";
+import HistoricalRedBandChart from "./HistoricalRedBandChart";
+import HistoricalClearLuxChart from "./HistoricalClearLuxChart";
 import HistoricalPhChart from "./HistoricalPhChart";
 import HistoricalEcTdsChart from "./HistoricalEcTdsChart";
 import Header from "./Header";
@@ -212,11 +214,19 @@ function SensorDashboard() {
                         </div>
                         <div className={styles.historyChartColumn}>
                             <h3 className={styles.sectionTitle}>Historical Bands</h3>
-                            <div className={styles.multiBandChartWrapper}>
-                                <HistoricalMultiBandChart
-                                    data={rangeData}
-                                    xDomain={xDomain}
-                                />
+                            <div className={styles.bandChartsGrid}>
+                                <div className={styles.blueBandChartWrapper}>
+                                    <h4 className={styles.chartTitle}>Blue Bands</h4>
+                                    <HistoricalBlueBandChart data={rangeData} xDomain={xDomain} />
+                                </div>
+                                <div className={styles.redBandChartWrapper}>
+                                    <h4 className={styles.chartTitle}>Red Bands</h4>
+                                    <HistoricalRedBandChart data={rangeData} xDomain={xDomain} />
+                                </div>
+                                <div className={styles.clearLuxChartWrapper}>
+                                    <h4 className={styles.chartTitle}>Lux_Clear</h4>
+                                    <HistoricalClearLuxChart data={rangeData} xDomain={xDomain} />
+                                </div>
                             </div>
                         </div>
                     </div>

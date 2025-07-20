@@ -19,8 +19,8 @@ const colors = [
     '#A28EDB', '#FF6666'
 ];
 
-const bandKeys = [
-    'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'clear', 'nir'
+const defaultBandKeys = [
+    'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'clear', 'nir', 'lux'
 ];
 
 const bandMap = {
@@ -40,6 +40,7 @@ const HistoricalMultiBandChart = ({
     height = 300,
     xDomain = [Date.now() - 24 * 60 * 60 * 1000, Date.now()],
     yDomain,
+    bandKeys = defaultBandKeys,
 }) => {
     const processedData = React.useMemo(() => {
         return (data || []).map(entry => {
