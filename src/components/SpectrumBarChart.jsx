@@ -66,7 +66,7 @@ function SpectrumBarChart({ sensorData }) {
                     interval={0}
                     height={60}
                 />
-                <YAxis domain={[0, 2100]} allowDataOverflow>
+                <YAxis domain={[0, 900]} allowDataOverflow>
                     <Label value="Raw Intensity" angle={-90} position="insideLeft" />
                 </YAxis>
                 {data.map(d => (
