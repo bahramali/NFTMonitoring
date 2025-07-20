@@ -34,6 +34,18 @@ const HistoricalTemperatureChart = ({
             : `${d.getMonth() + 1}/${d.getDate()}`;
     };
 
+    const computedMax = React.useMemo(() => {
+        let max = 0;
+        for (const entry of data || []) {
+            const t = Number(entry.temperature);
+            const h = Number(entry.humidity);
+            if (t > max) max = t;
+            if (h > max) max = h;
+        }
+        return max || 1;
+    }, [data]);
+    const yDomain = [0, computedMax];
+
     return (
         <ResponsiveContainer width="100%" height={height} debounce={200}>
             <LineChart
@@ -52,7 +64,7 @@ const HistoricalTemperatureChart = ({
                 tickFormatter={tickFormatter}
                 scale="time"
             />
-            <YAxis>
+            <YAxis domain={yDomain} allowDataOverflow>
                 <Label value="Temp (°C) / Humidity (%)" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
             </YAxis>
             {(() => {
