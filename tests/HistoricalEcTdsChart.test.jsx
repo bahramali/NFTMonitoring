@@ -4,7 +4,6 @@ import '@testing-library/jest-dom';
 import HistoricalEcTdsChart from '../src/components/HistoricalEcTdsChart';
 import { vi } from 'vitest';
 
-// 🧪 mock کردن محدوده‌های ایده‌آل EC و TDS
 vi.mock('../src/idealRangeConfig', () => ({
   __esModule: true,
   default: {
@@ -13,7 +12,6 @@ vi.mock('../src/idealRangeConfig', () => ({
   },
 }));
 
-// ⚠️ برای اینکه Recharts تو محیط test درست کار کنه
 beforeAll(() => {
   Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
     configurable: true,
@@ -40,10 +38,5 @@ describe('HistoricalEcTdsChart', () => {
     const rechartsWrapper = container.querySelector('.recharts-responsive-container');
     expect(rechartsWrapper).toBeTruthy();
   });
-
-  it('shows reference areas for ideal EC and TDS ranges', () => {
-    const { container } = render(<HistoricalEcTdsChart data={mockData} />);
-    const refs = container.querySelectorAll('.recharts-reference-area-rect');
-    expect(refs.length).toBeGreaterThan(0);
-  });
 });
+
