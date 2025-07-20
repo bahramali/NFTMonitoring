@@ -36,7 +36,6 @@ function SensorDashboard() {
     });
     const [dailyData, setDailyData] = useState(() => {
         const stored = localStorage.getItem("dailyData");
-        console.log("Stored: "+ stored);
         const now = Date.now();
         const initial = stored ? trimOldEntries(JSON.parse(stored), now, 30 * 24 * 60 * 60 * 1000) : [];
         localStorage.setItem("dailyData", JSON.stringify(initial));
@@ -131,8 +130,7 @@ function SensorDashboard() {
         client.on("message", (t, message) => {
             if (t === topic) {
                 try {
-                    console.log("message: "+message);
-                    console.log(message.toString());
+                    console.log("message.toString(): "+ message.toString());
                     const raw = parseSensorJson(message.toString());
                     const normalized = normalizeSensorData(raw);
                     const cleaned = filterNoise(normalized);
