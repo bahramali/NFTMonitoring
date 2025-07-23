@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useMemo } from "react";
-import mqtt from "mqtt";
 import SpectrumBarChart from "./SpectrumBarChart";
 import HistoricalTemperatureChart from "./HistoricalTemperatureChart";
 import HistoricalBlueBandChart from "./HistoricalBlueBandChart";
@@ -118,24 +117,44 @@ function SensorDashboard() {
     }, [dailyData]);
 
     useEffect(() => {
-        const client = mqtt.connect(
-            import.meta.env.VITE_MQTT_BROKER_URL || "wss://1457f4a458cd4b4e9175ae1816356ce1.s1.eu.hivemq.cloud:8884/mqtt",
-            {
-                username: import.meta.env.VITE_MQTT_USERNAME || "hivemq.webclient.1752186412216",
-                password: import.meta.env.VITE_MQTT_PASSWORD || "5FIH&19,GK8J#lrhax>e",
-                protocol: "wss",
-            }
-        );
+        const wsUrl = import.meta.env.VITE_WS_URL || "ws://16.170.206.232:8080/ws";
+        let socket;
 
-        client.on("connect", () => {
-            client.subscribe(topic);
+        const buildFrame = (command, headers = {}, body = "") => {
+            let frame = command + "\n";
+            for (const [k, v] of Object.entries(headers)) {
+                frame += `${k}:${v}\n`;
+            }
+            return frame + "\n" + body + "\0";
+        };
+
+        const parseFrame = (data) => {
+            const idx = data.indexOf("\n\n");
+            if (idx === -1) return null;
+            const headerLines = data.slice(0, idx).split("\n");
+            const command = headerLines.shift();
+            const headers = {};
+            for (const line of headerLines) {
+                if (!line) continue;
+                const i = line.indexOf(":");
+                if (i > 0) headers[line.slice(0, i)] = line.slice(i + 1);
+            }
+            const body = data.slice(idx + 2, data.indexOf("\0", idx));
+            return { command, headers, body };
+        };
+
+        socket = new WebSocket(wsUrl);
+
+        socket.addEventListener("open", () => {
+            socket.send(buildFrame("CONNECT", { "accept-version": "1.2", "heart-beat": "0,0" }));
+            socket.send(buildFrame("SUBSCRIBE", { id: "sub-0", destination: `/topic/${topic}`, ack: "auto" }));
         });
 
-        client.on("message", (t, message) => {
-            if (t === topic) {
+        socket.addEventListener("message", (event) => {
+            const frame = parseFrame(event.data);
+            if (frame && frame.command === "MESSAGE") {
                 try {
-                    console.log("message.toString(): "+ message.toString());
-                    const raw = parseSensorJson(message.toString());
+                    const raw = parseSensorJson(frame.body);
                     const normalized = normalizeSensorData(raw);
                     const cleaned = filterNoise(normalized);
                     if (!cleaned) return;
@@ -151,13 +170,13 @@ function SensorDashboard() {
                         return updated;
                     });
                 } catch (e) {
-                    console.error("Invalid JSON", e);
+                    console.error("Invalid STOMP message", e);
                 }
             }
         });
 
         return () => {
-            client.end();
+            if (socket) socket.close();
         };
     }, []);
 
