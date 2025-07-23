@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useMemo } from "react";
-import mqtt from "mqtt";
 import SpectrumBarChart from "./SpectrumBarChart";
 import HistoricalTemperatureChart from "./HistoricalTemperatureChart";
 import HistoricalBlueBandChart from "./HistoricalBlueBandChart";
@@ -9,7 +8,8 @@ import HistoricalPhChart from "./HistoricalPhChart";
 import HistoricalEcTdsChart from "./HistoricalEcTdsChart";
 import Header from "./Header";
 import SensorCard from "./SensorCard";
-import { trimOldEntries, normalizeSensorData, filterNoise, parseSensorJson } from "../utils";
+import { trimOldEntries } from "../utils";
+import { useStomp } from '../hooks/useStomp';
 import styles from './SensorDashboard.module.css';
 
 const topic = "azadFarm/sensorData";
@@ -117,49 +117,7 @@ function SensorDashboard() {
         }
     }, [dailyData]);
 
-    useEffect(() => {
-        const client = mqtt.connect(
-            import.meta.env.VITE_MQTT_BROKER_URL || "wss://1457f4a458cd4b4e9175ae1816356ce1.s1.eu.hivemq.cloud:8884/mqtt",
-            {
-                username: import.meta.env.VITE_MQTT_USERNAME || "hivemq.webclient.1752186412216",
-                password: import.meta.env.VITE_MQTT_PASSWORD || "5FIH&19,GK8J#lrhax>e",
-                protocol: "wss",
-            }
-        );
-
-        client.on("connect", () => {
-            client.subscribe(topic);
-        });
-
-        client.on("message", (t, message) => {
-            if (t === topic) {
-                try {
-                    console.log("message.toString(): "+ message.toString());
-                    const raw = parseSensorJson(message.toString());
-                    const normalized = normalizeSensorData(raw);
-                    const cleaned = filterNoise(normalized);
-                    if (!cleaned) return;
-                    setSensorData(cleaned);
-                    const timestamp = raw.timestamp ? Date.parse(raw.timestamp) : Date.now();
-                    setDailyData(prev => {
-                        const updated = trimOldEntries(
-                            [...prev, { timestamp, ...cleaned }],
-                            timestamp,
-                            30 * 24 * 60 * 60 * 1000
-                        );
-                        localStorage.setItem("dailyData", JSON.stringify(updated));
-                        return updated;
-                    });
-                } catch (e) {
-                    console.error("Invalid JSON", e);
-                }
-            }
-        });
-
-        return () => {
-            client.end();
-        };
-    }, []);
+    useStomp(topic, setSensorData, setDailyData);
 
     return (
         <div className={styles.dashboard}>
