@@ -115,7 +115,9 @@ function SensorDashboard() {
             applyFilter();
         }
     }, [dailyData]);
-
+    return (
+        <div className={styles.dashboard}>
+            <Header topic={topic} />
     useEffect(() => {
         let wsUrl = import.meta.env.VITE_WS_URL || "ws://16.170.206.232:8080/ws";
         // If the page is served over HTTPS we must also use a secure WebSocket
@@ -123,6 +125,7 @@ function SensorDashboard() {
             wsUrl = 'wss://' + wsUrl.slice(5);
         }
         let socket;
+        let buffer = "";
 
         const buildFrame = (command, headers = {}, body = "") => {
             let frame = command + "\n";
@@ -132,31 +135,14 @@ function SensorDashboard() {
             return frame + "\n" + body + "\0";
         };
 
-        const parseFrame = (data) => {
-            const idx = data.indexOf("\n\n");
-            if (idx === -1) return null;
-            const headerLines = data.slice(0, idx).split("\n");
-            const command = headerLines.shift();
-            const headers = {};
-            for (const line of headerLines) {
-                if (!line) continue;
-                const i = line.indexOf(":");
-                if (i > 0) headers[line.slice(0, i)] = line.slice(i + 1);
+        const handleFrame = (frame) => {
+            if (frame.command === "CONNECTED") {
+                socket.send(
+                    buildFrame("SUBSCRIBE", { id: "sub-0", destination: `/topic/${topic}`, ack: "auto" })
+                );
+                return;
             }
-            const body = data.slice(idx + 2, data.indexOf("\0", idx));
-            return { command, headers, body };
-        };
-
-        socket = new WebSocket(wsUrl);
-
-        socket.addEventListener("open", () => {
-            socket.send(buildFrame("CONNECT", { "accept-version": "1.2", "heart-beat": "0,0" }));
-            socket.send(buildFrame("SUBSCRIBE", { id: "sub-0", destination: `/topic/${topic}`, ack: "auto" }));
-        });
-
-        socket.addEventListener("message", (event) => {
-            const frame = parseFrame(event.data);
-            if (frame && frame.command === "MESSAGE") {
+            if (frame.command === "MESSAGE") {
                 try {
                     const raw = parseSensorJson(frame.body);
                     const normalized = normalizeSensorData(raw);
@@ -177,15 +163,58 @@ function SensorDashboard() {
                     console.error("Invalid STOMP message", e);
                 }
             }
+        };
+
+        const processData = (data) => {
+            buffer += data;
+            while (true) {
+                const nullIdx = buffer.indexOf("\0");
+                if (nullIdx === -1) break;
+                const frameStr = buffer.slice(0, nullIdx);
+                buffer = buffer.slice(nullIdx + 1);
+                const idx = frameStr.indexOf("\n\n");
+                if (idx === -1) continue;
+                const headerLines = frameStr.slice(0, idx).split("\n");
+                const command = headerLines.shift();
+                const headers = {};
+                for (const line of headerLines) {
+                    if (!line) continue;
+                    const i = line.index(":");
+                    if (i > 0) headers[line.slice(0, i)] = line.slice(i + 1);
+                }
+                const body = frameStr.slice(idx + 2);
+                handleFrame({ command, headers, body });
+            }
+        };
+
+        socket = new WebSocket(wsUrl);
+
+        socket.addEventListener("open", () => {
+            socket.send(
+                buildFrame("CONNECT", {
+                    "accept-version": "1.2",
+                    host: location.hostname,
+                    "heart-beat": "0,0",
+                })
+            );
+        });
+
+        socket.addEventListener("message", (event) => {
+            processData(event.data);
+        });
+
+        socket.addEventListener("error", (e) => {
+            console.error("WebSocket error", e);
+        });
+
+        socket.addEventListener("close", () => {
+            console.warn("WebSocket closed");
         });
 
         return () => {
             if (socket) socket.close();
         };
     }, []);
-
-    return (
-        <div className={styles.dashboard}>
             <Header topic={topic} />
             <div className={styles.section}>
                 <h2 className={`${styles.sectionHeader} ${styles.liveHeader}`}>Live Data</h2>
