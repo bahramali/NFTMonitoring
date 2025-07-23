@@ -115,14 +115,15 @@ function SensorDashboard() {
             applyFilter();
         }
     }, [dailyData]);
-
+    return (
+        <div className={styles.dashboard}>
+            <Header topic={topic} />
     useEffect(() => {
         let wsUrl = import.meta.env.VITE_WS_URL || "ws://16.170.206.232:8080/ws";
         // If the page is served over HTTPS we must also use a secure WebSocket
         if (location.protocol === 'https:' && wsUrl.startsWith('ws://')) {
             wsUrl = 'wss://' + wsUrl.slice(5);
         }
-
         let socket;
         let buffer = "";
 
@@ -133,7 +134,6 @@ function SensorDashboard() {
             }
             return frame + "\n" + body + "\0";
         };
-
         const handleFrame = (frame) => {
             if (frame.command === "CONNECTED") {
                 socket.send(
@@ -214,9 +214,6 @@ function SensorDashboard() {
             if (socket) socket.close();
         };
     }, []);
-
-    return (
-        <div className={styles.dashboard}>
             <Header topic={topic} />
             <div className={styles.section}>
                 <h2 className={`${styles.sectionHeader} ${styles.liveHeader}`}>Live Data</h2>
