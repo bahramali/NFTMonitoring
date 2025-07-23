@@ -12,7 +12,6 @@
     "test": "vitest"
   },
   "dependencies": {
-    "mqtt": "^5.13.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-is": "^19.1.0",
