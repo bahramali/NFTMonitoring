@@ -117,7 +117,11 @@ function SensorDashboard() {
     }, [dailyData]);
 
     useEffect(() => {
-        const wsUrl = import.meta.env.VITE_WS_URL || "ws://16.170.206.232:8080/ws";
+        let wsUrl = import.meta.env.VITE_WS_URL || "ws://16.170.206.232:8080/ws";
+        // If the page is served over HTTPS we must also use a secure WebSocket
+        if (location.protocol === 'https:' && wsUrl.startsWith('ws://')) {
+            wsUrl = 'wss://' + wsUrl.slice(5);
+        }
         let socket;
 
         const buildFrame = (command, headers = {}, body = "") => {
