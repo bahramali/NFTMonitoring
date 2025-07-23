@@ -124,7 +124,6 @@ function SensorDashboard() {
         if (location.protocol === 'https:' && wsUrl.startsWith('ws://')) {
             wsUrl = 'wss://' + wsUrl.slice(5);
         }
-
         let socket;
         let buffer = "";
 
