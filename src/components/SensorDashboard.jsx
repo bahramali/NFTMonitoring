@@ -12,7 +12,8 @@ import { trimOldEntries } from "../utils";
 import { useStomp } from '../hooks/useStomp';
 import styles from './SensorDashboard.module.css';
 
-const topic = "azadFarm/sensorData";
+const sensorTopic = "growSensors";
+const topics = [sensorTopic, "rootImages", "waterOutput", "waterTank"];
 
 const sensorFieldMap = {
     veml7700: ['lux'],
@@ -117,11 +118,11 @@ function SensorDashboard() {
         }
     }, [dailyData]);
 
-    useStomp(topic, setSensorData, setDailyData);
+    useStomp(topics, setSensorData, setDailyData);
 
     return (
         <div className={styles.dashboard}>
-            <Header topic={topic} />
+            <Header topic={sensorTopic} />
             <div className={styles.section}>
                 <h2 className={`${styles.sectionHeader} ${styles.liveHeader}`}>Live Data</h2>
                 <div className={styles.sectionBody}>
