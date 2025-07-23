@@ -8,7 +8,8 @@ import HistoricalPhChart from "./HistoricalPhChart";
 import HistoricalEcTdsChart from "./HistoricalEcTdsChart";
 import Header from "./Header";
 import SensorCard from "./SensorCard";
-import { trimOldEntries, normalizeSensorData, filterNoise, parseSensorJson } from "../utils";
+import { trimOldEntries } from "../utils";
+import { useStomp } from '../hooks/useStomp';
 import styles from './SensorDashboard.module.css';
 
 const topic = "azadFarm/sensorData";
@@ -115,105 +116,11 @@ function SensorDashboard() {
             applyFilter();
         }
     }, [dailyData]);
+
+    useStomp(topic, setSensorData, setDailyData);
+
     return (
         <div className={styles.dashboard}>
-            <Header topic={topic} />
-    useEffect(() => {
-        let wsUrl = import.meta.env.VITE_WS_URL || "ws://16.170.206.232:8080/ws";
-        // If the page is served over HTTPS we must also use a secure WebSocket
-        if (location.protocol === 'https:' && wsUrl.startsWith('ws://')) {
-            wsUrl = 'wss://' + wsUrl.slice(5);
-        }
-        let socket;
-        let buffer = "";
-
-        const buildFrame = (command, headers = {}, body = "") => {
-            let frame = command + "\n";
-            for (const [k, v] of Object.entries(headers)) {
-                frame += `${k}:${v}\n`;
-            }
-            return frame + "\n" + body + "\0";
-        };
-        const handleFrame = (frame) => {
-            if (frame.command === "CONNECTED") {
-                socket.send(
-                    buildFrame("SUBSCRIBE", { id: "sub-0", destination: `/topic/${topic}`, ack: "auto" })
-                );
-                return;
-            }
-            if (frame.command === "MESSAGE") {
-                try {
-                    const raw = parseSensorJson(frame.body);
-                    const normalized = normalizeSensorData(raw);
-                    const cleaned = filterNoise(normalized);
-                    if (!cleaned) return;
-                    setSensorData(cleaned);
-                    const timestamp = raw.timestamp ? Date.parse(raw.timestamp) : Date.now();
-                    setDailyData(prev => {
-                        const updated = trimOldEntries(
-                            [...prev, { timestamp, ...cleaned }],
-                            timestamp,
-                            30 * 24 * 60 * 60 * 1000
-                        );
-                        localStorage.setItem("dailyData", JSON.stringify(updated));
-                        return updated;
-                    });
-                } catch (e) {
-                    console.error("Invalid STOMP message", e);
-                }
-            }
-        };
-
-        const processData = (data) => {
-            buffer += data;
-            while (true) {
-                const nullIdx = buffer.indexOf("\0");
-                if (nullIdx === -1) break;
-                const frameStr = buffer.slice(0, nullIdx);
-                buffer = buffer.slice(nullIdx + 1);
-                const idx = frameStr.indexOf("\n\n");
-                if (idx === -1) continue;
-                const headerLines = frameStr.slice(0, idx).split("\n");
-                const command = headerLines.shift();
-                const headers = {};
-                for (const line of headerLines) {
-                    if (!line) continue;
-                    const i = line.index(":");
-                    if (i > 0) headers[line.slice(0, i)] = line.slice(i + 1);
-                }
-                const body = frameStr.slice(idx + 2);
-                handleFrame({ command, headers, body });
-            }
-        };
-
-        socket = new WebSocket(wsUrl);
-
-        socket.addEventListener("open", () => {
-            socket.send(
-                buildFrame("CONNECT", {
-                    "accept-version": "1.2",
-                    host: location.hostname,
-                    "heart-beat": "0,0",
-                })
-            );
-        });
-
-        socket.addEventListener("message", (event) => {
-            processData(event.data);
-        });
-
-        socket.addEventListener("error", (e) => {
-            console.error("WebSocket error", e);
-        });
-
-        socket.addEventListener("close", () => {
-            console.warn("WebSocket closed");
-        });
-
-        return () => {
-            if (socket) socket.close();
-        };
-    }, []);
             <Header topic={topic} />
             <div className={styles.section}>
                 <h2 className={`${styles.sectionHeader} ${styles.liveHeader}`}>Live Data</h2>
