@@ -1,8 +1,11 @@
 import { useEffect } from 'react';
 import { parseSensorJson, normalizeSensorData, filterNoise, trimOldEntries } from '../utils';
 
-export function useStomp(topic, setSensorData, setDailyData) {
+export function useStomp(topics, setSensorData, setDailyData) {
+    const topicsKey = JSON.stringify(Array.isArray(topics) ? topics : [topics]);
     useEffect(() => {
+        const topicList = JSON.parse(topicsKey);
+
         let wsUrl = import.meta.env.VITE_WS_URL || 'ws://16.170.206.232:8080/ws';
         if (location.protocol === 'https:' && wsUrl.startsWith('ws://')) {
             wsUrl = 'wss://' + wsUrl.slice(5);
@@ -21,16 +24,23 @@ export function useStomp(topic, setSensorData, setDailyData) {
 
         const handleFrame = (frame) => {
             if (frame.command === 'CONNECTED') {
-                socket.send(
-                    buildFrame('SUBSCRIBE', {
-                        id: 'sub-0',
-                        destination: `/topic/${topic}`,
-                        ack: 'auto'
-                    })
-                );
+                topicList.forEach((t, idx) => {
+                    socket.send(
+                        buildFrame('SUBSCRIBE', {
+                            id: `sub-${idx}`,
+                            destination: `/topic/${t}`,
+                            ack: 'auto'
+                        })
+                    );
+                });
                 return;
             }
             if (frame.command === 'MESSAGE') {
+                const dest = frame.headers.destination || '';
+                if (!dest.endsWith('growSensors')) {
+                    // other topics not handled yet
+                    return;
+                }
                 try {
                     const raw = parseSensorJson(frame.body);
                     const normalized = normalizeSensorData(raw);
@@ -102,5 +112,5 @@ export function useStomp(topic, setSensorData, setDailyData) {
         return () => {
             if (socket) socket.close();
         };
-    }, [topic, setSensorData, setDailyData]);
+    }, [topicsKey, setSensorData, setDailyData]);
 }
