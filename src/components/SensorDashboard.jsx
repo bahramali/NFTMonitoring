@@ -134,7 +134,6 @@ function SensorDashboard() {
             }
             return frame + "\n" + body + "\0";
         };
-
         const handleFrame = (frame) => {
             if (frame.command === "CONNECTED") {
                 socket.send(
