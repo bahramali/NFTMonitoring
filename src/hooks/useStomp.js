@@ -6,7 +6,7 @@ export function useStomp(topics, setSensorData, setDailyData) {
     useEffect(() => {
         const topicList = JSON.parse(topicsKey);
 
-        let wsUrl = import.meta.env.VITE_WS_URL || 'ws://16.170.206.232:8080/ws';
+        let wsUrl = import.meta.env.VITE_WS_URL || 'wss://api.hydroleaf.se/ws';
         if (location.protocol === 'https:' && wsUrl.startsWith('ws://')) {
             wsUrl = 'wss://' + wsUrl.slice(5);
         }
