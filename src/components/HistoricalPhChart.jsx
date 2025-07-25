@@ -64,6 +64,7 @@ const HistoricalPhChart = ({
                     ticks={ticks}
                     tickFormatter={tickFormatter}
                     scale="time"
+                    tick={{ fontSize: 10 }}
                 />
                 <YAxis domain={yDomain} allowDataOverflow>
                     <Label value="pH" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />

@@ -64,6 +64,7 @@ const HistoricalTemperatureChart = ({
                 ticks={ticks}
                 tickFormatter={tickFormatter}
                 scale="time"
+                tick={{ fontSize: 10 }}
             />
             <YAxis domain={yDomain} allowDataOverflow>
                 <Label value="Temp (°C) / Humidity (%)" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />

@@ -12,9 +12,7 @@ import {
     Label,
     ReferenceArea
 } from 'recharts';
-import palette from '../colorPalette';
-
-const colors = palette;
+import spectralColors from '../spectralColors';
 
 const defaultBandKeys = [
     'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'clear', 'nir', 'lux'
@@ -100,6 +98,7 @@ const HistoricalMultiBandChart = ({
                     ticks={ticks}
                     tickFormatter={tickFormatter}
                     scale="time"
+                    tick={{ fontSize: 10 }}
                 />
                 <YAxis domain={actualYDomain} allowDataOverflow>
                     <Label value="Spectrum Value" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
@@ -114,7 +113,7 @@ const HistoricalMultiBandChart = ({
                                 y2={range.max}
                                 x1={start}
                                 x2={end}
-                                fill={colors[idx % colors.length]}
+                                fill={spectralColors[key]}
                                 fillOpacity={0.1}
                                 stroke="none"
                             />
@@ -128,7 +127,7 @@ const HistoricalMultiBandChart = ({
                         key={key}
                         type="monotone"
                         dataKey={key}
-                        stroke={colors[idx % colors.length]}
+                        stroke={spectralColors[key]}
                         dot={({ payload }) =>
                             payload[`${key}Out`] ? <circle r={3} fill="red" /> : null
                         }

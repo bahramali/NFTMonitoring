@@ -49,3 +49,17 @@ You can inspect past readings by selecting one of the preset periods in the
 1 month. Selecting a period freezes the window so it does not keep advancing as
 new readings arrive. The start and end timestamps of the chosen range are shown
 below the dropdown.
+### Spectral Bands
+
+| Band | Center (nm) | Range (nm) | Color |
+|------|-------------|------------|-------|
+| F1   | 415         | 400–430   | Violet |
+| F2   | 445         | 430–460   | Blue |
+| F3   | 480         | 460–500   | Cyan |
+| F4   | 515         | 500–530   | Green |
+| F5   | 555         | 530–570   | Green/Yellow |
+| F6   | 590         | 570–610   | Yellow/Orange |
+| F7   | 630         | 610–650   | Orange/Red |
+| F8   | 680         | 650–700   | Red |
+| Clear| -           | full visible spectrum | All colors |
+| NIR  | -           | >700       | Near Infrared |

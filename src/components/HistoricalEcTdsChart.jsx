@@ -82,6 +82,7 @@ const HistoricalEcTdsChart = ({
                     ticks={ticks}
                     tickFormatter={tickFormatter}
                     scale="time"
+                    tick={{ fontSize: 10 }}
                 />
                 <YAxis yAxisId="left" domain={tdsDomain} allowDataOverflow>
                     <Label value="TDS (ppm)" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
