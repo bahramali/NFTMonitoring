@@ -12,6 +12,12 @@ import { transformAggregatedData } from "../utils";
 import { useStomp } from '../hooks/useStomp';
 import styles from './SensorDashboard.module.css';
 
+function toLocalInputValue(date) {
+    const tz = date.getTimezoneOffset() * 60000;
+    const local = new Date(date.getTime() - tz);
+    return local.toISOString().slice(0, 16);
+}
+
 const sensorTopic = "growSensors";
 const topics = [sensorTopic, "rootImages", "waterOutput", "waterTank"];
 
@@ -42,8 +48,8 @@ function SensorDashboard() {
     };
 
     const now = Date.now();
-    const defaultFrom = toLocalInputValue(now - 6 * 60 * 60 * 1000);
-    const defaultTo = toLocalInputValue(now);
+    const defaultFrom = toLocalInputValue(new Date(now - 6 * 60 * 60 * 1000));
+    const defaultTo = toLocalInputValue(new Date(now));
     const [fromDate, setFromDate] = useState(defaultFrom);
     const [toDate, setToDate] = useState(defaultTo);
     const [rangeData, setRangeData] = useState([]);
@@ -152,13 +158,7 @@ function SensorDashboard() {
                                 To:
                                 <input type="datetime-local" value={toDate} onChange={e => setToDate(e.target.value)} />
                             </label>
-                            <button
-                                type="button"
-                                className={styles.nowButton}
-                                onClick={() => setToDate(toLocalInputValue(Date.now()))}
-                            >
-                                Now
-                            </button>
+                            <button type="button" className={styles.nowButton} onClick={() => setToDate(toLocalInputValue(new Date()))}>Now</button>
                             <button type="button" className={styles.applyButton} onClick={fetchReportData}>Apply</button>
                         </div>
                         <div className={styles.rangeLabel}>
