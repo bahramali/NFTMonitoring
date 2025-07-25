@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    Label, ReferenceArea
+    Label, ReferenceArea, Cell
 } from 'recharts';
 import idealRanges from '../idealRangeConfig';
+import palette from '../colorPalette';
 
 const bandMeta = [
     ['F1', '415 nm (F1)'],
@@ -77,13 +78,18 @@ function SpectrumBarChart({ sensorData }) {
                             x2={d.index + 0.5}
                             y1={d.min}
                             y2={d.max}
-                            fill="rgba(0, 0, 255, 0.1)"
+                            fill={palette[d.index % palette.length]}
+                            fillOpacity={0.1}
                             stroke="none"
                         />
                     )
                 ))}
                 <Tooltip />
-                <Bar dataKey="value" fill="#82ca9d" isAnimationActive={false} animationDuration={0} />
+                <Bar dataKey="value" isAnimationActive={false} animationDuration={0}>
+                    {data.map((d, idx) => (
+                        <Cell key={`cell-${idx}`} fill={palette[idx % palette.length]} />
+                    ))}
+                </Bar>
             </BarChart>
         </ResponsiveContainer>
     );

@@ -11,6 +11,7 @@ import {
     ReferenceArea,
     ResponsiveContainer,
 } from 'recharts';
+import palette from '../colorPalette';
 
 const HistoricalTemperatureChart = ({
     data,
@@ -78,7 +79,8 @@ const HistoricalTemperatureChart = ({
                                 y2={tRange.max}
                                 x1={start}
                                 x2={end}
-                                fill="rgba(255,115,0,0.1)"
+                                fill={palette[1]}
+                                fillOpacity={0.1}
                                 stroke="none"
                             />
                         )}
@@ -88,7 +90,8 @@ const HistoricalTemperatureChart = ({
                                 y2={hRange.max}
                                 x1={start}
                                 x2={end}
-                                fill="rgba(136,132,216,0.1)"
+                                fill={palette[0]}
+                                fillOpacity={0.1}
                                 stroke="none"
                             />
                         )}
@@ -99,14 +102,14 @@ const HistoricalTemperatureChart = ({
             <Line
                 type="monotone"
                 dataKey="temperature"
-                stroke="#ff7300"
+                stroke={palette[1]}
                 dot={false}
                 isAnimationActive={false}
             />
             <Line
                 type="monotone"
                 dataKey="humidity"
-                stroke="#8884d8"
+                stroke={palette[0]}
                 dot={false}
                 isAnimationActive={false}
             />

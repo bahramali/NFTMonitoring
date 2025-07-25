@@ -12,6 +12,7 @@ import {
     Legend,
     ResponsiveContainer,
 } from 'recharts';
+import palette from '../colorPalette';
 
 const HistoricalEcTdsChart = ({
     data,
@@ -95,7 +96,8 @@ const HistoricalEcTdsChart = ({
                         y2={tdsRange.max}
                         x1={start}
                         x2={end}
-                        fill="rgba(0,123,255,0.1)"
+                        fill={palette[0]}
+                        fillOpacity={0.1}
                         stroke="none"
                     />
                 )}
@@ -106,7 +108,8 @@ const HistoricalEcTdsChart = ({
                         y2={ecRange.max}
                         x1={start}
                         x2={end}
-                        fill="rgba(255,193,7,0.1)"
+                        fill={palette[5]}
+                        fillOpacity={0.1}
                         stroke="none"
                     />
                 )}
@@ -116,7 +119,7 @@ const HistoricalEcTdsChart = ({
                     yAxisId="left"
                     type="monotone"
                     dataKey="tds"
-                    stroke="#007bff"
+                    stroke={palette[0]}
                     dot={false}
                     isAnimationActive={false}
                 />
@@ -124,7 +127,7 @@ const HistoricalEcTdsChart = ({
                     yAxisId="right"
                     type="monotone"
                     dataKey="ec"
-                    stroke="#ffc107"
+                    stroke={palette[5]}
                     dot={false}
                     isAnimationActive={false}
                 />

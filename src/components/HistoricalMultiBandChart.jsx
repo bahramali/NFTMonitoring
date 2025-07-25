@@ -12,12 +12,9 @@ import {
     Label,
     ReferenceArea
 } from 'recharts';
+import palette from '../colorPalette';
 
-const colors = [
-    '#8884d8', '#82ca9d', '#ffc658', '#ff7300',
-    '#00C49F', '#FFBB28', '#FF8042', '#0088FE',
-    '#A28EDB', '#FF6666'
-];
+const colors = palette;
 
 const defaultBandKeys = [
     'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'clear', 'nir', 'lux'
