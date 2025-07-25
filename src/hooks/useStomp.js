@@ -54,7 +54,6 @@ export function useStomp(topics, setSensorData, setDailyData) {
                             timestamp,
                             30 * 24 * 60 * 60 * 1000
                         );
-                        localStorage.setItem('dailyData', JSON.stringify(updated));
                         return updated;
                     });
                 } catch (e) {

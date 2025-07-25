@@ -1,4 +1,4 @@
-import { trimOldEntries, normalizeSensorData, filterNoise, parseSensorJson } from '../src/utils';
+import { trimOldEntries, normalizeSensorData, filterNoise, parseSensorJson, transformAggregatedData } from '../src/utils';
 
 function fixedNow(ms) {
     return 1721310000000; // زمان ثابت برای تست، برای جلوگیری از اختلاف میلی‌ثانیه‌ای
@@ -135,4 +135,22 @@ test('parseSensorJson fixes missing commas between sensor objects', () => {
     expect(Array.isArray(parsed.sensors)).toBe(true);
     expect(parsed.sensors.length).toBe(2);
     expect(parsed.sensors[1].sensorId).toBe('b');
+});
+
+test('transformAggregatedData converts API response', () => {
+    const raw = {
+        sensors: [
+            { type: 'temperature', unit: '°C', data: [{ timestamp: '2025-07-25T09:00:04Z', value: 27.5 }] },
+            { type: 'humidity', unit: '%', data: [{ timestamp: '2025-07-25T09:00:04Z', value: 56 }] },
+            { type: 'light', unit: 'lux', data: [{ timestamp: '2025-07-25T09:00:04Z', value: 90 }] },
+            { type: 'colorSpectrum', unit: 'raw', data: [{ timestamp: '2025-07-25T09:00:04Z', value: { '415nm': 1, '445nm': 2, '480nm': 3, '515nm': 4, '555nm': 5, '590nm': 6, '630nm': 7, '680nm': 8, clear: 9, nir: 10 } }] }
+        ]
+    };
+    const result = transformAggregatedData(raw);
+    expect(result.length).toBe(1);
+    const entry = result[0];
+    expect(entry.timestamp).toBe(Date.parse('2025-07-25T09:00:04Z'));
+    expect(entry.temperature.value).toBe(27.5);
+    expect(entry.F3).toBe(3);
+    expect(entry.nir).toBe(10);
 });
