@@ -5,16 +5,17 @@ import {
 } from 'recharts';
 import idealRanges from '../idealRangeConfig';
 import palette from '../colorPalette';
+import spectralColors from '../spectralColors';
 
 const bandMeta = [
-    ['F1', '415 nm (F1)'],
-    ['F2', '445 nm (F2)'],
-    ['F3', '480 nm (F3)'],
-    ['F4', '515 nm (F4)'],
-    ['F5', '555 nm (F5)'],
-    ['F6', '590 nm (F6)'],
-    ['F7', '630 nm (F7)'],
-    ['F8', '680 nm (F8)'],
+    ['F1', 'F1 (400–430 nm)'],
+    ['F2', 'F2 (430–460 nm)'],
+    ['F3', 'F3 (460–500 nm)'],
+    ['F4', 'F4 (500–530 nm)'],
+    ['F5', 'F5 (530–570 nm)'],
+    ['F6', 'F6 (570–610 nm)'],
+    ['F7', 'F7 (610–650 nm)'],
+    ['F8', 'F8 (650–700 nm)'],
     ['clear', 'Clear'],
     ['nir', 'NIR'],
 ];
@@ -37,6 +38,7 @@ function SpectrumBarChart({ sensorData }) {
                 const rangeKey = bandMap[key] || key;
                 const range = idealRanges[rangeKey]?.idealRange;
                 return {
+                    key,
                     index,
                     name: label,
                     value: sensorData[key] || 0,
@@ -78,7 +80,7 @@ function SpectrumBarChart({ sensorData }) {
                             x2={d.index + 0.5}
                             y1={d.min}
                             y2={d.max}
-                            fill={palette[d.index % palette.length]}
+                            fill={spectralColors[d.key] || palette[d.index % palette.length]}
                             fillOpacity={0.1}
                             stroke="none"
                         />
@@ -87,7 +89,7 @@ function SpectrumBarChart({ sensorData }) {
                 <Tooltip />
                 <Bar dataKey="value" isAnimationActive={false} animationDuration={0}>
                     {data.map((d, idx) => (
-                        <Cell key={`cell-${idx}`} fill={palette[idx % palette.length]} />
+                        <Cell key={`cell-${idx}`} fill={spectralColors[d.key] || palette[idx % palette.length]} />
                     ))}
                 </Bar>
             </BarChart>
