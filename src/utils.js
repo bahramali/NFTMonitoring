@@ -113,3 +113,63 @@ export function parseSensorJson(str) {
     }
 }
 
+export function transformAggregatedData(data) {
+    if (!data || !Array.isArray(data.sensors)) return [];
+    const map = {};
+    for (const sensor of data.sensors) {
+        const type = sensor.type;
+        const unit = sensor.unit || '';
+        for (const entry of sensor.data || []) {
+            const ts = Date.parse(entry.timestamp);
+            if (!map[ts]) {
+                map[ts] = {
+                    timestamp: ts,
+                    F1: 0, F2: 0, F3: 0, F4: 0, F5: 0,
+                    F6: 0, F7: 0, F8: 0, clear: 0, nir: 0,
+                    temperature: { value: 0, unit: '°C' },
+                    humidity: { value: 0, unit: '%' },
+                    lux: { value: 0, unit: 'lux' },
+                    tds: { value: 0, unit: 'ppm' },
+                    ec: { value: 0, unit: 'mS/cm' },
+                    ph: { value: 0, unit: '' },
+                };
+            }
+            const out = map[ts];
+            const val = entry.value;
+            switch (type) {
+                case 'temperature':
+                case 'humidity':
+                    out[type] = { value: Number(val), unit };
+                    break;
+                case 'light':
+                    out.lux = { value: Number(val), unit };
+                    break;
+                case 'tds':
+                    out.tds = { value: Number(val), unit };
+                    break;
+                case 'ec':
+                    out.ec = { value: Number(val), unit };
+                    break;
+                case 'ph':
+                    out.ph = { value: Number(val), unit };
+                    break;
+                case 'colorSpectrum':
+                    if (val && typeof val === 'object') {
+                        out.F1 = Number(val['415nm']) || 0;
+                        out.F2 = Number(val['445nm']) || 0;
+                        out.F3 = Number(val['480nm']) || 0;
+                        out.F4 = Number(val['515nm']) || 0;
+                        out.F5 = Number(val['555nm']) || 0;
+                        out.F6 = Number(val['590nm']) || 0;
+                        out.F7 = Number(val['630nm']) || 0;
+                        out.F8 = Number(val['680nm']) || 0;
+                        out.clear = Number(val['clear']) || 0;
+                        out.nir = Number(val['nir']) || 0;
+                    }
+                    break;
+            }
+        }
+    }
+    return Object.values(map).sort((a, b) => a.timestamp - b.timestamp);
+}
+

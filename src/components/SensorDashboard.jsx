@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import SpectrumBarChart from "./SpectrumBarChart";
 import HistoricalTemperatureChart from "./HistoricalTemperatureChart";
 import HistoricalBlueBandChart from "./HistoricalBlueBandChart";
@@ -8,7 +8,7 @@ import HistoricalPhChart from "./HistoricalPhChart";
 import HistoricalEcTdsChart from "./HistoricalEcTdsChart";
 import Header from "./Header";
 import SensorCard from "./SensorCard";
-import { trimOldEntries } from "../utils";
+import { transformAggregatedData } from "../utils";
 import { useStomp } from '../hooks/useStomp';
 import styles from './SensorDashboard.module.css';
 
@@ -35,16 +35,11 @@ function SensorDashboard() {
         ph: { value: 0, unit: '' },
         health: { veml7700: false, as7341: false, sht3x: false, tds: false, ph: false },
     });
-    const [dailyData, setDailyData] = useState(() => {
-        const stored = localStorage.getItem("dailyData");
-        const now = Date.now();
-        const initial = stored ? trimOldEntries(JSON.parse(stored), now, 30 * 24 * 60 * 60 * 1000) : [];
-        localStorage.setItem("dailyData", JSON.stringify(initial));
-        return initial;
-    });
-    const [timeRange, setTimeRange] = useState(() => {
-        return localStorage.getItem('timeRange') || '24h';
-    });
+    const now = Date.now();
+    const defaultFrom = new Date(now - 24 * 60 * 60 * 1000).toISOString().slice(0,16);
+    const defaultTo = new Date(now).toISOString().slice(0,16);
+    const [fromDate, setFromDate] = useState(defaultFrom);
+    const [toDate, setToDate] = useState(defaultTo);
     const [rangeData, setRangeData] = useState([]);
     const [tempRangeData, setTempRangeData] = useState([]);
     const [phRangeData, setPhRangeData] = useState([]);
@@ -53,14 +48,45 @@ function SensorDashboard() {
     const [startTime, setStartTime] = useState(xDomain[0]);
     const [endTime, setEndTime] = useState(xDomain[1]);
 
-    const rangeMap = useMemo(() => ({
-        '6h': 6 * 60 * 60 * 1000,
-        '12h': 12 * 60 * 60 * 1000,
-        '24h': 24 * 60 * 60 * 1000,
-        '3days': 3 * 24 * 60 * 60 * 1000,
-        '7days': 7 * 24 * 60 * 60 * 1000,
-        '1month': 30 * 24 * 60 * 60 * 1000,
-    }), []);
+    const fetchReportData = useCallback(async () => {
+        if (!fromDate || !toDate) return;
+        const fromIso = new Date(fromDate).toISOString();
+        const toIso = new Date(toDate).toISOString();
+        const url = `https://api.hydroleaf.se/api/sensors/history/aggregated?espId=esp32-01&from=${fromIso}&to=${toIso}`;
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('bad response');
+            const json = await res.json();
+            const entries = transformAggregatedData(json);
+            const processed = entries.map(d => ({
+                time: d.timestamp,
+                ...d,
+                lux: d.lux?.value ?? 0,
+            }));
+            setRangeData(processed);
+            setTempRangeData(processed.map(d => ({
+                time: d.time,
+                temperature: d.temperature?.value ?? 0,
+                humidity: d.humidity?.value ?? 0,
+            })));
+            setPhRangeData(processed.map(d => ({
+                time: d.time,
+                ph: d.ph?.value ?? 0,
+            })));
+            setEcTdsRangeData(processed.map(d => ({
+                time: d.time,
+                ec: d.ec?.value ?? 0,
+                tds: d.tds?.value ?? 0,
+            })));
+            const start = Date.parse(fromIso);
+            const end = Date.parse(toIso);
+            setXDomain([start, end]);
+            setStartTime(start);
+            setEndTime(end);
+        } catch (e) {
+            console.error('Failed to fetch history', e);
+        }
+    }, [fromDate, toDate]);
 
     const formatTime = (t) => {
         const d = new Date(t);
@@ -73,52 +99,11 @@ function SensorDashboard() {
         );
     };
 
-    const applyFilter = () => {
-        const now = Date.now();
-        const rangeMs = rangeMap[timeRange] || rangeMap['24h'];
-        const start = now - rangeMs;
-        const filtered = dailyData
-            .filter(d => d.timestamp >= start && d.timestamp <= now)
-            .map(d => ({
-                time: d.timestamp,
-                ...d,
-                lux: d.lux?.value ?? 0,
-            }));
-        setRangeData(filtered);
-        setTempRangeData(filtered.map(d => ({
-            time: d.time,
-            temperature: d.temperature?.value ?? 0,
-            humidity: d.humidity?.value ?? 0,
-        })));
-        setPhRangeData(filtered.map(d => ({
-            time: d.time,
-            ph: d.ph?.value ?? 0,
-        })));
-        setEcTdsRangeData(filtered.map(d => ({
-            time: d.time,
-            ec: d.ec?.value ?? 0,
-            tds: d.tds?.value ?? 0,
-        })));
-        setXDomain([start, now]);
-        setStartTime(start);
-        setEndTime(now);
-    };
-
     useEffect(() => {
-        applyFilter();
-    }, [timeRange]);
+        fetchReportData();
+    }, []);
 
-    useEffect(() => {
-        localStorage.setItem('timeRange', timeRange);
-    }, [timeRange]);
-
-    useEffect(() => {
-        if (rangeData.length === 0) {
-            applyFilter();
-        }
-    }, [dailyData]);
-
-    useStomp(topics, setSensorData, setDailyData);
+    useStomp(topics, setSensorData, () => {});
 
     return (
         <div className={styles.dashboard}>
@@ -153,16 +138,14 @@ function SensorDashboard() {
                         <legend className={styles.historyLegend}>Historical Range</legend>
                         <div className={styles.filterRow}>
                             <label>
-                                Range:
-                                <select value={timeRange} onChange={e => setTimeRange(e.target.value)}>
-                                    <option value="6h">6h</option>
-                                    <option value="12h">12h</option>
-                                    <option value="24h">24h</option>
-                                    <option value="3days">3 days</option>
-                                    <option value="7days">7 days</option>
-                                    <option value="1month">1 month</option>
-                                </select>
+                                From:
+                                <input type="datetime-local" value={fromDate} onChange={e => setFromDate(e.target.value)} />
                             </label>
+                            <label>
+                                To:
+                                <input type="datetime-local" value={toDate} onChange={e => setToDate(e.target.value)} />
+                            </label>
+                            <button type="button" onClick={fetchReportData}>Fetch</button>
                         </div>
                         <div className={styles.rangeLabel}>
                             {`From: ${formatTime(startTime)} until: ${formatTime(endTime)}`}
