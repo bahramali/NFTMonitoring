@@ -41,6 +41,12 @@ function SensorDashboard() {
         ph: { value: 0, unit: '' },
         health: { veml7700: false, as7341: false, sht3x: false, tds: false, ph: false },
     });
+    const toLocalInputValue = (ts) => {
+        const d = new Date(ts);
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().slice(0,16);
+    };
+
     const now = Date.now();
     const defaultFrom = toLocalInputValue(new Date(now - 6 * 60 * 60 * 1000));
     const defaultTo = toLocalInputValue(new Date(now));
