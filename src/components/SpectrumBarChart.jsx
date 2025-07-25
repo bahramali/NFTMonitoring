@@ -16,8 +16,8 @@ const bandMeta = [
     ['F6', 'F6 (570–610 nm)'],
     ['F7', 'F7 (610–650 nm)'],
     ['F8', 'F8 (650–700 nm)'],
-    ['clear', 'Clear'],
-    ['nir', 'NIR'],
+    ['clear', 'Full Spectrum of Visible Light'],
+    ['nir', 'Near infrared'],
 ];
 
 const bandMap = {
