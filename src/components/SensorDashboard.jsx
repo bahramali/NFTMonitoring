@@ -62,6 +62,16 @@ function SensorDashboard() {
 
     const [autoRefresh, setAutoRefresh] = useState(false);
     const [refreshInterval, setRefreshInterval] = useState(60 * 1000);
+    const endTimeRef = React.useRef(endTime);
+    const startTimeRef = React.useRef(startTime);
+
+    useEffect(() => {
+        endTimeRef.current = endTime;
+    }, [endTime]);
+
+    useEffect(() => {
+        startTimeRef.current = startTime;
+    }, [startTime]);
 
     const fetchReportData = useCallback(async () => {
         if (!fromDate || !toDate) return;
@@ -104,7 +114,7 @@ function SensorDashboard() {
     }, [fromDate, toDate]);
 
     const fetchNewData = useCallback(async () => {
-        const fromIso = new Date(endTime).toISOString();
+        const fromIso = new Date(endTimeRef.current).toISOString();
         const nowDate = new Date();
         const toIso = nowDate.toISOString();
         const url = `https://api.hydroleaf.se/api/sensors/history/aggregated?espId=esp32-01&from=${fromIso}&to=${toIso}`;
@@ -117,7 +127,7 @@ function SensorDashboard() {
                 time: d.timestamp,
                 ...d,
                 lux: d.lux?.value ?? 0,
-            })).filter(d => d.time > endTime);
+            })).filter(d => d.time > endTimeRef.current);
             if (processed.length) {
                 setRangeData(prev => [...prev, ...processed]);
                 setTempRangeData(prev => [...prev, ...processed.map(d => ({
@@ -137,12 +147,12 @@ function SensorDashboard() {
             }
             const newEnd = nowDate.getTime();
             setToDate(toLocalInputValue(nowDate));
-            setXDomain([startTime, newEnd]);
+            setXDomain([startTimeRef.current, newEnd]);
             setEndTime(newEnd);
         } catch (e) {
             console.error('Failed to fetch history', e);
         }
-    }, [endTime, startTime]);
+    }, []);
 
     const formatTime = (t) => {
         const d = new Date(t);
