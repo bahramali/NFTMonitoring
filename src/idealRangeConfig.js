@@ -25,43 +25,63 @@ const idealRangeConfig = {
     },
     '415nm': {
         idealRange: { min: 2, max: 50 },
-        description: 'Supports early cell growth.'
+        description: 'Supports early cell growth.',
+        spectralRange: '400\u2013430 nm',
+        color: '\u0628\u0646\u0641\u0634'
     },
     '445nm': {
         idealRange: { min: 80, max: 200 },
-        description: 'Key for chlorophyll and leafy growth.'
+        description: 'Key for chlorophyll and leafy growth.',
+        spectralRange: '430\u2013460 nm',
+        color: '\u0622\u0628\u06cc'
     },
     '480nm': {
         idealRange: { min: 70, max: 180 },
-        description: 'Blue-green light; supports vegetative growth and pigment production.'
+        description: 'Blue-green light; supports vegetative growth and pigment production.',
+        spectralRange: '460\u2013500 nm',
+        color: '\u0641\u06cc\u0631\u0648\u0632\u0647\u200c\u0627\u06cc'
     },
     '515nm': {
         idealRange: { min: 40, max: 150 },
-        description: 'Green light; penetrates deeper into leaves and regulates growth balance.'
+        description: 'Green light; penetrates deeper into leaves and regulates growth balance.',
+        spectralRange: '500\u2013530 nm',
+        color: '\u0633\u0628\u0632'
     },
     '555nm': {
         idealRange: { min: 80, max: 200 },
-        description: 'Mid-green light; complements blue and red for fuller spectrum balance.'
+        description: 'Mid-green light; complements blue and red for fuller spectrum balance.',
+        spectralRange: '530\u2013570 nm',
+        color: '\u0633\u0628\u0632 \u2013 \u0632\u0631\u062f'
     },
     '590nm': {
         idealRange: { min: 50, max: 140 },
-        description: 'Yellow light; minor effect on photosynthesis but supports photomorphogenesis.'
+        description: 'Yellow light; minor effect on photosynthesis but supports photomorphogenesis.',
+        spectralRange: '570\u2013610 nm',
+        color: '\u0632\u0631\u062f \u2013 \u0646\u0627\u0631\u0646\u062c\u06cc'
     },
     '630nm': {
         idealRange: { min: 120, max: 300 },
-        description: 'Helps in flowering and general development.'
+        description: 'Helps in flowering and general development.',
+        spectralRange: '610\u2013650 nm',
+        color: '\u0646\u0627\u0631\u0646\u062c\u06cc \u2013 \u0642\u0631\u0645\u0632'
     },
     '680nm': {
         idealRange: { min: 130, max: 320 },
-        description: 'Peak light absorption for photosynthesis.'
+        description: 'Peak light absorption for photosynthesis.',
+        spectralRange: '650\u2013700 nm',
+        color: '\u0642\u0631\u0645\u0632'
     },
     clear: {
         idealRange: { min: 300, max: 900 },
-        description: 'Total visible light intensity. General index of light.'
+        description: 'Total visible light intensity. General index of light.',
+        spectralRange: '\u0637\u06cc\u0641 \u06a9\u0627\u0645\u0644 \u0646\u0648\u0631 \u0645\u0631\u0626\u06cc',
+        color: '\u0647\u0645\u0647\u200c\u0631\u0646\u06af\u200c\u0647\u0627'
     },
     nir: {
         idealRange: { min: 20, max: 100 },
-        description: 'Higher NIR may indicate heat. Keep it low indoors.'
+        description: 'Higher NIR may indicate heat. Keep it low indoors.',
+        spectralRange: '>700 nm',
+        color: '\u0645\u0627\u062f\u0648\u0646 \u0642\u0631\u0645\u0632 \u0646\u0632\u062f\u06cc\u06a9'
     }
 };
 

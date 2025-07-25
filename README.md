@@ -49,3 +49,17 @@ You can inspect past readings by selecting one of the preset periods in the
 1 month. Selecting a period freezes the window so it does not keep advancing as
 new readings arrive. The start and end timestamps of the chosen range are shown
 below the dropdown.
+### Spectral Bands
+
+| Band | Center (nm) | Range (nm) | Color |
+|------|-------------|------------|-------|
+| F1   | 415         | 400–430   | بنفش (Violet) |
+| F2   | 445         | 430–460   | آبی (Blue) |
+| F3   | 480         | 460–500   | فیروزه‌ای (Cyan) |
+| F4   | 515         | 500–530   | سبز (Green) |
+| F5   | 555         | 530–570   | سبز – زرد (Green/Yellow) |
+| F6   | 590         | 570–610   | زرد – نارنجی (Yellow/Orange) |
+| F7   | 630         | 610–650   | نارنجی – قرمز (Orange/Red) |
+| F8   | 680         | 650–700   | قرمز (Red) |
+| Clear| -           | طیف کامل نور مرئی | همه‌رنگ‌ها |
+| NIR  | -           | >700       | مادون قرمز نزدیک |
