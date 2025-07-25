@@ -53,13 +53,14 @@ below the dropdown.
 
 | Band | Center (nm) | Range (nm) | Color |
 |------|-------------|------------|-------|
-| F1   | 415         | 400–430   | بنفش (Violet) |
-| F2   | 445         | 430–460   | آبی (Blue) |
-| F3   | 480         | 460–500   | فیروزه‌ای (Cyan) |
-| F4   | 515         | 500–530   | سبز (Green) |
-| F5   | 555         | 530–570   | سبز – زرد (Green/Yellow) |
-| F6   | 590         | 570–610   | زرد – نارنجی (Yellow/Orange) |
-| F7   | 630         | 610–650   | نارنجی – قرمز (Orange/Red) |
-| F8   | 680         | 650–700   | قرمز (Red) |
-| Clear| -           | طیف کامل نور مرئی | همه‌رنگ‌ها |
-| NIR  | -           | >700       | مادون قرمز نزدیک |
+| F1   | 415         | 400–430   | Violet |
+| F2   | 445         | 430–460   | Blue |
+| F3   | 480         | 460–500   | Cyan |
+| F4   | 515         | 500–530   | Green |
+| F5   | 555         | 530–570   | Green/Yellow |
+| F6   | 590         | 570–610   | Yellow/Orange |
+| F7   | 630         | 610–650   | Orange/Red |
+| F8   | 680         | 650–700   | Red |
+| Clear| -           | full visible spectrum | All colors |
+| NIR  | -           | >700       | Near Infrared |
+
