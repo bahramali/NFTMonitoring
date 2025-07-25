@@ -68,6 +68,15 @@
     margin-left: 10px;
 }
 
+.nowButton {
+    margin-left: 10px;
+}
+
+.fieldSpacer {
+    margin: 0 10px;
+    font-weight: bold;
+}
+
 .rangeLabel {
     margin-bottom: 10px;
     font-size: 0.9em;

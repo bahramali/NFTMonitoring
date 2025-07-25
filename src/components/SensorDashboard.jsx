@@ -35,16 +35,22 @@ function SensorDashboard() {
         ph: { value: 0, unit: '' },
         health: { veml7700: false, as7341: false, sht3x: false, tds: false, ph: false },
     });
+    const toLocalInputValue = (ts) => {
+        const d = new Date(ts);
+        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+        return d.toISOString().slice(0,16);
+    };
+
     const now = Date.now();
-    const defaultFrom = new Date(now - 24 * 60 * 60 * 1000).toISOString().slice(0,16);
-    const defaultTo = new Date(now).toISOString().slice(0,16);
+    const defaultFrom = toLocalInputValue(now - 6 * 60 * 60 * 1000);
+    const defaultTo = toLocalInputValue(now);
     const [fromDate, setFromDate] = useState(defaultFrom);
     const [toDate, setToDate] = useState(defaultTo);
     const [rangeData, setRangeData] = useState([]);
     const [tempRangeData, setTempRangeData] = useState([]);
     const [phRangeData, setPhRangeData] = useState([]);
     const [ecTdsRangeData, setEcTdsRangeData] = useState([]);
-    const [xDomain, setXDomain] = useState([Date.now() - 24 * 60 * 60 * 1000, Date.now()]);
+    const [xDomain, setXDomain] = useState([Date.now() - 6 * 60 * 60 * 1000, Date.now()]);
     const [startTime, setStartTime] = useState(xDomain[0]);
     const [endTime, setEndTime] = useState(xDomain[1]);
 
@@ -141,11 +147,19 @@ function SensorDashboard() {
                                 From:
                                 <input type="datetime-local" value={fromDate} onChange={e => setFromDate(e.target.value)} />
                             </label>
-                            <label>
+                            <span className={styles.fieldSpacer}>–</span>
+                            <label className={styles.filterLabel}>
                                 To:
                                 <input type="datetime-local" value={toDate} onChange={e => setToDate(e.target.value)} />
                             </label>
-                            <button type="button" onClick={fetchReportData}>Fetch</button>
+                            <button
+                                type="button"
+                                className={styles.nowButton}
+                                onClick={() => setToDate(toLocalInputValue(Date.now()))}
+                            >
+                                Now
+                            </button>
+                            <button type="button" className={styles.applyButton} onClick={fetchReportData}>Apply</button>
                         </div>
                         <div className={styles.rangeLabel}>
                             {`From: ${formatTime(startTime)} until: ${formatTime(endTime)}`}
