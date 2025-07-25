@@ -11,6 +11,7 @@ import {
     ReferenceArea,
     ResponsiveContainer,
 } from 'recharts';
+import palette from '../colorPalette';
 
 const HistoricalPhChart = ({
     data,
@@ -73,7 +74,8 @@ const HistoricalPhChart = ({
                         y2={phRange.max}
                         x1={start}
                         x2={end}
-                        fill="rgba(40,167,69,0.1)"
+                        fill={palette[4]}
+                        fillOpacity={0.1}
                         stroke="none"
                     />
                 )}
@@ -81,7 +83,7 @@ const HistoricalPhChart = ({
                 <Line
                     type="monotone"
                     dataKey="ph"
-                    stroke="#28a745"
+                    stroke={palette[4]}
                     dot={false}
                     isAnimationActive={false}
                 />
