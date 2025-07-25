@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import idealRanges from '../idealRangeConfig';
 import palette from '../colorPalette';
+import spectralColors from '../spectralColors';
 
 const bandMeta = [
     ['F1', 'F1 (400\u2013430 nm \u2013 \u0628\u0646\u0641\u0634)'],
@@ -37,6 +38,7 @@ function SpectrumBarChart({ sensorData }) {
                 const rangeKey = bandMap[key] || key;
                 const range = idealRanges[rangeKey]?.idealRange;
                 return {
+                    key,
                     index,
                     name: label,
                     value: sensorData[key] || 0,
@@ -78,7 +80,7 @@ function SpectrumBarChart({ sensorData }) {
                             x2={d.index + 0.5}
                             y1={d.min}
                             y2={d.max}
-                            fill={palette[d.index % palette.length]}
+                            fill={spectralColors[d.key] || palette[d.index % palette.length]}
                             fillOpacity={0.1}
                             stroke="none"
                         />
@@ -87,7 +89,7 @@ function SpectrumBarChart({ sensorData }) {
                 <Tooltip />
                 <Bar dataKey="value" isAnimationActive={false} animationDuration={0}>
                     {data.map((d, idx) => (
-                        <Cell key={`cell-${idx}`} fill={palette[idx % palette.length]} />
+                        <Cell key={`cell-${idx}`} fill={spectralColors[d.key] || palette[idx % palette.length]} />
                     ))}
                 </Bar>
             </BarChart>
