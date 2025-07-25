@@ -60,6 +60,19 @@ function SensorDashboard() {
     const [startTime, setStartTime] = useState(xDomain[0]);
     const [endTime, setEndTime] = useState(xDomain[1]);
 
+    const [autoRefresh, setAutoRefresh] = useState(false);
+    const [refreshInterval, setRefreshInterval] = useState(60 * 1000);
+    const endTimeRef = React.useRef(endTime);
+    const startTimeRef = React.useRef(startTime);
+
+    useEffect(() => {
+        endTimeRef.current = endTime;
+    }, [endTime]);
+
+    useEffect(() => {
+        startTimeRef.current = startTime;
+    }, [startTime]);
+
     const fetchReportData = useCallback(async () => {
         if (!fromDate || !toDate) return;
         const fromIso = new Date(fromDate).toISOString();
@@ -100,6 +113,47 @@ function SensorDashboard() {
         }
     }, [fromDate, toDate]);
 
+    const fetchNewData = useCallback(async () => {
+        const fromIso = new Date(endTimeRef.current).toISOString();
+        const nowDate = new Date();
+        const toIso = nowDate.toISOString();
+        const url = `https://api.hydroleaf.se/api/sensors/history/aggregated?espId=esp32-01&from=${fromIso}&to=${toIso}`;
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('bad response');
+            const json = await res.json();
+            const entries = transformAggregatedData(json);
+            const processed = entries.map(d => ({
+                time: d.timestamp,
+                ...d,
+                lux: d.lux?.value ?? 0,
+            })).filter(d => d.time > endTimeRef.current);
+            if (processed.length) {
+                setRangeData(prev => [...prev, ...processed]);
+                setTempRangeData(prev => [...prev, ...processed.map(d => ({
+                    time: d.time,
+                    temperature: d.temperature?.value ?? 0,
+                    humidity: d.humidity?.value ?? 0,
+                }))]);
+                setPhRangeData(prev => [...prev, ...processed.map(d => ({
+                    time: d.time,
+                    ph: d.ph?.value ?? 0,
+                }))]);
+                setEcTdsRangeData(prev => [...prev, ...processed.map(d => ({
+                    time: d.time,
+                    ec: d.ec?.value ?? 0,
+                    tds: d.tds?.value ?? 0,
+                }))]);
+            }
+            const newEnd = nowDate.getTime();
+            setToDate(toLocalInputValue(nowDate));
+            setXDomain([startTimeRef.current, newEnd]);
+            setEndTime(newEnd);
+        } catch (e) {
+            console.error('Failed to fetch history', e);
+        }
+    }, []);
+
     const formatTime = (t) => {
         const d = new Date(t);
         return (
@@ -114,6 +168,13 @@ function SensorDashboard() {
     useEffect(() => {
         fetchReportData();
     }, []);
+
+    useEffect(() => {
+        if (!autoRefresh) return;
+        fetchNewData();
+        const id = setInterval(fetchNewData, refreshInterval);
+        return () => clearInterval(id);
+    }, [autoRefresh, refreshInterval, fetchNewData]);
 
     useStomp(topics, setSensorData, () => {});
 
@@ -160,6 +221,28 @@ function SensorDashboard() {
                             </label>
                             <button type="button" className={styles.nowButton} onClick={() => setToDate(toLocalInputValue(new Date()))}>Now</button>
                             <button type="button" className={styles.applyButton} onClick={fetchReportData}>Apply</button>
+                        </div>
+                        <div className={styles.filterRow}>
+                            <label className={styles.filterLabel}>
+                                <input
+                                    type="checkbox"
+                                    checked={autoRefresh}
+                                    onChange={e => setAutoRefresh(e.target.checked)}
+                                />
+                                {' '}Auto Refresh
+                            </label>
+                            <select
+                                className={styles.intervalSelect}
+                                value={refreshInterval}
+                                onChange={e => setRefreshInterval(Number(e.target.value))}
+                                disabled={!autoRefresh}
+                            >
+                                <option value={60000}>1min</option>
+                                <option value={300000}>5min</option>
+                                <option value={600000}>10min</option>
+                                <option value={1800000}>30min</option>
+                                <option value={3600000}>1h</option>
+                            </select>
                         </div>
                         <div className={styles.rangeLabel}>
                             {`From: ${formatTime(startTime)} until: ${formatTime(endTime)}`}
