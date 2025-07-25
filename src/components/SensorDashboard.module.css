@@ -51,12 +51,12 @@
     border: 1px solid #ccc;
     padding: 10px;
     margin-bottom: 20px;
-    background-color: #eef6ff;
+    background-color: #f7f7f7;
 }
 .historyLegend {
     font-weight: bold;
     padding: 0 5px;
-    background-color: #eef6ff;
+    background-color: #f7f7f7;
 }
 .filterLabel {
     margin-left: 10px;
