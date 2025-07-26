@@ -63,4 +63,3 @@ below the dropdown.
 | F8   | 680         | 650–700   | Red |
 | Clear| -           | full visible spectrum | All colors |
 | NIR  | -           | >700       | Near Infrared |
-

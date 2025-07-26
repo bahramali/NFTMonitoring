@@ -98,6 +98,7 @@ const HistoricalMultiBandChart = ({
                     ticks={ticks}
                     tickFormatter={tickFormatter}
                     scale="time"
+                    tick={{ fontSize: 10 }}
                 />
                 <YAxis domain={actualYDomain} allowDataOverflow>
                     <Label value="Spectrum Value" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
