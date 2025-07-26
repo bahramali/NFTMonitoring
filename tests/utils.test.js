@@ -67,25 +67,19 @@ test('parses numeric strings into numbers', () => {
 test('normalizes sensors array structure', () => {
     const raw = {
         sensors: [
-            { type: 'temperature', value: 26.5, unit: '°C' },
-            { type: 'humidity', value: 50, unit: '%' },
-            { type: 'light', value: 9, unit: 'lux' },
-            {
-                type: 'colorSpectrum',
-                value: {
-                    '415nm': 3,
-                    '445nm': 4,
-                    '480nm': 7,
-                    '515nm': 9,
-                    '555nm': 15,
-                    '590nm': 24,
-                    '630nm': 27,
-                    '680nm': 26
-                },
-                unit: 'raw'
-            },
-            { type: 'tds', value: 89, unit: 'ppm' },
-            { type: 'ec', value: 0.14, unit: 'mS/cm' }
+            { sensorId: 'sht3x-01', type: 'temperature', value: 26.5, unit: '°C' },
+            { sensorId: 'sht3x-01', type: 'humidity', value: 50, unit: '%' },
+            { sensorId: 'veml7700-01', type: 'light', value: 9, unit: 'lux' },
+            { sensorId: 'as7341-01', type: '415nm', value: 3, unit: 'raw' },
+            { sensorId: 'as7341-01', type: '445nm', value: 4, unit: 'raw' },
+            { sensorId: 'as7341-01', type: '480nm', value: 7, unit: 'raw' },
+            { sensorId: 'as7341-01', type: '515nm', value: 9, unit: 'raw' },
+            { sensorId: 'as7341-01', type: '555nm', value: 15, unit: 'raw' },
+            { sensorId: 'as7341-01', type: '590nm', value: 24, unit: 'raw' },
+            { sensorId: 'as7341-01', type: '630nm', value: 27, unit: 'raw' },
+            { sensorId: 'as7341-01', type: '680nm', value: 26, unit: 'raw' },
+            { sensorId: 'tds-01', type: 'tds', value: 89, unit: 'ppm' },
+            { sensorId: 'ec-estimated', type: 'ec', value: 0.14, unit: 'mS/cm' }
         ],
         health: { sht3x: true, veml7700: true, as7341: true, tds: true, ph: false }
     };
