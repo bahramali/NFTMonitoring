@@ -26,7 +26,7 @@ export function normalizeSensorData(data) {
     if (Array.isArray(data.sensors)) {
         for (const sensor of data.sensors) {
             const val = Number(sensor.value);
-        switch (sensor.type) {
+            switch (sensor.type) {
             case 'temperature':
             case 'humidity':
                 result[sensor.type] = {
@@ -58,14 +58,44 @@ export function normalizeSensorData(data) {
                         unit: sensor.unit || ''
                 };
                 break;
+            case '415nm':
+                result.F1 = val;
+                break;
+            case '445nm':
+                result.F2 = val;
+                break;
+            case '480nm':
+                result.F3 = val;
+                break;
+            case '515nm':
+                result.F4 = val;
+                break;
+            case '555nm':
+                result.F5 = val;
+                break;
+            case '590nm':
+                result.F6 = val;
+                break;
+            case '630nm':
+                result.F7 = val;
+                break;
+            case '680nm':
+                result.F8 = val;
+                break;
+            case 'clear':
+                result.clear = val;
+                break;
+            case 'nir':
+                result.nir = val;
+                break;
             case 'colorSpectrum':
-                    const bands = ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'];
+                const bands = ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'];
                 let i = 0;
                 for (const key in sensor.value) {
                         result[bands[i]] = Number(sensor.value[key]);
                     i++;
                 }
-                    break;
+                break;
         }
     }
         result.health = { ...data.health };
@@ -152,6 +182,36 @@ export function transformAggregatedData(data) {
                     break;
                 case 'ph':
                     out.ph = { value: Number(val), unit };
+                    break;
+                case '415nm':
+                    out.F1 = Number(val);
+                    break;
+                case '445nm':
+                    out.F2 = Number(val);
+                    break;
+                case '480nm':
+                    out.F3 = Number(val);
+                    break;
+                case '515nm':
+                    out.F4 = Number(val);
+                    break;
+                case '555nm':
+                    out.F5 = Number(val);
+                    break;
+                case '590nm':
+                    out.F6 = Number(val);
+                    break;
+                case '630nm':
+                    out.F7 = Number(val);
+                    break;
+                case '680nm':
+                    out.F8 = Number(val);
+                    break;
+                case 'clear':
+                    out.clear = Number(val);
+                    break;
+                case 'nir':
+                    out.nir = Number(val);
                     break;
                 case 'colorSpectrum':
                     if (val && typeof val === 'object') {
