@@ -9,6 +9,7 @@ import HistoricalEcTdsChart from "./HistoricalEcTdsChart";
 import Header from "./Header";
 import DeviceCard from "./DeviceCard";
 import SensorCard from "./SensorCard";
+
 import { transformAggregatedData, normalizeSensorData, filterNoise } from "../utils";
 import idealRangeConfig from "../idealRangeConfig";
 import { useStomp } from '../hooks/useStomp';
@@ -30,7 +31,6 @@ const sensorFieldMap = {
     tds: ["tds", "ec"],
     ph: ["ph"],
 };
-
 
 function SensorDashboard() {
     const [sensorData, setSensorData] = useState({
