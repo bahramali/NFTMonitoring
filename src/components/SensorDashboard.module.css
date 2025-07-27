@@ -40,6 +40,17 @@
     justify-content: center;
     gap: 10px;
 }
+
+
+.noteBlock {
+    margin-top: 20px;
+    font-size: 0.8em;
+}
+
+.noteTitle {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
 .sectionTitle {
     margin-top: 40px;
     text-align: center;
