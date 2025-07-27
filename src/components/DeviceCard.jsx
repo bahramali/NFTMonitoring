@@ -1,20 +1,10 @@
 import React from 'react';
-import styles from './SensorCard.module.css';
+import styles from './DeviceCard.module.css';
 import idealRanges from '../idealRangeConfig';
-
-const bandMap = {
-    F1: '415nm',
-    F2: '445nm',
-    F3: '480nm',
-    F4: '515nm',
-    F5: '555nm',
-    F6: '590nm',
-    F7: '630nm',
-    F8: '680nm'
-};
 
 function getRowColor(value, range) {
     if (!range) return '';
+    if (typeof value !== 'number') return '';
     if (value < range.min || value > range.max) return '#f8d7da';
     const threshold = (range.max - range.min) * 0.1;
     if (value < range.min + threshold || value > range.max - threshold) {
@@ -23,26 +13,24 @@ function getRowColor(value, range) {
     return '';
 }
 
-function SensorCard({ name, ok, fields = [], sensorData }) {
-    const descriptions = [];
-
-    const rows = fields.map(field => {
-        const lookup = bandMap[field] || field;
-        const data = sensorData[field];
+function DeviceCard({ deviceId, data }) {
+    const rows = [];
+    for (const [field, valueObj] of Object.entries(data)) {
+        if (field === 'health') continue;
         const value =
-            data && typeof data === 'object' && 'value' in data ? data.value : data;
+            valueObj && typeof valueObj === 'object' && 'value' in valueObj
+                ? valueObj.value
+                : valueObj;
         const display = typeof value === 'number' ? value.toFixed(1) : value;
-        const unit = data && typeof data === 'object' ? data.unit || '' : '';
-        const cfg = idealRanges[lookup];
-        if (cfg?.description) {
-            descriptions.push(`${lookup}: ${cfg.description}`);
-        }
-        return (
+        const unit =
+            valueObj && typeof valueObj === 'object' ? valueObj.unit || '' : '';
+        const cfg = idealRanges[field];
+        rows.push(
             <tr
                 key={field}
                 style={{ backgroundColor: getRowColor(value, cfg?.idealRange) }}
             >
-                <td>{lookup}</td>
+                <td>{field}</td>
                 <td>
                     {display} {unit}
                 </td>
@@ -50,14 +38,11 @@ function SensorCard({ name, ok, fields = [], sensorData }) {
                 <td>{cfg?.idealRange?.max ?? '-'}</td>
             </tr>
         );
-    });
+    }
 
     return (
         <div className={styles.card}>
-            <div className={styles.header}>
-                <span className={styles.name}>{name.toUpperCase()}</span>
-                <span className={`${styles.indicator} ${ok ? styles.on : styles.off}`} />
-            </div>
+            <div className={styles.header}>{deviceId}</div>
             <div className={styles.body}>
                 <table className={styles.table}>
                     <thead>
@@ -75,4 +60,4 @@ function SensorCard({ name, ok, fields = [], sensorData }) {
     );
 }
 
-export default SensorCard;
+export default DeviceCard;
