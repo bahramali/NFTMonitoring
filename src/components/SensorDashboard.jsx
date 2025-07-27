@@ -7,8 +7,10 @@ import HistoricalClearLuxChart from "./HistoricalClearLuxChart";
 import HistoricalPhChart from "./HistoricalPhChart";
 import HistoricalEcTdsChart from "./HistoricalEcTdsChart";
 import Header from "./Header";
+import DeviceCard from "./DeviceCard";
 import SensorCard from "./SensorCard";
-import { transformAggregatedData } from "../utils";
+import { transformAggregatedData, normalizeSensorData, filterNoise } from "../utils";
+import idealRangeConfig from "../idealRangeConfig";
 import { useStomp } from '../hooks/useStomp';
 import styles from './SensorDashboard.module.css';
 
@@ -22,12 +24,13 @@ const sensorTopic = "growSensors";
 const topics = [sensorTopic, "rootImages", "waterOutput", "waterTank"];
 
 const sensorFieldMap = {
-    veml7700: ['lux'],
-    sht3x: ['temperature', 'humidity'],
-    as7341: ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'],
-    tds: ['tds', 'ec'],
-    ph: ['ph']
+    veml7700: ["lux"],
+    sht3x: ["temperature", "humidity"],
+    as7341: ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "clear", "nir"],
+    tds: ["tds", "ec"],
+    ph: ["ph"],
 };
+
 
 function SensorDashboard() {
     const [sensorData, setSensorData] = useState({
@@ -41,6 +44,8 @@ function SensorDashboard() {
         ph: { value: 0, unit: '' },
         health: { veml7700: false, as7341: false, sht3x: false, tds: false, ph: false },
     });
+    const [activeTopic, setActiveTopic] = useState(sensorTopic);
+    const [deviceData, setDeviceData] = useState({});
     const toLocalInputValue = (ts) => {
         const d = new Date(ts);
         d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
@@ -154,6 +159,23 @@ function SensorDashboard() {
         }
     }, []);
 
+    const handleStompMessage = useCallback((topic, msg) => {
+        const deviceId = msg.deviceId || 'unknown';
+        let data = msg;
+        if (topic === sensorTopic) {
+            const norm = normalizeSensorData(msg);
+            const cleaned = filterNoise(norm);
+            if (!cleaned) return;
+            data = cleaned;
+            setSensorData(data);
+        }
+        setDeviceData(prev => {
+            const t = { ...(prev[topic] || {}) };
+            t[deviceId] = data;
+            return { ...prev, [topic]: t };
+        });
+    }, []);
+
     const formatTime = (t) => {
         const d = new Date(t);
         return (
@@ -176,29 +198,79 @@ function SensorDashboard() {
         return () => clearInterval(id);
     }, [autoRefresh, refreshInterval, fetchNewData]);
 
-    useStomp(topics, setSensorData, () => {});
+    useStomp(topics, handleStompMessage);
 
     return (
         <div className={styles.dashboard}>
             <Header topic={sensorTopic} />
             <div className={styles.section}>
                 <h2 className={`${styles.sectionHeader} ${styles.liveHeader}`}>Live Data</h2>
+                <div className={styles.tabBar}>
+                    {topics.map(t => (
+                        <button
+                            key={t}
+                            className={activeTopic === t ? styles.activeTab : styles.tab}
+                            onClick={() => setActiveTopic(t)}
+                        >
+                            {t}
+                        </button>
+                    ))}
+                </div>
                 <div className={styles.sectionBody}>
+                    {activeTopic === sensorTopic && (
+                        <div className={styles.sensorGrid}>
+                            {Object.entries(sensorData.health).map(([name, ok]) => (
+                                <SensorCard
+                                    key={name}
+                                    name={name}
+                                    ok={ok}
+                                    fields={sensorFieldMap[name] || []}
+                                    sensorData={sensorData}
+                                />
+                            ))}
+                        </div>
+                    )}
+
                     <div className={styles.sensorGrid}>
-                        {Object.entries(sensorData.health).map(([name, ok]) => (
-                            <SensorCard
-                                key={name}
-                                name={name}
-                                ok={ok}
-                                fields={sensorFieldMap[name] || []}
-                                sensorData={sensorData}
-                            />
+                        {Object.entries(deviceData[activeTopic] || {}).map(([id, data]) => (
+                            <DeviceCard key={id} deviceId={id} data={data} />
                         ))}
                     </div>
 
-                    <div className={styles.spectrumBarChartWrapper}>
-                        <SpectrumBarChart sensorData={sensorData} />
-                    </div>
+                    {activeTopic === sensorTopic && (
+                        <div className={styles.spectrumBarChartWrapper}>
+                            <SpectrumBarChart sensorData={sensorData} />
+                        </div>
+                    )}
+
+                    {(() => {
+                        const notes = new Set();
+                        const topicData = deviceData[activeTopic] || {};
+                        if (activeTopic === sensorTopic && Object.keys(topicData).length === 0) {
+                            for (const key in sensorData) {
+                                if (key === 'health') continue;
+                                const cfg = idealRangeConfig[key];
+                                if (cfg?.description) notes.add(`${key}: ${cfg.description}`);
+                            }
+                        } else {
+                            for (const dev of Object.values(topicData)) {
+                                for (const key in dev) {
+                                    const cfg = idealRangeConfig[key];
+                                    if (cfg?.description) notes.add(`${key}: ${cfg.description}`);
+                                }
+                            }
+                        }
+                        return notes.size ? (
+                            <div className={styles.noteBlock}>
+                                <div className={styles.noteTitle}>Notes:</div>
+                                <ul>
+                                    {[...notes].map((n, i) => (
+                                        <li key={i}>{n}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ) : null;
+                    })()}
                 </div>
             </div>
 
