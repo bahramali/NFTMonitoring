@@ -8,6 +8,8 @@ import HistoricalPhChart from "./HistoricalPhChart";
 import HistoricalEcTdsChart from "./HistoricalEcTdsChart";
 import Header from "./Header";
 import DeviceCard from "./DeviceCard";
+import SensorCard from "./SensorCard";
+
 import { transformAggregatedData, normalizeSensorData, filterNoise } from "../utils";
 import idealRangeConfig from "../idealRangeConfig";
 import { useStomp } from '../hooks/useStomp';
@@ -22,6 +24,13 @@ function toLocalInputValue(date) {
 const sensorTopic = "growSensors";
 const topics = [sensorTopic, "rootImages", "waterOutput", "waterTank"];
 
+const sensorFieldMap = {
+    veml7700: ["lux"],
+    sht3x: ["temperature", "humidity"],
+    as7341: ["F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "clear", "nir"],
+    tds: ["tds", "ec"],
+    ph: ["ph"],
+};
 
 function SensorDashboard() {
     const [sensorData, setSensorData] = useState({
@@ -208,6 +217,20 @@ function SensorDashboard() {
                     ))}
                 </div>
                 <div className={styles.sectionBody}>
+                    {activeTopic === sensorTopic && (
+                        <div className={styles.sensorGrid}>
+                            {Object.entries(sensorData.health).map(([name, ok]) => (
+                                <SensorCard
+                                    key={name}
+                                    name={name}
+                                    ok={ok}
+                                    fields={sensorFieldMap[name] || []}
+                                    sensorData={sensorData}
+                                />
+                            ))}
+                        </div>
+                    )}
+
                     <div className={styles.sensorGrid}>
                         {Object.entries(deviceData[activeTopic] || {}).map(([id, data]) => (
                             <DeviceCard key={id} deviceId={id} data={data} />
@@ -223,10 +246,18 @@ function SensorDashboard() {
                     {(() => {
                         const notes = new Set();
                         const topicData = deviceData[activeTopic] || {};
-                        for (const dev of Object.values(topicData)) {
-                            for (const key in dev) {
+                        if (activeTopic === sensorTopic && Object.keys(topicData).length === 0) {
+                            for (const key in sensorData) {
+                                if (key === 'health') continue;
                                 const cfg = idealRangeConfig[key];
                                 if (cfg?.description) notes.add(`${key}: ${cfg.description}`);
+                            }
+                        } else {
+                            for (const dev of Object.values(topicData)) {
+                                for (const key in dev) {
+                                    const cfg = idealRangeConfig[key];
+                                    if (cfg?.description) notes.add(`${key}: ${cfg.description}`);
+                                }
                             }
                         }
                         return notes.size ? (
