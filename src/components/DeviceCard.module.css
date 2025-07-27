@@ -15,32 +15,10 @@
 }
 
 .header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
     background-color: #eef6ff;
     padding: 8px 12px;
     font-weight: bold;
-}
-
-.name {
-    text-transform: uppercase;
-}
-
-.indicator {
-    border-radius: 50%;
-    width: 18px;
-    height: 18px;
-    margin-left: 8px;
-}
-
-.on {
-    background-color: green;
-}
-
-.off {
-    background-color: red;
+    text-align: center;
 }
 
 .body {
