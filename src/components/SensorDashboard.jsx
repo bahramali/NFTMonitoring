@@ -160,10 +160,17 @@ function SensorDashboard() {
     }, []);
 
     const handleStompMessage = useCallback((topic, msg) => {
-        const deviceId = msg.deviceId || 'unknown';
-        let data = msg;
+        let payload = msg;
+        if (msg && typeof msg === 'object' && 'payload' in msg) {
+            payload =
+                typeof msg.payload === 'string'
+                    ? JSON.parse(msg.payload)
+                    : msg.payload;
+        }
+        const deviceId = payload.deviceId || msg.deviceId || 'unknown';
+        let data = payload;
         if (topic === sensorTopic) {
-            const norm = normalizeSensorData(msg);
+            const norm = normalizeSensorData(payload);
             const cleaned = filterNoise(norm);
             if (!cleaned) return;
             data = cleaned;
@@ -203,17 +210,6 @@ function SensorDashboard() {
     return (
         <div className={styles.dashboard}>
             <Header topic={sensorTopic} />
-            <div className={styles.tabBar}>
-                {topics.map(t => (
-                    <button
-                        key={t}
-                        className={activeTopic === t ? styles.activeTab : styles.tab}
-                        onClick={() => setActiveTopic(t)}
-                    >
-                        {t}
-                    </button>
-                ))}
-            </div>
             <div className={styles.section}>
                 <h2 className={`${styles.sectionHeader} ${styles.liveHeader}`}>Live Data</h2>
                 <div className={styles.tabBar}>
