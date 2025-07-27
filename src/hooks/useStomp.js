@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { parseSensorJson } from '../utils';
+import { parseSensorJson, normalizeSensorData, filterNoise, trimOldEntries } from '../utils';
 
-export function useStomp(topics, onMessage) {
+export function useStomp(topics, setSensorData, setDailyData) {
     const topicsKey = JSON.stringify(Array.isArray(topics) ? topics : [topics]);
     useEffect(() => {
         const topicList = JSON.parse(topicsKey);
@@ -37,11 +37,25 @@ export function useStomp(topics, onMessage) {
             }
             if (frame.command === 'MESSAGE') {
                 const dest = frame.headers.destination || '';
-                const match = dest.match(/\/topic\/(.+)/);
-                const topic = match ? match[1] : '';
+                if (!dest.endsWith('growSensors')) {
+                    // other topics not handled yet
+                    return;
+                }
                 try {
-                    const parsed = parseSensorJson(frame.body);
-                    onMessage(topic, parsed);
+                    const raw = parseSensorJson(frame.body);
+                    const normalized = normalizeSensorData(raw);
+                    const cleaned = filterNoise(normalized);
+                    if (!cleaned) return;
+                    setSensorData(cleaned);
+                    const timestamp = raw.timestamp ? Date.parse(raw.timestamp) : Date.now();
+                    setDailyData(prev => {
+                        const updated = trimOldEntries(
+                            [...prev, { timestamp, ...cleaned }],
+                            timestamp,
+                            30 * 24 * 60 * 60 * 1000
+                        );
+                        return updated;
+                    });
                 } catch (e) {
                     console.error('Invalid STOMP message', e);
                 }
@@ -97,5 +111,5 @@ export function useStomp(topics, onMessage) {
         return () => {
             if (socket) socket.close();
         };
-    }, [topicsKey, onMessage]);
+    }, [topicsKey, setSensorData, setDailyData]);
 }
