@@ -40,6 +40,33 @@
     justify-content: center;
     gap: 10px;
 }
+
+.tabBar {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.tab {
+    padding: 6px 12px;
+    margin: 0 4px;
+    border: 1px solid #ccc;
+    background: #eee;
+    cursor: pointer;
+}
+
+.activeTab {
+    background: #c8e6c9;
+}
+
+.noteBlock {
+    margin-top: 20px;
+    font-size: 0.8em;
+}
+
+.noteTitle {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
 .sectionTitle {
     margin-top: 40px;
     text-align: center;
