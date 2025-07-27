@@ -10,6 +10,7 @@ export function useStomp(topics, setSensorData, setDailyData) {
         if (location.protocol === 'https:' && wsUrl.startsWith('ws://')) {
             wsUrl = 'wss://' + wsUrl.slice(5);
         }
+        const wsHost = new URL(wsUrl).hostname;
 
         let socket;
         let buffer = '';
@@ -90,7 +91,7 @@ export function useStomp(topics, setSensorData, setDailyData) {
             socket.send(
                 buildFrame('CONNECT', {
                     'accept-version': '1.2',
-                    host: location.hostname,
+                    host: wsHost,
                     'heart-beat': '0,0'
                 })
             );

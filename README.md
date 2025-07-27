@@ -17,6 +17,9 @@ VITE_MQTT_USERNAME=
 VITE_MQTT_PASSWORD=
 ```
 
+Additionally, set `VITE_WS_URL` to the WebSocket endpoint that provides the live
+STOMP feed. If not defined, it defaults to `wss://api.hydroleaf.se/ws`.
+
 These variables are used to establish the MQTT connection.
 Make sure the file is named `.env` and each variable starts with the `VITE_` prefix so that Vite exposes them to the frontend.
 
