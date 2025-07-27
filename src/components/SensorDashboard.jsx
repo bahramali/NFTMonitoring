@@ -9,7 +9,6 @@ import HistoricalEcTdsChart from "./HistoricalEcTdsChart";
 import Header from "./Header";
 import DeviceCard from "./DeviceCard";
 import SensorCard from "./SensorCard";
-
 import { transformAggregatedData, normalizeSensorData, filterNoise } from "../utils";
 import idealRangeConfig from "../idealRangeConfig";
 import { useStomp } from '../hooks/useStomp';
@@ -31,6 +30,7 @@ const sensorFieldMap = {
     tds: ["tds", "ec"],
     ph: ["ph"],
 };
+
 
 function SensorDashboard() {
     const [sensorData, setSensorData] = useState({
@@ -203,6 +203,17 @@ function SensorDashboard() {
     return (
         <div className={styles.dashboard}>
             <Header topic={sensorTopic} />
+            <div className={styles.tabBar}>
+                {topics.map(t => (
+                    <button
+                        key={t}
+                        className={activeTopic === t ? styles.activeTab : styles.tab}
+                        onClick={() => setActiveTopic(t)}
+                    >
+                        {t}
+                    </button>
+                ))}
+            </div>
             <div className={styles.section}>
                 <h2 className={`${styles.sectionHeader} ${styles.liveHeader}`}>Live Data</h2>
                 <div className={styles.tabBar}>
@@ -279,6 +290,10 @@ function SensorDashboard() {
             <div className={styles.section}>
                 <h2 className={`${styles.sectionHeader} ${styles.reportHeader}`}>Reports</h2>
                 <div className={styles.sectionBody}>
+                    {activeTopic !== sensorTopic ? (
+                        <div>No reports available for this topic.</div>
+                    ) : (
+                    <>
                     <fieldset className={styles.historyControls}>
                         <legend className={styles.historyLegend}>Historical Range</legend>
                         <div className={styles.filterRow}>
@@ -365,6 +380,8 @@ function SensorDashboard() {
                             </div>
                         </div>
                     </div>
+                    </>
+                    )}
                 </div>
             </div>
         </div>
