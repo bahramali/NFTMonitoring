@@ -24,6 +24,7 @@ export function useStomp(topics, onMessage) {
 
         const handleFrame = (frame) => {
             console.log("Raw STOMP frame received:", frame);
+            console.log("frame.command:", frame.command);
             if (frame.command === 'CONNECTED') {
                 topicList.forEach((t, idx) => {
                     const dest = `/topic/${t}`;
@@ -74,7 +75,9 @@ export function useStomp(topics, onMessage) {
                     if (i > 0) headers[line.slice(0, i)] = line.slice(i + 1);
                 }
                 const body = frameStr.slice(idx + 2);
-                console.log("command: "+command+ "headers: "+ headers+ "body: " +body );
+                console.log("📦 STOMP Frame => command:", command,
+                    "headers:", JSON.stringify(headers, null, 2),
+                    "body:", body);
                 handleFrame({ command, headers, body });
             }
         };
