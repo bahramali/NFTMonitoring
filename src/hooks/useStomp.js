@@ -59,10 +59,12 @@ export function useStomp(topics, onMessage) {
 
         const processData = (data) => {
             buffer += data;
+            console.log("🔹 Raw STOMP chunk:", data);
             while (true) {
                 const nullIdx = buffer.indexOf('\0');
                 if (nullIdx === -1) break;
                 const frameStr = buffer.slice(0, nullIdx);
+                console.log("🔸 Extracted STOMP frame:", frameStr);
                 buffer = buffer.slice(nullIdx + 1);
                 const idx = frameStr.indexOf('\n\n');
                 if (idx === -1) continue;
@@ -78,7 +80,7 @@ export function useStomp(topics, onMessage) {
                 console.log("📦 STOMP Frame => command:", command,
                     "headers:", JSON.stringify(headers, null, 2),
                     "body:", body);
-                handleFrame({ command, headers, body });
+                handleFrame({command, headers, body});
             }
         };
 
