@@ -234,7 +234,12 @@ function SensorDashboard() {
                 <h2 className={`${styles.sectionHeader} ${styles.liveHeader}`}>Live Data</h2>
                 <div className={styles.sectionBody}>
 
-                    <DeviceTable devices={deviceData[activeTopic] || {}} />
+                    <DeviceTable
+                        devices={
+                            deviceData[activeTopic] ||
+                            (activeTopic === sensorTopic ? { placeholder: sensorData } : {})
+                        }
+                    />
 
                     {activeTopic === sensorTopic && (
                         <div className={styles.spectrumBarChartWrapper}>
