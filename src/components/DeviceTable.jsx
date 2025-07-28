@@ -2,6 +2,17 @@ import React from 'react';
 import styles from './DeviceTable.module.css';
 import idealRanges from '../idealRangeConfig';
 
+function getCellColor(value, range) {
+    if (!range) return '';
+    if (typeof value !== 'number' || Number.isNaN(value)) return '';
+    if (value < range.min || value > range.max) return '#f8d7da';
+    const threshold = (range.max - range.min) * 0.1;
+    if (value < range.min + threshold || value > range.max - threshold) {
+        return '#fff3cd';
+    }
+    return '';
+}
+
 const bandMap = {
     F1: '415nm',
     F2: '445nm',
@@ -58,7 +69,8 @@ function DeviceTable({ devices = {} }) {
                 typeof value === 'number' ? value.toFixed(1) : value;
             const sensorName = fieldToSensor[orig] || orig;
             const ok = devices[id]?.health?.[sensorName] ?? false;
-            return { value: display, ok };
+            const color = getCellColor(value, range);
+            return { value: display, ok, color };
         });
         return { sensor, range, cells };
     });
@@ -83,7 +95,7 @@ function DeviceTable({ devices = {} }) {
                             <td>{r.range?.min ?? '-'}</td>
                             <td>{r.range?.max ?? '-'}</td>
                             {r.cells.map((c, i) => (
-                                <td key={deviceIds[i]}>
+                                <td key={deviceIds[i]} style={{ backgroundColor: c.color }}>
                                     <div className={styles.cellWrapper}>
                                         <span
                                             className={`${styles.indicator} ${c.ok ? styles.on : styles.off}`}
