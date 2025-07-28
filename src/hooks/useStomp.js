@@ -66,6 +66,7 @@ export function useStomp(topics, onMessage) {
                     if (i > 0) headers[line.slice(0, i)] = line.slice(i + 1);
                 }
                 const body = frameStr.slice(idx + 2);
+                console.log("command: "+command+ "headers: "+ headers+ "body: " +body );
                 handleFrame({ command, headers, body });
             }
         };
