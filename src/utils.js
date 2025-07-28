@@ -125,7 +125,9 @@ export function normalizeSensorData(data) {
             result.health = {};
             for (const key in data.health) {
                 const val = data.health[key];
-                result.health[key] = val === true || val === 'true' || val === 1;
+                const base = key.split('-')[0];
+                result.health[base] =
+                    val === true || val === 'true' || val === 1;
             }
         }
     }
