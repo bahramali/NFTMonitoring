@@ -23,8 +23,7 @@ export function useStomp(topics, onMessage) {
         };
 
         const handleFrame = (frame) => {
-            console.log("Raw STOMP frame received:", frame);
-            console.log("frame.command:", frame.command);
+            console.log("🟡 handleFrame ->", frame.command, frame.headers);
             if (frame.command === 'CONNECTED') {
                 topicList.forEach((t, idx) => {
                     const dest = `/topic/${t}`;
@@ -50,6 +49,7 @@ export function useStomp(topics, onMessage) {
                 try {
                     const parsed = parseSensorJson(frame.body);
                     console.log("✅ Parsed payload:", parsed);
+                    console.log('🔰 Dispatching message to callback', topic, parsed);
                     onMessage(topic, parsed);
                 } catch (e) {
                     console.error('❌ Invalid STOMP message', e);
@@ -97,7 +97,7 @@ export function useStomp(topics, onMessage) {
         });
 
         socket.addEventListener('message', (event) => {
-            console.log('Received message', event.data);
+            console.log('🟣 WS message event:', event.data);
             processData(event.data);
         });
 

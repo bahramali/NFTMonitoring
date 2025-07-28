@@ -24,6 +24,11 @@ function getRowColor(value, range) {
 }
 
 function SensorCard({ name, ok, fields = [], sensorData }) {
+    const cardData = {};
+    for (const f of fields) {
+        cardData[f] = sensorData[f];
+    }
+    console.log('🖼️ Rendering SensorCard for', name, cardData);
     const descriptions = [];
 
     const rows = fields.map(field => {
