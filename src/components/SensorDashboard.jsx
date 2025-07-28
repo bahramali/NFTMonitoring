@@ -42,7 +42,7 @@ function SensorDashboard() {
         tds: { value: 0, unit: "ppm" },
         ec: { value: 0, unit: "mS/cm" },
         ph: { value: 0, unit: '' },
-        health: { veml7700: false, as7341: false, sht3x: false, tds: false, ph: false },
+        health: {},
     });
     const [activeTopic, setActiveTopic] = useState(sensorTopic);
     const [deviceData, setDeviceData] = useState({});
