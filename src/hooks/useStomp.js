@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { parseSensorJson, normalizeSensorData, filterNoise, trimOldEntries } from '../utils';
+import { parseSensorJson } from '../utils';
 
-export function useStomp(topics, setSensorData, setDailyData) {
+export function useStomp(topics, onMessage) {
     const topicsKey = JSON.stringify(Array.isArray(topics) ? topics : [topics]);
     useEffect(() => {
         const topicList = JSON.parse(topicsKey);
@@ -10,7 +10,6 @@ export function useStomp(topics, setSensorData, setDailyData) {
         if (location.protocol === 'https:' && wsUrl.startsWith('ws://')) {
             wsUrl = 'wss://' + wsUrl.slice(5);
         }
-        const wsHost = new URL(wsUrl).hostname;
 
         let socket;
         let buffer = '';
@@ -38,25 +37,11 @@ export function useStomp(topics, setSensorData, setDailyData) {
             }
             if (frame.command === 'MESSAGE') {
                 const dest = frame.headers.destination || '';
-                if (!dest.endsWith('growSensors')) {
-                    // other topics not handled yet
-                    return;
-                }
+                const match = dest.match(/\/topic\/(.+)/);
+                const topic = match ? match[1] : '';
                 try {
-                    const raw = parseSensorJson(frame.body);
-                    const normalized = normalizeSensorData(raw);
-                    const cleaned = filterNoise(normalized);
-                    if (!cleaned) return;
-                    setSensorData(cleaned);
-                    const timestamp = raw.timestamp ? Date.parse(raw.timestamp) : Date.now();
-                    setDailyData(prev => {
-                        const updated = trimOldEntries(
-                            [...prev, { timestamp, ...cleaned }],
-                            timestamp,
-                            30 * 24 * 60 * 60 * 1000
-                        );
-                        return updated;
-                    });
+                    const parsed = parseSensorJson(frame.body);
+                    onMessage(topic, parsed);
                 } catch (e) {
                     console.error('Invalid STOMP message', e);
                 }
@@ -91,13 +76,14 @@ export function useStomp(topics, setSensorData, setDailyData) {
             socket.send(
                 buildFrame('CONNECT', {
                     'accept-version': '1.2',
-                    host: wsHost,
+                    host: location.hostname,
                     'heart-beat': '0,0'
                 })
             );
         });
 
         socket.addEventListener('message', (event) => {
+            console.log('Received message', event.data);
             processData(event.data);
         });
 
@@ -112,5 +98,5 @@ export function useStomp(topics, setSensorData, setDailyData) {
         return () => {
             if (socket) socket.close();
         };
-    }, [topicsKey, setSensorData, setDailyData]);
+    }, [topicsKey, onMessage]);
 }
