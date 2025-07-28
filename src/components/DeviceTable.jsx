@@ -20,16 +20,28 @@ function DeviceTable({ devices = {} }) {
             <table className={styles.table}>
                 <thead>
                     <tr>
-                        <th>Device ID</th>
+                        <th>
+                            <div className={styles.cellTop}>Device ID</div>
+                            <div className={styles.divider}></div>
+                            <div className={styles.cellBottom}>Status</div>
+                        </th>
                         {fields.map(f => (
-                            <th key={f}>{f}</th>
+                            <th key={f}>
+                                <div className={styles.cellTop}>{f}</div>
+                                <div className={styles.divider}></div>
+                                <div className={styles.cellBottom}>Value</div>
+                            </th>
                         ))}
                     </tr>
                 </thead>
                 <tbody>
                     {entries.map(([id, data]) => (
                         <tr key={id}>
-                            <td>{id}</td>
+                            <td>
+                                <div className={styles.cellTop}>{id}</div>
+                                <div className={styles.divider}></div>
+                                <div className={styles.cellBottom}>status</div>
+                            </td>
                             {fields.map(field => {
                                 const valObj = data[field];
                                 const value =
@@ -46,7 +58,23 @@ function DeviceTable({ devices = {} }) {
                                     valObj && typeof valObj === 'object' && valObj.unit
                                         ? ` ${valObj.unit}`
                                         : '';
-                                return <td key={field}>{display}{unit}</td>;
+                                const ok = data.health?.[field] ?? false;
+                                return (
+                                    <td key={field}>
+                                        <div className={styles.cellTop}>
+                                            <span
+                                                className={`${styles.indicator} ${
+                                                    ok ? styles.on : styles.off
+                                                }`}
+                                            ></span>
+                                        </div>
+                                        <div className={styles.divider}></div>
+                                        <div className={styles.cellBottom}>
+                                            {display}
+                                            {unit}
+                                        </div>
+                                    </td>
+                                );
                             })}
                         </tr>
                     ))}

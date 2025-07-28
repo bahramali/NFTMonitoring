@@ -13,3 +13,29 @@
     padding: 4px;
     text-align: center;
 }
+
+.cellTop,
+.cellBottom {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.divider {
+    border-top: 1px solid #ddd;
+    margin: 2px 0;
+}
+
+.indicator {
+    border-radius: 50%;
+    width: 12px;
+    height: 12px;
+}
+
+.on {
+    background-color: green;
+}
+
+.off {
+    background-color: red;
+}
