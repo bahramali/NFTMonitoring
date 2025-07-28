@@ -224,7 +224,7 @@ function SensorDashboard() {
                 {topics.map(t => (
                     <button
                         key={t}
-                        className={activeTopic === t ? styles.activeTab : styles.tab}
+                        className={`${styles.tab} ${activeTopic === t ? styles.activeTab : ''}`}
                         onClick={() => setActiveTopic(t)}
                     >
                         {t}
