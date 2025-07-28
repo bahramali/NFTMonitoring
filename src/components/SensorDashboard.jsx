@@ -44,6 +44,9 @@ function SensorDashboard() {
         ph: { value: 0, unit: '' },
         health: {},
     });
+    useEffect(() => {
+        console.log('📊 sensorData state changed:', sensorData);
+    }, [sensorData]);
     const [activeTopic, setActiveTopic] = useState(sensorTopic);
     const [deviceData, setDeviceData] = useState({});
     const toLocalInputValue = (ts) => {
@@ -160,6 +163,7 @@ function SensorDashboard() {
     }, []);
 
     const handleStompMessage = useCallback((topic, msg) => {
+        console.log('📨 handleStompMessage topic:', topic, 'msg:', msg);
         let payload = msg;
         if (msg && typeof msg === 'object' && 'payload' in msg) {
             payload =
@@ -171,14 +175,20 @@ function SensorDashboard() {
         let data = payload;
         if (topic === sensorTopic) {
             const norm = normalizeSensorData(payload);
+            console.log('🔄 normalized sensor message:', norm);
             const cleaned = filterNoise(norm);
-            if (!cleaned) return;
+            if (!cleaned) {
+                console.log('🛑 message filtered out as noise', norm);
+                return;
+            }
             data = cleaned;
+            console.log('💾 updating sensorData state with:', data);
             setSensorData(data);
         }
         setDeviceData(prev => {
             const t = { ...(prev[topic] || {}) };
             t[deviceId] = data;
+            console.log('📥 setDeviceData for', topic, deviceId, data);
             return { ...prev, [topic]: t };
         });
     }, []);
