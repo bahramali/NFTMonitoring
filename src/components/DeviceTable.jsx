@@ -71,7 +71,6 @@ sensorModelMap.nir = 'AS7341';
 
 function DeviceTable({ devices = {} }) {
     const deviceIds = Object.keys(devices);
-    if (deviceIds.length === 0) return null;
 
     const reverseBandMap = Object.fromEntries(
         Object.entries(bandMap).map(([k, v]) => [v, k])
