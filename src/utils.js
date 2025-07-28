@@ -98,7 +98,12 @@ export function normalizeSensorData(data) {
                 break;
         }
     }
-        result.health = { ...data.health };
+        result.health = {};
+        for (const key in data.health) {
+            const val = data.health[key];
+            const base = key.split('-')[0];
+            result.health[base] = val === true || val === 'true' || val === 1;
+        }
     } else {
         if ('temperature' in data)
             result.temperature = { value: Number(data.temperature), unit: '°C' };
