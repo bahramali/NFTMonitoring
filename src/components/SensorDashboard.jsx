@@ -8,7 +8,6 @@ import HistoricalPhChart from "./HistoricalPhChart";
 import HistoricalEcTdsChart from "./HistoricalEcTdsChart";
 import Header from "./Header";
 import DeviceTable from "./DeviceTable";
-import SensorCard from "./SensorCard";
 import { transformAggregatedData, normalizeSensorData, filterNoise } from "../utils";
 import idealRangeConfig from "../idealRangeConfig";
 import { useStomp } from '../hooks/useStomp';
@@ -234,24 +233,6 @@ function SensorDashboard() {
             <div className={styles.section}>
                 <h2 className={`${styles.sectionHeader} ${styles.liveHeader}`}>Live Data</h2>
                 <div className={styles.sectionBody}>
-                    {activeTopic === sensorTopic && (
-                        <div className={styles.sensorGrid}>
-                            {Array.from(
-                                new Set([
-                                    ...Object.keys(sensorFieldMap),
-                                    ...Object.keys(sensorData.health),
-                                ])
-                            ).map(name => (
-                                <SensorCard
-                                    key={name}
-                                    name={name}
-                                    ok={sensorData.health[name] ?? false}
-                                    fields={sensorFieldMap[name] || []}
-                                    sensorData={sensorData}
-                                />
-                            ))}
-                        </div>
-                    )}
 
                     <DeviceTable devices={deviceData[activeTopic] || {}} />
 
