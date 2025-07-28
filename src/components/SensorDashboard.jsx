@@ -210,19 +210,19 @@ function SensorDashboard() {
     return (
         <div className={styles.dashboard}>
             <Header topic={sensorTopic} />
+            <div className={styles.tabBar}>
+                {topics.map(t => (
+                    <button
+                        key={t}
+                        className={activeTopic === t ? styles.activeTab : styles.tab}
+                        onClick={() => setActiveTopic(t)}
+                    >
+                        {t}
+                    </button>
+                ))}
+            </div>
             <div className={styles.section}>
                 <h2 className={`${styles.sectionHeader} ${styles.liveHeader}`}>Live Data</h2>
-                <div className={styles.tabBar}>
-                    {topics.map(t => (
-                        <button
-                            key={t}
-                            className={activeTopic === t ? styles.activeTab : styles.tab}
-                            onClick={() => setActiveTopic(t)}
-                        >
-                            {t}
-                        </button>
-                    ))}
-                </div>
                 <div className={styles.sectionBody}>
                     {activeTopic === sensorTopic && (
                         <div className={styles.sensorGrid}>
