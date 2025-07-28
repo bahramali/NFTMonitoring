@@ -218,7 +218,7 @@ function SensorDashboard() {
 
     return (
         <div className={styles.dashboard}>
-            <Header topic={sensorTopic} />
+            <Header topic={activeTopic} />
             <div className={styles.tabBar}>
                 {topics.map(t => (
                     <button
