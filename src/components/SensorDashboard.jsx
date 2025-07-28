@@ -7,7 +7,7 @@ import HistoricalClearLuxChart from "./HistoricalClearLuxChart";
 import HistoricalPhChart from "./HistoricalPhChart";
 import HistoricalEcTdsChart from "./HistoricalEcTdsChart";
 import Header from "./Header";
-import DeviceCard from "./DeviceCard";
+import DeviceTable from "./DeviceTable";
 import SensorCard from "./SensorCard";
 import { transformAggregatedData, normalizeSensorData, filterNoise } from "../utils";
 import idealRangeConfig from "../idealRangeConfig";
@@ -253,11 +253,7 @@ function SensorDashboard() {
                         </div>
                     )}
 
-                    <div className={styles.sensorGrid}>
-                        {Object.entries(deviceData[activeTopic] || {}).map(([id, data]) => (
-                            <DeviceCard key={id} deviceId={id} data={data} />
-                        ))}
-                    </div>
+                    <DeviceTable devices={deviceData[activeTopic] || {}} />
 
                     {activeTopic === sensorTopic && (
                         <div className={styles.spectrumBarChartWrapper}>
