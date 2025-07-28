@@ -25,10 +25,12 @@ export function useStomp(topics, onMessage) {
         const handleFrame = (frame) => {
             if (frame.command === 'CONNECTED') {
                 topicList.forEach((t, idx) => {
+                    const dest = `/topic/${t}`;
+                    console.log("🟢 Sending SUBSCRIBE to:", dest);
                     socket.send(
                         buildFrame('SUBSCRIBE', {
                             id: `sub-${idx}`,
-                            destination: `/topic/${t}`,
+                            destination: dest,
                             ack: 'auto'
                         })
                     );
