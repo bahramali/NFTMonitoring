@@ -23,6 +23,7 @@ export function useStomp(topics, onMessage) {
         };
 
         const handleFrame = (frame) => {
+            console.log("Raw STOMP frame received:", frame);
             if (frame.command === 'CONNECTED') {
                 topicList.forEach((t, idx) => {
                     const dest = `/topic/${t}`;
@@ -38,16 +39,19 @@ export function useStomp(topics, onMessage) {
                 return;
             }
             if (frame.command === 'MESSAGE') {
-                console.log("==> Raw message: ", frame.body);
+                console.log("📦 MESSAGE frame body:", frame.body);
+
                 const dest = frame.headers.destination || '';
-                console.log("frame.headers.destination: " + dest);
+                console.log("📍 Destination:", dest);
+
                 const match = dest.match(/\/topic\/(.+)/);
                 const topic = match ? match[1] : '';
                 try {
                     const parsed = parseSensorJson(frame.body);
+                    console.log("✅ Parsed payload:", parsed);
                     onMessage(topic, parsed);
                 } catch (e) {
-                    console.error('Invalid STOMP message', e);
+                    console.error('❌ Invalid STOMP message', e);
                 }
             }
         };
