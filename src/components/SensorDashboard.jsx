@@ -226,18 +226,18 @@ function SensorDashboard() {
                 <div className={styles.sectionBody}>
                     {activeTopic === sensorTopic && (
                         <div className={styles.sensorGrid}>
-                            {Object.entries(sensorData.health).map(([id, ok]) => {
-                                const type = id.split('-')[0];
-                                return (
-                                    <SensorCard
-                                        key={id}
-                                        name={id}
-                                        ok={ok}
-                                        fields={sensorFieldMap[type] || []}
-                                        sensorData={sensorData}
-                                    />
-                                );
-                            })}
+                            {(Object.keys(sensorData.health).length
+                                ? Object.keys(sensorData.health)
+                                : Object.keys(sensorFieldMap)
+                            ).map(name => (
+                                <SensorCard
+                                    key={name}
+                                    name={name}
+                                    ok={sensorData.health[name] ?? false}
+                                    fields={sensorFieldMap[name] || []}
+                                    sensorData={sensorData}
+                                />
+                            ))}
                         </div>
                     )}
 
