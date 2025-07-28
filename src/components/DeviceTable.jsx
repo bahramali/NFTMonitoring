@@ -54,9 +54,11 @@ function DeviceTable({ devices = {} }) {
                 valObj && typeof valObj === 'object' && 'value' in valObj
                     ? valObj.value
                     : valObj;
+            const display =
+                typeof value === 'number' ? value.toFixed(1) : value;
             const sensorName = fieldToSensor[orig] || orig;
             const ok = devices[id]?.health?.[sensorName] ?? false;
-            return { value, ok };
+            return { value: display, ok };
         });
         return { sensor, range, cells };
     });
