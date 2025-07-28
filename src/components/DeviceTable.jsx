@@ -13,6 +13,22 @@ const bandMap = {
     F8: '680nm'
 };
 
+// Map each data field to the sensor name responsible for it so that
+// the health indicator can reference the correct status key.
+const sensorFieldMap = {
+    veml7700: ['lux'],
+    sht3x: ['temperature', 'humidity'],
+    as7341: ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'clear', 'nir'],
+    tds: ['tds', 'ec'],
+    ph: ['ph']
+};
+
+const fieldToSensor = Object.fromEntries(
+    Object.entries(sensorFieldMap).flatMap(([sensor, fields]) =>
+        fields.map(f => [f, sensor])
+    )
+);
+
 function DeviceTable({ devices = {} }) {
     const deviceIds = Object.keys(devices);
     if (deviceIds.length === 0) return null;
@@ -38,7 +54,8 @@ function DeviceTable({ devices = {} }) {
                 valObj && typeof valObj === 'object' && 'value' in valObj
                     ? valObj.value
                     : valObj;
-            const ok = devices[id]?.health?.[orig] ?? false;
+            const sensorName = fieldToSensor[orig] || orig;
+            const ok = devices[id]?.health?.[sensorName] ?? false;
             return { value, ok };
         });
         return { sensor, range, cells };
@@ -65,12 +82,12 @@ function DeviceTable({ devices = {} }) {
                             <td>{r.range?.max ?? '-'}</td>
                             {r.cells.map((c, i) => (
                                 <td key={deviceIds[i]}>
-                                    <div className={styles.cellTop}>
+                                    <div className={styles.cellWrapper}>
                                         <span
                                             className={`${styles.indicator} ${c.ok ? styles.on : styles.off}`}
                                         ></span>
+                                        <span className={styles.cellValue}>{c.value ?? '-'}</span>
                                     </div>
-                                    <div className={styles.cellBottom}>{c.value ?? '-'}</div>
                                 </td>
                             ))}
                         </tr>
