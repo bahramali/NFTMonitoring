@@ -42,7 +42,7 @@ function SensorDashboard() {
         tds: { value: 0, unit: "ppm" },
         ec: { value: 0, unit: "mS/cm" },
         ph: { value: 0, unit: '' },
-        health: { veml7700: false, as7341: false, sht3x: false, tds: false, ph: false },
+        health: {},
     });
     const [activeTopic, setActiveTopic] = useState(sensorTopic);
     const [deviceData, setDeviceData] = useState({});
@@ -226,15 +226,18 @@ function SensorDashboard() {
                 <div className={styles.sectionBody}>
                     {activeTopic === sensorTopic && (
                         <div className={styles.sensorGrid}>
-                            {Object.entries(sensorData.health).map(([name, ok]) => (
-                                <SensorCard
-                                    key={name}
-                                    name={name}
-                                    ok={ok}
-                                    fields={sensorFieldMap[name] || []}
-                                    sensorData={sensorData}
-                                />
-                            ))}
+                            {Object.entries(sensorData.health).map(([id, ok]) => {
+                                const type = id.split('-')[0];
+                                return (
+                                    <SensorCard
+                                        key={id}
+                                        name={id}
+                                        ok={ok}
+                                        fields={sensorFieldMap[type] || []}
+                                        sensorData={sensorData}
+                                    />
+                                );
+                            })}
                         </div>
                     )}
 
