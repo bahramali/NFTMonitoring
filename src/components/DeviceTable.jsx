@@ -14,18 +14,35 @@ const bandMap = {
 };
 
 function DeviceTable({ devices = {} }) {
-    const rows = [];
-    for (const [deviceId, data] of Object.entries(devices)) {
-        for (const [field, value] of Object.entries(data)) {
-            if (field === 'health') continue;
-            const lookup = bandMap[field] || field;
-            const range = idealRanges[lookup]?.idealRange;
-            const ok = data.health?.[field] ?? false;
-            rows.push({ deviceId, field: lookup, range, ok });
+    const deviceIds = Object.keys(devices);
+    if (deviceIds.length === 0) return null;
+
+    const reverseBandMap = Object.fromEntries(
+        Object.entries(bandMap).map(([k, v]) => [v, k])
+    );
+
+    const sensorSet = new Set();
+    for (const data of Object.values(devices)) {
+        for (const key of Object.keys(data)) {
+            if (key === 'health') continue;
+            sensorSet.add(bandMap[key] || key);
         }
     }
 
-    if (rows.length === 0) return null;
+    const rows = Array.from(sensorSet).map(sensor => {
+        const orig = reverseBandMap[sensor] || sensor;
+        const range = idealRanges[sensor]?.idealRange;
+        const cells = deviceIds.map(id => {
+            const valObj = devices[id]?.[orig];
+            const value =
+                valObj && typeof valObj === 'object' && 'value' in valObj
+                    ? valObj.value
+                    : valObj;
+            const ok = devices[id]?.health?.[orig] ?? false;
+            return { value, ok };
+        });
+        return { sensor, range, cells };
+    });
 
     return (
         <div className={styles.wrapper}>
@@ -35,22 +52,28 @@ function DeviceTable({ devices = {} }) {
                         <th>Sensor</th>
                         <th>Min</th>
                         <th>Max</th>
-                        <th>Device ID</th>
-                        <th>Status</th>
+                        {deviceIds.map(id => (
+                            <th key={id}>{id}</th>
+                        ))}
                     </tr>
                 </thead>
                 <tbody>
                     {rows.map(r => (
-                        <tr key={`${r.deviceId}-${r.field}`}>
-                            <td>{r.field}</td>
+                        <tr key={r.sensor}>
+                            <td>{r.sensor}</td>
                             <td>{r.range?.min ?? '-'}</td>
                             <td>{r.range?.max ?? '-'}</td>
-                            <td>{r.deviceId}</td>
-                            <td>
-                                <span
-                                    className={`${styles.indicator} ${r.ok ? styles.on : styles.off}`}
-                                ></span>
-                            </td>
+                            {r.cells.map((c, i) => (
+                                <td key={deviceIds[i]}>
+                                    <div className={styles.cellTop}>{c.value ?? '-'}</div>
+                                    <div className={styles.divider}></div>
+                                    <div className={styles.cellBottom}>
+                                        <span
+                                            className={`${styles.indicator} ${c.ok ? styles.on : styles.off}`}
+                                        ></span>
+                                    </div>
+                                </td>
+                            ))}
                         </tr>
                     ))}
                 </tbody>
