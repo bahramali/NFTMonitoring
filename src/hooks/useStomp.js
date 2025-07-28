@@ -36,6 +36,7 @@ export function useStomp(topics, onMessage) {
                 return;
             }
             if (frame.command === 'MESSAGE') {
+                console.log("==> Raw message: ", frame.body);
                 const dest = frame.headers.destination || '';
                 console.log("frame.headers.destination: " + dest);
                 const match = dest.match(/\/topic\/(.+)/);
