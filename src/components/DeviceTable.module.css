@@ -14,11 +14,17 @@
     text-align: center;
 }
 
-.cellTop,
-.cellBottom {
+
+.cellWrapper {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    gap: 4px;
+    width: 100%;
+}
+
+.cellValue {
+    display: inline-block;
 }
 
 
