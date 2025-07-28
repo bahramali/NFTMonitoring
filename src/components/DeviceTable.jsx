@@ -1,6 +1,7 @@
 import React from 'react';
 import styles from './DeviceTable.module.css';
 import idealRanges from '../idealRangeConfig';
+import spectralColors from '../spectralColors';
 
 function getCellColor(value, range) {
     if (!range) return '';
@@ -22,6 +23,19 @@ const bandMap = {
     F6: '590nm',
     F7: '630nm',
     F8: '680nm'
+};
+
+const spectralSensorMap = {
+    '415nm': 'F1',
+    '445nm': 'F2',
+    '480nm': 'F3',
+    '515nm': 'F4',
+    '555nm': 'F5',
+    '590nm': 'F6',
+    '630nm': 'F7',
+    '680nm': 'F8',
+    clear: 'clear',
+    nir: 'nir'
 };
 
 // Map each data field to the sensor name responsible for it so that
@@ -93,6 +107,8 @@ function DeviceTable({ devices = {} }) {
         const orig = reverseBandMap[sensor] || sensor;
         const range = idealRanges[sensor]?.idealRange;
         const model = sensorModelMap[orig] || 'AS7341';
+        const bandKey = spectralSensorMap[sensor];
+        const rowColor = bandKey ? `${spectralColors[bandKey]}22` : undefined;
         const cells = deviceIds.map(id => {
             const valObj = devices[id]?.[orig];
             const value =
@@ -106,7 +122,7 @@ function DeviceTable({ devices = {} }) {
             const color = getCellColor(value, range);
             return { value: display, ok, color };
         });
-        return { sensor, range, cells, model };
+        return { sensor, range, cells, model, rowColor };
     });
 
     const modelCounts = {};
@@ -142,9 +158,9 @@ function DeviceTable({ devices = {} }) {
                     {rows.map(r => (
                         <tr key={r.sensor}>
                             {r.rowSpan > 0 && <td rowSpan={r.rowSpan}>{r.model}</td>}
-                            <td>{r.sensor}</td>
-                            <td>{r.range?.min ?? '-'}</td>
-                            <td>{r.range?.max ?? '-'}</td>
+                            <td style={{ backgroundColor: r.rowColor }}>{r.sensor}</td>
+                            <td style={{ backgroundColor: r.rowColor }}>{r.range?.min ?? '-'}</td>
+                            <td style={{ backgroundColor: r.rowColor }}>{r.range?.max ?? '-'}</td>
                             {r.cells.map((c, i) => (
                                 <td key={deviceIds[i]} style={{ backgroundColor: c.color }}>
                                     <div className={styles.cellWrapper}>
