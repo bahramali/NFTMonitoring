@@ -236,9 +236,11 @@ function SensorDashboard() {
                 <div className={styles.sectionBody}>
                     {activeTopic === sensorTopic && (
                         <div className={styles.sensorGrid}>
-                            {(Object.keys(sensorData.health).length
-                                ? Object.keys(sensorData.health)
-                                : Object.keys(sensorFieldMap)
+                            {Array.from(
+                                new Set([
+                                    ...Object.keys(sensorFieldMap),
+                                    ...Object.keys(sensorData.health),
+                                ])
                             ).map(name => (
                                 <SensorCard
                                     key={name}
