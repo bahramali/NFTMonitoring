@@ -40,6 +40,21 @@ const fieldToSensor = Object.fromEntries(
     )
 );
 
+const sensorModelMap = {
+    temperature: 'SHT3x',
+    humidity: 'SHT3x',
+    lux: 'VEML7700',
+    tds: 'version 1.0',
+    ec: 'version 1.0',
+    ph: 'E-201',
+};
+
+for (const b of Object.values(bandMap)) {
+    sensorModelMap[b] = 'AS7341';
+}
+sensorModelMap.clear = 'AS7341';
+sensorModelMap.nir = 'AS7341';
+
 function DeviceTable({ devices = {} }) {
     const deviceIds = Object.keys(devices);
     if (deviceIds.length === 0) return null;
@@ -56,9 +71,28 @@ function DeviceTable({ devices = {} }) {
         }
     }
 
-    const rows = Array.from(sensorSet).map(sensor => {
+    const orderedModels = [
+        'SHT3x',
+        'VEML7700',
+        'version 1.0',
+        'E-201',
+        'AS7341',
+    ];
+
+    const modelGroups = Object.fromEntries(orderedModels.map(m => [m, []]));
+
+    for (const sensor of sensorSet) {
+        const orig = reverseBandMap[sensor] || sensor;
+        const model = sensorModelMap[orig] || 'AS7341';
+        modelGroups[model].push(sensor);
+    }
+
+    const orderedSensors = orderedModels.flatMap(m => modelGroups[m]);
+
+    const rows = orderedSensors.map(sensor => {
         const orig = reverseBandMap[sensor] || sensor;
         const range = idealRanges[sensor]?.idealRange;
+        const model = sensorModelMap[orig] || 'AS7341';
         const cells = deviceIds.map(id => {
             const valObj = devices[id]?.[orig];
             const value =
@@ -72,14 +106,30 @@ function DeviceTable({ devices = {} }) {
             const color = getCellColor(value, range);
             return { value: display, ok, color };
         });
-        return { sensor, range, cells };
+        return { sensor, range, cells, model };
     });
+
+    const modelCounts = {};
+    for (const r of rows) {
+        modelCounts[r.model] = (modelCounts[r.model] || 0) + 1;
+    }
+
+    const seenModel = {};
+    for (const r of rows) {
+        if (!seenModel[r.model]) {
+            r.rowSpan = modelCounts[r.model];
+            seenModel[r.model] = true;
+        } else {
+            r.rowSpan = 0;
+        }
+    }
 
     return (
         <div className={styles.wrapper}>
             <table className={styles.table}>
                 <thead>
                     <tr>
+                        <th>Sensor model</th>
                         <th>Sensor</th>
                         <th>Min</th>
                         <th>Max</th>
@@ -91,6 +141,7 @@ function DeviceTable({ devices = {} }) {
                 <tbody>
                     {rows.map(r => (
                         <tr key={r.sensor}>
+                            {r.rowSpan > 0 && <td rowSpan={r.rowSpan}>{r.model}</td>}
                             <td>{r.sensor}</td>
                             <td>{r.range?.min ?? '-'}</td>
                             <td>{r.range?.max ?? '-'}</td>
