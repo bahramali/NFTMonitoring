@@ -34,3 +34,9 @@ test('renders sensor model column and merged cells', () => {
   expect(parseInt(asCell.closest('td').getAttribute('rowspan'))).toBeGreaterThan(2);
   expect(container).toBeInTheDocument();
 });
+
+test('spectral sensor row has colored background', () => {
+  render(<DeviceTable devices={devices} />);
+  const cell = screen.getByText('415nm');
+  expect(cell).toHaveStyle({ backgroundColor: '#8a2be222' });
+});
