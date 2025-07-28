@@ -1,81 +1,56 @@
 import React from 'react';
 import styles from './DeviceTable.module.css';
+import idealRanges from '../idealRangeConfig';
+
+const bandMap = {
+    F1: '415nm',
+    F2: '445nm',
+    F3: '480nm',
+    F4: '515nm',
+    F5: '555nm',
+    F6: '590nm',
+    F7: '630nm',
+    F8: '680nm'
+};
 
 function DeviceTable({ devices = {} }) {
-    const entries = Object.entries(devices);
-    if (entries.length === 0) {
-        return null;
-    }
-    const fieldSet = new Set();
-    for (const [, data] of entries) {
-        for (const key of Object.keys(data)) {
-            if (key === 'health') continue;
-            fieldSet.add(key);
+    const rows = [];
+    for (const [deviceId, data] of Object.entries(devices)) {
+        for (const [field, value] of Object.entries(data)) {
+            if (field === 'health') continue;
+            const lookup = bandMap[field] || field;
+            const range = idealRanges[lookup]?.idealRange;
+            const ok = data.health?.[field] ?? false;
+            rows.push({ deviceId, field: lookup, range, ok });
         }
     }
-    const fields = Array.from(fieldSet);
+
+    if (rows.length === 0) return null;
 
     return (
         <div className={styles.wrapper}>
             <table className={styles.table}>
                 <thead>
                     <tr>
-                        <th>
-                            <div className={styles.cellTop}>Device ID</div>
-                            <div className={styles.divider}></div>
-                            <div className={styles.cellBottom}>Status</div>
-                        </th>
-                        {fields.map(f => (
-                            <th key={f}>
-                                <div className={styles.cellTop}>{f}</div>
-                                <div className={styles.divider}></div>
-                                <div className={styles.cellBottom}>Value</div>
-                            </th>
-                        ))}
+                        <th>Sensor</th>
+                        <th>Min</th>
+                        <th>Max</th>
+                        <th>Device ID</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {entries.map(([id, data]) => (
-                        <tr key={id}>
+                    {rows.map(r => (
+                        <tr key={`${r.deviceId}-${r.field}`}>
+                            <td>{r.field}</td>
+                            <td>{r.range?.min ?? '-'}</td>
+                            <td>{r.range?.max ?? '-'}</td>
+                            <td>{r.deviceId}</td>
                             <td>
-                                <div className={styles.cellTop}>{id}</div>
-                                <div className={styles.divider}></div>
-                                <div className={styles.cellBottom}>status</div>
+                                <span
+                                    className={`${styles.indicator} ${r.ok ? styles.on : styles.off}`}
+                                ></span>
                             </td>
-                            {fields.map(field => {
-                                const valObj = data[field];
-                                const value =
-                                    valObj && typeof valObj === 'object' && 'value' in valObj
-                                        ? valObj.value
-                                        : valObj;
-                                const display =
-                                    value === undefined || value === null
-                                        ? '-'
-                                        : typeof value === 'number'
-                                        ? value.toFixed(1)
-                                        : value;
-                                const unit =
-                                    valObj && typeof valObj === 'object' && valObj.unit
-                                        ? ` ${valObj.unit}`
-                                        : '';
-                                const ok = data.health?.[field] ?? false;
-                                return (
-                                    <td key={field}>
-                                        <div className={styles.cellTop}>
-                                            <span
-                                                className={`${styles.indicator} ${
-                                                    ok ? styles.on : styles.off
-                                                }`}
-                                            ></span>
-                                        </div>
-                                        <div className={styles.divider}></div>
-                                        <div className={styles.cellBottom}>
-                                            {display}
-                                            {unit}
-                                        </div>
-                                    </td>
-                                );
-                            })}
                         </tr>
                     ))}
                 </tbody>
