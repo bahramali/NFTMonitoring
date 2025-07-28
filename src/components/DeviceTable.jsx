@@ -65,13 +65,12 @@ function DeviceTable({ devices = {} }) {
                             <td>{r.range?.max ?? '-'}</td>
                             {r.cells.map((c, i) => (
                                 <td key={deviceIds[i]}>
-                                    <div className={styles.cellTop}>{c.value ?? '-'}</div>
-                                    <div className={styles.divider}></div>
-                                    <div className={styles.cellBottom}>
+                                    <div className={styles.cellTop}>
                                         <span
                                             className={`${styles.indicator} ${c.ok ? styles.on : styles.off}`}
                                         ></span>
                                     </div>
+                                    <div className={styles.cellBottom}>{c.value ?? '-'}</div>
                                 </td>
                             ))}
                         </tr>
