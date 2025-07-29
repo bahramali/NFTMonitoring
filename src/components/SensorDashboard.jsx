@@ -172,17 +172,21 @@ function SensorDashboard() {
         }
         const deviceId = payload.deviceId || msg.deviceId || 'unknown';
         let data = payload;
-        if (topic === sensorTopic) {
+        if (topic === sensorTopic || topic === 'waterTank') {
             const norm = normalizeSensorData(payload);
             console.log('🔄 normalized sensor message:', norm);
-            const cleaned = filterNoise(norm);
-            if (!cleaned) {
-                console.log('🛑 message filtered out as noise', norm);
-                return;
+            if (topic === sensorTopic) {
+                const cleaned = filterNoise(norm);
+                if (!cleaned) {
+                    console.log('🛑 message filtered out as noise', norm);
+                    return;
+                }
+                data = cleaned;
+                console.log('💾 updating sensorData state with:', data);
+                setSensorData(data);
+            } else {
+                data = norm;
             }
-            data = cleaned;
-            console.log('💾 updating sensorData state with:', data);
-            setSensorData(data);
         }
         setDeviceData(prev => {
             const t = { ...(prev[topic] || {}) };
