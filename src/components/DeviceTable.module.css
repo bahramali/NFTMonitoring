@@ -18,6 +18,18 @@
     background-color: #eef6ff;
 }
 
+.modelCell {
+    width: 9ch;
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+
+.sensorCell {
+    width: 9ch;
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+
 
 .cellWrapper {
     display: flex;

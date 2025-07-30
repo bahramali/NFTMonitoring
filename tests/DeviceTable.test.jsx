@@ -25,9 +25,9 @@ const devices = {
   }
 };
 
-test('renders sensor model column and merged cells', () => {
+test('renders model column and merged cells', () => {
   const { container } = render(<DeviceTable devices={devices} />);
-  expect(screen.getByText('Sensor model')).toBeInTheDocument();
+  expect(screen.getByText('Model')).toBeInTheDocument();
   const shtCell = screen.getByText('SHT3x');
   expect(shtCell.closest('td')).toHaveAttribute('rowspan', '2');
   const asCell = screen.getByText('AS7341');
@@ -39,4 +39,10 @@ test('spectral sensor row has colored background', () => {
   render(<DeviceTable devices={devices} />);
   const cell = screen.getByText('415nm');
   expect(cell).toHaveStyle({ backgroundColor: '#8a2be222' });
+});
+
+test('displays abbreviated sensor names', () => {
+  render(<DeviceTable devices={devices} />);
+  expect(screen.getByText('Temp')).toBeInTheDocument();
+  expect(screen.getByText('Hum')).toBeInTheDocument();
 });
