@@ -12,12 +12,6 @@ export function filterNoise(data) {
 
 export function normalizeSensorData(data) {
     const result = {
-        temperature: { value: 0, unit: "°C" },
-        humidity: { value: 0, unit: "%" },
-        lux: { value: 0, unit: "lux" },
-        tds: { value: 0, unit: "ppm" },
-        ec: { value: 0, unit: "mS/cm" },
-        ph: { value: 0, unit: '' },
         F1: 0, F2: 0, F3: 0, F4: 0, F5: 0,
         F6: 0, F7: 0, F8: 0, clear: 0, nir: 0,
         health: {}
