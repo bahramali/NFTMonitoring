@@ -185,7 +185,7 @@ function SensorDashboard() {
                 console.log('💾 updating sensorData state with:', data);
                 setSensorData(data);
             } else {
-                data = norm;
+                data = { ...norm, sensors: payload.sensors };
             }
         }
         setDeviceData(prev => {
