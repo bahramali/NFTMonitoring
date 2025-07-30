@@ -77,10 +77,29 @@ function DeviceTable({ devices = {} }) {
     );
 
     const sensorSet = new Set();
+    const knownFields = new Set([
+        'temperature','humidity','lux','tds','ec','ph',
+        'F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'
+    ]);
+
     for (const data of Object.values(devices)) {
-        for (const key of Object.keys(data)) {
-            if (key === 'health') continue;
-            sensorSet.add(bandMap[key] || key);
+        if (Array.isArray(data.sensors)) {
+            for (const s of data.sensors) {
+                if (s && s.type) {
+                    sensorSet.add(bandMap[s.type] || s.type);
+                }
+            }
+            for (const key of Object.keys(data)) {
+                if (key === 'health' || key === 'sensors') continue;
+                if (!knownFields.has(key)) {
+                    sensorSet.add(bandMap[key] || key);
+                }
+            }
+        } else {
+            for (const key of Object.keys(data)) {
+                if (key === 'health') continue;
+                sensorSet.add(bandMap[key] || key);
+            }
         }
     }
 
