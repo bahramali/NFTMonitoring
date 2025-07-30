@@ -59,6 +59,7 @@ function SensorDashboard() {
     const defaultTo = toLocalInputValue(new Date(now));
     const [fromDate, setFromDate] = useState(defaultFrom);
     const [toDate, setToDate] = useState(defaultTo);
+    const [selectedDevice, setSelectedDevice] = useState('esp32-01');
     const [rangeData, setRangeData] = useState([]);
     const [tempRangeData, setTempRangeData] = useState([]);
     const [phRangeData, setPhRangeData] = useState([]);
@@ -80,11 +81,18 @@ function SensorDashboard() {
         startTimeRef.current = startTime;
     }, [startTime]);
 
+    useEffect(() => {
+        const ids = Object.keys(deviceData[sensorTopic] || {}).filter(id => id !== 'placeholder');
+        if (ids.length && !ids.includes(selectedDevice)) {
+            setSelectedDevice(ids[0]);
+        }
+    }, [deviceData, selectedDevice]);
+
     const fetchReportData = useCallback(async () => {
         if (!fromDate || !toDate) return;
         const fromIso = new Date(fromDate).toISOString();
         const toIso = new Date(toDate).toISOString();
-        const url = `https://api.hydroleaf.se/api/sensors/history/aggregated?espId=esp32-01&from=${fromIso}&to=${toIso}`;
+        const url = `https://api.hydroleaf.se/api/sensors/history/aggregated?espId=${selectedDevice}&from=${fromIso}&to=${toIso}`;
         try {
             const res = await fetch(url);
             if (!res.ok) throw new Error('bad response');
@@ -118,13 +126,13 @@ function SensorDashboard() {
         } catch (e) {
             console.error('Failed to fetch history', e);
         }
-    }, [fromDate, toDate]);
+    }, [fromDate, toDate, selectedDevice]);
 
     const fetchNewData = useCallback(async () => {
         const fromIso = new Date(endTimeRef.current).toISOString();
         const nowDate = new Date();
         const toIso = nowDate.toISOString();
-        const url = `https://api.hydroleaf.se/api/sensors/history/aggregated?espId=esp32-01&from=${fromIso}&to=${toIso}`;
+        const url = `https://api.hydroleaf.se/api/sensors/history/aggregated?espId=${selectedDevice}&from=${fromIso}&to=${toIso}`;
         try {
             const res = await fetch(url);
             if (!res.ok) throw new Error('bad response');
@@ -159,7 +167,7 @@ function SensorDashboard() {
         } catch (e) {
             console.error('Failed to fetch history', e);
         }
-    }, []);
+    }, [selectedDevice]);
 
     const handleStompMessage = useCallback((topic, msg) => {
         console.log('📨 handleStompMessage topic:', topic, 'msg:', msg);
@@ -209,7 +217,7 @@ function SensorDashboard() {
 
     useEffect(() => {
         fetchReportData();
-    }, []);
+    }, [selectedDevice]);
 
     useEffect(() => {
         if (!autoRefresh) return;
@@ -219,6 +227,9 @@ function SensorDashboard() {
     }, [autoRefresh, refreshInterval, fetchNewData]);
 
     useStomp(topics, handleStompMessage);
+
+    const deviceIds = Object.keys(deviceData[sensorTopic] || {}).filter(id => id !== 'placeholder');
+    const availableDevices = deviceIds.length ? deviceIds : [selectedDevice];
 
     return (
         <div className={styles.dashboard}>
@@ -304,7 +315,21 @@ function SensorDashboard() {
                                 <input type="datetime-local" value={toDate} onChange={e => setToDate(e.target.value)} />
                             </label>
                             <button type="button" className={styles.nowButton} onClick={() => setToDate(toLocalInputValue(new Date()))}>Now</button>
-                            <button type="button" className={styles.applyButton} onClick={fetchReportData}>Apply</button>
+                        <button type="button" className={styles.applyButton} onClick={fetchReportData}>Apply</button>
+                        </div>
+                        <div className={styles.filterRow}>
+                            <label className={styles.filterLabel}>
+                                Device:
+                                <select
+                                    className={styles.intervalSelect}
+                                    value={selectedDevice}
+                                    onChange={e => setSelectedDevice(e.target.value)}
+                                >
+                                    {availableDevices.map(id => (
+                                        <option key={id} value={id}>{id}</option>
+                                    ))}
+                                </select>
+                            </label>
                         </div>
                         <div className={styles.filterRow}>
                             <label className={styles.filterLabel}>
