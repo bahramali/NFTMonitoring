@@ -139,6 +139,11 @@ function DeviceTable({ devices = {} }) {
         return { sensor, range, cells, model, rowColor };
     });
 
+    const sensorDisplayMap = {
+        temperature: 'Temp',
+        humidity: 'Hum',
+    };
+
     const modelCounts = {};
     for (const r of rows) {
         modelCounts[r.model] = (modelCounts[r.model] || 0) + 1;
@@ -160,7 +165,7 @@ function DeviceTable({ devices = {} }) {
                 <thead>
                     <tr>
                         <th className={styles.modelCell}>Model</th>
-                        <th>Sensor</th>
+                        <th className={styles.sensorCell}>Sensor</th>
                         <th>Min</th>
                         <th>Max</th>
                         {deviceIds.map(id => (
@@ -176,7 +181,12 @@ function DeviceTable({ devices = {} }) {
                                     {r.model}
                                 </td>
                             )}
-                            <td style={{ backgroundColor: r.rowColor }}>{r.sensor}</td>
+                            <td
+                                className={styles.sensorCell}
+                                style={{ backgroundColor: r.rowColor }}
+                            >
+                                {sensorDisplayMap[r.sensor] || r.sensor}
+                            </td>
                             <td style={{ backgroundColor: r.rowColor }}>{r.range?.min ?? '-'}</td>
                             <td style={{ backgroundColor: r.rowColor }}>{r.range?.max ?? '-'}</td>
                             {r.cells.map((c, i) => (
