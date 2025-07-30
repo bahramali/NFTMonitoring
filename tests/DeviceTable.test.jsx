@@ -25,9 +25,9 @@ const devices = {
   }
 };
 
-test('renders sensor model column and merged cells', () => {
+test('renders model column and merged cells', () => {
   const { container } = render(<DeviceTable devices={devices} />);
-  expect(screen.getByText('Sensor model')).toBeInTheDocument();
+  expect(screen.getByText('Model')).toBeInTheDocument();
   const shtCell = screen.getByText('SHT3x');
   expect(shtCell.closest('td')).toHaveAttribute('rowspan', '2');
   const asCell = screen.getByText('AS7341');

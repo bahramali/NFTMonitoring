@@ -159,7 +159,7 @@ function DeviceTable({ devices = {} }) {
             <table className={styles.table}>
                 <thead>
                     <tr>
-                        <th>Sensor model</th>
+                        <th className={styles.modelCell}>Model</th>
                         <th>Sensor</th>
                         <th>Min</th>
                         <th>Max</th>
@@ -171,7 +171,11 @@ function DeviceTable({ devices = {} }) {
                 <tbody>
                     {rows.map(r => (
                         <tr key={r.sensor}>
-                            {r.rowSpan > 0 && <td rowSpan={r.rowSpan}>{r.model}</td>}
+                            {r.rowSpan > 0 && (
+                                <td rowSpan={r.rowSpan} className={styles.modelCell}>
+                                    {r.model}
+                                </td>
+                            )}
                             <td style={{ backgroundColor: r.rowColor }}>{r.sensor}</td>
                             <td style={{ backgroundColor: r.rowColor }}>{r.range?.min ?? '-'}</td>
                             <td style={{ backgroundColor: r.rowColor }}>{r.range?.max ?? '-'}</td>
