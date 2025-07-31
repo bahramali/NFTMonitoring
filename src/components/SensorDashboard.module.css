@@ -106,6 +106,12 @@
 .deviceLabel {
     text-align: center;
     font-weight: bold;
+}
+
+.spectrumHeaderRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     margin-bottom: 10px;
 }
 
