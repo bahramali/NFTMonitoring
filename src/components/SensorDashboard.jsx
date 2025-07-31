@@ -292,7 +292,11 @@ function SensorDashboard() {
                             F7: '630nm',
                             F8: '680nm'
                         };
-                        const metaFields = new Set(['timestamp', 'deviceId', 'location']);
+                        const knownFields = new Set([
+                            'temperature','humidity','lux','tds','ec','ph',
+                            'F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'
+                        ]);
+                        const metaFields = new Set(['timestamp','deviceId','location']);
                         const topicData =
                             deviceData[activeTopic] ||
                             (activeTopic === sensorTopic ? { placeholder: sensorData } : {});
@@ -300,12 +304,16 @@ function SensorDashboard() {
                         for (const dev of Object.values(topicData)) {
                             if (Array.isArray(dev.sensors)) {
                                 for (const s of dev.sensors) {
-                                    if (s && s.type) sensors.add(bandMap[s.type] || s.type);
+                                    if (s && s.type) {
+                                        sensors.add(bandMap[s.type] || s.type);
+                                    }
                                 }
                             }
                             for (const key of Object.keys(dev)) {
                                 if (key === 'health' || key === 'sensors') continue;
                                 if (metaFields.has(key)) continue;
+
+                                if (Array.isArray(dev.sensors) && knownFields.has(key)) continue;
                                 sensors.add(bandMap[key] || key);
                             }
                         }
