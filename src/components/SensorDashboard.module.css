@@ -152,6 +152,7 @@
 
 .spectrumBarChartWrapper {
     width: 100%;
+    margin-top: 20px;
 }
 
 .dailyTempChartWrapper {
@@ -195,6 +196,6 @@
     }
     .spectrumBarChartWrapper {
         width: 80%;
-        margin: 0 auto;
+        margin: 20px auto 0;
     }
 }
