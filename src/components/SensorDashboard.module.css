@@ -106,7 +106,24 @@
 .deviceLabel {
     text-align: center;
     font-weight: bold;
+}
+
+.spectrumHeaderRow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
     margin-bottom: 10px;
+}
+
+.spectrumHeaderRow .filterLabel {
+    margin-left: 0;
+    position: absolute;
+    left: 0;
+}
+
+.spectrumHeaderRow .deviceLabel {
+    flex: 1;
 }
 
 .fieldSpacer {
