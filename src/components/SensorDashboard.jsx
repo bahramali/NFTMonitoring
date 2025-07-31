@@ -82,11 +82,11 @@ function SensorDashboard() {
     }, [startTime]);
 
     useEffect(() => {
-        const ids = Object.keys(deviceData[sensorTopic] || {}).filter(id => id !== 'placeholder');
+        const ids = Object.keys(deviceData[activeTopic] || {}).filter(id => id !== 'placeholder');
         if (ids.length && !ids.includes(selectedDevice)) {
             setSelectedDevice(ids[0]);
         }
-    }, [deviceData, selectedDevice]);
+    }, [deviceData, selectedDevice, activeTopic]);
 
     const fetchReportData = useCallback(async () => {
         if (!fromDate || !toDate) return;
@@ -228,7 +228,7 @@ function SensorDashboard() {
 
     useStomp(topics, handleStompMessage);
 
-    const deviceIds = Object.keys(deviceData[sensorTopic] || {}).filter(id => id !== 'placeholder');
+    const deviceIds = Object.keys(deviceData[activeTopic] || {}).filter(id => id !== 'placeholder');
     const availableDevices = deviceIds.length ? deviceIds : [selectedDevice];
 
     return (
