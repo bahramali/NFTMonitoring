@@ -319,7 +319,7 @@ function SensorDashboard() {
             <div className={styles.section}>
                 <h2 className={`${styles.sectionHeader} ${styles.reportHeader}`}>Reports</h2>
                 <div className={styles.sectionBody}>
-                    {activeTopic !== sensorTopic ? (
+                    {activeTopic !== sensorTopic && activeTopic !== 'waterTank' ? (
                         <div>No reports available for this topic.</div>
                     ) : (
                     <>
@@ -379,50 +379,56 @@ function SensorDashboard() {
                         </div>
                     </fieldset>
 
-                    <div className={styles.historyChartsRow}>
-                        <div className={styles.historyChartColumn}>
-                            <h3 className={styles.sectionTitle}>Temperature</h3>
-                            <div className={styles.dailyTempChartWrapper}>
-                                <HistoricalTemperatureChart data={tempRangeData} xDomain={xDomain} />
+                    {activeTopic === sensorTopic && (
+                        <>
+                        <div className={styles.historyChartsRow}>
+                            <div className={styles.historyChartColumn}>
+                                <h3 className={styles.sectionTitle}>Temperature</h3>
+                                <div className={styles.dailyTempChartWrapper}>
+                                    <HistoricalTemperatureChart data={tempRangeData} xDomain={xDomain} />
+                                </div>
+                            </div>
+                            <div className={styles.historyChartColumn}>
+                                <h3 className={styles.sectionTitle}>Blue Bands</h3>
+                                <div className={styles.blueBandChartWrapper}>
+                                    <HistoricalBlueBandChart data={rangeData} xDomain={xDomain} />
+                                </div>
                             </div>
                         </div>
-                        <div className={styles.historyChartColumn}>
-                            <h3 className={styles.sectionTitle}>Blue Bands</h3>
-                            <div className={styles.blueBandChartWrapper}>
-                                <HistoricalBlueBandChart data={rangeData} xDomain={xDomain} />
-                            </div>
-                        </div>
-                    </div>
 
-                    <div className={styles.historyChartsRow}>
-                        <div className={styles.historyChartColumn}>
-                            <h3 className={styles.sectionTitle}>Red Bands</h3>
-                            <div className={styles.redBandChartWrapper}>
-                                <HistoricalRedBandChart data={rangeData} xDomain={xDomain} />
+                        <div className={styles.historyChartsRow}>
+                            <div className={styles.historyChartColumn}>
+                                <h3 className={styles.sectionTitle}>Red Bands</h3>
+                                <div className={styles.redBandChartWrapper}>
+                                    <HistoricalRedBandChart data={rangeData} xDomain={xDomain} />
+                                </div>
+                            </div>
+                            <div className={styles.historyChartColumn}>
+                                <h3 className={styles.sectionTitle}>Lux_Clear</h3>
+                                <div className={styles.clearLuxChartWrapper}>
+                                    <HistoricalClearLuxChart data={rangeData} xDomain={xDomain} />
+                                </div>
                             </div>
                         </div>
-                        <div className={styles.historyChartColumn}>
-                            <h3 className={styles.sectionTitle}>Lux_Clear</h3>
-                            <div className={styles.clearLuxChartWrapper}>
-                                <HistoricalClearLuxChart data={rangeData} xDomain={xDomain} />
-                            </div>
-                        </div>
-                    </div>
+                        </>
+                    )}
 
-                    <div className={styles.historyChartsRow}>
-                        <div className={styles.historyChartColumn}>
-                            <h3 className={styles.sectionTitle}>pH</h3>
-                            <div className={styles.phChartWrapper}>
-                                <HistoricalPhChart data={phRangeData} xDomain={xDomain} />
+                    {activeTopic === 'waterTank' && (
+                        <div className={styles.historyChartsRow}>
+                            <div className={styles.historyChartColumn}>
+                                <h3 className={styles.sectionTitle}>pH</h3>
+                                <div className={styles.phChartWrapper}>
+                                    <HistoricalPhChart data={phRangeData} xDomain={xDomain} />
+                                </div>
+                            </div>
+                            <div className={styles.historyChartColumn}>
+                                <h3 className={styles.sectionTitle}>EC &amp; TDS</h3>
+                                <div className={styles.ecTdsChartWrapper}>
+                                    <HistoricalEcTdsChart data={ecTdsRangeData} xDomain={xDomain} />
+                                </div>
                             </div>
                         </div>
-                        <div className={styles.historyChartColumn}>
-                            <h3 className={styles.sectionTitle}>EC &amp; TDS</h3>
-                            <div className={styles.ecTdsChartWrapper}>
-                                <HistoricalEcTdsChart data={ecTdsRangeData} xDomain={xDomain} />
-                            </div>
-                        </div>
-                    </div>
+                    )}
                     </>
                     )}
                 </div>
