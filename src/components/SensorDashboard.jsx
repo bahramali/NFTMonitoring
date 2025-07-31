@@ -282,27 +282,43 @@ function SensorDashboard() {
                     )}
 
                     {(() => {
-                        const notes = new Set();
-                        const topicData = deviceData[activeTopic] || {};
-                        if (activeTopic === sensorTopic && Object.keys(topicData).length === 0) {
-                            for (const key in sensorData) {
-                                if (key === 'health') continue;
-                                const cfg = idealRangeConfig[key];
-                                if (cfg?.description) notes.add(`${key}: ${cfg.description}`);
-                            }
-                        } else {
-                            for (const dev of Object.values(topicData)) {
-                                for (const key in dev) {
-                                    const cfg = idealRangeConfig[key];
-                                    if (cfg?.description) notes.add(`${key}: ${cfg.description}`);
+                        const bandMap = {
+                            F1: '415nm',
+                            F2: '445nm',
+                            F3: '480nm',
+                            F4: '515nm',
+                            F5: '555nm',
+                            F6: '590nm',
+                            F7: '630nm',
+                            F8: '680nm'
+                        };
+                        const metaFields = new Set(['timestamp', 'deviceId', 'location']);
+                        const topicData =
+                            deviceData[activeTopic] ||
+                            (activeTopic === sensorTopic ? { placeholder: sensorData } : {});
+                        const sensors = new Set();
+                        for (const dev of Object.values(topicData)) {
+                            if (Array.isArray(dev.sensors)) {
+                                for (const s of dev.sensors) {
+                                    if (s && s.type) sensors.add(bandMap[s.type] || s.type);
                                 }
                             }
+                            for (const key of Object.keys(dev)) {
+                                if (key === 'health' || key === 'sensors') continue;
+                                if (metaFields.has(key)) continue;
+                                sensors.add(bandMap[key] || key);
+                            }
                         }
-                        return notes.size ? (
+                        const notes = [];
+                        for (const key of sensors) {
+                            const cfg = idealRangeConfig[key];
+                            if (cfg?.description) notes.push(`${key}: ${cfg.description}`);
+                        }
+                        return notes.length ? (
                             <div className={styles.noteBlock}>
                                 <div className={styles.noteTitle}>Notes:</div>
                                 <ul>
-                                    {[...notes].map((n, i) => (
+                                    {notes.map((n, i) => (
                                         <li key={i}>{n}</li>
                                     ))}
                                 </ul>
