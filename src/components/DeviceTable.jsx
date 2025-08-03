@@ -45,7 +45,8 @@ const sensorFieldMap = {
     sht3x: ['temperature', 'humidity'],
     as7341: ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'clear', 'nir'],
     tds: ['tds', 'ec'],
-    ph: ['ph']
+    ph: ['ph'],
+    do: ['do']
 };
 
 const fieldToSensor = Object.fromEntries(
@@ -61,10 +62,11 @@ const sensorModelMap = {
     tds: 'version 1.0',
     ec: 'version 1.0',
     ph: 'E-201',
+    do: 'DFROBOT',
 };
 
-for (const b of Object.values(bandMap)) {
-    sensorModelMap[b] = 'AS7341';
+for (const key of Object.keys(bandMap)) {
+    sensorModelMap[key] = 'AS7341';
 }
 sensorModelMap.clear = 'AS7341';
 sensorModelMap.nir = 'AS7341';
@@ -77,8 +79,9 @@ function DeviceTable({ devices = {} }) {
     );
 
     const sensorSet = new Set();
+    const fieldToSensorName = {};
     const knownFields = new Set([
-        'temperature','humidity','lux','tds','ec','ph',
+        'temperature','humidity','lux','tds','ec','ph','do',
         'F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'
     ]);
     const metaFields = new Set(['timestamp','deviceId','location']);
@@ -86,8 +89,13 @@ function DeviceTable({ devices = {} }) {
     for (const data of Object.values(devices)) {
         if (Array.isArray(data.sensors)) {
             for (const s of data.sensors) {
-                if (s && s.type) {
-                    sensorSet.add(bandMap[s.type] || s.type);
+                const type = s && (s.type || s.valueType);
+                if (type) {
+                    const display = bandMap[type] || type;
+                    sensorSet.add(display);
+                    const orig = reverseBandMap[type] || type;
+                    const name = s.sensorName || s.source;
+                    if (name) fieldToSensorName[orig] = name;
                 }
             }
         }
@@ -104,6 +112,7 @@ function DeviceTable({ devices = {} }) {
         'VEML7700',
         'version 1.0',
         'E-201',
+        'DFROBOT',
         'AS7341',
     ];
 
@@ -121,6 +130,7 @@ function DeviceTable({ devices = {} }) {
         const orig = reverseBandMap[sensor] || sensor;
         const range = idealRanges[sensor]?.idealRange;
         const model = sensorModelMap[orig] || 'AS7341';
+        const sensorName = fieldToSensorName[orig] || sensorModelMap[orig] || orig;
         const bandKey = spectralSensorMap[sensor];
         const rowColor = bandKey ? `${spectralColors[bandKey]}22` : undefined;
         const cells = deviceIds.map(id => {
@@ -131,29 +141,30 @@ function DeviceTable({ devices = {} }) {
                     : valObj;
             const display =
                 typeof value === 'number' ? value.toFixed(1) : value;
-            const sensorName = fieldToSensor[orig] || orig;
-            const ok = devices[id]?.health?.[sensorName] ?? false;
+            const healthKey = fieldToSensor[orig] || orig;
+            const ok = devices[id]?.health?.[healthKey] ?? false;
             const color = getCellColor(value, range);
             return { value: display, ok, color };
         });
-        return { sensor, range, cells, model, rowColor };
+        return { sensor, range, cells, sensorName, rowColor };
     });
 
     const sensorDisplayMap = {
         temperature: 'Temp',
         humidity: 'Hum',
+        do: 'DO',
     };
 
-    const modelCounts = {};
+    const nameCounts = {};
     for (const r of rows) {
-        modelCounts[r.model] = (modelCounts[r.model] || 0) + 1;
+        nameCounts[r.sensorName] = (nameCounts[r.sensorName] || 0) + 1;
     }
 
-    const seenModel = {};
+    const seenName = {};
     for (const r of rows) {
-        if (!seenModel[r.model]) {
-            r.rowSpan = modelCounts[r.model];
-            seenModel[r.model] = true;
+        if (!seenName[r.sensorName]) {
+            r.rowSpan = nameCounts[r.sensorName];
+            seenName[r.sensorName] = true;
         } else {
             r.rowSpan = 0;
         }
@@ -164,7 +175,7 @@ function DeviceTable({ devices = {} }) {
             <table className={styles.table}>
                 <thead>
                     <tr>
-                        <th className={styles.modelCell}>Model</th>
+                        <th className={styles.modelCell}>Sensor Name</th>
                         <th className={styles.sensorCell}>Sensor</th>
                         <th className={styles.modelCell}>Min</th>
                         <th className={styles.modelCell}>Max</th>
@@ -178,7 +189,7 @@ function DeviceTable({ devices = {} }) {
                         <tr key={r.sensor}>
                             {r.rowSpan > 0 && (
                                 <td rowSpan={r.rowSpan} className={styles.modelCell}>
-                                    {r.model}
+                                    {r.sensorName}
                                 </td>
                             )}
                             <td
