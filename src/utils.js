@@ -21,11 +21,10 @@ export function normalizeSensorData(data) {
         for (const sensor of data.sensors) {
             const type = sensor.type || sensor.valueType;
             const val = Number(sensor.value);
-            const sensorType = sensor.type || sensor.valueType;
-            switch (sensorType) {
+            switch (type) {
             case 'temperature':
             case 'humidity':
-                result[sensorType] = {
+                result[type] = {
                         value: val,
                         unit: sensor.unit || ''
                 };
@@ -161,7 +160,7 @@ export function transformAggregatedData(data) {
     if (!data || !Array.isArray(data.sensors)) return [];
     const map = {};
     for (const sensor of data.sensors) {
-        const sensorType = sensor.type;
+        const type = sensor.type || sensor.valueType;
         const unit = sensor.unit || '';
         for (const entry of sensor.data || []) {
             const ts = Date.parse(entry.timestamp);
