@@ -256,9 +256,11 @@ function SensorDashboard() {
                         }
                     />
 
+                    <div className={styles.tableDivider}></div>
+
                     {activeTopic === sensorTopic && (
-                        <div className={styles.spectrumBarChartWrapper}>
-                            <div className={styles.spectrumHeaderRow}>
+                        <>
+                            <div className={styles.chartFilterRow}>
                                 <label className={styles.filterLabel}>
                                     Device:
                                     <select
@@ -271,14 +273,16 @@ function SensorDashboard() {
                                         ))}
                                     </select>
                                 </label>
-                                <div className={styles.deviceLabel}>{selectedDevice}</div>
                             </div>
-                            <SpectrumBarChart
-                                sensorData={
-                                    deviceData[sensorTopic]?.[selectedDevice] || sensorData
-                                }
-                            />
-                        </div>
+                            <div className={styles.deviceLabel}>{selectedDevice}</div>
+                            <div className={styles.spectrumBarChartWrapper}>
+                                <SpectrumBarChart
+                                    sensorData={
+                                        deviceData[sensorTopic]?.[selectedDevice] || sensorData
+                                    }
+                                />
+                            </div>
+                        </>
                     )}
 
                     {(() => {
