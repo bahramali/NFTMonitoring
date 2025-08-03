@@ -180,10 +180,10 @@ export function transformAggregatedData(data) {
             }
             const out = map[ts];
             const val = entry.value;
-            switch (type) {
+            switch (sensorType) {
                 case 'temperature':
                 case 'humidity':
-                    out[type] = { value: Number(val), unit };
+                    out[sensorType] = { value: Number(val), unit };
                     break;
                 case 'light':
                     out.lux = { value: Number(val), unit };
