@@ -105,6 +105,20 @@ test('handles ph sensor readings', () => {
     expect(result.ph.value).toBe(6.2);
 });
 
+test('supports sensors using valueType field', () => {
+    const raw = {
+        sensors: [
+            { sensorName: 'HailegeTDS', valueType: 'tds', value: 535.7, unit: 'ppm' },
+            { sensorName: 'DS18B20', valueType: 'temperature', value: 24.3, unit: '°C' }
+        ],
+        health: { tds: true, temp: true }
+    };
+    const result = normalizeSensorData(raw);
+    expect(result.tds.value).toBeCloseTo(535.7);
+    expect(result.temperature.value).toBe(24.3);
+    expect(result.health.tds).toBe(true);
+});
+
 test('filterNoise discards out of range values', () => {
     const clean = {
         F1: 100, F2: 100, F3: 100, F4: 100,
@@ -147,4 +161,15 @@ test('transformAggregatedData converts API response', () => {
     expect(entry.temperature.value).toBe(27.5);
     expect(entry.F3).toBe(3);
     expect(entry.nir).toBe(10);
+});
+
+test('transformAggregatedData handles valueType and DO sensor', () => {
+    const raw = {
+        sensors: [
+            { valueType: 'dissolvedOxygen', unit: 'mg/L', data: [{ timestamp: '2025-07-25T09:00:04Z', value: 5.5 }] }
+        ]
+    };
+    const result = transformAggregatedData(raw);
+    expect(result.length).toBe(1);
+    expect(result[0].do.value).toBe(5.5);
 });

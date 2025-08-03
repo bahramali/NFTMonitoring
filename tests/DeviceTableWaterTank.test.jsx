@@ -11,10 +11,33 @@ const devices = {
   }
 };
 
+const devicesWithNames = {
+  tank1: {
+    sensors: [
+      { sensorName: 'HailegeTDS', valueType: 'tds', value: 500, unit: 'ppm' },
+      { sensorName: '', valueType: 'ec', value: 0.8, unit: 'mS/cm', source: 'HailegeTDS' },
+      { sensorName: 'DS18B20', valueType: 'temperature', value: 24.3, unit: '°C' },
+      { sensorName: 'DFROBOT', valueType: 'dissolvedOxygen', value: 3.1, unit: 'mg/L' }
+    ],
+    tds: { value: 500, unit: 'ppm' },
+    ec: { value: 0.8, unit: 'mS/cm' },
+    temperature: { value: 24.3, unit: '°C' },
+    do: { value: 3.1, unit: 'mg/L' },
+    health: { tds: true, sht3x: true, do: true }
+  }
+};
+
 test('renders unknown sensor fields', () => {
   render(<DeviceTable devices={devices} />);
-  expect(screen.getByText('level')).toBeInTheDocument();
-  expect(screen.getByText('pump')).toBeInTheDocument();
+  expect(screen.getAllByText('level').length).toBeGreaterThan(0);
+  expect(screen.getAllByText('pump').length).toBeGreaterThan(0);
   expect(screen.getByText('75.0')).toBeInTheDocument();
   expect(screen.getByText('on')).toBeInTheDocument();
+});
+
+test('renders sensor names from sensors array', () => {
+  render(<DeviceTable devices={devicesWithNames} />);
+  expect(screen.getByText('HailegeTDS')).toBeInTheDocument();
+  expect(screen.getByText('DS18B20')).toBeInTheDocument();
+  expect(screen.getByText('DFROBOT')).toBeInTheDocument();
 });
