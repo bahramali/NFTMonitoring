@@ -82,11 +82,11 @@ function SensorDashboard() {
     }, [startTime]);
 
     useEffect(() => {
-        const ids = Object.keys(deviceData[sensorTopic] || {}).filter(id => id !== 'placeholder');
+        const ids = Object.keys(deviceData[activeTopic] || {}).filter(id => id !== 'placeholder');
         if (ids.length && !ids.includes(selectedDevice)) {
             setSelectedDevice(ids[0]);
         }
-    }, [deviceData, selectedDevice]);
+    }, [deviceData, selectedDevice, activeTopic]);
 
     const fetchReportData = useCallback(async () => {
         if (!fromDate || !toDate) return;
@@ -228,7 +228,7 @@ function SensorDashboard() {
 
     useStomp(topics, handleStompMessage);
 
-    const deviceIds = Object.keys(deviceData[sensorTopic] || {}).filter(id => id !== 'placeholder');
+    const deviceIds = Object.keys(deviceData[activeTopic] || {}).filter(id => id !== 'placeholder');
     const availableDevices = deviceIds.length ? deviceIds : [selectedDevice];
 
     return (
@@ -286,27 +286,51 @@ function SensorDashboard() {
                     )}
 
                     {(() => {
-                        const notes = new Set();
-                        const topicData = deviceData[activeTopic] || {};
-                        if (activeTopic === sensorTopic && Object.keys(topicData).length === 0) {
-                            for (const key in sensorData) {
-                                if (key === 'health') continue;
-                                const cfg = idealRangeConfig[key];
-                                if (cfg?.description) notes.add(`${key}: ${cfg.description}`);
-                            }
-                        } else {
-                            for (const dev of Object.values(topicData)) {
-                                for (const key in dev) {
-                                    const cfg = idealRangeConfig[key];
-                                    if (cfg?.description) notes.add(`${key}: ${cfg.description}`);
+                        const bandMap = {
+                            F1: '415nm',
+                            F2: '445nm',
+                            F3: '480nm',
+                            F4: '515nm',
+                            F5: '555nm',
+                            F6: '590nm',
+                            F7: '630nm',
+                            F8: '680nm'
+                        };
+                        const knownFields = new Set([
+                            'temperature','humidity','lux','tds','ec','ph',
+                            'F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'
+                        ]);
+                        const metaFields = new Set(['timestamp','deviceId','location']);
+                        const topicData =
+                            deviceData[activeTopic] ||
+                            (activeTopic === sensorTopic ? { placeholder: sensorData } : {});
+                        const sensors = new Set();
+                        for (const dev of Object.values(topicData)) {
+                            if (Array.isArray(dev.sensors)) {
+                                for (const s of dev.sensors) {
+                                    if (s && s.type) {
+                                        sensors.add(bandMap[s.type] || s.type);
+                                    }
                                 }
                             }
+                            for (const key of Object.keys(dev)) {
+                                if (key === 'health' || key === 'sensors') continue;
+                                if (metaFields.has(key)) continue;
+
+                                if (Array.isArray(dev.sensors) && knownFields.has(key)) continue;
+                                sensors.add(bandMap[key] || key);
+                            }
                         }
-                        return notes.size ? (
+                        const notes = [];
+                        for (const key of sensors) {
+                            const cfg = idealRangeConfig[key];
+                            if (cfg?.description) notes.push(`${key}: ${cfg.description}`);
+                        }
+                        return notes.length ? (
                             <div className={styles.noteBlock}>
                                 <div className={styles.noteTitle}>Notes:</div>
                                 <ul>
-                                    {[...notes].map((n, i) => (
+                                    {notes.map((n, i) => (
                                         <li key={i}>{n}</li>
                                     ))}
                                 </ul>
@@ -321,7 +345,7 @@ function SensorDashboard() {
             <div className={styles.section}>
                 <h2 className={`${styles.sectionHeader} ${styles.reportHeader}`}>Reports</h2>
                 <div className={styles.sectionBody}>
-                    {activeTopic !== sensorTopic ? (
+                    {activeTopic !== sensorTopic && activeTopic !== 'waterTank' ? (
                         <div>No reports available for this topic.</div>
                     ) : (
                     <>
@@ -381,50 +405,56 @@ function SensorDashboard() {
                         </div>
                     </fieldset>
 
-                    <div className={styles.historyChartsRow}>
-                        <div className={styles.historyChartColumn}>
-                            <h3 className={styles.sectionTitle}>Temperature</h3>
-                            <div className={styles.dailyTempChartWrapper}>
-                                <HistoricalTemperatureChart data={tempRangeData} xDomain={xDomain} />
+                    {activeTopic === sensorTopic && (
+                        <>
+                        <div className={styles.historyChartsRow}>
+                            <div className={styles.historyChartColumn}>
+                                <h3 className={styles.sectionTitle}>Temperature</h3>
+                                <div className={styles.dailyTempChartWrapper}>
+                                    <HistoricalTemperatureChart data={tempRangeData} xDomain={xDomain} />
+                                </div>
+                            </div>
+                            <div className={styles.historyChartColumn}>
+                                <h3 className={styles.sectionTitle}>Blue Bands</h3>
+                                <div className={styles.blueBandChartWrapper}>
+                                    <HistoricalBlueBandChart data={rangeData} xDomain={xDomain} />
+                                </div>
                             </div>
                         </div>
-                        <div className={styles.historyChartColumn}>
-                            <h3 className={styles.sectionTitle}>Blue Bands</h3>
-                            <div className={styles.blueBandChartWrapper}>
-                                <HistoricalBlueBandChart data={rangeData} xDomain={xDomain} />
-                            </div>
-                        </div>
-                    </div>
 
-                    <div className={styles.historyChartsRow}>
-                        <div className={styles.historyChartColumn}>
-                            <h3 className={styles.sectionTitle}>Red Bands</h3>
-                            <div className={styles.redBandChartWrapper}>
-                                <HistoricalRedBandChart data={rangeData} xDomain={xDomain} />
+                        <div className={styles.historyChartsRow}>
+                            <div className={styles.historyChartColumn}>
+                                <h3 className={styles.sectionTitle}>Red Bands</h3>
+                                <div className={styles.redBandChartWrapper}>
+                                    <HistoricalRedBandChart data={rangeData} xDomain={xDomain} />
+                                </div>
+                            </div>
+                            <div className={styles.historyChartColumn}>
+                                <h3 className={styles.sectionTitle}>Lux_Clear</h3>
+                                <div className={styles.clearLuxChartWrapper}>
+                                    <HistoricalClearLuxChart data={rangeData} xDomain={xDomain} />
+                                </div>
                             </div>
                         </div>
-                        <div className={styles.historyChartColumn}>
-                            <h3 className={styles.sectionTitle}>Lux_Clear</h3>
-                            <div className={styles.clearLuxChartWrapper}>
-                                <HistoricalClearLuxChart data={rangeData} xDomain={xDomain} />
-                            </div>
-                        </div>
-                    </div>
+                        </>
+                    )}
 
-                    <div className={styles.historyChartsRow}>
-                        <div className={styles.historyChartColumn}>
-                            <h3 className={styles.sectionTitle}>pH</h3>
-                            <div className={styles.phChartWrapper}>
-                                <HistoricalPhChart data={phRangeData} xDomain={xDomain} />
+                    {activeTopic === 'waterTank' && (
+                        <div className={styles.historyChartsRow}>
+                            <div className={styles.historyChartColumn}>
+                                <h3 className={styles.sectionTitle}>pH</h3>
+                                <div className={styles.phChartWrapper}>
+                                    <HistoricalPhChart data={phRangeData} xDomain={xDomain} />
+                                </div>
+                            </div>
+                            <div className={styles.historyChartColumn}>
+                                <h3 className={styles.sectionTitle}>EC &amp; TDS</h3>
+                                <div className={styles.ecTdsChartWrapper}>
+                                    <HistoricalEcTdsChart data={ecTdsRangeData} xDomain={xDomain} />
+                                </div>
                             </div>
                         </div>
-                        <div className={styles.historyChartColumn}>
-                            <h3 className={styles.sectionTitle}>EC &amp; TDS</h3>
-                            <div className={styles.ecTdsChartWrapper}>
-                                <HistoricalEcTdsChart data={ecTdsRangeData} xDomain={xDomain} />
-                            </div>
-                        </div>
-                    </div>
+                    )}
                     </>
                     )}
                 </div>
