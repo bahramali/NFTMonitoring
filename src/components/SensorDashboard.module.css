@@ -34,6 +34,11 @@
     border-bottom: 2px solid #ccc;
     margin: 40px 0;
 }
+
+.tableDivider {
+    border-bottom: 1px solid #ccc;
+    margin: 20px 0;
+}
 .sensorGrid {
     display: flex;
     flex-wrap: wrap;
@@ -74,6 +79,10 @@
 .filterRow {
     margin-bottom: 10px;
 }
+
+.chartFilterRow {
+    margin-bottom: 5px;
+}
 .historyControls {
     border: 1px solid #ccc;
     padding: 10px;
@@ -101,6 +110,12 @@
 
 .intervalSelect {
     margin-left: 10px;
+}
+
+.deviceLabel {
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 10px;
 }
 
 .fieldSpacer {

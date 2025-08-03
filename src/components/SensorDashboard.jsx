@@ -256,10 +256,33 @@ function SensorDashboard() {
                         }
                     />
 
+                    <div className={styles.tableDivider}></div>
+
                     {activeTopic === sensorTopic && (
-                        <div className={styles.spectrumBarChartWrapper}>
-                            <SpectrumBarChart sensorData={sensorData} />
-                        </div>
+                        <>
+                            <div className={styles.chartFilterRow}>
+                                <label className={styles.filterLabel}>
+                                    Device:
+                                    <select
+                                        className={styles.intervalSelect}
+                                        value={selectedDevice}
+                                        onChange={e => setSelectedDevice(e.target.value)}
+                                    >
+                                        {availableDevices.map(id => (
+                                            <option key={id} value={id}>{id}</option>
+                                        ))}
+                                    </select>
+                                </label>
+                            </div>
+                            <div className={styles.deviceLabel}>{selectedDevice}</div>
+                            <div className={styles.spectrumBarChartWrapper}>
+                                <SpectrumBarChart
+                                    sensorData={
+                                        deviceData[sensorTopic]?.[selectedDevice] || sensorData
+                                    }
+                                />
+                            </div>
+                        </>
                     )}
 
                     {(() => {
