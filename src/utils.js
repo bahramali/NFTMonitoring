@@ -19,6 +19,7 @@ export function normalizeSensorData(data) {
 
     if (Array.isArray(data.sensors)) {
         for (const sensor of data.sensors) {
+            const type = sensor.type || sensor.valueType;
             const val = Number(sensor.value);
             const sensorType = sensor.type || sensor.valueType;
             switch (sensorType) {
@@ -49,6 +50,13 @@ export function normalizeSensorData(data) {
                 break;
             case 'ph':
                 result.ph = {
+                        value: val,
+                        unit: sensor.unit || ''
+                };
+                break;
+            case 'dissolvedOxygen':
+            case 'do':
+                result.do = {
                         value: val,
                         unit: sensor.unit || ''
                 };
@@ -94,7 +102,7 @@ export function normalizeSensorData(data) {
         }
     }
         result.health = {};
-        for (const key in data.health) {
+        for (const key in (data.health || {})) {
             const val = data.health[key];
             const base = key.split('-')[0];
             result.health[base] = val === true || val === 'true' || val === 1;
@@ -112,6 +120,10 @@ export function normalizeSensorData(data) {
             result.ec = { value: Number(data.ec), unit: 'mS/cm' };
         if ('ph' in data)
             result.ph = { value: Number(data.ph), unit: '' };
+        if ('dissolvedOxygen' in data)
+            result.do = { value: Number(data.dissolvedOxygen), unit: 'mg/L' };
+        if ('do' in data)
+            result.do = { value: Number(data.do), unit: 'mg/L' };
 
         const mapping = {
             ch415: 'F1', ch445: 'F2', ch480: 'F3', ch515: 'F4',
@@ -164,6 +176,7 @@ export function transformAggregatedData(data) {
                     tds: { value: 0, unit: 'ppm' },
                     ec: { value: 0, unit: 'mS/cm' },
                     ph: { value: 0, unit: '' },
+                    do: { value: 0, unit: 'mg/L' },
                 };
             }
             const out = map[ts];
@@ -184,6 +197,10 @@ export function transformAggregatedData(data) {
                     break;
                 case 'ph':
                     out.ph = { value: Number(val), unit };
+                    break;
+                case 'dissolvedOxygen':
+                case 'do':
+                    out.do = { value: Number(val), unit };
                     break;
                 case '415nm':
                     out.F1 = Number(val);
