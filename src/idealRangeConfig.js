@@ -27,6 +27,10 @@ const idealRangeConfig = {
         idealRange: { min: 5, max: 8 },
         description: 'Dissolved oxygen ideal range is roughly 5–8 mg/L.'
     },
+    dissolvedOxygen: {
+        idealRange: { min: 5, max: 8 },
+        description: 'Dissolved oxygen ideal range is roughly 5–8 mg/L.'
+    },
     '415nm': {
         idealRange: { min: 2, max: 50 },
         description: 'Supports early cell growth.',

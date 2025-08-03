@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import DeviceTable from '../src/components/DeviceTable';
 
@@ -40,6 +40,7 @@ test('renders sensor names from sensors array', () => {
   expect(screen.queryAllByText('HailegeTDS')).not.toHaveLength(0);
   expect(screen.queryAllByText('DS18B20')).not.toHaveLength(0);
   expect(screen.queryAllByText('DFROBOT')).not.toHaveLength(0);
-
-
+  const doRow = screen.getByText('DO').closest('tr');
+  expect(within(doRow).getByText('5')).toBeInTheDocument();
+  expect(within(doRow).getByText('8')).toBeInTheDocument();
 });

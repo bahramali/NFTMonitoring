@@ -71,6 +71,13 @@ for (const key of Object.keys(bandMap)) {
 sensorModelMap.clear = 'AS7341';
 sensorModelMap.nir = 'AS7341';
 
+const sensorDisplayMap = {
+    temperature: 'Temp',
+    humidity: 'Hum',
+    do: 'DO',
+    dissolvedOxygen: 'DO',
+};
+
 function DeviceTable({ devices = {} }) {
     const deviceIds = Object.keys(devices);
 
@@ -124,7 +131,7 @@ function DeviceTable({ devices = {} }) {
                         {rows.map(r => (
                             <tr key={r.info.valueType}>
                                 <td className={styles.modelCell}>{r.info.sensorName}</td>
-                                <td className={styles.sensorCell}>{r.info.valueType}</td>
+                                <td className={styles.sensorCell}>{sensorDisplayMap[r.info.valueType] || r.info.valueType}</td>
                                 <td>{r.range?.min ?? '-'}</td>
                                 <td>{r.range?.max ?? '-'}</td>
                                 {r.cells.map((c, i) => (
@@ -217,12 +224,6 @@ function DeviceTable({ devices = {} }) {
         });
         return { sensor, range, cells, sensorName, rowColor };
     });
-
-    const sensorDisplayMap = {
-        temperature: 'Temp',
-        humidity: 'Hum',
-        do: 'DO',
-    };
 
     const nameCounts = {};
     for (const r of rows) {
