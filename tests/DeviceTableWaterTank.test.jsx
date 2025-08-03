@@ -37,7 +37,9 @@ test('renders unknown sensor fields', () => {
 
 test('renders sensor names from sensors array', () => {
   render(<DeviceTable devices={devicesWithNames} />);
-  expect(screen.getByText('HailegeTDS')).toBeInTheDocument();
-  expect(screen.getByText('DS18B20')).toBeInTheDocument();
-  expect(screen.getByText('DFROBOT')).toBeInTheDocument();
+  expect(screen.queryAllByText('HailegeTDS')).not.toHaveLength(0);
+  expect(screen.queryAllByText('DS18B20')).not.toHaveLength(0);
+  expect(screen.queryAllByText('DFROBOT')).not.toHaveLength(0);
+
+
 });

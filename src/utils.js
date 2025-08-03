@@ -91,13 +91,13 @@ export function normalizeSensorData(data) {
                 result.nir = val;
                 break;
             case 'colorSpectrum':
-                const bands = ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'];
+                { const bands = ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'];
                 let i = 0;
                 for (const key in sensor.value) {
                         result[bands[i]] = Number(sensor.value[key]);
                     i++;
                 }
-                break;
+                break; }
         }
     }
         result.health = {};
@@ -149,6 +149,7 @@ export function normalizeSensorData(data) {
 export function parseSensorJson(str) {
     try {
         return JSON.parse(str);
+        // eslint-disable-next-line no-unused-vars
     } catch (e) {
         // Attempt to fix missing commas between sensor objects
         const fixed = str.replace(/}\s*{"sensorId":/g, '},{"sensorId":');
@@ -160,7 +161,7 @@ export function transformAggregatedData(data) {
     if (!data || !Array.isArray(data.sensors)) return [];
     const map = {};
     for (const sensor of data.sensors) {
-        const type = sensor.type || sensor.valueType;
+        const sensorType = sensor.type || sensor.valueType;
         const unit = sensor.unit || '';
         for (const entry of sensor.data || []) {
             const ts = Date.parse(entry.timestamp);
