@@ -20,10 +20,11 @@ export function normalizeSensorData(data) {
     if (Array.isArray(data.sensors)) {
         for (const sensor of data.sensors) {
             const val = Number(sensor.value);
-            switch (sensor.type) {
+            const type = sensor.type || sensor.valueType;
+            switch (type) {
             case 'temperature':
             case 'humidity':
-                result[sensor.type] = {
+                result[type] = {
                         value: val,
                         unit: sensor.unit || ''
                 };
