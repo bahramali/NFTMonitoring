@@ -23,6 +23,10 @@ const idealRangeConfig = {
         idealRange: { min: 5.8, max: 6.5 },
         description: 'pH affects nutrient absorption. 6.0 is optimal for basil.'
     },
+    do: {
+        idealRange: { min: 5, max: 8 },
+        description: 'Dissolved oxygen ideal range is roughly 5–8 mg/L.'
+    },
     '415nm': {
         idealRange: { min: 2, max: 50 },
         description: 'Supports early cell growth.',
