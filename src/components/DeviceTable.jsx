@@ -45,7 +45,8 @@ const sensorFieldMap = {
     sht3x: ['temperature', 'humidity'],
     as7341: ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'clear', 'nir'],
     tds: ['tds', 'ec'],
-    ph: ['ph']
+    ph: ['ph'],
+    do: ['do']
 };
 
 const fieldToSensor = Object.fromEntries(
@@ -61,6 +62,7 @@ const sensorModelMap = {
     tds: 'version 1.0',
     ec: 'version 1.0',
     ph: 'E-201',
+    do: 'DFROBOT',
 };
 
 for (const b of Object.values(bandMap)) {
@@ -78,7 +80,7 @@ function DeviceTable({ devices = {} }) {
 
     const sensorSet = new Set();
     const knownFields = new Set([
-        'temperature','humidity','lux','tds','ec','ph',
+        'temperature','humidity','lux','tds','ec','ph','do',
         'F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'
     ]);
     const metaFields = new Set(['timestamp','deviceId','location']);
@@ -86,8 +88,9 @@ function DeviceTable({ devices = {} }) {
     for (const data of Object.values(devices)) {
         if (Array.isArray(data.sensors)) {
             for (const s of data.sensors) {
-                if (s && s.type) {
-                    sensorSet.add(bandMap[s.type] || s.type);
+                const type = s && (s.type || s.valueType);
+                if (type) {
+                    sensorSet.add(bandMap[type] || type);
                 }
             }
         }
@@ -104,6 +107,7 @@ function DeviceTable({ devices = {} }) {
         'VEML7700',
         'version 1.0',
         'E-201',
+        'DFROBOT',
         'AS7341',
     ];
 
@@ -142,6 +146,7 @@ function DeviceTable({ devices = {} }) {
     const sensorDisplayMap = {
         temperature: 'Temp',
         humidity: 'Hum',
+        do: 'DO',
     };
 
     const modelCounts = {};

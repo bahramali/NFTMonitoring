@@ -297,7 +297,7 @@ function SensorDashboard() {
                             F8: '680nm'
                         };
                         const knownFields = new Set([
-                            'temperature','humidity','lux','tds','ec','ph',
+                            'temperature','humidity','lux','tds','ec','ph','do',
                             'F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'
                         ]);
                         const metaFields = new Set(['timestamp','deviceId','location']);
@@ -308,8 +308,9 @@ function SensorDashboard() {
                         for (const dev of Object.values(topicData)) {
                             if (Array.isArray(dev.sensors)) {
                                 for (const s of dev.sensors) {
-                                    if (s && s.type) {
-                                        sensors.add(bandMap[s.type] || s.type);
+                                    const type = s && (s.type || s.valueType);
+                                    if (type) {
+                                        sensors.add(bandMap[type] || type);
                                     }
                                 }
                             }
