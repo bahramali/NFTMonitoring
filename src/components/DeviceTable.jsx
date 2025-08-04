@@ -79,8 +79,8 @@ function DeviceTable({devices = {}}) {
             <table className={styles.table}>
                 <thead>
                 <tr>
-                    <th className={styles.modelCell}>Sensor model</th>
-                    <th className={styles.sensorCell}>Type</th>
+                    <th className={styles.modelCell}>S_Model</th>
+                    <th className={styles.sensorCell}>M_Type</th>
                     <th className={styles.modelCell}>Min</th>
                     <th className={styles.modelCell}>Max</th>
                     {deviceIds.map(id => <th key={id}>Val {id}</th>)}
