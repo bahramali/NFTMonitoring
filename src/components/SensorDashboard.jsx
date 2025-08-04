@@ -189,16 +189,7 @@ function SensorDashboard() {
     useEffect(() => {
         fetchReportData();
     }, [selectedDevice, fetchReportData]);
-    const formatTime = (t) => {
-        const d = new Date(t);
-        return (
-            d.getFullYear().toString() + '-' +
-            String(d.getMonth() + 1).padStart(2, '0') + '-' +
-            String(d.getDate()).padStart(2, '0') + ' ' +
-            String(d.getHours()).padStart(2, '0') + ':' +
-            String(d.getMinutes()).padStart(2, '0')
-        );
-    };
+    const formatTime = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
     useEffect(() => {
         if (!autoRefresh) return;
         fetchNewData();
@@ -230,10 +221,12 @@ function SensorDashboard() {
     return (
         <div className={styles.dashboard}>
             <Header system={activeSystem}/>
-            <div className={styles.tabBar}>
-                <button className={`${styles.tab} ${activeTab === 'live' ? styles.activeTab : ''}`} onClick={() => setActiveTab('live')}>Live Data</button>
-                <button className={`${styles.tab} ${activeTab === 'report' ? styles.activeTab : ''}`} onClick={() => setActiveTab('report')}>Reports</button>
+            <div className={styles.verticalTabBar}>
+                <button className={`${styles.verticalTab} ${activeTab === 'live' ? styles.activeVerticalTab : ''}`} onClick={() => setActiveTab('live')}>Live</button>
+                <button className={`${styles.verticalTab} ${activeTab === 'report' ? styles.activeVerticalTab : ''}`} onClick={() => setActiveTab('report')}>Report</button>
             </div>
+
+
             <div className={styles.tabBar}>
                 {Object.keys(deviceData).map(system => (
                     <button key={system} className={`${styles.tab} ${activeSystem === system ? styles.activeTab : ''}`} onClick={() => setActiveSystem(system)}>{system}</button>
