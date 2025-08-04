@@ -1,0 +1,38 @@
+{
+  "timestamp": "2025-08-04T14:36:02Z",
+  "system": "S01",
+  "deviceId": "T01",
+  "location": "L01",
+  "sensors": [
+    {
+      "sensorName": "HailegeTDS",
+      "valueType": "tds",
+      "value": 1,
+      "unit": "ppm"
+    },
+    {
+      "sensorName": "HailegeTDS",
+      "valueType": "ec",
+      "value": 1,
+      "unit": "mS/cm",
+      "source": "calculated"
+    },
+    {
+      "sensorName": "DS18B20",
+      "valueType": "temperature",
+      "value": 2,
+      "unit": "°C"
+    },
+    {
+      "sensorName": "DFROBOT",
+      "valueType": "dissolvedOxygen",
+      "value": 3,
+      "unit": "mg/L"
+    }
+  ],
+  "health": {
+    "HailegeTDS": true,
+    "DS18B20": true,
+    "DFROBOT": true
+  }
+}

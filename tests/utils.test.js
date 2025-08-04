@@ -25,22 +25,22 @@ test('honors custom maxAge', () => {
 });
 
 test('normalizes ch-prefixed keys to F1-F8', () => {
-    const raw = { ch415: 1, ch445: 2, ch480: 3, ch515: 4, ch555: 5, ch590: 6, ch630: 7, ch680: 8 };
+    const raw = require('./data/growTemp.json');
     const result = normalizeSensorData(raw);
     expect(result.F1).toBe(1);
     expect(result.F6).toBe(6);
 });
 
-test('defaults missing values to zero and keeps temperature and humidity', () => {
-    const raw = { temperature: 22.5, humidity: 60 };
+test('keeps temperature and humidity only', () => {
+    const raw = require('./data/tankTemp.json');
     const result = normalizeSensorData(raw);
-    expect(result.F1).toBe(0);
-    expect(result.temperature.value).toBe(22.5);
-    expect(result.humidity.value).toBe(60);
+    expect(result.F1).toBeUndefined();
+    expect(result.tds.value).toBe(1);
+    expect(result.temperature.value).toBe(2);
 });
 
 test('includes health statuses', () => {
-    const raw = { health: { veml7700: false, as7341: true, sht3x: false } };
+    const raw = require('./data/growTempWithHealthFalse.json');
     const result = normalizeSensorData(raw);
     expect(result.health.veml7700).toBe(false);
     expect(result.health.as7341).toBe(true);
@@ -48,7 +48,7 @@ test('includes health statuses', () => {
 });
 
 test('parses string and numeric health values', () => {
-    const raw = { health: { veml7700: 'false', as7341: 'true', sht3x: 0 } };
+    const raw = require('./data/growTempWithHealthFalse.json');
     const result = normalizeSensorData(raw);
     expect(result.health.veml7700).toBe(false);
     expect(result.health.as7341).toBe(true);
@@ -56,12 +56,12 @@ test('parses string and numeric health values', () => {
 });
 
 test('parses numeric strings into numbers', () => {
-    const raw = { ch415: '10', temperature: '21.5', humidity: '55', lux: '30' };
+    const raw = require('./data/growTemp.json');
     const result = normalizeSensorData(raw);
-    expect(result.F1).toBe(10);
-    expect(result.temperature.value).toBe(21.5);
-    expect(result.humidity.value).toBe(55);
-    expect(result.lux.value).toBe(30);
+    expect(result.F1).toBe(1);
+    expect(result.temperature.value).toBe(1);
+    expect(result.humidity.value).toBe(2);
+    expect(result.lux.value).toBe(100);
 });
 
 test('normalizes sensors array structure', () => {
