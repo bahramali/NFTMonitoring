@@ -27,8 +27,8 @@ const devices = {
 
 test('renders sensor model and measurement type headers', () => {
   render(<DeviceTable devices={devices} />);
-  expect(screen.getByText('Sensor model')).toBeInTheDocument();
-  expect(screen.getByText('Measurement Type')).toBeInTheDocument();
+  expect(screen.getByText('S_Model')).toBeInTheDocument();
+  expect(screen.getByText('M_Type')).toBeInTheDocument();
 });
 
 test('renders all sensor models at least once', () => {
