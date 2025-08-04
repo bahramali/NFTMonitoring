@@ -38,94 +38,56 @@ function normalizeHealth(health = {}) {
 }
 
 export function normalizeSensorData(data) {
-    const result = {
-        F1: 0, F2: 0, F3: 0, F4: 0, F5: 0,
-        F6: 0, F7: 0, F8: 0, clear: 0, nir: 0,
-        health: {}
-    };
+    const result = { health: {} };
 
     if (Array.isArray(data.sensors)) {
         for (const sensor of data.sensors) {
             const type = sensor.type || sensor.valueType;
             const val = Number(sensor.value);
+
             switch (type) {
                 case 'temperature':
                 case 'humidity':
-                    result[type] = extractUnitValue(sensor);
+                    result[type] = { value: val, unit: sensor.unit || '' };
                     break;
                 case 'light':
-                    result.lux = extractUnitValue(sensor);
+                    result.lux = { value: val, unit: sensor.unit || '' };
                     break;
                 case 'tds':
-                    result.tds = extractUnitValue(sensor);
+                    result.tds = { value: val, unit: sensor.unit || '' };
                     break;
                 case 'ec':
-                    result.ec = extractUnitValue(sensor);
+                    result.ec = { value: val, unit: sensor.unit || '' };
                     break;
                 case 'ph':
-                    result.ph = extractUnitValue(sensor);
+                    result.ph = { value: val, unit: sensor.unit || '' };
                     break;
                 case 'dissolvedOxygen':
                 case 'do':
-                    result.do = extractUnitValue(sensor);
+                    result.do = { value: val, unit: sensor.unit || '' };
                     break;
                 case 'colorSpectrum': {
-                    Object.assign(result, parseColorSpectrum(sensor.value));
+                    const bands = ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'];
+                    let i = 0;
+                    for (const key in sensor.value) {
+                        result[bands[i++]] = Number(sensor.value[key]);
+                    }
                     break;
                 }
-                case '415nm':
-                    result.F1 = val;
-                    break;
-                case '445nm':
-                    result.F2 = val;
-                    break;
-                case '480nm':
-                    result.F3 = val;
-                    break;
-                case '515nm':
-                    result.F4 = val;
-                    break;
-                case '555nm':
-                    result.F5 = val;
-                    break;
-                case '590nm':
-                    result.F6 = val;
-                    break;
-                case '630nm':
-                    result.F7 = val;
-                    break;
-                case '680nm':
-                    result.F8 = val;
-                    break;
-                case 'clear':
-                    result.clear = val;
-                    break;
-                case 'nir':
-                    result.nir = val;
-                    break;
+                default:
+                    { const nmMatch = type?.match(/^(\d{3})nm$/);
+                    if (nmMatch) {
+                        const nmMap = {
+                            '415': 'F1', '445': 'F2', '480': 'F3', '515': 'F4',
+                            '555': 'F5', '590': 'F6', '630': 'F7', '680': 'F8',
+                        };
+                        const band = nmMap[nmMatch[1]];
+                        if (band) result[band] = val;
+                    } else if (type === 'clear' || type === 'nir') {
+                        result[type] = val;
+                    }
+                    break; }
             }
-        }
-        result.health = normalizeHealth(data.health);
-    } else {
-        const keys = ['temperature', 'humidity', 'lux', 'tds', 'ec', 'ph', 'dissolvedOxygen', 'do'];
-        for (const key of keys) {
-            if (key in data) {
-                const name = (key === 'dissolvedOxygen' || key === 'do') ? 'do' : key;
-                result[name] = {
-                    value: Number(data[key]),
-                    unit: key === 'temperature' ? '°C' : key === 'humidity' ? '%' :
-                        key === 'lux' ? 'lux' : key === 'tds' ? 'ppm' :
-                            key === 'ec' ? 'mS/cm' : key === 'do' || key === 'dissolvedOxygen' ? 'mg/L' : ''
-                };
-            }
-        }
-
-        const mapping = {
-            ch415: 'F1', ch445: 'F2', ch480: 'F3', ch515: 'F4',
-            ch555: 'F5', ch590: 'F6', ch630: 'F7', ch680: 'F8'
-        };
-        for (const [k, v] of Object.entries(mapping)) {
-            if (k in data) result[v] = Number(data[k]);
         }
 
         result.health = normalizeHealth(data.health);
@@ -133,6 +95,7 @@ export function normalizeSensorData(data) {
 
     return result;
 }
+
 
 export function parseSensorJson(str) {
     try {
