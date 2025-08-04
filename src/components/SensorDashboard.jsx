@@ -435,8 +435,6 @@ function SensorDashboard() {
                                             <HistoricalEcTdsChart data={ecTdsRangeData} xDomain={xDomain}/>
                                         </div>
                                     </div>
-                                    <SpectrumBarChart
-                                        sensorData={systemTopics[SENSOR_TOPIC]?.[selectedDevice] || sensorData}/>
                                 </div>
                             )}
                         </>
