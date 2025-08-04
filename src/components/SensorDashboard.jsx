@@ -5,6 +5,7 @@ import DeviceTable from "./DeviceTable";
 import {filterNoise, normalizeSensorData, transformAggregatedData} from "../utils";
 import {useStomp} from "../hooks/useStomp";
 import styles from "./SensorDashboard.module.css";
+import idealRangeConfig from "../idealRangeConfig.js";
 
 const SENSOR_TOPIC = "growSensors";
 const topics = [SENSOR_TOPIC, "rootImages", "waterOutput", "waterTank"];
@@ -22,20 +23,20 @@ function SensorDashboard() {
     const [selectedDevice, setSelectedDevice] = useState('G02');
 
     const now = Date.now();
-    const [fromDate] = useState(toLocalInputValue(new Date(now - 6 * 60 * 60 * 1000)));
+    const [fromDate, setFromDate] = useState(toLocalInputValue(new Date(now - 6 * 60 * 60 * 1000)));
     const [toDate, setToDate] = useState(toLocalInputValue(new Date(now)));
 
-    const [, setRangeData] = useState([]);
-    const [, setTempRangeData] = useState([]);
-    const [, setPhRangeData] = useState([]);
-    const [, setEcTdsRangeData] = useState([]);
+    const [rangeData, setRangeData] = useState([]);
+    const [tempRangeData, setTempRangeData] = useState([]);
+    const [phRangeData, setPhRangeData] = useState([]);
+    const [ecTdsRangeData, setEcTdsRangeData] = useState([]);
 
     const [xDomain, setXDomain] = useState([now - 6 * 60 * 60 * 1000, now]);
     const [startTime, setStartTime] = useState(xDomain[0]);
     const [endTime, setEndTime] = useState(xDomain[1]);
 
-    const [autoRefresh] = useState(false);
-    const [refreshInterval] = useState(60000);
+    const [autoRefresh, setAutoRefresh] = useState(false);
+    const [refreshInterval, setRefreshInterval] = useState(60000);
 
     const endTimeRef = useRef(endTime);
     const startTimeRef = useRef(startTime);
@@ -52,6 +53,19 @@ function SensorDashboard() {
         return Object.values(all).flatMap(group => Object.keys(group));
     }, [deviceData, activeSystem]);
 
+    const mergedDevices = useMemo(() => {
+        const sysData = deviceData[activeSystem] || {};
+        const combined = {};
+        for (const topic of Object.keys(sysData)) {
+            for (const [deviceId, data] of Object.entries(sysData[topic])) {
+                combined[deviceId] = {
+                    ...(combined[deviceId] || {}),
+                    ...data,
+                };
+            }
+        }
+        return combined;
+    }, [deviceData, activeSystem]);
 
     useEffect(() => {
         if (availableDevices.length && !availableDevices.includes(selectedDevice)) {
@@ -131,7 +145,7 @@ function SensorDashboard() {
     }, [selectedDevice]);
 
     const handleStompMessage = useCallback((topic, msg) => {
-        console.log("topic: {}, Received msg: {}", topic, msg);
+        console.log("1- before handel stomp message. topic: ", topic, ", Received msg: ", msg);
         let payload = msg;
         if (msg && typeof msg === "object" && "payload" in msg) {
             payload = typeof msg.payload === "string" ? JSON.parse(msg.payload) : msg.payload;
@@ -165,7 +179,16 @@ function SensorDashboard() {
     useEffect(() => {
         fetchReportData();
     }, [selectedDevice]);
-
+    const formatTime = (t) => {
+        const d = new Date(t);
+        return (
+            d.getFullYear().toString() + '-' +
+            String(d.getMonth() + 1).padStart(2, '0') + '-' +
+            String(d.getDate()).padStart(2, '0') + ' ' +
+            String(d.getHours()).padStart(2, '0') + ':' +
+            String(d.getMinutes()).padStart(2, '0')
+        );
+    };
     useEffect(() => {
         if (!autoRefresh) return;
         fetchNewData();
@@ -177,6 +200,7 @@ function SensorDashboard() {
 
     const systemTopics = deviceData[activeSystem] || {};
     const hasSensorTopic = !!systemTopics[SENSOR_TOPIC];
+    const hasWaterTank = !!systemTopics["waterTank"];
 
     return (
         <div className={styles.dashboard}>
@@ -221,12 +245,194 @@ function SensorDashboard() {
                             <div className={styles.deviceLabel}>{selectedDevice}</div>
                             <div className={styles.spectrumBarChartWrapper}>
                                 <SpectrumBarChart
-                                    sensorData={systemTopics[SENSOR_TOPIC]?.[selectedDevice]}
+                                    sensorData={
+                                        systemTopics[SENSOR_TOPIC]?.[selectedDevice] || sensorData
+                                    }
                                 />
                             </div>
                         </>
                     )}
 
+                    {(() => {
+                        const bandMap = {
+                            F1: '415nm',
+                            F2: '445nm',
+                            F3: '480nm',
+                            F4: '515nm',
+                            F5: '555nm',
+                            F6: '590nm',
+                            F7: '630nm',
+                            F8: '680nm'
+                        };
+                        const knownFields = new Set([
+                            'temperature', 'humidity', 'lux', 'tds', 'ec', 'ph', 'do',
+                            'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'clear', 'nir'
+                        ]);
+                        const metaFields = new Set(['timestamp', 'deviceId', 'location']);
+                        const topicData =
+                            Object.keys(mergedDevices).length ? mergedDevices : {placeholder: sensorData};
+                        const sensors = new Set();
+                        for (const dev of Object.values(topicData)) {
+                            if (Array.isArray(dev.sensors)) {
+                                for (const s of dev.sensors) {
+                                    const type = s && (s.type || s.valueType);
+                                    if (type) {
+                                        sensors.add(bandMap[type] || type);
+                                    }
+                                }
+                            }
+                            for (const key of Object.keys(dev)) {
+                                if (key === 'health' || key === 'sensors') continue;
+                                if (metaFields.has(key)) continue;
+
+                                if (Array.isArray(dev.sensors) && knownFields.has(key)) continue;
+                                sensors.add(bandMap[key] || key);
+                            }
+                        }
+                        const notes = [];
+                        for (const key of sensors) {
+                            const cfg = idealRangeConfig[key];
+                            if (cfg?.description) notes.push(`${key}: ${cfg.description}`);
+                        }
+                        return notes.length ? (
+                            <div className={styles.noteBlock}>
+                                <div className={styles.noteTitle}>Notes:</div>
+                                <ul>
+                                    {notes.map((n, i) => (
+                                        <li key={i}>{n}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ) : null;
+                    })()}
+                </div>
+            </div>
+
+            <div className={styles.divider}></div>
+
+            <div className={styles.section}>
+                <h2 className={`${styles.sectionHeader} ${styles.reportHeader}`}>Reports</h2>
+                <div className={styles.sectionBody}>
+                    {!hasSensorTopic && !hasWaterTank ? (
+                        <div>No reports available for this system.</div>
+                    ) : (
+                        <>
+                            <fieldset className={styles.historyControls}>
+                                <legend className={styles.historyLegend}>Historical Range</legend>
+                                <div className={styles.filterRow}>
+                                    <label>
+                                        From:
+                                        <input type="datetime-local" value={fromDate}
+                                               onChange={e => setFromDate(e.target.value)}/>
+                                    </label>
+                                    <span className={styles.fieldSpacer}>–</span>
+                                    <label className={styles.filterLabel}>
+                                        To:
+                                        <input type="datetime-local" value={toDate}
+                                               onChange={e => setToDate(e.target.value)}/>
+                                    </label>
+                                    <button type="button" className={styles.nowButton}
+                                            onClick={() => setToDate(toLocalInputValue(new Date()))}>Now
+                                    </button>
+                                    <button type="button" className={styles.applyButton}
+                                            onClick={fetchReportData}>Apply
+                                    </button>
+                                </div>
+                                <div className={styles.filterRow}>
+                                    <label className={styles.filterLabel}>
+                                        Device:
+                                        <select
+                                            className={styles.intervalSelect}
+                                            value={selectedDevice}
+                                            onChange={e => setSelectedDevice(e.target.value)}
+                                        >
+                                            {availableDevices.map(id => (
+                                                <option key={id} value={id}>{id}</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                </div>
+                                <div className={styles.filterRow}>
+                                    <label className={styles.filterLabel}>
+                                        <input
+                                            type="checkbox"
+                                            checked={autoRefresh}
+                                            onChange={e => setAutoRefresh(e.target.checked)}
+                                        />
+                                        {' '}Auto Refresh
+                                    </label>
+                                    <select
+                                        className={styles.intervalSelect}
+                                        value={refreshInterval}
+                                        onChange={e => setRefreshInterval(Number(e.target.value))}
+                                        disabled={!autoRefresh}
+                                    >
+                                        <option value={60000}>1min</option>
+                                        <option value={300000}>5min</option>
+                                        <option value={600000}>10min</option>
+                                        <option value={1800000}>30min</option>
+                                        <option value={3600000}>1h</option>
+                                    </select>
+                                </div>
+                                <div className={styles.rangeLabel}>
+                                    {`From: ${formatTime(startTime)} until: ${formatTime(endTime)}`}
+                                </div>
+                            </fieldset>
+
+                            {hasSensorTopic && (
+                                <>
+                                    <div className={styles.historyChartsRow}>
+                                        <div className={styles.historyChartColumn}>
+                                            <h3 className={styles.sectionTitle}>Temperature</h3>
+                                            <div className={styles.dailyTempChartWrapper}>
+                                                <HistoricalTemperatureChart data={tempRangeData} xDomain={xDomain}/>
+                                            </div>
+                                        </div>
+                                        <div className={styles.historyChartColumn}>
+                                            <h3 className={styles.sectionTitle}>Blue Bands</h3>
+                                            <div className={styles.blueBandChartWrapper}>
+                                                <HistoricalBlueBandChart data={rangeData} xDomain={xDomain}/>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.historyChartsRow}>
+                                        <div className={styles.historyChartColumn}>
+                                            <h3 className={styles.sectionTitle}>Red Bands</h3>
+                                            <div className={styles.redBandChartWrapper}>
+                                                <HistoricalRedBandChart data={rangeData} xDomain={xDomain}/>
+                                            </div>
+                                        </div>
+                                        <div className={styles.historyChartColumn}>
+                                            <h3 className={styles.sectionTitle}>Lux_Clear</h3>
+                                            <div className={styles.clearLuxChartWrapper}>
+                                                <HistoricalClearLuxChart data={rangeData} xDomain={xDomain}/>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {hasWaterTank && (
+                                <div className={styles.historyChartsRow}>
+                                    <div className={styles.historyChartColumn}>
+                                        <h3 className={styles.sectionTitle}>pH</h3>
+                                        <div className={styles.phChartWrapper}>
+                                            <HistoricalPhChart data={phRangeData} xDomain={xDomain}/>
+                                        </div>
+                                    </div>
+                                    <div className={styles.historyChartColumn}>
+                                        <h3 className={styles.sectionTitle}>EC &amp; TDS</h3>
+                                        <div className={styles.ecTdsChartWrapper}>
+                                            <HistoricalEcTdsChart data={ecTdsRangeData} xDomain={xDomain}/>
+                                        </div>
+                                    </div>
+                                    <SpectrumBarChart
+                                        sensorData={systemTopics[SENSOR_TOPIC]?.[selectedDevice] || sensorData}/>
+                                </div>
+                            )}
+                        </>
+                    )}
                 </div>
             </div>
         </div>
