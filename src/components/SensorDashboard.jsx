@@ -163,6 +163,7 @@ function SensorDashboard() {
         let data = {};
         if (Array.isArray(payload.sensors)) {
             const normalized = normalizeSensorData(payload);
+            console.log("2- normalized: ", normalized);
             const cleaned = topic === SENSOR_TOPIC ? filterNoise(normalized) : normalized;
             if (!cleaned) return;
 
