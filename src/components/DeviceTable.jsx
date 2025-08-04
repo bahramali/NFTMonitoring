@@ -13,39 +13,47 @@ function getCellColor(value, range) {
 
 function DeviceTable({devices = {}}) {
     const deviceIds = Object.keys(devices);
+    const allSensors = deviceIds.flatMap(id => devices[id].sensors || []);
+
     const measurementTypes = new Set();
     const measurementToSensorModel = {};
     const labelMapFromData = {};
     const spectralKeyMapFromData = {};
 
-    deviceIds.forEach(id => {
-        devices[id].sensors?.forEach(s => {
-            if (s?.valueType) {
-                measurementTypes.add(s.valueType);
-                measurementToSensorModel[s.valueType] = s.sensorName || s.source || '-';
+    allSensors.forEach(s => {
+        if (s?.valueType) {
+            measurementTypes.add(s.valueType);
+            measurementToSensorModel[s.valueType] = s.sensorName || s.source || '-';
 
-                // Label map (first letter uppercase if common)
-                if (!labelMapFromData[s.valueType]) {
-                    const key = s.valueType;
-                    if (key === 'temperature') labelMapFromData[key] = 'Temp';
-                    else if (key === 'humidity') labelMapFromData[key] = 'Hum';
-                    else if (key.toLowerCase().includes('oxygen')) labelMapFromData[key] = 'DO';
-                    else labelMapFromData[key] = key;
-                }
-
-                // Spectral mapping if type is wavelength
-                if (/^\d+nm$/.test(s.valueType)) {
-                    const num = s.valueType.replace('nm', '');
-                    const index = ['415', '445', '480', '515', '555', '590', '630', '680'].indexOf(num);
-                    if (index !== -1) {
-                        spectralKeyMapFromData[s.valueType] = 'F' + (index + 1);
-                    }
-                }
-                if (s.valueType === 'clear') spectralKeyMapFromData[s.valueType] = 'clear';
-                if (s.valueType === 'nir') spectralKeyMapFromData[s.valueType] = 'nir';
+            // Label map (first letter uppercase if common)
+            if (!labelMapFromData[s.valueType]) {
+                const key = s.valueType;
+                if (key === 'temperature') labelMapFromData[key] = 'Temp';
+                else if (key === 'humidity') labelMapFromData[key] = 'Hum';
+                else if (key.toLowerCase().includes('oxygen')) labelMapFromData[key] = 'DO';
+                else labelMapFromData[key] = key;
             }
-        });
+
+            // Spectral mapping if type is wavelength
+            if (/^\d+nm$/.test(s.valueType)) {
+                const num = s.valueType.replace('nm', '');
+                const index = ['415', '445', '480', '515', '555', '590', '630', '680'].indexOf(num);
+                if (index !== -1) {
+                    spectralKeyMapFromData[s.valueType] = 'F' + (index + 1);
+                }
+            }
+            if (s.valueType === 'clear') spectralKeyMapFromData[s.valueType] = 'clear';
+            if (s.valueType === 'nir') spectralKeyMapFromData[s.valueType] = 'nir';
+        }
     });
+
+    if (measurementTypes.size === 0) {
+        return (
+            <div className={styles.wrapper}>
+                <div className={styles.emptyMessage}>No sensor data available.</div>
+            </div>
+        );
+    }
 
     const rows = [...measurementTypes].map(measurementType => {
         const sensorModel = measurementToSensorModel[measurementType] || '-';
