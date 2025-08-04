@@ -52,7 +52,7 @@ const HistoricalMultiBandChart = ({
             }
             return result;
         });
-    }, [data]);
+    }, [data, bandKeys]);
     const computedMax = React.useMemo(() => {
         let maxVal = 0;
         for (const entry of processedData) {
@@ -64,7 +64,7 @@ const HistoricalMultiBandChart = ({
             }
         }
         return maxVal || 1;
-    }, [processedData]);
+    }, [processedData, bandKeys]);
     const actualYDomain = yDomain || [0, computedMax];
     const start = xDomain[0];
     const end = xDomain[1];
@@ -103,7 +103,7 @@ const HistoricalMultiBandChart = ({
                 <YAxis domain={actualYDomain} allowDataOverflow>
                     <Label value="Spectrum Value" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
                 </YAxis>
-                {bandKeys.map((key, idx) => {
+                {bandKeys.map(key => {
                     const range = idealRanges[key]?.idealRange;
                     return (
                         range && (
@@ -122,7 +122,7 @@ const HistoricalMultiBandChart = ({
                 })}
                 <Tooltip />
                 <Legend />
-                {bandKeys.map((key, idx) => (
+                {bandKeys.map(key => (
                     <Line
                         key={key}
                         type="monotone"
