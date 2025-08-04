@@ -211,7 +211,7 @@ function SensorDashboard() {
                                         value={selectedDevice}
                                         onChange={e => setSelectedDevice(e.target.value)}
                                     >
-                                        {availableDevices.map(id => (
+                                        {Object.keys(systemTopics[SENSOR_TOPIC] || {}).map(id => (
                                             <option key={id} value={id}>{id}</option>
                                         ))}
                                     </select>
