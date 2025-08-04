@@ -32,6 +32,7 @@ const bandMap = {
 };
 
 function SpectrumBarChart({ sensorData }) {
+    console.log('3- SPECTRUM DATA', sensorData);
     const data = useMemo(() => {
     if (!sensorData) return [];
     return bandMeta.map(([key, label], index) => {
