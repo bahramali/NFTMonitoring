@@ -80,10 +80,10 @@ function DeviceTable({devices = {}}) {
                 <thead>
                 <tr>
                     <th className={styles.modelCell}>Sensor model</th>
-                    <th className={styles.sensorCell}>Measurement Type</th>
+                    <th className={styles.sensorCell}>Type</th>
                     <th className={styles.modelCell}>Min</th>
                     <th className={styles.modelCell}>Max</th>
-                    {deviceIds.map(id => <th key={id}>Value of {id}</th>)}
+                    {deviceIds.map(id => <th key={id}>Val {id}</th>)}
                 </tr>
                 </thead>
                 <tbody>
