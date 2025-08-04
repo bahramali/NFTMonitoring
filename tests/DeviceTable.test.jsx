@@ -5,44 +5,55 @@ import DeviceTable from '../src/components/DeviceTable';
 
 const devices = {
   dev1: {
-    temperature: 22.5,
-    humidity: 55,
-    lux: 1200,
-    tds: 800,
-    ec: 1.5,
-    ph: 6.2,
-    F1: 10,
-    F2: 20,
-    F3: 30,
-    F4: 40,
-    F5: 50,
-    F6: 60,
-    F7: 70,
-    F8: 80,
-    clear: 90,
-    nir: 100,
-    health: { sht3x: true, veml7700: true, tds: true, ph: true, as7341: true }
+    sensors: [
+      { sensorName: 'SHT3x', valueType: 'temperature', value: 22.5, unit: '°C' },
+      { sensorName: 'SHT3x', valueType: 'humidity', value: 55, unit: '%' },
+      { sensorName: 'VEML7700', valueType: 'light', value: 1200, unit: 'lux' },
+      { sensorName: 'HailegeTDS', valueType: 'tds', value: 800, unit: 'ppm' },
+      { sensorName: 'HailegeTDS', valueType: 'ec', value: 1.5, unit: 'mS/cm' },
+      { sensorName: 'E-201', valueType: 'ph', value: 6.2, unit: '' },
+      { sensorName: 'AS7341', valueType: '415nm', value: 10, unit: 'raw' },
+      { sensorName: 'AS7341', valueType: '445nm', value: 20, unit: 'raw' }
+    ],
+    health: {
+      SHT3x: true,
+      VEML7700: true,
+      HailegeTDS: true,
+      'E-201': true,
+      AS7341: true
+    }
   }
 };
 
-test('renders sensorName column and merged cells', () => {
-  const { container } = render(<DeviceTable devices={devices} />);
-  expect(screen.getByText('Sensor Name')).toBeInTheDocument();
-  const shtCell = screen.getByText('SHT3x');
-  expect(shtCell.closest('td')).toHaveAttribute('rowspan', '2');
-  const asCell = screen.getByText('AS7341');
-  expect(parseInt(asCell.closest('td').getAttribute('rowspan'))).toBeGreaterThan(2);
-  expect(container).toBeInTheDocument();
-});
-
-test('spectral sensor row has colored background', () => {
+test('renders sensor model and measurement type headers', () => {
   render(<DeviceTable devices={devices} />);
-  const cell = screen.getByText('415nm');
-  expect(cell).toHaveStyle({ backgroundColor: '#8a2be222' });
+  expect(screen.getByText('Sensor model')).toBeInTheDocument();
+  expect(screen.getByText('Measurement Type')).toBeInTheDocument();
 });
 
-test('displays abbreviated sensor names', () => {
+test('renders all sensor models at least once', () => {
+  const { getAllByText } = render(<DeviceTable devices={devices} />);
+  expect(getAllByText('SHT3x').length).toBeGreaterThan(0);
+  expect(getAllByText('HailegeTDS').length).toBeGreaterThan(0);
+  expect(getAllByText('AS7341').length).toBeGreaterThan(0);
+});
+
+test('displays measurement labels correctly', () => {
   render(<DeviceTable devices={devices} />);
   expect(screen.getByText('Temp')).toBeInTheDocument();
   expect(screen.getByText('Hum')).toBeInTheDocument();
+  expect(screen.getByText('ph')).toBeInTheDocument();
+});
+
+test('renders sensor values with correct units', () => {
+  render(<DeviceTable devices={devices} />);
+  expect(screen.getByText('22.5 °C')).toBeInTheDocument();
+  expect(screen.getByText('800.0 ppm')).toBeInTheDocument();
+  expect(screen.getByText('6.2')).toBeInTheDocument(); // Ph has no unit
+});
+
+test('applies spectral background color to 415nm row', () => {
+  const { getByText } = render(<DeviceTable devices={devices} />);
+  const spectralCell = getByText('415nm');
+  expect(spectralCell).toHaveStyle({ backgroundColor: '#8a2be222' });
 });
