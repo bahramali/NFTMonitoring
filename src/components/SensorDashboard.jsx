@@ -131,6 +131,7 @@ function SensorDashboard() {
     }, [selectedDevice]);
 
     const handleStompMessage = useCallback((topic, msg) => {
+        console.log("topic: {}, Received msg: {}", topic, msg);
         let payload = msg;
         if (msg && typeof msg === "object" && "payload" in msg) {
             payload = typeof msg.payload === "string" ? JSON.parse(msg.payload) : msg.payload;

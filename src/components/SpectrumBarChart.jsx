@@ -32,9 +32,9 @@ const bandMap = {
 };
 
 function SpectrumBarChart({ sensorData }) {
-    const data = useMemo(
-        () =>
-            bandMeta.map(([key, label], index) => {
+    const data = useMemo(() => {
+    if (!sensorData) return [];
+    return bandMeta.map(([key, label], index) => {
                 const rangeKey = bandMap[key] || key;
                 const range = idealRanges[rangeKey]?.idealRange;
                 return {
@@ -45,9 +45,9 @@ function SpectrumBarChart({ sensorData }) {
                     min: range?.min,
                     max: range?.max,
                 };
-            }),
-        [sensorData]
-    );
+    });
+}, [sensorData]);
+
 
     return (
         <ResponsiveContainer width="100%" height={400} debounce={200}>

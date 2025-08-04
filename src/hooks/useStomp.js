@@ -23,11 +23,9 @@ export function useStomp(topics, onMessage) {
         };
 
         const handleFrame = (frame) => {
-            console.log("🟡 handleFrame ->", frame.command, frame.headers);
             if (frame.command === 'CONNECTED') {
                 topicList.forEach((t, idx) => {
                     const dest = `/topic/${t}`;
-                    console.log("🟢 Sending SUBSCRIBE to:", dest);
                     socket.send(
                         buildFrame('SUBSCRIBE', {
                             id: `sub-${idx}`,
@@ -39,17 +37,11 @@ export function useStomp(topics, onMessage) {
                 return;
             }
             if (frame.command === 'MESSAGE') {
-                console.log("📦 MESSAGE frame body:", frame.body);
-
                 const dest = frame.headers.destination || '';
-                console.log("📍 Destination:", dest);
-
                 const match = dest.match(/\/topic\/(.+)/);
                 const topic = match ? match[1] : '';
                 try {
                     const parsed = parseSensorJson(frame.body);
-                    console.log("✅ Parsed payload:", parsed);
-                    console.log('🔰 Dispatching message to callback', topic, parsed);
                     onMessage(topic, parsed);
                 } catch (e) {
                     console.error('❌ Invalid STOMP message', e);
@@ -59,12 +51,10 @@ export function useStomp(topics, onMessage) {
 
         const processData = (data) => {
             buffer += data;
-            console.log("🔹 Raw STOMP chunk:", data);
             while (true) {
                 const nullIdx = buffer.indexOf('\0');
                 if (nullIdx === -1) break;
                 const frameStr = buffer.slice(0, nullIdx);
-                console.log("🔸 Extracted STOMP frame:", frameStr);
                 buffer = buffer.slice(nullIdx + 1);
                 const idx = frameStr.indexOf('\n\n');
                 if (idx === -1) continue;
@@ -77,9 +67,6 @@ export function useStomp(topics, onMessage) {
                     if (i > 0) headers[line.slice(0, i)] = line.slice(i + 1);
                 }
                 const body = frameStr.slice(idx + 2);
-                console.log("📦 STOMP Frame => command:", command,
-                    "headers:", JSON.stringify(headers, null, 2),
-                    "body:", body);
                 handleFrame({command, headers, body});
             }
         };
@@ -97,7 +84,6 @@ export function useStomp(topics, onMessage) {
         });
 
         socket.addEventListener('message', (event) => {
-            console.log('🟣 WS message event:', event.data);
             processData(event.data);
         });
 
