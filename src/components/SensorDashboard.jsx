@@ -11,7 +11,7 @@ import HistoricalRedBandChart from "./HistoricalRedBandChart";
 import HistoricalClearLuxChart from "./HistoricalClearLuxChart";
 import HistoricalPhChart from "./HistoricalPhChart";
 import HistoricalEcTdsChart from "./HistoricalEcTdsChart";
-
+import HistoricalTemperatureChart  from "./HistoricalTemperatureChart";
 
 const SENSOR_TOPIC = "growSensors";
 const topics = [SENSOR_TOPIC, "rootImages", "waterOutput", "waterTank"];
