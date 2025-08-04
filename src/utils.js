@@ -10,24 +10,6 @@ export function filterNoise(data) {
     return data;
 }
 
-function extractUnitValue(sensor) {
-    return {
-        value: Number(sensor.value),
-        unit: sensor.unit || ''
-    };
-}
-
-function parseColorSpectrum(value) {
-    const bands = ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'clear', 'nir'];
-    const result = {};
-    let i = 0;
-    for (const key in value) {
-        result[bands[i]] = Number(value[key]);
-        i++;
-    }
-    return result;
-}
-
 function normalizeHealth(health = {}) {
     const normalized = {};
     for (const key in health) {

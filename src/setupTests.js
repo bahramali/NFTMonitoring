@@ -1,6 +1,6 @@
 // Mock ResizeObserver
 global.ResizeObserver = class {
-    constructor(callback) {}
+    constructor() {}
     observe() {}
     unobserve() {}
     disconnect() {}

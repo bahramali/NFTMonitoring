@@ -1,6 +1,6 @@
 import { trimOldEntries, normalizeSensorData, filterNoise, parseSensorJson, transformAggregatedData } from '../src/utils';
 
-function fixedNow(ms) {
+function fixedNow() {
     return 1721310000000; // زمان ثابت برای تست، برای جلوگیری از اختلاف میلی‌ثانیه‌ای
 }
 

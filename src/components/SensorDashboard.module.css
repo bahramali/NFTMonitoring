@@ -166,6 +166,10 @@
     width: 100%;
 }
 
+.doChartWrapper {
+    width: 100%;
+}
+
 .historyChartsRow {
     display: flex;
     flex-direction: column;
@@ -189,7 +193,8 @@
     .clearLuxChartWrapper,
     .dailyTempChartWrapper,
     .phChartWrapper,
-    .ecTdsChartWrapper {
+    .ecTdsChartWrapper,
+    .doChartWrapper {
         width: 100%;
         margin: 0;
     }

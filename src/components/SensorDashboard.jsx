@@ -12,6 +12,7 @@ import HistoricalClearLuxChart from "./HistoricalClearLuxChart";
 import HistoricalPhChart from "./HistoricalPhChart";
 import HistoricalEcTdsChart from "./HistoricalEcTdsChart";
 import HistoricalTemperatureChart  from "./HistoricalTemperatureChart";
+import HistoricalDoChart from "./HistoricalDoChart";
 
 const SENSOR_TOPIC = "growSensors";
 const topics = [SENSOR_TOPIC, "rootImages", "waterOutput", "waterTank"];
@@ -36,6 +37,7 @@ function SensorDashboard() {
     const [tempRangeData, setTempRangeData] = useState([]);
     const [phRangeData, setPhRangeData] = useState([]);
     const [ecTdsRangeData, setEcTdsRangeData] = useState([]);
+    const [doRangeData, setDoRangeData] = useState([]);
 
     const [xDomain, setXDomain] = useState([now - 6 * 60 * 60 * 1000, now]);
     const [startTime, setStartTime] = useState(xDomain[0]);
@@ -102,6 +104,7 @@ function SensorDashboard() {
             })));
             setPhRangeData(processed.map(d => ({time: d.time, ph: d.ph?.value ?? 0})));
             setEcTdsRangeData(processed.map(d => ({time: d.time, ec: d.ec?.value ?? 0, tds: d.tds?.value ?? 0})));
+            setDoRangeData(processed.map(d => ({time: d.time, do: d.do?.value ?? 0})));
 
             const start = Date.parse(fromIso);
             const end = Date.parse(toIso);
@@ -140,6 +143,7 @@ function SensorDashboard() {
                     ec: d.ec?.value ?? 0,
                     tds: d.tds?.value ?? 0
                 }))]);
+                setDoRangeData(prev => [...prev, ...processed.map(d => ({time: d.time, do: d.do?.value ?? 0}))]);
             }
             const newEnd = nowDate.getTime();
             setToDate(toLocalInputValue(nowDate));
@@ -186,7 +190,7 @@ function SensorDashboard() {
 
     useEffect(() => {
         fetchReportData();
-    }, [selectedDevice]);
+    }, [selectedDevice, fetchReportData]);
     const formatTime = (t) => {
         const d = new Date(t);
         return (
@@ -208,7 +212,22 @@ function SensorDashboard() {
 
     const systemTopics = deviceData[activeSystem] || {};
     const hasSensorTopic = !!systemTopics[SENSOR_TOPIC];
-    const hasWaterTank = !!systemTopics["waterTank"];
+    const sensorTypesForSelected = useMemo(() => {
+        const sensors = mergedDevices[selectedDevice]?.sensors || [];
+        return sensors.map(s => s.type || s.valueType);
+    }, [mergedDevices, selectedDevice]);
+
+    const showTempHum = sensorTypesForSelected.includes('temperature') || sensorTypesForSelected.includes('humidity');
+    const showBlue = sensorTypesForSelected.includes('colorSpectrum') ||
+        ['F1','F2','F3','F4','415nm','445nm','480nm','515nm'].some(t => sensorTypesForSelected.includes(t));
+    const showRed = sensorTypesForSelected.includes('colorSpectrum') ||
+        ['F5','F6','F7','F8','555nm','590nm','630nm','680nm','nir'].some(t => sensorTypesForSelected.includes(t));
+    const showClearLux = sensorTypesForSelected.includes('light') || sensorTypesForSelected.includes('lux') ||
+        sensorTypesForSelected.includes('clear') || sensorTypesForSelected.includes('colorSpectrum');
+    const showPh = sensorTypesForSelected.includes('ph');
+    const showEcTds = sensorTypesForSelected.includes('ec') || sensorTypesForSelected.includes('tds');
+    const showDo = sensorTypesForSelected.includes('do') || sensorTypesForSelected.includes('dissolvedOxygen');
+    const showAnyReport = showTempHum || showBlue || showRed || showClearLux || showPh || showEcTds || showDo;
 
     return (
         <div className={styles.dashboard}>
@@ -321,8 +340,8 @@ function SensorDashboard() {
             <div className={styles.section}>
                 <h2 className={`${styles.sectionHeader} ${styles.reportHeader}`}>Reports</h2>
                 <div className={styles.sectionBody}>
-                    {!hasSensorTopic && !hasWaterTank ? (
-                        <div>No reports available for this system.</div>
+                    {!showAnyReport ? (
+                        <div>No reports available for this device.</div>
                     ) : (
                         <>
                             <fieldset className={styles.historyControls}>
@@ -387,52 +406,75 @@ function SensorDashboard() {
                                 </div>
                             </fieldset>
 
-                            {hasSensorTopic && (
-                                <>
-                                    <div className={styles.historyChartsRow}>
+                            {(showTempHum || showBlue) && (
+                                <div className={styles.historyChartsRow}>
+                                    {showTempHum && (
                                         <div className={styles.historyChartColumn}>
                                             <h3 className={styles.sectionTitle}>Temperature</h3>
                                             <div className={styles.dailyTempChartWrapper}>
                                                 <HistoricalTemperatureChart data={tempRangeData} xDomain={xDomain}/>
                                             </div>
                                         </div>
+                                    )}
+                                    {showBlue && (
                                         <div className={styles.historyChartColumn}>
                                             <h3 className={styles.sectionTitle}>Blue Bands</h3>
                                             <div className={styles.blueBandChartWrapper}>
                                                 <HistoricalBlueBandChart data={rangeData} xDomain={xDomain}/>
                                             </div>
                                         </div>
-                                    </div>
+                                    )}
+                                </div>
+                            )}
 
-                                    <div className={styles.historyChartsRow}>
+                            {(showRed || showClearLux) && (
+                                <div className={styles.historyChartsRow}>
+                                    {showRed && (
                                         <div className={styles.historyChartColumn}>
                                             <h3 className={styles.sectionTitle}>Red Bands</h3>
                                             <div className={styles.redBandChartWrapper}>
                                                 <HistoricalRedBandChart data={rangeData} xDomain={xDomain}/>
                                             </div>
                                         </div>
+                                    )}
+                                    {showClearLux && (
                                         <div className={styles.historyChartColumn}>
                                             <h3 className={styles.sectionTitle}>Lux_Clear</h3>
                                             <div className={styles.clearLuxChartWrapper}>
                                                 <HistoricalClearLuxChart data={rangeData} xDomain={xDomain}/>
                                             </div>
                                         </div>
-                                    </div>
-                                </>
+                                    )}
+                                </div>
                             )}
 
-                            {hasWaterTank && (
+                            {(showPh || showEcTds) && (
+                                <div className={styles.historyChartsRow}>
+                                    {showPh && (
+                                        <div className={styles.historyChartColumn}>
+                                            <h3 className={styles.sectionTitle}>pH</h3>
+                                            <div className={styles.phChartWrapper}>
+                                                <HistoricalPhChart data={phRangeData} xDomain={xDomain}/>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {showEcTds && (
+                                        <div className={styles.historyChartColumn}>
+                                            <h3 className={styles.sectionTitle}>EC &amp; TDS</h3>
+                                            <div className={styles.ecTdsChartWrapper}>
+                                                <HistoricalEcTdsChart data={ecTdsRangeData} xDomain={xDomain}/>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {showDo && (
                                 <div className={styles.historyChartsRow}>
                                     <div className={styles.historyChartColumn}>
-                                        <h3 className={styles.sectionTitle}>pH</h3>
-                                        <div className={styles.phChartWrapper}>
-                                            <HistoricalPhChart data={phRangeData} xDomain={xDomain}/>
-                                        </div>
-                                    </div>
-                                    <div className={styles.historyChartColumn}>
-                                        <h3 className={styles.sectionTitle}>EC &amp; TDS</h3>
-                                        <div className={styles.ecTdsChartWrapper}>
-                                            <HistoricalEcTdsChart data={ecTdsRangeData} xDomain={xDomain}/>
+                                        <h3 className={styles.sectionTitle}>Dissolved Oxygen</h3>
+                                        <div className={styles.doChartWrapper}>
+                                            <HistoricalDoChart data={doRangeData} xDomain={xDomain}/>
                                         </div>
                                     </div>
                                 </div>
