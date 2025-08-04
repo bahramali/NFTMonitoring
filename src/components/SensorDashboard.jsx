@@ -269,11 +269,12 @@ function SensorDashboard() {
             <div className={styles.section}>
                 <h2 className={`${styles.sectionHeader} ${styles.liveHeader}`}>Live Data</h2>
                 <div className={styles.sectionBody}>
-                    <DeviceTable
-                        devices={
-                            Object.keys(mergedDevices).length ? mergedDevices : { placeholder: sensorData }
-                        }
-                    />
+                    {Object.entries(deviceData[activeSystem] || {}).map(([topic, devices]) => (
+                        <div key={topic} className={styles.deviceGroup}>
+                            <h3 className={styles.topicTitle}>{topic}</h3>
+                            <DeviceTable devices={devices} />
+                        </div>
+                    ))}
 
                     <div className={styles.tableDivider}></div>
 
