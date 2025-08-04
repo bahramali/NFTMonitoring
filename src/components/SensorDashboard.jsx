@@ -6,6 +6,12 @@ import {filterNoise, normalizeSensorData, transformAggregatedData} from "../util
 import {useStomp} from "../hooks/useStomp";
 import styles from "./SensorDashboard.module.css";
 import idealRangeConfig from "../idealRangeConfig.js";
+import HistoricalBlueBandChart from "./HistoricalBlueBandChart";
+import HistoricalRedBandChart from "./HistoricalRedBandChart";
+import HistoricalClearLuxChart from "./HistoricalClearLuxChart";
+import HistoricalPhChart from "./HistoricalPhChart";
+import HistoricalEcTdsChart from "./HistoricalEcTdsChart";
+
 
 const SENSOR_TOPIC = "growSensors";
 const topics = [SENSOR_TOPIC, "rootImages", "waterOutput", "waterTank"];
