@@ -28,6 +28,7 @@ function SensorDashboard() {
     const [deviceData, setDeviceData] = useState({});
     const [sensorData, setSensorData] = useState({});
     const [selectedDevice, setSelectedDevice] = useState('G02');
+    const [activeTab, setActiveTab] = useState("live");
 
     const now = Date.now();
     const [fromDate, setFromDate] = useState(toLocalInputValue(new Date(now - 6 * 60 * 60 * 1000)));
@@ -66,10 +67,7 @@ function SensorDashboard() {
         const combined = {};
         for (const topic of Object.keys(sysData)) {
             for (const [deviceId, data] of Object.entries(sysData[topic])) {
-                combined[deviceId] = {
-                    ...(combined[deviceId] || {}),
-                    ...data,
-                };
+                combined[deviceId] = { ...(combined[deviceId] || {}), ...data };
             }
         }
         return combined;
@@ -243,6 +241,12 @@ function SensorDashboard() {
                     </button>
                 ))}
             </div>
+            <div className={styles.tabBar}>
+                <button className={`${styles.tab} ${activeTab === 'live' ? styles.activeTab : ''}`} onClick={() => setActiveTab('live')}>Live Data</button>
+                <button className={`${styles.tab} ${activeTab === 'report' ? styles.activeTab : ''}`} onClick={() => setActiveTab('report')}>Reports</button>
+            </div>
+
+            {activeTab === 'live' && (
             <div className={styles.section}>
                 <h2 className={`${styles.sectionHeader} ${styles.liveHeader}`}>Live Data</h2>
                 <div className={styles.sectionBody}>
@@ -334,9 +338,9 @@ function SensorDashboard() {
                     })()}
                 </div>
             </div>
+            )}
 
-            <div className={styles.divider}></div>
-
+            {activeTab === 'report' && (
             <div className={styles.section}>
                 <h2 className={`${styles.sectionHeader} ${styles.reportHeader}`}>Reports</h2>
                 <div className={styles.sectionBody}>
@@ -483,6 +487,7 @@ function SensorDashboard() {
                     )}
                 </div>
             </div>
+            )}
         </div>
     );
 }
