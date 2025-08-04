@@ -168,6 +168,7 @@ function SensorDashboard() {
             if (!cleaned) return;
 
             data = {
+                ...cleaned,
                 sensors: payload.sensors,
                 health: payload.health || {}
             };
