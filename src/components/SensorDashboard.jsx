@@ -220,10 +220,12 @@ function SensorDashboard() {
                             <div className={styles.deviceLabel}>{selectedDevice}</div>
                             <div className={styles.spectrumBarChartWrapper}>
                                 <SpectrumBarChart
-                                    sensorData={systemTopics[SENSOR_TOPIC]?.[selectedDevice] || sensorData}/>
+                                    sensorData={systemTopics[SENSOR_TOPIC]?.[selectedDevice]}
+                                />
                             </div>
                         </>
                     )}
+
                 </div>
             </div>
         </div>
