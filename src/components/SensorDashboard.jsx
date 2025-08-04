@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import SpectrumBarChart from "./SpectrumBarChart";
 import HistoricalTemperatureChart from "./HistoricalTemperatureChart";
 import HistoricalBlueBandChart from "./HistoricalBlueBandChart";
@@ -46,7 +46,7 @@ function SensorDashboard() {
     useEffect(() => {
         console.log('📊 sensorData state changed:', sensorData);
     }, [sensorData]);
-    const [activeTopic, setActiveTopic] = useState(sensorTopic);
+    const [activeSystem, setActiveSystem] = useState('S01');
     const [deviceData, setDeviceData] = useState({});
     const toLocalInputValue = (ts) => {
         const d = new Date(ts);
@@ -81,12 +81,21 @@ function SensorDashboard() {
         startTimeRef.current = startTime;
     }, [startTime]);
 
+    const mergedDevices = useMemo(() => {
+        const sysData = deviceData[activeSystem] || {};
+        const combined = {};
+        for (const t of Object.keys(sysData)) {
+            Object.assign(combined, sysData[t]);
+        }
+        return combined;
+    }, [deviceData, activeSystem]);
+
     useEffect(() => {
-        const ids = Object.keys(deviceData[activeTopic] || {}).filter(id => id !== 'placeholder');
+        const ids = Object.keys(mergedDevices).filter(id => id !== 'placeholder');
         if (ids.length && !ids.includes(selectedDevice)) {
             setSelectedDevice(ids[0]);
         }
-    }, [deviceData, selectedDevice, activeTopic]);
+    }, [mergedDevices, selectedDevice]);
 
     const fetchReportData = useCallback(async () => {
         if (!fromDate || !toDate) return;
@@ -179,6 +188,7 @@ function SensorDashboard() {
                     : msg.payload;
         }
         const deviceId = payload.deviceId || msg.deviceId || 'unknown';
+        const systemId = payload.system || msg.system || 'unknown';
         let data = payload;
         if (topic === sensorTopic || topic === 'waterTank') {
             const norm = normalizeSensorData(payload);
@@ -197,10 +207,12 @@ function SensorDashboard() {
             }
         }
         setDeviceData(prev => {
-            const t = { ...(prev[topic] || {}) };
-            t[deviceId] = data;
-            console.log('📥 setDeviceData for', topic, deviceId, data);
-            return { ...prev, [topic]: t };
+            const sys = { ...(prev[systemId] || {}) };
+            const t = { ...(sys[topic] || {}) };
+            const existing = t[deviceId] || {};
+            t[deviceId] = { ...existing, ...data };
+            console.log('📥 setDeviceData for', systemId, topic, deviceId, data);
+            return { ...prev, [systemId]: { ...sys, [topic]: t } };
         });
     }, []);
 
@@ -228,37 +240,38 @@ function SensorDashboard() {
 
     useStomp(topics, handleStompMessage);
 
-    const deviceIds = Object.keys(deviceData[activeTopic] || {}).filter(id => id !== 'placeholder');
+    const deviceIds = Object.keys(mergedDevices).filter(id => id !== 'placeholder');
     const availableDevices = deviceIds.length ? deviceIds : [selectedDevice];
+    const systemTopics = deviceData[activeSystem] || {};
+    const hasSensorTopic = !!systemTopics[sensorTopic];
+    const hasWaterTank = !!systemTopics['waterTank'];
 
     return (
         <div className={styles.dashboard}>
-            <Header topic={activeTopic} />
+            <Header system={activeSystem} />
             <div className={styles.tabBar}>
-                {topics.map(t => (
+                {Array.from(new Set([activeSystem, ...Object.keys(deviceData)])).map(s => (
                     <button
-                        key={t}
-                        className={`${styles.tab} ${activeTopic === t ? styles.activeTab : ''}`}
-                        onClick={() => setActiveTopic(t)}
+                        key={s}
+                        className={`${styles.tab} ${activeSystem === s ? styles.activeTab : ''}`}
+                        onClick={() => setActiveSystem(s)}
                     >
-                        {t}
+                        {s}
                     </button>
                 ))}
             </div>
             <div className={styles.section}>
                 <h2 className={`${styles.sectionHeader} ${styles.liveHeader}`}>Live Data</h2>
                 <div className={styles.sectionBody}>
-
                     <DeviceTable
                         devices={
-                            deviceData[activeTopic] ||
-                            (activeTopic === sensorTopic ? { placeholder: sensorData } : {})
+                            Object.keys(mergedDevices).length ? mergedDevices : { placeholder: sensorData }
                         }
                     />
 
                     <div className={styles.tableDivider}></div>
 
-                    {activeTopic === sensorTopic && (
+                    {hasSensorTopic && (
                         <>
                             <div className={styles.chartFilterRow}>
                                 <label className={styles.filterLabel}>
@@ -278,7 +291,7 @@ function SensorDashboard() {
                             <div className={styles.spectrumBarChartWrapper}>
                                 <SpectrumBarChart
                                     sensorData={
-                                        deviceData[sensorTopic]?.[selectedDevice] || sensorData
+                                        systemTopics[sensorTopic]?.[selectedDevice] || sensorData
                                     }
                                 />
                             </div>
@@ -302,8 +315,7 @@ function SensorDashboard() {
                         ]);
                         const metaFields = new Set(['timestamp','deviceId','location']);
                         const topicData =
-                            deviceData[activeTopic] ||
-                            (activeTopic === sensorTopic ? { placeholder: sensorData } : {});
+                            Object.keys(mergedDevices).length ? mergedDevices : { placeholder: sensorData };
                         const sensors = new Set();
                         for (const dev of Object.values(topicData)) {
                             if (Array.isArray(dev.sensors)) {
@@ -346,8 +358,8 @@ function SensorDashboard() {
             <div className={styles.section}>
                 <h2 className={`${styles.sectionHeader} ${styles.reportHeader}`}>Reports</h2>
                 <div className={styles.sectionBody}>
-                    {activeTopic !== sensorTopic && activeTopic !== 'waterTank' ? (
-                        <div>No reports available for this topic.</div>
+                    {!hasSensorTopic && !hasWaterTank ? (
+                        <div>No reports available for this system.</div>
                     ) : (
                     <>
                     <fieldset className={styles.historyControls}>
@@ -406,7 +418,7 @@ function SensorDashboard() {
                         </div>
                     </fieldset>
 
-                    {activeTopic === sensorTopic && (
+                    {hasSensorTopic && (
                         <>
                         <div className={styles.historyChartsRow}>
                             <div className={styles.historyChartColumn}>
@@ -440,7 +452,7 @@ function SensorDashboard() {
                         </>
                     )}
 
-                    {activeTopic === 'waterTank' && (
+                    {hasWaterTank && (
                         <div className={styles.historyChartsRow}>
                             <div className={styles.historyChartColumn}>
                                 <h3 className={styles.sectionTitle}>pH</h3>
