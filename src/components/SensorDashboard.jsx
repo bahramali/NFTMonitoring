@@ -231,19 +231,13 @@ function SensorDashboard() {
         <div className={styles.dashboard}>
             <Header system={activeSystem}/>
             <div className={styles.tabBar}>
-                {Object.keys(deviceData).map(system => (
-                    <button
-                        key={system}
-                        className={`${styles.tab} ${activeSystem === system ? styles.activeTab : ''}`}
-                        onClick={() => setActiveSystem(system)}
-                    >
-                        {system}
-                    </button>
-                ))}
-            </div>
-            <div className={styles.tabBar}>
                 <button className={`${styles.tab} ${activeTab === 'live' ? styles.activeTab : ''}`} onClick={() => setActiveTab('live')}>Live Data</button>
                 <button className={`${styles.tab} ${activeTab === 'report' ? styles.activeTab : ''}`} onClick={() => setActiveTab('report')}>Reports</button>
+            </div>
+            <div className={styles.tabBar}>
+                {Object.keys(deviceData).map(system => (
+                    <button key={system} className={`${styles.tab} ${activeSystem === system ? styles.activeTab : ''}`} onClick={() => setActiveSystem(system)}>{system}</button>
+                ))}
             </div>
 
             {activeTab === 'live' && (
