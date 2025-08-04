@@ -235,8 +235,7 @@ function SensorDashboard() {
 
             {activeTab === 'live' && (
             <div className={styles.section}>
-                <h2 className={`${styles.sectionHeader} ${styles.liveHeader}`}>Live Data</h2>
-                <div className={styles.sectionBody}>
+                  <div className={styles.sectionBody}>
                     {Object.entries(systemTopics).map(([topic, devices]) => (
                         <div key={topic} className={styles.deviceGroup}>
                             <h3 className={styles.topicTitle}>{topic}</h3>
@@ -329,7 +328,6 @@ function SensorDashboard() {
 
             {activeTab === 'report' && (
             <div className={styles.section}>
-                <h2 className={`${styles.sectionHeader} ${styles.reportHeader}`}>Reports</h2>
                 <div className={styles.sectionBody}>
                     {!showAnyReport ? (
                         <div>No reports available for this device.</div>
