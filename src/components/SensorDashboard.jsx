@@ -84,11 +84,17 @@ function SensorDashboard() {
     const mergedDevices = useMemo(() => {
         const sysData = deviceData[activeSystem] || {};
         const combined = {};
-        for (const t of Object.keys(sysData)) {
-            Object.assign(combined, sysData[t]);
+        for (const topic of Object.keys(sysData)) {
+            for (const [deviceId, data] of Object.entries(sysData[topic])) {
+                combined[deviceId] = {
+                    ...(combined[deviceId] || {}),
+                    ...data,
+                };
+            }
         }
         return combined;
     }, [deviceData, activeSystem]);
+
 
     useEffect(() => {
         const ids = Object.keys(mergedDevices).filter(id => id !== 'placeholder');
