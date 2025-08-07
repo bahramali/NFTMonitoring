@@ -3,7 +3,7 @@ import React from 'react';
 function Device() {
     return (
         <div>
-            Device Filter
+            Device
         </div>
     );
 }

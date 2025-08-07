@@ -3,7 +3,7 @@ import React from 'react';
 function Layer() {
     return (
         <div>
-            Layer Filter
+            Layer
         </div>
     );
 }
