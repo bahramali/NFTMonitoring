@@ -1,46 +1,47 @@
-import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import styles from './Sidebar.module.css';
 
-function Sidebar() {
-    const [isOpen, setIsOpen] = useState(true);
+import { useState } from 'react';
+import { FaHome, FaChartLine, FaCog, FaUser, FaBook, FaChevronRight } from 'react-icons/fa';
+import './Sidebar.css';
 
-    const toggleSidebar = () => setIsOpen((prev) => !prev);
+export default function Sidebar() {
+    const [collapsed, setCollapsed] = useState(false);
+
+    const toggle = () => setCollapsed(!collapsed);
 
     return (
-        <div className={`${styles.sidebar} ${isOpen ? styles.open : styles.closed}`}>
-            <button className={styles.toggleButton} onClick={toggleSidebar} aria-label="Toggle sidebar">
-                {isOpen ? '\u00AB' : '\u00BB'}
-            </button>
-            <nav className={styles.nav}>
-                <NavLink to="/" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}> 
-                    <span className={styles.linkText}>Home</span>
-                </NavLink>
-                <NavLink to="/reports" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
-                    <span className={styles.linkText}>Reports</span>
-                </NavLink>
-                <NavLink to="/settings" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
-                    <span className={styles.linkText}>Settings</span>
-                </NavLink>
-                <NavLink to="/user" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
-                    <span className={styles.linkText}>User</span>
-                </NavLink>
-                <NavLink to="/docs" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
-                    <span className={styles.linkText}>Docs</span>
-                </NavLink>
-                <NavLink to="/filters/device" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
-                    <span className={styles.linkText}>Device Filters</span>
-                </NavLink>
-                <NavLink to="/filters/layer" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
-                    <span className={styles.linkText}>Layer Filters</span>
-                </NavLink>
-                <NavLink to="/filters/system" className={({ isActive }) => `${styles.link} ${isActive ? styles.active : ''}`}>
-                    <span className={styles.linkText}>System Filters</span>
-                </NavLink>
-            </nav>
+        <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+            <div className="sidebar-header">
+                <button className="toggle-btn" onClick={toggle}>
+                    <FaChevronRight className={collapsed ? 'rotate' : ''} />
+                </button>
+                {!collapsed && <h1 className="company">Company</h1>}
+            </div>
+
+            <div className="sidebar-menu">
+                <SidebarItem icon={<FaHome />} text="Dashboard" collapsed={collapsed} />
+                <SidebarItem icon={<FaChartLine />} text="Reports" collapsed={collapsed} />
+                <SidebarItem icon={<FaCog />} text="Settings" collapsed={collapsed} />
+                <SidebarItem icon={<FaUser />} text="User Info" collapsed={collapsed} />
+                <SidebarItem icon={<FaBook />} text="Documentation" collapsed={collapsed} />
+            </div>
+
+            <div className="sidebar-divider" />
+
+            <div className="sidebar-filter">
+                {!collapsed && <div className="filter-title">SYSTEM FILTER</div>}
+                <SidebarItem icon={<FaChevronRight />} text="Device" collapsed={collapsed} />
+                <SidebarItem icon={<FaChevronRight />} text="Layer" collapsed={collapsed} />
+                <SidebarItem icon={<FaChevronRight />} text="System" collapsed={collapsed} />
+            </div>
         </div>
     );
 }
 
-export default Sidebar;
-
+function SidebarItem({ icon, text, collapsed }) {
+    return (
+        <div className="sidebar-item">
+            <span className="icon">{icon}</span>
+            {!collapsed && <span className="text">{text}</span>}
+        </div>
+    );
+}

@@ -19,3 +19,4 @@ export function Outlet() {
 export function Sidebar() {
     return null;
 }
+
