@@ -9,7 +9,7 @@ export default defineConfig({
     },
     resolve: {
         alias: {
-            'react-router-dom': path.resolve(__dirname, 'src/compat/react-router-dom.js'),
+            'react-router-dom': path.resolve(__dirname, 'src/compat/react-router-dom.jsx'),
         },
     },
 });
