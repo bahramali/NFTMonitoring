@@ -20,3 +20,13 @@ export function Sidebar() {
     return null;
 }
 
+export function NavLink({ to, children, className }) {
+    const cls =
+        typeof className === 'function' ? className({ isActive: false }) : className;
+    return (
+        <a href={to} className={cls}>
+            {children}
+        </a>
+    );
+}
+
