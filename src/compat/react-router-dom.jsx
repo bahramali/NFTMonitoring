@@ -15,3 +15,8 @@ export function Route({ element }) {
 export function Outlet() {
     return null;
 }
+
+export function Sidebar() {
+    return null;
+}
+
