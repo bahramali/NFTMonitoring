@@ -1,7 +1,9 @@
+// Removes old entries older than maxAgeMs from the dataset
 export function trimOldEntries(data, now, maxAgeMs = 24 * 60 * 60 * 1000) {
     return data.filter(d => d.timestamp >= now - maxAgeMs);
 }
 
+// Filters out obviously invalid temperature/humidity readings
 export function filterNoise(data) {
     const temp = data.temperature?.value;
     const hum = data.humidity?.value;
@@ -10,6 +12,7 @@ export function filterNoise(data) {
     return data;
 }
 
+// Normalizes health object into a simpler {sensorName: boolean} map
 function normalizeHealth(health = {}) {
     const normalized = {};
     for (const key in health) {
@@ -19,8 +22,9 @@ function normalizeHealth(health = {}) {
     return normalized;
 }
 
+// Flattens sensor array into a single object keyed by valueType (for charts)
 export function normalizeSensorData(data) {
-    const result = { health: {} };
+    const result = {health: {}};
 
     if (Array.isArray(data.sensors)) {
         for (const sensor of data.sensors) {
@@ -30,34 +34,37 @@ export function normalizeSensorData(data) {
             switch (type) {
                 case 'temperature':
                 case 'humidity':
-                    result[type] = { value: val, unit: sensor.unit || '' };
+                    result[type] = {value: val, unit: sensor.unit || ''};
                     break;
                 case 'light':
-                    result.lux = { value: val, unit: sensor.unit || '' };
+                    result.lux = {value: val, unit: sensor.unit || ''};
                     break;
                 case 'tds':
-                    result.tds = { value: val, unit: sensor.unit || '' };
+                    result.tds = {value: val, unit: sensor.unit || ''};
                     break;
                 case 'ec':
-                    result.ec = { value: val, unit: sensor.unit || '' };
+                    result.ec = {value: val, unit: sensor.unit || ''};
                     break;
                 case 'ph':
-                    result.ph = { value: val, unit: sensor.unit || '' };
+                    result.ph = {value: val, unit: sensor.unit || ''};
                     break;
                 case 'dissolvedOxygen':
                 case 'do':
-                    result.do = { value: val, unit: sensor.unit || '' };
+                    result.do = {value: val, unit: sensor.unit || ''};
                     break;
                 case 'colorSpectrum': {
-                    const bands = ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'];
+                    // Map color spectrum object to F1..F8, clear, nir
+                    const bands = ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'clear', 'nir'];
                     let i = 0;
                     for (const key in sensor.value) {
                         result[bands[i++]] = Number(sensor.value[key]);
                     }
                     break;
                 }
-                default:
-                    { const nmMatch = type?.match(/^(\d{3})nm$/);
+
+                default: {
+                    // Map nm wavelengths or clear/nir
+                    const nmMatch = type?.match(/^(\d{3})nm$/);
                     if (nmMatch) {
                         const nmMap = {
                             '415': 'F1', '445': 'F2', '480': 'F3', '515': 'F4',
@@ -68,7 +75,8 @@ export function normalizeSensorData(data) {
                     } else if (type === 'clear' || type === 'nir') {
                         result[type] = val;
                     }
-                    break; }
+                    break;
+                }
             }
         }
 
@@ -78,25 +86,28 @@ export function normalizeSensorData(data) {
     return result;
 }
 
-
+// Parses JSON string, fixes concatenated objects without commas
 export function parseSensorJson(str) {
     try {
         return JSON.parse(str);
-        // eslint-disable-next-line no-unused-vars
     } catch (e) {
         const fixed = str.replace(/}\s*{"sensorId":/g, '},{"sensorId":');
         return JSON.parse(fixed);
     }
 }
 
+// Transforms aggregated history API output into time-indexed array
 export function transformAggregatedData(data) {
     if (!data || !Array.isArray(data.sensors)) return [];
     const map = {};
     for (const sensor of data.sensors) {
         const sensorType = sensor.type || sensor.valueType;
         const unit = sensor.unit || '';
+
         for (const entry of sensor.data || []) {
             const ts = Date.parse(entry.timestamp);
+
+            // Initialize time slot if not present
             if (!map[ts]) {
                 map[ts] = {
                     timestamp: ts,
@@ -113,6 +124,7 @@ export function transformAggregatedData(data) {
             }
             const out = map[ts];
             const val = entry.value;
+
             switch (sensorType) {
                 case 'temperature':
                 case 'humidity':
@@ -181,6 +193,8 @@ export function transformAggregatedData(data) {
             }
         }
     }
+
+    // Sort by timestamp ascending
     return Object.values(map).sort((a, b) => a.timestamp - b.timestamp);
 }
 
