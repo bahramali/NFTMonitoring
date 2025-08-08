@@ -86,7 +86,11 @@ function DeviceTable({devices = {}}) {
                     <th className={styles.sensorCell}>M_Type</th>
                     <th className={styles.modelCell}>Min</th>
                     <th className={styles.modelCell}>Max</th>
-                    {headerLabels.map((label, i) => <th key={deviceIds[i]}>{label}</th>)}
+                    {deviceIds.map(id => {
+                        const loc = devices[id]?.location;
+                        const label = loc ? `${loc}${id}` : id;
+                        return <th key={id}>{label}</th>;
+                    })}
                 </tr>
                 </thead>
                 <tbody>
