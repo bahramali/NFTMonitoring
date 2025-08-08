@@ -14,7 +14,10 @@ function getCellColor(value, range) {
 function DeviceTable({devices = {}}) {
     const deviceIds = Object.keys(devices);
     const allSensors = deviceIds.flatMap(id => devices[id].sensors || []);
-
+    const headerLabels = deviceIds.map(id => {
+        const loc = devices[id]?.location || devices[id]?.meta?.location;
+        return loc ? `${loc} ${id}` : id;
+    });
     const measurementTypes = new Set();
     const measurementToSensorModel = {};
     const labelMapFromData = {};
@@ -83,7 +86,7 @@ function DeviceTable({devices = {}}) {
                     <th className={styles.sensorCell}>M_Type</th>
                     <th className={styles.modelCell}>Min</th>
                     <th className={styles.modelCell}>Max</th>
-                    {deviceIds.map(id => <th key={id}>Val {id}</th>)}
+                    {headerLabels.map((label, i) => <th key={deviceIds[i]}>{label}</th>)}
                 </tr>
                 </thead>
                 <tbody>
