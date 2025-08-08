@@ -83,11 +83,10 @@ function DeviceTable({devices = {}}) {
                     <th className={styles.modelCell}>Min</th>
                     <th className={styles.modelCell}>Max</th>
                     {deviceIds.map(id => {
-                        const loc = devices[id]?.location;
-                        console.log("device: " +devices[id]);
-                        return <th key={id}>{loc}</th>;
-                        // eslint-disable-next-line no-unreachable
+                        const dev = devices[id];
+                        const loc = dev?.location ?? dev?.Location ?? dev?.meta?.location ?? "";
                         const label = loc ? `${loc}${id}` : id;
+                        console.log("device:", devices[id]);
                         return <th key={id}>{label}</th>;
                     })}
                 </tr>
