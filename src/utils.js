@@ -90,7 +90,7 @@ export function normalizeSensorData(data) {
 export function parseSensorJson(str) {
     try {
         return JSON.parse(str);
-    } catch (e) {
+    } catch {
         const fixed = str.replace(/}\s*{"sensorId":/g, '},{"sensorId":');
         return JSON.parse(fixed);
     }
