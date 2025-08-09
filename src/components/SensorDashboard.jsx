@@ -3,8 +3,8 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import SpectrumBarChart from "./SpectrumBarChart";
 import Header from "./Header";
 import DeviceTable from "./DeviceTable";
-import {filterNoise, normalizeSensorData, transformAggregatedData} from "../utils";
-import {useStomp} from "../hooks/useStomp";
+import {transformAggregatedData} from "../utils";
+import {useLiveDevices} from "./dashboard/useLiveDevices";
 import styles from "./SensorDashboard.module.css";
 import idealRangeConfig from "../idealRangeConfig.js";
 import HistoricalBlueBandChart from "./HistoricalBlueBandChart";
@@ -27,11 +27,7 @@ function toLocalInputValue(date) {
 
 function SensorDashboard() {
     const [activeSystem, setActiveSystem] = useState("S01");
-  // deviceData shape:
-  // { [systemId]: { [topic]: { [compositeId]: { sensors, health, location?, deviceId } } } }
-    const [deviceData, setDeviceData] = useState({});
-  // sensorData is flattened (for charts only)
-    const [sensorData, setSensorData] = useState({});
+    const {deviceData, sensorData, availableBaseIds, mergedDevices} = useLiveDevices(topics, activeSystem);
   // selectedDevice is the *base* deviceId (e.g., G01) used for history API
     const [selectedDevice, setSelectedDevice] = useState("G02");
     const [activeTab, setActiveTab] = useState("live");
@@ -61,14 +57,6 @@ function SensorDashboard() {
   const systemTopics = deviceData[activeSystem] || {};
   const sensorTopicDevices = systemTopics[SENSOR_TOPIC] || {};
 
-  // Unique list of base deviceIds (espIds) for the Report/selector
-  const availableBaseIds = useMemo(() => {
-    const ids = new Set(
-      Object.values(sensorTopicDevices).map(d => d?.deviceId || "unknown")
-    );
-    return Array.from(ids);
-  }, [sensorTopicDevices]);
-
   // Keep selectedDevice valid
     useEffect(() => {
     if (availableBaseIds.length && !availableBaseIds.includes(selectedDevice)) {
@@ -76,17 +64,7 @@ function SensorDashboard() {
     }
   }, [availableBaseIds, selectedDevice]);
 
-  // Merge all topics by compositeId, used for the "Notes" section only
-    const mergedDevices = useMemo(() => {
-        const sysData = deviceData[activeSystem] || {};
-        const combined = {};
-        for (const topic of Object.keys(sysData)) {
-      for (const [cid, data] of Object.entries(sysData[topic])) {
-        combined[cid] = { ...(combined[cid] || {}), ...data };
-            }
-        }
-        return combined;
-    }, [deviceData, activeSystem]);
+  // mergedDevices and availableBaseIds are provided by useLiveDevices
 
   // --- History (Report) fetching ---
     const fetchReportData = useCallback(async () => {
@@ -162,45 +140,6 @@ function SensorDashboard() {
         }
     }, [selectedDevice]);
 
-  // --- Live data handler (STOMP) ---
-    const handleStompMessage = useCallback((topic, msg) => {
-    // Unwrap payload shape { payload: ... } if present
-        let payload = msg;
-        if (msg && typeof msg === "object" && "payload" in msg) {
-            payload = typeof msg.payload === "string" ? JSON.parse(msg.payload) : msg.payload;
-        }
-
-    const baseId = payload.deviceId || "unknown";       // e.g., G01
-    const systemId = payload.system || "unknown";       // e.g., S01
-    const loc = payload.location || payload.Location || payload.meta?.location || "";
-    const compositeId = loc ? `${loc}${baseId}` : baseId; // e.g., L01G01
-
-    // 1) Build flattened data for charts only
-        if (Array.isArray(payload.sensors)) {
-            const normalized = normalizeSensorData(payload);
-            const cleaned = topic === SENSOR_TOPIC ? filterNoise(normalized) : normalized;
-            if (cleaned && topic === SENSOR_TOPIC) {
-                setSensorData(cleaned);
-            }
-        }
-
-    // 2) Build clean table entry (only sensors/health/location/deviceId)
-        const tableData = {
-            sensors: Array.isArray(payload.sensors) ? payload.sensors : [],
-            health: payload.health || {},
-            ...(loc ? {location: loc} : {}),
-      deviceId: baseId
-        };
-
-    // Store by compositeId so columns are unique per (location + deviceId)
-        setDeviceData(prev => {
-            const sys = {...(prev[systemId] || {})};
-            const topicMap = {...(sys[topic] || {})};
-      topicMap[compositeId] = tableData;
-            return {...prev, [systemId]: {...sys, [topic]: topicMap}};
-        });
-    }, []);
-
     useEffect(() => {
         fetchReportData();
     }, [selectedDevice, fetchReportData]);
@@ -217,7 +156,6 @@ function SensorDashboard() {
         return () => clearInterval(id);
     }, [autoRefresh, refreshInterval, fetchNewData]);
 
-    useStomp(topics, handleStompMessage);
 
   // Figure out which report sections to show based on selected device's sensor types
     const sensorTypesForSelected = useMemo(() => {
