@@ -85,7 +85,10 @@ function DeviceTable({devices = {}}) {
                     {deviceIds.map(id => {
                         const dev = devices[id];
                         const loc = dev?.location ?? dev?.Location ?? dev?.meta?.location ?? "";
-                        const baseId = dev?.deviceId || id;
+                        let baseId = dev?.deviceId ?? id;
+                        if (!dev?.deviceId && loc && id.startsWith(loc)) {
+                            baseId = id.slice(loc.length);
+                        }
                         const label = loc ? `${loc}${baseId}` : baseId;
                         return <th key={id}>{label}</th>;
                     })}
