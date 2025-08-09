@@ -1,5 +1,4 @@
 // SensorDashboard.jsx
-// SensorDashboard.jsx
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import SpectrumBarChart from "./SpectrumBarChart";
 import Header from "./Header";
@@ -19,6 +18,7 @@ import HistoricalDoChart from "./HistoricalDoChart";
 const SENSOR_TOPIC = "growSensors";
 const topics = [SENSOR_TOPIC, "rootImages", "waterOutput", "waterTank"];
 
+// Format date for <input type="datetime-local">
 function toLocalInputValue(date) {
     const tz = date.getTimezoneOffset() * 60000;
     const local = new Date(date.getTime() - tz);
@@ -27,8 +27,12 @@ function toLocalInputValue(date) {
 
 function SensorDashboard() {
     const [activeSystem, setActiveSystem] = useState("S01");
+  // deviceData shape:
+  // { [systemId]: { [topic]: { [compositeId]: { sensors, health, location?, deviceId } } } }
     const [deviceData, setDeviceData] = useState({});
+  // sensorData is flattened (for charts only)
     const [sensorData, setSensorData] = useState({});
+  // selectedDevice is the *base* deviceId (e.g., G01) used for history API
     const [selectedDevice, setSelectedDevice] = useState("G02");
     const [activeTab, setActiveTab] = useState("live");
 
@@ -51,37 +55,42 @@ function SensorDashboard() {
 
     const endTimeRef = useRef(endTime);
     const startTimeRef = useRef(startTime);
-    useEffect(() => {
-        endTimeRef.current = endTime;
-    }, [endTime]);
-    useEffect(() => {
-        startTimeRef.current = startTime;
-    }, [startTime]);
+  useEffect(() => { endTimeRef.current = endTime; }, [endTime]);
+  useEffect(() => { startTimeRef.current = startTime; }, [startTime]);
 
-    const availableDevices = useMemo(() => {
-        const all = deviceData[activeSystem] || {};
-        return Object.values(all).flatMap(group => Object.keys(group));
-    }, [deviceData, activeSystem]);
+  const systemTopics = deviceData[activeSystem] || {};
+  const sensorTopicDevices = systemTopics[SENSOR_TOPIC] || {};
 
+  // Unique list of base deviceIds (espIds) for the Report/selector
+  const availableBaseIds = useMemo(() => {
+    const ids = new Set(
+      Object.values(sensorTopicDevices).map(d => d?.deviceId || "unknown")
+    );
+    return Array.from(ids);
+  }, [sensorTopicDevices]);
+
+  // Keep selectedDevice valid
+    useEffect(() => {
+    if (availableBaseIds.length && !availableBaseIds.includes(selectedDevice)) {
+      setSelectedDevice(availableBaseIds[0]);
+    }
+  }, [availableBaseIds, selectedDevice]);
+
+  // Merge all topics by compositeId, used for the "Notes" section only
     const mergedDevices = useMemo(() => {
         const sysData = deviceData[activeSystem] || {};
         const combined = {};
         for (const topic of Object.keys(sysData)) {
-            for (const [deviceId, data] of Object.entries(sysData[topic])) {
-                combined[deviceId] = {...(combined[deviceId] || {}), ...data};
+      for (const [cid, data] of Object.entries(sysData[topic])) {
+        combined[cid] = { ...(combined[cid] || {}), ...data };
             }
         }
         return combined;
     }, [deviceData, activeSystem]);
 
-    useEffect(() => {
-        if (availableDevices.length && !availableDevices.includes(selectedDevice)) {
-            setSelectedDevice(availableDevices[0]);
-        }
-    }, [availableDevices, selectedDevice]);
-
+  // --- History (Report) fetching ---
     const fetchReportData = useCallback(async () => {
-        if (!fromDate || !toDate) return;
+    if (!fromDate || !toDate || !selectedDevice) return;
         try {
             const fromIso = new Date(fromDate).toISOString();
             const toIso = new Date(toDate).toISOString();
@@ -153,16 +162,20 @@ function SensorDashboard() {
         }
     }, [selectedDevice]);
 
+  // --- Live data handler (STOMP) ---
     const handleStompMessage = useCallback((topic, msg) => {
+    // Unwrap payload shape { payload: ... } if present
         let payload = msg;
         if (msg && typeof msg === "object" && "payload" in msg) {
             payload = typeof msg.payload === "string" ? JSON.parse(msg.payload) : msg.payload;
         }
 
-        const deviceId = payload.deviceId || "unknown";
-        const systemId = payload.system || "unknown";
+    const baseId = payload.deviceId || "unknown";       // e.g., G01
+    const systemId = payload.system || "unknown";       // e.g., S01
+    const loc = payload.location || payload.Location || payload.meta?.location || "";
+    const compositeId = loc ? `${loc}${baseId}` : baseId; // e.g., L01G01
 
-        // --- 1) داده مخصوص چارت‌ها (扁‌سازی شده + نویز فیلتر)
+    // 1) Build flattened data for charts only
         if (Array.isArray(payload.sensors)) {
             const normalized = normalizeSensorData(payload);
             const cleaned = topic === SENSOR_TOPIC ? filterNoise(normalized) : normalized;
@@ -171,19 +184,19 @@ function SensorDashboard() {
             }
         }
 
-        // --- 2) داده مخصوص جدول (فقط sensors/health/location)
-        const loc = payload.location || payload.Location || payload.meta?.location || "";
+    // 2) Build clean table entry (only sensors/health/location/deviceId)
         const tableData = {
             sensors: Array.isArray(payload.sensors) ? payload.sensors : [],
             health: payload.health || {},
             ...(loc ? {location: loc} : {}),
-            deviceId
+      deviceId: baseId
         };
 
+    // Store by compositeId so columns are unique per (location + deviceId)
         setDeviceData(prev => {
             const sys = {...(prev[systemId] || {})};
             const topicMap = {...(sys[topic] || {})};
-            topicMap[deviceId] = tableData;
+      topicMap[compositeId] = tableData;
             return {...prev, [systemId]: {...sys, [topic]: topicMap}};
         });
     }, []);
@@ -206,13 +219,13 @@ function SensorDashboard() {
 
     useStomp(topics, handleStompMessage);
 
-    const systemTopics = deviceData[activeSystem] || {};
-    const hasSensorTopic = !!systemTopics[SENSOR_TOPIC];
-
+  // Figure out which report sections to show based on selected device's sensor types
     const sensorTypesForSelected = useMemo(() => {
-        const sensors = mergedDevices[selectedDevice]?.sensors || [];
+    // Find any one composite device that matches selected baseId
+    const match = Object.values(sensorTopicDevices).find(d => d?.deviceId === selectedDevice);
+    const sensors = match?.sensors || [];
         return sensors.map(s => s.type || s.valueType);
-    }, [mergedDevices, selectedDevice]);
+  }, [sensorTopicDevices, selectedDevice]);
 
     const showTempHum = sensorTypesForSelected.includes('temperature') || sensorTypesForSelected.includes('humidity');
     const showBlue = sensorTypesForSelected.includes('colorSpectrum') ||
@@ -230,6 +243,7 @@ function SensorDashboard() {
         <div className={styles.dashboard}>
             <Header system={activeSystem}/>
 
+      {/* Vertical tab bar */}
             <div className={styles.verticalTabBar}>
                 <button className={`${styles.verticalTab} ${activeTab === 'live' ? styles.activeVerticalTab : ''}`}
                         onClick={() => setActiveTab('live')}>Live
@@ -239,6 +253,7 @@ function SensorDashboard() {
                 </button>
             </div>
 
+      {/* Systems tab bar */}
             <div className={styles.tabBar}>
                 {Object.keys(deviceData).map(system => (
                     <button key={system} className={`${styles.tab} ${activeSystem === system ? styles.activeTab : ''}`}
@@ -250,6 +265,7 @@ function SensorDashboard() {
                 <div className={styles.section}>
                     <div className={styles.sectionBody}>
 
+            {/* One DeviceTable per topic; keys inside are compositeIds */}
                         {Object.entries(systemTopics).map(([topic, devices]) => (
                             <div key={topic} className={styles.deviceGroup}>
                                 <h3 className={styles.topicTitle}>{topic}</h3>
@@ -257,7 +273,8 @@ function SensorDashboard() {
                             </div>
                         ))}
 
-                        {hasSensorTopic && (
+            {/* Live chart for the last received SENSOR_TOPIC message */}
+            {Object.keys(sensorTopicDevices).length > 0 && (
                             <>
                                 <div className={styles.chartFilterRow}>
                                     <label className={styles.filterLabel}>
@@ -267,7 +284,7 @@ function SensorDashboard() {
                                             value={selectedDevice}
                                             onChange={e => setSelectedDevice(e.target.value)}
                                         >
-                                            {Object.keys(systemTopics[SENSOR_TOPIC] || {}).map(id => (
+                      {availableBaseIds.map(id => (
                                                 <option key={id} value={id}>{id}</option>
                                             ))}
                                         </select>
@@ -277,12 +294,13 @@ function SensorDashboard() {
                                 <div className={styles.deviceLabel}>{selectedDevice}</div>
 
                                 <div className={styles.spectrumBarChartWrapper}>
-                                    {/* فقط از sensorData که نرمالایز شده استفاده کن */}
+                  {/* Use flattened/normalized data only */}
                                     <SpectrumBarChart sensorData={sensorData}/>
                                 </div>
                             </>
                         )}
 
+            {/* Notes block built from mergedDevices */}
                         {(() => {
                             const bandMap = {
                                 F1: '415nm', F2: '445nm', F3: '480nm', F4: '515nm',
@@ -303,6 +321,7 @@ function SensorDashboard() {
                                         if (type) sensors.add(bandMap[type] || type);
                                     }
                                 }
+                // Skip meta/known fields if any show up
                                 for (const key of Object.keys(dev)) {
                                     if (key === 'health' || key === 'sensors') continue;
                                     if (metaFields.has(key)) continue;
@@ -360,12 +379,13 @@ function SensorDashboard() {
                                     <div className={styles.filterRow}>
                                         <label className={styles.filterLabel}>
                                             Device:
+                      {/* Options show base deviceIds (G01...), not composite */}
                                             <select
                                                 className={styles.intervalSelect}
                                                 value={selectedDevice}
                                                 onChange={e => setSelectedDevice(e.target.value)}
                                             >
-                                                {availableDevices.map(id => (
+                        {availableBaseIds.map(id => (
                                                     <option key={id} value={id}>{id}</option>
                                                 ))}
                                             </select>
