@@ -63,7 +63,7 @@ export function normalizeSensorData(data) {
                 }
 
                 default: {
-                    // Map nm wavelengths or clear/nir
+                    // Map nm wavelengths or additional spectral keys
                     const nmMatch = type?.match(/^(\d{3})nm$/);
                     if (nmMatch) {
                         const nmMap = {
@@ -71,8 +71,14 @@ export function normalizeSensorData(data) {
                             '555': 'F5', '590': 'F6', '630': 'F7', '680': 'F8',
                         };
                         const band = nmMap[nmMatch[1]];
-                        if (band) result[band] = val;
-                    } else if (type === 'clear' || type === 'nir') {
+                        if (band) {
+                            result[band] = val;
+                        } else {
+                            // Keep the raw wavelength key if not mapped
+                            result[`${nmMatch[1]}nm`] = val;
+                        }
+                    } else if (type === 'clear' || type === 'nir' ||
+                        type === 'VIS1' || type === 'VIS2' || type === 'NIR855') {
                         result[type] = val;
                     }
                     break;
@@ -113,6 +119,10 @@ export function transformAggregatedData(data) {
                     timestamp: ts,
                     F1: 0, F2: 0, F3: 0, F4: 0, F5: 0,
                     F6: 0, F7: 0, F8: 0, clear: 0, nir: 0,
+                    '405nm': 0, '425nm': 0, '450nm': 0, '475nm': 0,
+                    '515nm': 0, '550nm': 0, '555nm': 0, '600nm': 0,
+                    '640nm': 0, '690nm': 0, '745nm': 0,
+                    VIS1: 0, VIS2: 0, NIR855: 0,
                     temperature: {value: 0, unit: '°C'},
                     humidity: {value: 0, unit: '%'},
                     lux: {value: 0, unit: 'lux'},
@@ -183,6 +193,42 @@ export function transformAggregatedData(data) {
                     break;
                 case '680nm':
                     out.F8 = Number(val);
+                    break;
+                case '405nm':
+                    out['405nm'] = Number(val);
+                    break;
+                case '425nm':
+                    out['425nm'] = Number(val);
+                    break;
+                case '450nm':
+                    out['450nm'] = Number(val);
+                    break;
+                case '475nm':
+                    out['475nm'] = Number(val);
+                    break;
+                case '550nm':
+                    out['550nm'] = Number(val);
+                    break;
+                case '600nm':
+                    out['600nm'] = Number(val);
+                    break;
+                case '640nm':
+                    out['640nm'] = Number(val);
+                    break;
+                case '690nm':
+                    out['690nm'] = Number(val);
+                    break;
+                case '745nm':
+                    out['745nm'] = Number(val);
+                    break;
+                case 'VIS1':
+                    out.VIS1 = Number(val);
+                    break;
+                case 'VIS2':
+                    out.VIS2 = Number(val);
+                    break;
+                case 'NIR855':
+                    out.NIR855 = Number(val);
                     break;
                 case 'clear':
                     out.clear = Number(val);

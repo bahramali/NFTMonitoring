@@ -38,3 +38,20 @@ test('renders spectrum bar chart', () => {
 
   expect(container.firstChild).toBeInTheDocument();
 });
+
+test('renders spectrum bar chart for as7343 data', () => {
+    const data = {
+        '405nm': 1, '425nm': 2, '450nm': 3, '475nm': 4,
+        '515nm': 5, '550nm': 6, '555nm': 7, '600nm': 8,
+        '640nm': 9, '690nm': 10, '745nm': 11,
+        VIS1: 12, VIS2: 13, NIR855: 14,
+    };
+
+    const { container } = render(
+        <div style={{ width: 800, height: 400 }}>
+            <SpectrumBarChart sensorData={data} />
+        </div>
+    );
+
+    expect(container.firstChild).toBeInTheDocument();
+});

@@ -7,7 +7,7 @@ import idealRanges from '../idealRangeConfig';
 import palette from '../colorPalette';
 import spectralColors from '../spectralColors';
 
-const bandMeta = [
+const legacyBandMeta = [
     ['F1', 'F1 (400–430 nm)'],
     ['F2', 'F2 (430–460 nm)'],
     ['F3', 'F3 (460–500 nm)'],
@@ -20,7 +20,7 @@ const bandMeta = [
     ['nir', 'Near infrared'],
 ];
 
-const bandMap = {
+const legacyBandMap = {
     F1: '415nm',
     F2: '445nm',
     F3: '480nm',
@@ -31,23 +31,52 @@ const bandMap = {
     F8: '680nm',
 };
 
+const as7343BandMeta = [
+    ['405nm', '405 nm'],
+    ['425nm', '425 nm'],
+    ['450nm', '450 nm'],
+    ['475nm', '475 nm'],
+    ['515nm', '515 nm'],
+    ['550nm', '550 nm'],
+    ['555nm', '555 nm'],
+    ['600nm', '600 nm'],
+    ['640nm', '640 nm'],
+    ['690nm', '690 nm'],
+    ['745nm', '745 nm'],
+    ['VIS1', 'VIS1'],
+    ['VIS2', 'VIS2'],
+    ['NIR855', 'NIR855'],
+];
+
 function SpectrumBarChart({ sensorData }) {
     console.log('3- SPECTRUM DATA', sensorData);
+
+    const { bandMeta, bandMap } = useMemo(() => {
+        if (!sensorData) {
+            return { bandMeta: legacyBandMeta, bandMap: legacyBandMap };
+        }
+        const keys = Object.keys(sensorData);
+        const hasAs7343 = as7343BandMeta.some(([k]) => keys.includes(k));
+        return hasAs7343
+            ? { bandMeta: as7343BandMeta, bandMap: {} }
+            : { bandMeta: legacyBandMeta, bandMap: legacyBandMap };
+    }, [sensorData]);
+
     const data = useMemo(() => {
-    if (!sensorData) return [];
-    return bandMeta.map(([key, label], index) => {
-                const rangeKey = bandMap[key] || key;
-                const range = idealRanges[rangeKey]?.idealRange;
-                return {
-                    key,
-                    index,
-                    name: label,
-                    value: sensorData[key] || 0,
-                    min: range?.min,
-                    max: range?.max,
-                };
-    });
-}, [sensorData]);
+        if (!sensorData) return [];
+        return bandMeta.map(([key, label], index) => {
+            const rangeKey = bandMap[key] || key;
+            const range = idealRanges[rangeKey]?.idealRange;
+            return {
+                key,
+                index,
+                name: label,
+                value: sensorData[key] || 0,
+                min: range?.min,
+                max: range?.max,
+            };
+        });
+    }, [sensorData, bandMeta, bandMap]);
 
 
     return (
