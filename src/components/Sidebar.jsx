@@ -1,47 +1,42 @@
-import React, {useState} from "react";
-import {NavLink} from "react-router-dom";
+import React, { useState } from "react";
+import { NavLink } from "react-router-dom";
 import styles from "./Sidebar.module.css";
-import {useFilters, ALL} from "../context/FiltersContext";
+import { useFilters, ALL } from "../context/FiltersContext";
 
 export default function Sidebar() {
     const [collapsed, setCollapsed] = useState(false);
-    const [open, setOpen] = useState({topic: false, device: false, layer: false, system: false});
-    const {device, layer, system, topic, setDevice, setLayer, setSystem, setTopic, lists} = useFilters();
+    const { device, layer, system, topic, setDevice, setLayer, setSystem, setTopic, lists } = useFilters();
 
-    const linkClass = ({isActive}) =>
+    const linkClass = ({ isActive }) =>
         `${styles.menuItem} ${isActive ? styles.active : ""}`;
 
-    const caret = (isOpen) => (
-        <span className={`${styles.caret} ${isOpen ? styles.up : ""}`}/>
-    );
-
-    const Row = ({k, title, list, value, onChange}) => (
+    const CheckboxGroup = ({ title, list, value, onChange }) => (
         <div className={styles.filterGroup}>
-            <button
-                type="button"
-                className={styles.filterRow}
-                onClick={() => setOpen(o => ({...o, [k]: !o[k]}))}
-            >
-                {!collapsed && <span className={styles.filterLabel}>{title}</span>}
-                {caret(open[k])}
-            </button>
+            {!collapsed && <div className={styles.filterLabel}>{title}</div>}
 
-            {open[k] && !collapsed && (
+            {!collapsed && (
                 <div className={styles.dropdown}>
-                    <button
-                        className={`${styles.option} ${value === ALL ? styles.selected : ""}`}
-                        onClick={() => onChange(ALL)}
-                    >All
-                    </button>
+                    <label className={`${styles.option} ${value === ALL ? styles.selected : ""}`}>
+                        <input
+                            type="checkbox"
+                            checked={value === ALL}
+                            onChange={() => onChange(ALL)}
+                        />
+                        All
+                    </label>
 
-                    {list.map(item => (
-                        <button
+                    {list.map((item) => (
+                        <label
                             key={item}
                             className={`${styles.option} ${value === item ? styles.selected : ""}`}
-                            onClick={() => onChange(item)}
                         >
+                            <input
+                                type="checkbox"
+                                checked={value === item}
+                                onChange={() => onChange(value === item ? ALL : item)}
+                            />
                             {item}
-                        </button>
+                        </label>
                     ))}
                 </div>
             )}
@@ -86,14 +81,10 @@ export default function Sidebar() {
             <section className={styles.filters}>
                 {!collapsed && <div className={styles.filtersTitle}>Application filters</div>}
 
-                <Row k="topic" title={`Topic${topic !== ALL ? `: ${topic}` : ""}`}
-                     list={lists.topics} value={topic} onChange={setTopic}/>
-                <Row k="device" title={`Device${device !== ALL ? `: ${device}` : ""}`}
-                     list={lists.devices} value={device} onChange={setDevice}/>
-                <Row k="layer" title={`Layer${layer !== ALL ? `: ${layer}` : ""}`}
-                     list={lists.layers} value={layer} onChange={setLayer}/>
-                <Row k="system" title={`System${system !== ALL ? `: ${system}` : ""}`}
-                     list={lists.systems} value={system} onChange={setSystem}/>
+                <CheckboxGroup title="Topic" list={lists.topics} value={topic} onChange={setTopic} />
+                <CheckboxGroup title="Device" list={lists.devices} value={device} onChange={setDevice} />
+                <CheckboxGroup title="Layer" list={lists.layers} value={layer} onChange={setLayer} />
+                <CheckboxGroup title="System" list={lists.systems} value={system} onChange={setSystem} />
             </section>
         </aside>
     );
