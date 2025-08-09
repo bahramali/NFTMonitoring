@@ -1,16 +1,17 @@
 import React from 'react';
-import { Outlet } from '../compat/react-router-dom.jsx';
-import Sidebar from '../components/Sidebar.jsx';
+import { Outlet } from "react-router-dom";
+import Sidebar from "../components/Sidebar";
+import { FiltersProvider } from "../context/FiltersContext";
 
-function MainLayout() {
+export default function MainLayout() {
     return (
-        <div style={{ display: 'flex' }}>
+    <FiltersProvider>
+      <div style={{ display: "flex" }}>
             <Sidebar />
             <main style={{ flexGrow: 1 }}>
                 <Outlet />
             </main>
         </div>
+    </FiltersProvider>
     );
 }
-
-export default MainLayout;

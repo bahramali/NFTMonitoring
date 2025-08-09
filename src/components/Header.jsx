@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import styles from './Header.module.css';
 
-function Header({ system }) {
+function Header({system}) {
     const [now, setNow] = useState(() => new Date());
 
     useEffect(() => {
