@@ -15,8 +15,8 @@ vi.mock('../src/components/dashboard/useLiveDevices', () => ({
           G01: {
             deviceId: 'G01',
             sensors: [
-              { sensorName: 'as7343' },
-              { sensorName: 'sht3x' },
+              { sensorName: 'AS7343' },
+              { sensorName: 'SHT3x' },
             ],
           },
         },
@@ -65,7 +65,7 @@ vi.mock('../src/components/dashboard/VerticalTabs', () => ({
   ),
 }));
 
-test('shows charts for AS7343 and SHT31 sensors', () => {
+test('shows charts for AS7343 and SHT3x sensors (case-insensitive)', () => {
   render(<SensorDashboard />);
   // Switch to report tab
   fireEvent.click(screen.getByText('to-report'));
