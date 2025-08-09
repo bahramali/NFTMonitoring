@@ -1,10 +1,10 @@
 // SensorDashboard.jsx
-import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import SpectrumBarChart from "./SpectrumBarChart";
 import Header from "./Header";
 import DeviceTable from "./DeviceTable";
-import {transformAggregatedData} from "../utils";
 import {useLiveDevices} from "./dashboard/useLiveDevices";
+import {useHistory} from "./dashboard/useHistory";
 import styles from "./SensorDashboard.module.css";
 import idealRangeConfig from "../idealRangeConfig.js";
 import HistoricalBlueBandChart from "./HistoricalBlueBandChart";
@@ -36,23 +36,20 @@ function SensorDashboard() {
     const [fromDate, setFromDate] = useState(toLocalInputValue(new Date(now - 6 * 60 * 60 * 1000)));
     const [toDate, setToDate] = useState(toLocalInputValue(new Date(now)));
 
-    const [rangeData, setRangeData] = useState([]);
-    const [tempRangeData, setTempRangeData] = useState([]);
-    const [phRangeData, setPhRangeData] = useState([]);
-    const [ecTdsRangeData, setEcTdsRangeData] = useState([]);
-    const [doRangeData, setDoRangeData] = useState([]);
-
-    const [xDomain, setXDomain] = useState([now - 6 * 60 * 60 * 1000, now]);
-    const [startTime, setStartTime] = useState(xDomain[0]);
-    const [endTime, setEndTime] = useState(xDomain[1]);
-
     const [autoRefresh, setAutoRefresh] = useState(false);
     const [refreshInterval, setRefreshInterval] = useState(60000);
 
-    const endTimeRef = useRef(endTime);
-    const startTimeRef = useRef(startTime);
-  useEffect(() => { endTimeRef.current = endTime; }, [endTime]);
-  useEffect(() => { startTimeRef.current = startTime; }, [startTime]);
+    const {
+        rangeData,
+        tempRangeData,
+        phRangeData,
+        ecTdsRangeData,
+        doRangeData,
+        xDomain,
+        startTime,
+        endTime,
+        fetchReportData
+    } = useHistory(selectedDevice, fromDate, toDate, autoRefresh, refreshInterval);
 
   const systemTopics = deviceData[activeSystem] || {};
   const sensorTopicDevices = systemTopics[SENSOR_TOPIC] || {};
@@ -66,95 +63,12 @@ function SensorDashboard() {
 
   // mergedDevices and availableBaseIds are provided by useLiveDevices
 
-  // --- History (Report) fetching ---
-    const fetchReportData = useCallback(async () => {
-    if (!fromDate || !toDate || !selectedDevice) return;
-        try {
-            const fromIso = new Date(fromDate).toISOString();
-            const toIso = new Date(toDate).toISOString();
-            const url = `https://api.hydroleaf.se/api/sensors/history/aggregated?espId=${selectedDevice}&from=${fromIso}&to=${toIso}`;
-            const res = await fetch(url);
-            if (!res.ok) throw new Error("bad response");
-            const json = await res.json();
-            const entries = transformAggregatedData(json);
-            const processed = entries.map(d => ({
-                time: d.timestamp,
-                ...d,
-                lux: d.lux?.value ?? 0
-            }));
-            setRangeData(processed);
-            setTempRangeData(processed.map(d => ({
-                time: d.time,
-                temperature: d.temperature?.value ?? 0,
-                humidity: d.humidity?.value ?? 0
-            })));
-            setPhRangeData(processed.map(d => ({time: d.time, ph: d.ph?.value ?? 0})));
-            setEcTdsRangeData(processed.map(d => ({time: d.time, ec: d.ec?.value ?? 0, tds: d.tds?.value ?? 0})));
-            setDoRangeData(processed.map(d => ({time: d.time, do: d.do?.value ?? 0})));
-
-            const start = Date.parse(fromIso);
-            const end = Date.parse(toIso);
-            setXDomain([start, end]);
-            setStartTime(start);
-            setEndTime(end);
-        } catch (e) {
-            console.error("Failed to fetch history", e);
-        }
-    }, [fromDate, toDate, selectedDevice]);
-
-    const fetchNewData = useCallback(async () => {
-        try {
-            const fromIso = new Date(endTimeRef.current).toISOString();
-            const nowDate = new Date();
-            const toIso = nowDate.toISOString();
-            const url = `https://api.hydroleaf.se/api/sensors/history/aggregated?espId=${selectedDevice}&from=${fromIso}&to=${toIso}`;
-            const res = await fetch(url);
-            if (!res.ok) throw new Error("bad response");
-            const json = await res.json();
-            const entries = transformAggregatedData(json);
-            const processed = entries
-                .map(d => ({time: d.timestamp, ...d, lux: d.lux?.value ?? 0}))
-                .filter(d => d.time > endTimeRef.current);
-
-            if (processed.length) {
-                setRangeData(prev => [...prev, ...processed]);
-                setTempRangeData(prev => [...prev, ...processed.map(d => ({
-                    time: d.time,
-                    temperature: d.temperature?.value ?? 0,
-                    humidity: d.humidity?.value ?? 0
-                }))]);
-                setPhRangeData(prev => [...prev, ...processed.map(d => ({time: d.time, ph: d.ph?.value ?? 0}))]);
-                setEcTdsRangeData(prev => [...prev, ...processed.map(d => ({
-                    time: d.time,
-                    ec: d.ec?.value ?? 0,
-                    tds: d.tds?.value ?? 0
-                }))]);
-                setDoRangeData(prev => [...prev, ...processed.map(d => ({time: d.time, do: d.do?.value ?? 0}))]);
-            }
-            const newEnd = nowDate.getTime();
-            setToDate(toLocalInputValue(nowDate));
-            setXDomain([startTimeRef.current, newEnd]);
-            setEndTime(newEnd);
-        } catch (e) {
-            console.error("Failed to fetch history", e);
-        }
-    }, [selectedDevice]);
-
-    useEffect(() => {
-        fetchReportData();
-    }, [selectedDevice, fetchReportData]);
 
     const formatTime = (t) => {
         const d = new Date(t);
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
     };
 
-    useEffect(() => {
-        if (!autoRefresh) return;
-        fetchNewData();
-        const id = setInterval(fetchNewData, refreshInterval);
-        return () => clearInterval(id);
-    }, [autoRefresh, refreshInterval, fetchNewData]);
 
 
   // Figure out which report sections to show based on selected device's sensor types
