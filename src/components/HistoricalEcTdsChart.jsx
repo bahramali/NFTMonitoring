@@ -36,6 +36,8 @@ const HistoricalEcTdsChart = ({
             : `${d.getMonth() + 1}/${d.getDate()}`;
     };
 
+    const [selectedKeys, setSelectedKeys] = React.useState(['tds', 'ec']);
+
     const ecRange = idealRanges.ec?.idealRange;
     const tdsRange = idealRanges.tds?.idealRange;
 
@@ -65,75 +67,114 @@ const HistoricalEcTdsChart = ({
         return [min, max];
     }, [data, tdsRange]);
 
+    const toggleKey = (key) => {
+        setSelectedKeys(prev =>
+            prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+        );
+    };
+
+    const allSelected = selectedKeys.length === 2;
+    const toggleAll = () => {
+        setSelectedKeys(allSelected ? [] : ['tds', 'ec']);
+    };
+
     return (
-        <ResponsiveContainer width="100%" height={height} debounce={200}>
-            <LineChart
-                width={width}
-                height={height}
-                data={data}
-                margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
-                isAnimationActive={false}
-            >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                    dataKey="time"
-                    type="number"
-                    domain={xDomain}
-                    ticks={ticks}
-                    tickFormatter={tickFormatter}
-                    scale="time"
-                    tick={{ fontSize: 10 }}
-                />
-                <YAxis yAxisId="left" domain={tdsDomain} allowDataOverflow>
-                    <Label value="TDS (ppm)" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
-                </YAxis>
-                <YAxis yAxisId="right" orientation="right" domain={ecDomain} allowDataOverflow>
-                    <Label value="EC (mS/cm)" angle={-90} position="insideRight" style={{ textAnchor: 'middle' }} />
-                </YAxis>
-                {tdsRange && (
-                    <ReferenceArea
-                        yAxisId="left"
-                        y1={tdsRange.min}
-                        y2={tdsRange.max}
-                        x1={start}
-                        x2={end}
-                        fill={palette[0]}
-                        fillOpacity={0.1}
-                        stroke="none"
-                    />
-                )}
-                {ecRange && (
-                    <ReferenceArea
-                        yAxisId="right"
-                        y1={ecRange.min}
-                        y2={ecRange.max}
-                        x1={start}
-                        x2={end}
-                        fill={palette[5]}
-                        fillOpacity={0.1}
-                        stroke="none"
-                    />
-                )}
-                <Tooltip />
-                <Legend />
-                <Line
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="tds"
-                    stroke={palette[0]}
-                    dot={false}
+        <div>
+            <ResponsiveContainer width="100%" height={height} debounce={200}>
+                <LineChart
+                    width={width}
+                    height={height}
+                    data={data}
+                    margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
                     isAnimationActive={false}
-                />
-                <Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="ec"
-                    stroke={palette[5]}
-                    dot={false}
-                    isAnimationActive={false}
-                />
-            </LineChart>
-        </ResponsiveContainer>
+                >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                        dataKey="time"
+                        type="number"
+                        domain={xDomain}
+                        ticks={ticks}
+                        tickFormatter={tickFormatter}
+                        scale="time"
+                        tick={{ fontSize: 10 }}
+                    />
+                    <YAxis yAxisId="left" domain={tdsDomain} allowDataOverflow>
+                        <Label value="TDS (ppm)" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
+                    </YAxis>
+                    <YAxis yAxisId="right" orientation="right" domain={ecDomain} allowDataOverflow>
+                        <Label value="EC (mS/cm)" angle={-90} position="insideRight" style={{ textAnchor: 'middle' }} />
+                    </YAxis>
+                    {tdsRange && (
+                        <ReferenceArea
+                            yAxisId="left"
+                            y1={tdsRange.min}
+                            y2={tdsRange.max}
+                            x1={start}
+                            x2={end}
+                            fill={palette[0]}
+                            fillOpacity={0.1}
+                            stroke="none"
+                        />
+                    )}
+                    {ecRange && (
+                        <ReferenceArea
+                            yAxisId="right"
+                            y1={ecRange.min}
+                            y2={ecRange.max}
+                            x1={start}
+                            x2={end}
+                            fill={palette[5]}
+                            fillOpacity={0.1}
+                            stroke="none"
+                        />
+                    )}
+                    <Tooltip />
+                    <Legend />
+                    {selectedKeys.includes('tds') && (
+                        <Line
+                            yAxisId="left"
+                            type="monotone"
+                            dataKey="tds"
+                            stroke={palette[0]}
+                            dot={false}
+                            isAnimationActive={false}
+                        />
+                    )}
+                    {selectedKeys.includes('ec') && (
+                        <Line
+                            yAxisId="right"
+                            type="monotone"
+                            dataKey="ec"
+                            stroke={palette[5]}
+                            dot={false}
+                            isAnimationActive={false}
+                        />
+                    )}
+                </LineChart>
+            </ResponsiveContainer>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <input
+                        type="checkbox"
+                        checked={selectedKeys.includes('tds')}
+                        onChange={() => toggleKey('tds')}
+                    />
+                    TDS
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <input
+                        type="checkbox"
+                        checked={selectedKeys.includes('ec')}
+                        onChange={() => toggleKey('ec')}
+                    />
+                    EC
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+                    All
+                </label>
+            </div>
+        </div>
     );
 };
 
