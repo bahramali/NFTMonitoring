@@ -130,24 +130,19 @@ function SensorDashboard() {
         return sensors.map((s) => s.type || s.valueType);
     }, [sensorTopicDevices, selectedDevice]);
 
-    const showTempHum =
-        sensorTypesForSelected.includes("temperature") ||
-        sensorTypesForSelected.includes("humidity");
-    const showBlue =
-        sensorTypesForSelected.includes("colorSpectrum") ||
-        ["F1", "F2", "F3", "F4", "415nm", "445nm", "480nm", "515nm"].some((t) =>
-            sensorTypesForSelected.includes(t)
+    const sensorNamesForSelected = useMemo(() => {
+        const match = Object.values(sensorTopicDevices).find(
+            (d) => d?.deviceId === selectedDevice
         );
-    const showRed =
-        sensorTypesForSelected.includes("colorSpectrum") ||
-        ["F5", "F6", "F7", "F8", "555nm", "590nm", "630nm", "680nm", "nir"].some(
-            (t) => sensorTypesForSelected.includes(t)
-        );
+        const sensors = match?.sensors || [];
+        return sensors.map((s) => s.sensorName || s.source || "-");
+    }, [sensorTopicDevices, selectedDevice]);
+
+    const showTempHum = sensorNamesForSelected.includes("sht3x");
+    const showSpectrum = sensorNamesForSelected.includes("as7343");
     const showClearLux =
-        sensorTypesForSelected.includes("light") ||
-        sensorTypesForSelected.includes("lux") ||
-        sensorTypesForSelected.includes("clear") ||
-        sensorTypesForSelected.includes("colorSpectrum");
+        sensorNamesForSelected.includes("veml7700") ||
+        sensorNamesForSelected.includes("as7343");
     const showPh = sensorTypesForSelected.includes("ph");
     const showEcTds =
         sensorTypesForSelected.includes("ec") ||
@@ -155,7 +150,7 @@ function SensorDashboard() {
     const showDo =
         sensorTypesForSelected.includes("do") ||
         sensorTypesForSelected.includes("dissolvedOxygen");
-    const showAnyReport = showTempHum || showBlue || showRed || showClearLux || showPh || showEcTds || showDo;
+    const showAnyReport = showTempHum || showSpectrum || showClearLux || showPh || showEcTds || showDo;
 
 
     return (
@@ -237,8 +232,7 @@ function SensorDashboard() {
 
                                 <ReportCharts
                                     showTempHum={showTempHum}
-                                    showBlue={showBlue}
-                                    showRed={showRed}
+                                    showSpectrum={showSpectrum}
                                     showClearLux={showClearLux}
                                     showPh={showPh}
                                     showEcTds={showEcTds}

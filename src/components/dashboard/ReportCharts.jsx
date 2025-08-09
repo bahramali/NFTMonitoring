@@ -1,6 +1,5 @@
 import React from 'react';
-import HistoricalBlueBandChart from '../HistoricalBlueBandChart';
-import HistoricalRedBandChart from '../HistoricalRedBandChart';
+import HistoricalMultiBandChart from '../HistoricalMultiBandChart';
 import HistoricalClearLuxChart from '../HistoricalClearLuxChart';
 import HistoricalPhChart from '../HistoricalPhChart';
 import HistoricalEcTdsChart from '../HistoricalEcTdsChart';
@@ -10,8 +9,7 @@ import styles from '../SensorDashboard.module.css';
 
 function ReportCharts({
   showTempHum,
-  showBlue,
-  showRed,
+  showSpectrum,
   showClearLux,
   showPh,
   showEcTds,
@@ -25,45 +23,40 @@ function ReportCharts({
 }) {
   return (
     <>
-      {(showTempHum || showBlue) && (
+      {showTempHum && (
         <div className={styles.historyChartsRow}>
-          {showTempHum && (
-            <div className={styles.historyChartColumn}>
-              <h3 className={styles.sectionTitle}>Temperature</h3>
-              <div className={styles.dailyTempChartWrapper}>
-                <HistoricalTemperatureChart data={tempRangeData} xDomain={xDomain} />
-              </div>
+          <div className={styles.historyChartColumn}>
+            <h3 className={styles.sectionTitle}>Temperature</h3>
+            <div className={styles.dailyTempChartWrapper}>
+              <HistoricalTemperatureChart data={tempRangeData} xDomain={xDomain} />
             </div>
-          )}
-          {showBlue && (
-            <div className={styles.historyChartColumn}>
-              <h3 className={styles.sectionTitle}>Blue Bands</h3>
-              <div className={styles.blueBandChartWrapper}>
-                <HistoricalBlueBandChart data={rangeData} xDomain={xDomain} />
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       )}
 
-      {(showRed || showClearLux) && (
+      {showSpectrum && (
         <div className={styles.historyChartsRow}>
-          {showRed && (
-            <div className={styles.historyChartColumn}>
-              <h3 className={styles.sectionTitle}>Red Bands</h3>
-              <div className={styles.redBandChartWrapper}>
-                <HistoricalRedBandChart data={rangeData} xDomain={xDomain} />
-              </div>
+          <div className={styles.historyChartColumn}>
+            <h3 className={styles.sectionTitle}>Spectrum</h3>
+            <div className={styles.multiBandChartWrapper}>
+              <HistoricalMultiBandChart
+                data={rangeData}
+                xDomain={xDomain}
+                bandKeys={['405nm','425nm','450nm','475nm','F4','550nm','555nm','600nm','640nm','690nm','745nm','VIS1','VIS2','NIR855']}
+              />
             </div>
-          )}
-          {showClearLux && (
-            <div className={styles.historyChartColumn}>
-              <h3 className={styles.sectionTitle}>Lux_Clear</h3>
-              <div className={styles.clearLuxChartWrapper}>
-                <HistoricalClearLuxChart data={rangeData} xDomain={xDomain} />
-              </div>
+          </div>
+        </div>
+      )}
+
+      {showClearLux && (
+        <div className={styles.historyChartsRow}>
+          <div className={styles.historyChartColumn}>
+            <h3 className={styles.sectionTitle}>Lux_Clear</h3>
+            <div className={styles.clearLuxChartWrapper}>
+              <HistoricalClearLuxChart data={rangeData} xDomain={xDomain} />
             </div>
-          )}
+          </div>
         </div>
       )}
 

@@ -127,6 +127,7 @@ const HistoricalMultiBandChart = ({
                         key={key}
                         type="monotone"
                         dataKey={key}
+                        name={bandMap[key] || key}
                         stroke={spectralColors[key]}
                         dot={({ payload }) =>
                             payload[`${key}Out`] ? <circle r={3} fill="red" /> : null
