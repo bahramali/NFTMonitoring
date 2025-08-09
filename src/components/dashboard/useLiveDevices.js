@@ -1,8 +1,7 @@
 import {useCallback, useMemo, useState} from "react";
 import {filterNoise, normalizeSensorData} from "../../utils";
 import {useStomp} from "../../hooks/useStomp";
-
-const SENSOR_TOPIC = "growSensors";
+import {SENSOR_TOPIC} from "./dashboard.constants";
 
 export function useLiveDevices(topics, activeSystem) {
     const [deviceData, setDeviceData] = useState({});

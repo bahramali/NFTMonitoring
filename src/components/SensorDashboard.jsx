@@ -11,16 +11,8 @@ import TopicSection from "./dashboard/TopicSection";
 import ReportControls from "./dashboard/ReportControls";
 import ReportCharts from "./dashboard/ReportCharts";
 import NotesBlock from "./dashboard/NotesBlock";
-
-const SENSOR_TOPIC = "growSensors";
-const topics = [SENSOR_TOPIC, "rootImages", "waterOutput", "waterTank"];
-
-// Format date for <input type="datetime-local">
-function toLocalInputValue(date) {
-    const tz = date.getTimezoneOffset() * 60000;
-    const local = new Date(date.getTime() - tz);
-    return local.toISOString().slice(0, 16);
-}
+import {SENSOR_TOPIC, topics} from "./dashboard/dashboard.constants";
+import {toLocalInputValue, formatTime} from "./dashboard/dashboard.utils";
 
 function SensorDashboard() {
     const [activeSystem, setActiveSystem] = useState("S01");
@@ -59,14 +51,6 @@ function SensorDashboard() {
   }, [availableBaseIds, selectedDevice]);
 
   // mergedDevices and availableBaseIds are provided by useLiveDevices
-
-
-    const formatTime = (t) => {
-        const d = new Date(t);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-    };
-
-
 
   // Figure out which report sections to show based on selected device's sensor types
     const sensorTypesForSelected = useMemo(() => {
