@@ -1,4 +1,4 @@
-.sidebar { height: 100vh; width: 240px; background:#0f1a2b; color:#e8edf6; display:flex; flex-direction:column; transition:width .25s; box-shadow: inset -1px 0 0 #1c2a40; }
+.sidebar { height: 100%; min-height: 100vh; width: 240px; background:#0f1a2b; color:#e8edf6; display:flex; flex-direction:column; transition:width .25s; box-shadow: inset -1px 0 0 #1c2a40; }
 .collapsed { width: 72px; }
 
 /* header */
