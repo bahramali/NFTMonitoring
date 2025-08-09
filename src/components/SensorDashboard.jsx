@@ -141,7 +141,7 @@ function SensorDashboard() {
             (d) => d?.deviceId === selectedDevice
         );
         const sensors = match?.sensors || [];
-        return sensors.map((s) => s.type || s.valueType);
+        return sensors.map((s) => (s.type || s.valueType || '').toLowerCase());
     }, [sensorTopicDevices, selectedDevice]);
 
     const sensorNamesForSelected = useMemo(() => {
@@ -149,7 +149,7 @@ function SensorDashboard() {
             (d) => d?.deviceId === selectedDevice
         );
         const sensors = match?.sensors || [];
-        return sensors.map((s) => s.sensorName || s.source || "-");
+        return sensors.map((s) => (s.sensorName || s.source || '-').toLowerCase());
     }, [sensorTopicDevices, selectedDevice]);
 
     const showTempHum = sensorNamesForSelected.includes("sht3x");
@@ -169,7 +169,7 @@ function SensorDashboard() {
         sensorTypesForSelected.includes("tds");
     const showDo =
         sensorTypesForSelected.includes("do") ||
-        sensorTypesForSelected.includes("dissolvedOxygen");
+        sensorTypesForSelected.includes("dissolvedoxygen");
     const showAnyReport = showTempHum || showSpectrum || showClearLux || showPh || showEcTds || showDo;
 
 
