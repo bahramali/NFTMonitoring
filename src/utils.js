@@ -16,7 +16,7 @@ export function filterNoise(data) {
 function normalizeHealth(health = {}) {
     const normalized = {};
     for (const key in health) {
-        const base = key.split('-')[0];
+        const base = key.split('-')[0].toLowerCase();
         normalized[base] = health[key] === true || health[key] === 'true' || health[key] === 1;
     }
     return normalized;

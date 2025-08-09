@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import DeviceTable from '../src/components/DeviceTable';
+import styles from '../src/components/DeviceTable.module.css';
 
 const devices = {
   dev1: {
@@ -56,4 +57,18 @@ test('applies spectral background color to 415nm row', () => {
   const { getByText } = render(<DeviceTable devices={devices} />);
   const spectralCell = getByText('415nm');
   expect(spectralCell).toHaveStyle({ backgroundColor: '#8a2be222' });
+});
+
+test('shows green indicator when health keys are lowercase', () => {
+  const devicesLower = {
+    dev1: {
+      sensors: [
+        { sensorName: 'SHT3x', valueType: 'temperature', value: 22.5, unit: '°C' }
+      ],
+      health: { sht3x: true }
+    }
+  };
+  const { container } = render(<DeviceTable devices={devicesLower} />);
+  const indicator = container.querySelector(`.${styles.indicator}`);
+  expect(indicator).toHaveClass(styles.on);
 });

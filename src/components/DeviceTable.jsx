@@ -65,7 +65,9 @@ function DeviceTable({devices = {}}) {
             const value = s?.value;
             const unit = s?.unit || '';
             const display = (value === undefined || value === null) ? '-' : `${typeof value === 'number' ? value.toFixed(1) : value}${unit ? ` ${unit}` : ''}`;
-            const ok = devices[id].health?.[s?.sensorName] ?? false;
+            const health = devices[id].health || {};
+            const sensorKey = s?.sensorName?.toLowerCase();
+            const ok = health[sensorKey] ?? health[s?.sensorName] ?? false;
             const color = getCellColor(value, range);
             return {display, ok, color};
         });
