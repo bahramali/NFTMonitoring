@@ -43,9 +43,8 @@ export function useLiveDevices(topics, activeSystem) {
 
     useStomp(topics, handleStompMessage);
 
-    const sysData = deviceData[activeSystem] || {};
-
     const availableBaseIds = useMemo(() => {
+        const sysData = deviceData[activeSystem] || {};
         const ids = new Set();
         for (const topicDevices of Object.values(sysData)) {
             for (const d of Object.values(topicDevices)) {
@@ -53,7 +52,7 @@ export function useLiveDevices(topics, activeSystem) {
             }
         }
         return Array.from(ids);
-    }, [sysData]);
+    }, [deviceData, activeSystem]);
 
     const mergedDevices = useMemo(() => {
         const sysData = deviceData[activeSystem] || {};

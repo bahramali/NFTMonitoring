@@ -53,9 +53,9 @@ function SensorDashboard() {
     fetchReportData,
   } = useHistory(selectedDevice, fromDate, toDate, autoRefresh, refreshInterval);
 
-    // Topics for the currently active system
-  const systemTopics = deviceData[activeSystem] || {};
-  const sensorTopicDevices = systemTopics[SENSOR_TOPIC] || {};
+    // Topics for the currently active system across all topic streams
+  const activeSystemTopics = deviceData[activeSystem] || {};
+  const sensorTopicDevices = activeSystemTopics[SENSOR_TOPIC] || {};
 
   // ──────────────────────────────
     // 1) Build metadata: baseDeviceId -> { system, layer, topics: [] }
@@ -117,7 +117,7 @@ function SensorDashboard() {
     // 5) Filter topics for live tables based on filtered devices
     const filteredSystemTopics = useMemo(() => {
         const out = {};
-        for (const [topic, devs] of Object.entries(systemTopics || {})) {
+        for (const [topic, devs] of Object.entries(activeSystemTopics || {})) {
             if (topicFilter !== ALL && topic !== topicFilter) continue;
             out[topic] = Object.fromEntries(
                 Object.entries(devs || {}).filter(([, payload]) =>
@@ -126,7 +126,7 @@ function SensorDashboard() {
             );
         }
         return out;
-    }, [systemTopics, filteredBaseIds, topicFilter]);
+    }, [activeSystemTopics, filteredBaseIds, topicFilter]);
 
     // 6) Ensure selectedDevice remains valid after filters change
     useEffect(() => {
