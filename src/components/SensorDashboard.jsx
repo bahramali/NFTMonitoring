@@ -36,6 +36,7 @@ function SensorDashboard() {
     device: devFilter,
     layer: layerFilter,
     system: sysFilter,
+    topic: topicFilter,
     setLists,
   } = useFilters();
 
@@ -57,20 +58,26 @@ function SensorDashboard() {
   const sensorTopicDevices = systemTopics[SENSOR_TOPIC] || {};
 
   // ──────────────────────────────
-    // 1) Build metadata: baseDeviceId -> { system, layer }
+    // 1) Build metadata: baseDeviceId -> { system, layer, topics: [] }
     const deviceMeta = useMemo(() => {
         const map = {};
         for (const [sysId, topicsObj] of Object.entries(deviceData || {})) {
-            for (const devs of Object.values(topicsObj || {})) {
-        for (const [, payload] of Object.entries(devs || {})) {
+            for (const [topicKey, devs] of Object.entries(topicsObj || {})) {
+                for (const [, payload] of Object.entries(devs || {})) {
                     const baseId = payload?.deviceId;
                     if (!baseId) continue;
                     const layer = payload?.location?.layer || payload?.location || null;
-                    map[baseId] = { system: sysId, layer };
+                    if (!map[baseId]) {
+                        map[baseId] = { system: sysId, layer, topics: new Set([topicKey]) };
+                    } else {
+                        map[baseId].topics.add(topicKey);
+                    }
                 }
             }
         }
-        return map;
+        return Object.fromEntries(
+            Object.entries(map).map(([id, m]) => [id, { system: m.system, layer: m.layer, topics: Array.from(m.topics) }])
+        );
     }, [deviceData]);
 
     // 2) Populate sidebar lists (Device / Layer / System)
@@ -80,7 +87,12 @@ function SensorDashboard() {
             new Set(Object.values(deviceMeta).map((m) => m.layer).filter(Boolean))
         );
         const systems = Object.keys(deviceData || {});
-        setLists({ devices, layers, systems });
+        const topicsList = Array.from(
+            new Set(
+                Object.values(deviceData || {}).flatMap((sys) => Object.keys(sys || {}))
+            )
+        );
+        setLists({ devices, layers, systems, topics: topicsList });
     }, [deviceMeta, deviceData, setLists]);
 
     // 3) Keep activeSystem in sync with the System filter
@@ -97,14 +109,16 @@ function SensorDashboard() {
             const okDev = devFilter === ALL || id === devFilter;
             const okLay = layerFilter === ALL || meta.layer === layerFilter;
             const okSys = sysFilter === ALL || meta.system === sysFilter;
-            return okDev && okLay && okSys;
+            const okTopic = topicFilter === ALL || (meta.topics || []).includes(topicFilter);
+            return okDev && okLay && okSys && okTopic;
         });
-    }, [availableBaseIds, deviceMeta, devFilter, layerFilter, sysFilter]);
+    }, [availableBaseIds, deviceMeta, devFilter, layerFilter, sysFilter, topicFilter]);
 
     // 5) Filter topics for live tables based on filtered devices
     const filteredSystemTopics = useMemo(() => {
         const out = {};
         for (const [topic, devs] of Object.entries(systemTopics || {})) {
+            if (topicFilter !== ALL && topic !== topicFilter) continue;
             out[topic] = Object.fromEntries(
                 Object.entries(devs || {}).filter(([, payload]) =>
                     filteredBaseIds.includes(payload?.deviceId)
@@ -112,7 +126,7 @@ function SensorDashboard() {
             );
         }
         return out;
-    }, [systemTopics, filteredBaseIds]);
+    }, [systemTopics, filteredBaseIds, topicFilter]);
 
     // 6) Ensure selectedDevice remains valid after filters change
     useEffect(() => {

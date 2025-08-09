@@ -9,18 +9,20 @@ export function FiltersProvider({ children, initialLists }) {
     const [device, setDevice] = useState(ALL);
     const [layer, setLayer]   = useState(ALL);
     const [system, setSystem] = useState(ALL);
+    const [topic, setTopic] = useState(ALL);
 
     const [lists, setLists] = useState({
         devices: initialLists?.devices ?? [],
         layers:  initialLists?.layers ?? [],
         systems: initialLists?.systems ?? [],
+        topics:  initialLists?.topics ?? [],
     });
 
     const value = useMemo(() => ({
-    ALL, device, layer, system,
-    setDevice, setLayer, setSystem,
+    ALL, device, layer, system, topic,
+    setDevice, setLayer, setSystem, setTopic,
     lists, setLists,
-    }), [device, layer, system, lists]);
+    }), [device, layer, system, topic, lists]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
