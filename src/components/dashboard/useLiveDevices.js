@@ -43,14 +43,17 @@ export function useLiveDevices(topics, activeSystem) {
 
     useStomp(topics, handleStompMessage);
 
-    const sensorTopicDevices = (deviceData[activeSystem] || {})[SENSOR_TOPIC] || {};
+    const sysData = deviceData[activeSystem] || {};
 
     const availableBaseIds = useMemo(() => {
-        const ids = new Set(
-            Object.values(sensorTopicDevices).map(d => d?.deviceId || "unknown")
-        );
+        const ids = new Set();
+        for (const topicDevices of Object.values(sysData)) {
+            for (const d of Object.values(topicDevices)) {
+                ids.add(d?.deviceId || "unknown");
+            }
+        }
         return Array.from(ids);
-    }, [sensorTopicDevices]);
+    }, [sysData]);
 
     const mergedDevices = useMemo(() => {
         const sysData = deviceData[activeSystem] || {};

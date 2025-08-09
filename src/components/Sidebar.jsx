@@ -5,8 +5,8 @@ import {useFilters, ALL} from "../context/FiltersContext";
 
 export default function Sidebar() {
     const [collapsed, setCollapsed] = useState(false);
-    const [open, setOpen] = useState({device: false, layer: false, system: false});
-    const {device, layer, system, setDevice, setLayer, setSystem, lists} = useFilters();
+    const [open, setOpen] = useState({topic: false, device: false, layer: false, system: false});
+    const {device, layer, system, topic, setDevice, setLayer, setSystem, setTopic, lists} = useFilters();
 
     const linkClass = ({isActive}) =>
         `${styles.menuItem} ${isActive ? styles.active : ""}`;
@@ -86,6 +86,8 @@ export default function Sidebar() {
             <section className={styles.filters}>
                 {!collapsed && <div className={styles.filtersTitle}>Application filters</div>}
 
+                <Row k="topic" title={`Topic${topic !== ALL ? `: ${topic}` : ""}`}
+                     list={lists.topics} value={topic} onChange={setTopic}/>
                 <Row k="device" title={`Device${device !== ALL ? `: ${device}` : ""}`}
                      list={lists.devices} value={device} onChange={setDevice}/>
                 <Row k="layer" title={`Layer${layer !== ALL ? `: ${layer}` : ""}`}
