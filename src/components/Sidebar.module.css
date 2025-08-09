@@ -22,14 +22,11 @@
 .filters { padding:6px 8px 14px; display:flex; flex-direction:column; gap:10px; }
 .filtersTitle { font-size:12px; color:#9ab0ce; margin:4px 6px; user-select:none; }
 .filterGroup { display:flex; flex-direction:column; gap:6px; }
-.filterRow { display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,.04); border:1px solid #24324a; border-radius:8px; padding:9px 12px; color:#e8edf6; cursor:pointer; }
-.caret { width:0; height:0; border-left:6px solid transparent; border-right:6px solid transparent; border-top:7px solid #90a4c7; transition: transform .2s; }
-.up { transform: rotate(180deg); }
 .dropdown { display:flex; flex-direction:column; background:#0f1a2b; border:1px solid #24324a; border-radius:8px; overflow:hidden; }
-.option { text-align:left; padding:8px 12px; color:#e8edf6; background:transparent; border:0; cursor:pointer; }
+.option { text-align:left; padding:8px 12px; color:#e8edf6; background:transparent; border:0; cursor:pointer; display:flex; align-items:center; gap:8px; }
 .option:hover { background:#1c2a40; }
 .selected { background:#1c2a40; }
 
 /* collapsed */
 .collapsed .brand, .collapsed .text, .collapsed .filtersTitle { display:none; }
-.collapsed .menuItem, .collapsed .filterRow { justify-content:center; padding:10px; }
+.collapsed .menuItem { justify-content:center; padding:10px; }
