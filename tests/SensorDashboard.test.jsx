@@ -1,0 +1,78 @@
+import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { vi } from 'vitest';
+vi.mock('../src/components/dashboard/ReportCharts', () => ({
+  default: vi.fn(() => <div>ReportCharts</div>),
+}));
+import SensorDashboard from '../src/components/SensorDashboard';
+import ReportCharts from '../src/components/dashboard/ReportCharts';
+
+vi.mock('../src/components/dashboard/useLiveDevices', () => ({
+  useLiveDevices: () => ({
+    deviceData: {
+      S01: {
+        growSensors: {
+          G01: {
+            deviceId: 'G01',
+            sensors: [
+              { sensorName: 'as7343' },
+              { sensorName: 'sht3x' },
+            ],
+          },
+        },
+      },
+    },
+    sensorData: {},
+    availableBaseIds: ['G01'],
+    mergedDevices: {},
+  }),
+}));
+
+vi.mock('../src/components/dashboard/useHistory', () => ({
+  useHistory: () => ({
+    rangeData: [],
+    tempRangeData: [],
+    phRangeData: [],
+    ecTdsRangeData: [],
+    doRangeData: [],
+    xDomain: [],
+    startTime: 0,
+    endTime: 0,
+    fetchReportData: vi.fn(),
+  }),
+}));
+
+vi.mock('../src/context/FiltersContext', () => ({
+  useFilters: () => ({
+    device: 'ALL',
+    layer: 'ALL',
+    system: 'ALL',
+    topic: 'ALL',
+    setLists: vi.fn(),
+  }),
+  ALL: 'ALL',
+}));
+
+vi.mock('../src/components/SpectrumBarChart', () => ({ default: () => <div>SpectrumBarChart</div> }));
+vi.mock('../src/components/Header', () => ({ default: () => <div>Header</div> }));
+vi.mock('../src/components/dashboard/SystemTabs', () => ({ default: () => <div>SystemTabs</div> }));
+vi.mock('../src/components/dashboard/TopicSection', () => ({ default: () => <div>TopicSection</div> }));
+vi.mock('../src/components/dashboard/ReportControls', () => ({ default: () => <div>ReportControls</div> }));
+vi.mock('../src/components/dashboard/NotesBlock', () => ({ default: () => <div>NotesBlock</div> }));
+vi.mock('../src/components/dashboard/VerticalTabs', () => ({
+  default: ({ onChange }) => (
+    <button onClick={() => onChange('report')}>to-report</button>
+  ),
+}));
+
+test('shows charts for AS7343 and SHT31 sensors', () => {
+  render(<SensorDashboard />);
+  // Switch to report tab
+  fireEvent.click(screen.getByText('to-report'));
+  expect(screen.queryByText('No reports available for this device.')).toBeNull();
+  expect(ReportCharts).toHaveBeenCalled();
+  const props = ReportCharts.mock.calls[0][0];
+  expect(props.showSpectrum).toBe(true);
+  expect(props.showClearLux).toBe(true);
+  expect(props.showTempHum).toBe(true);
+});

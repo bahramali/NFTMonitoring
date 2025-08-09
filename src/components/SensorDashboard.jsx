@@ -153,10 +153,16 @@ function SensorDashboard() {
     }, [sensorTopicDevices, selectedDevice]);
 
     const showTempHum = sensorNamesForSelected.includes("sht3x");
-    const showSpectrum = sensorNamesForSelected.includes("as7343");
+    // AS7343 sensor provides spectrum data and clear lux readings. Some
+    // deployments still report the older AS7341 sensor name, so support
+    // both to ensure reports display when either sensor is present.
+    const hasAs734x =
+        sensorNamesForSelected.includes("as7343") ||
+        sensorNamesForSelected.includes("as7341");
+    const showSpectrum = hasAs734x;
     const showClearLux =
         sensorNamesForSelected.includes("veml7700") ||
-        sensorNamesForSelected.includes("as7343");
+        hasAs734x;
     const showPh = sensorTypesForSelected.includes("ph");
     const showEcTds =
         sensorTypesForSelected.includes("ec") ||
