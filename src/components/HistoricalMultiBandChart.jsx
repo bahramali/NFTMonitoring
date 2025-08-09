@@ -37,6 +37,8 @@ const HistoricalMultiBandChart = ({
     yDomain,
     bandKeys = defaultBandKeys,
 }) => {
+    const [selectedBands, setSelectedBands] = React.useState(bandKeys);
+
     const processedData = React.useMemo(() => {
         return (data || []).map(entry => {
             const result = { ...entry };
@@ -56,7 +58,7 @@ const HistoricalMultiBandChart = ({
     const computedMax = React.useMemo(() => {
         let maxVal = 0;
         for (const entry of processedData) {
-            for (const key of bandKeys) {
+            for (const key of selectedBands) {
                 const v = Number(entry[key]);
                 if (v > maxVal) {
                     maxVal = v;
@@ -64,7 +66,7 @@ const HistoricalMultiBandChart = ({
             }
         }
         return maxVal || 1;
-    }, [processedData, bandKeys]);
+    }, [processedData, selectedBands]);
     const actualYDomain = yDomain || [0, computedMax];
     const start = xDomain[0];
     const end = xDomain[1];
@@ -81,62 +83,91 @@ const HistoricalMultiBandChart = ({
             ? `${String(d.getHours()).padStart(2, '0')}`
             : `${d.getMonth() + 1}/${d.getDate()}`;
     };
+    const toggleBand = (key) => {
+        setSelectedBands(prev =>
+            prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+        );
+    };
+
+    const allSelected = selectedBands.length === bandKeys.length;
+    const toggleAll = () => {
+        setSelectedBands(allSelected ? [] : bandKeys);
+    };
+
     return (
-        <ResponsiveContainer width="100%" height={height} debounce={200}>
-            <LineChart
-                width={width}
-                height={height}
-                data={processedData}
-                margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
-                isAnimationActive={false}
-            >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                    dataKey="time"
-                    type="number"
-                    domain={xDomain}
-                    ticks={ticks}
-                    tickFormatter={tickFormatter}
-                    scale="time"
-                    tick={{ fontSize: 10 }}
-                />
-                <YAxis domain={actualYDomain} allowDataOverflow>
-                    <Label value="Spectrum Value" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
-                </YAxis>
-                {bandKeys.map(key => {
-                    const range = idealRanges[key]?.idealRange;
-                    return (
-                        range && (
-                            <ReferenceArea
-                                key={`range-${key}`}
-                                y1={range.min}
-                                y2={range.max}
-                                x1={start}
-                                x2={end}
-                                fill={spectralColors[key]}
-                                fillOpacity={0.1}
-                                stroke="none"
-                            />
-                        )
-                    );
-                })}
-                <Tooltip />
-                <Legend />
-                {bandKeys.map(key => (
-                    <Line
-                        key={key}
-                        type="monotone"
-                        dataKey={key}
-                        name={bandMap[key] || key}
-                        stroke={spectralColors[key]}
-                        dot={({ payload }) =>
-                            payload[`${key}Out`] ? <circle r={3} fill="red" /> : null
-                        }
-                        isAnimationActive={false}
+        <div>
+            <ResponsiveContainer width="100%" height={height} debounce={200}>
+                <LineChart
+                    width={width}
+                    height={height}
+                    data={processedData}
+                    margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
+                    isAnimationActive={false}
+                >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                        dataKey="time"
+                        type="number"
+                        domain={xDomain}
+                        ticks={ticks}
+                        tickFormatter={tickFormatter}
+                        scale="time"
+                        tick={{ fontSize: 10 }}
                     />
+                    <YAxis domain={actualYDomain} allowDataOverflow>
+                        <Label value="Spectrum Value" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
+                    </YAxis>
+                    {selectedBands.map(key => {
+                        const range = idealRanges[key]?.idealRange;
+                        return (
+                            range && (
+                                <ReferenceArea
+                                    key={`range-${key}`}
+                                    y1={range.min}
+                                    y2={range.max}
+                                    x1={start}
+                                    x2={end}
+                                    fill={spectralColors[key]}
+                                    fillOpacity={0.1}
+                                    stroke="none"
+                                />
+                            )
+                        );
+                    })}
+                    <Tooltip />
+                    <Legend />
+                    {selectedBands.map(key => (
+                        <Line
+                            key={key}
+                            type="monotone"
+                            dataKey={key}
+                            name={bandMap[key] || key}
+                            stroke={spectralColors[key]}
+                            dot={({ payload }) =>
+                                payload[`${key}Out`] ? <circle r={3} fill="red" /> : null
+                            }
+                            isAnimationActive={false}
+                        />
+                    ))}
+                </LineChart>
+            </ResponsiveContainer>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+                {bandKeys.map(key => (
+                    <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <input
+                            type="checkbox"
+                            checked={selectedBands.includes(key)}
+                            onChange={() => toggleBand(key)}
+                        />
+                        {bandMap[key] || key}
+                    </label>
                 ))}
-            </LineChart>
-        </ResponsiveContainer>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+                    All
+                </label>
+            </div>
+        </div>
     );
 };
 

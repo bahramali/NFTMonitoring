@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react';
+import { render, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import HistoricalEcTdsChart from '../src/components/HistoricalEcTdsChart';
 import { vi } from 'vitest';
@@ -37,6 +37,17 @@ describe('HistoricalEcTdsChart', () => {
     const { container } = render(<HistoricalEcTdsChart data={mockData} />);
     const rechartsWrapper = container.querySelector('.recharts-responsive-container');
     expect(rechartsWrapper).toBeTruthy();
+  });
+
+  it('toggles lines using checkboxes', () => {
+    const { getByLabelText } = render(<HistoricalEcTdsChart data={mockData} />);
+    const tdsCb = getByLabelText('TDS');
+    const allCb = getByLabelText('All');
+    expect(tdsCb).toBeChecked();
+    fireEvent.click(tdsCb);
+    expect(tdsCb).not.toBeChecked();
+    fireEvent.click(allCb);
+    expect(tdsCb).toBeChecked();
   });
 });
 
