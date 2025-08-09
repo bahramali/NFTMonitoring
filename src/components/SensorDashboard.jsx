@@ -111,7 +111,7 @@ function SensorDashboard() {
 
                                 <div className={styles.spectrumBarChartWrapper}>
                   {/* Use flattened/normalized data only */}
-                                    <SpectrumBarChart sensorData={sensorData}/>
+                                    <SpectrumBarChart sensorData={sensorData[selectedDevice]}/>
                                 </div>
                             </>
                         )}

@@ -22,7 +22,7 @@ export function useLiveDevices(topics, activeSystem) {
             const normalized = normalizeSensorData(payload);
             const cleaned = topic === SENSOR_TOPIC ? filterNoise(normalized) : normalized;
             if (cleaned && topic === SENSOR_TOPIC) {
-                setSensorData(cleaned);
+                setSensorData(prev => ({...prev, [baseId]: cleaned}));
             }
         }
 
