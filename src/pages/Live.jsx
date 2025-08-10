@@ -1,8 +1,8 @@
 import React from 'react';
 import SensorDashboard from '../components/SensorDashboard';
 
-function Reports() {
-    return <SensorDashboard view="report" />;
+function Live() {
+    return <SensorDashboard view="live" />;
 }
 
-export default Reports;
+export default Live;
