@@ -1,5 +1,6 @@
 export const SENSOR_TOPIC = "growSensors";
-export const topics = [SENSOR_TOPIC, "rootImages", "waterOutput", "waterTank"];
+export const LIVE_NOW_TOPIC = "live_now";
+export const topics = [SENSOR_TOPIC, "rootImages", "waterOutput", "waterTank", LIVE_NOW_TOPIC];
 
 export const bandMap = {
   F1: "415nm",
