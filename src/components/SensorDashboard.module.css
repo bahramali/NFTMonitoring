@@ -178,29 +178,6 @@
     width: 100%;
 }
 
-.verticalTabBar {
-    display: flex;
-    flex-direction: column;
-    position: absolute;
-    top: 100px;
-    left: 0;
-    z-index: 10;
-}
-
-.verticalTab {
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    background: #333;
-    color: white;
-    padding: 10px;
-    border: 1px solid #555;
-    cursor: pointer;
-    margin: 2px;
-}
-
-.activeVerticalTab {
-    background: #2196f3;
-}
 
 @media (min-width: 768px) {
     .historyChartsRow {

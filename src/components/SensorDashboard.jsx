@@ -6,7 +6,6 @@ import {useLiveDevices} from "./dashboard/useLiveDevices";
 import {useHistory} from "./dashboard/useHistory";
 import styles from "./SensorDashboard.module.css";
 import SystemTabs from "./dashboard/SystemTabs";
-import VerticalTabs from "./dashboard/VerticalTabs";
 import TopicSection from "./dashboard/TopicSection";
 import ReportControls from "./dashboard/ReportControls";
 import ReportCharts from "./dashboard/ReportCharts";
@@ -16,12 +15,11 @@ import {toLocalInputValue, formatTime} from "./dashboard/dashboard.utils";
 import { useFilters, ALL } from "../context/FiltersContext";
 
 
-function SensorDashboard() {
+function SensorDashboard({ view = "live" }) {
     const [activeSystem, setActiveSystem] = useState("S01");
     const {deviceData, sensorData, availableCompositeIds, mergedDevices} = useLiveDevices(topics, activeSystem);
 
     const [selectedDevice, setSelectedDevice] = useState("");
-    const [activeTab, setActiveTab] = useState("live");
 
     const now = Date.now();
     const [fromDate, setFromDate] = useState(toLocalInputValue(new Date(now - 6 * 60 * 60 * 1000)));
@@ -50,17 +48,22 @@ function SensorDashboard() {
     return selectedDevice;
   }, [deviceData, activeSystem, selectedDevice]);
 
+  let historyData = {};
+  if (view === "report") {
+    historyData = useHistory(selectedBaseId, fromDate, toDate, autoRefresh, refreshInterval);
+  }
+
   const {
-    rangeData,
-    tempRangeData,
-    phRangeData,
-    ecTdsRangeData,
-    doRangeData,
-    xDomain,
-    startTime,
-    endTime,
-    fetchReportData,
-  } = useHistory(selectedBaseId, fromDate, toDate, autoRefresh, refreshInterval);
+    rangeData = [],
+    tempRangeData = [],
+    phRangeData = [],
+    ecTdsRangeData = [],
+    doRangeData = [],
+    xDomain = [],
+    startTime = 0,
+    endTime = 0,
+    fetchReportData = () => {},
+  } = historyData;
 
     // Topics for the currently active system across all topic streams
   const activeSystemTopics = deviceData[activeSystem] || {};
@@ -181,13 +184,10 @@ function SensorDashboard() {
         <div className={styles.dashboard}>
             <Header system={activeSystem}/>
 
-            {/* Vertical tab bar (Live / Report) */}
-            <VerticalTabs activeTab={activeTab} onChange={setActiveTab}/>
-
             {/* System selection tabs */}
             <SystemTabs systems={Object.keys(deviceData)} activeSystem={activeSystem} onChange={setActiveSystem}/>
 
-            {activeTab === "live" && (
+            {view === "live" && (
                 <div className={styles.section}>
                     <div className={styles.sectionBody}>
                         {/* Live tables filtered by Device/Layer/System */}
@@ -228,7 +228,7 @@ function SensorDashboard() {
                 </div>
             )}
 
-            {activeTab === "report" && (
+            {view === "report" && (
                 <div className={styles.section}>
                     <div className={styles.sectionBody}>
                         {!showAnyReport ? (

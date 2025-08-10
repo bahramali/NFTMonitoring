@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 vi.mock('../src/components/dashboard/ReportCharts', () => ({
   default: vi.fn(() => <div>ReportCharts</div>),
@@ -60,16 +60,8 @@ vi.mock('../src/components/dashboard/SystemTabs', () => ({ default: () => <div>S
 vi.mock('../src/components/dashboard/TopicSection', () => ({ default: () => <div>TopicSection</div> }));
 vi.mock('../src/components/dashboard/ReportControls', () => ({ default: () => <div>ReportControls</div> }));
 vi.mock('../src/components/dashboard/NotesBlock', () => ({ default: () => <div>NotesBlock</div> }));
-vi.mock('../src/components/dashboard/VerticalTabs', () => ({
-  default: ({ onChange }) => (
-    <button onClick={() => onChange('report')}>to-report</button>
-  ),
-}));
-
 test('shows charts for AS7343 and SHT3x sensors (case-insensitive)', () => {
-  render(<SensorDashboard />);
-  // Switch to report tab
-  fireEvent.click(screen.getByText('to-report'));
+  render(<SensorDashboard view="report" />);
   expect(screen.queryByText('No reports available for this device.')).toBeNull();
   expect(ReportCharts).toHaveBeenCalled();
   const props = ReportCharts.mock.calls[0][0];
