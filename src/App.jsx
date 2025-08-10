@@ -12,7 +12,8 @@ import Layer from './pages/filters/Layer';
 import System from './pages/filters/System';
 
 function App() {
-    const base = import.meta?.env?.BASE_URL || '/';
+    const rawBase = import.meta?.env?.BASE_URL || '/';
+    const base = rawBase === './' || rawBase === '/./' ? '/' : rawBase;
 
     return (
         <BrowserRouter basename={base}>
