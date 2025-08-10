@@ -4,12 +4,11 @@ import SpectrumBarChart from "./SpectrumBarChart";
 import Header from "./Header";
 import {useLiveDevices} from "./dashboard/useLiveDevices";
 import styles from "./SensorDashboard.module.css";
-import SystemTabs from "./dashboard/SystemTabs";
 import TopicSection from "./dashboard/TopicSection";
 import NotesBlock from "./dashboard/NotesBlock";
 import {SENSOR_TOPIC, topics} from "./dashboard/dashboard.constants";
 import { useFilters, ALL } from "../context/FiltersContext";
-
+import Overview from "./dashboard/Overview";
 
 function SensorDashboard() {
     const [activeSystem, setActiveSystem] = useState("S01");
@@ -107,12 +106,72 @@ function SensorDashboard() {
         }
     }, [filteredCompositeIds, selectedDevice]);
 
+  // ──────────────────────────────
+  // Overview items (replace SystemTabs)
+  // NOTE: You can feed these from any topic. For now, we try to pick a few common keys
+  // from the latest payloads in the active system. Adjust the selectors as needed.
+  const pickValue = (keyCandidates) => {
+    for (const [, devs] of Object.entries(activeSystemTopics)) {
+      for (const [, payload] of Object.entries(devs || {})) {
+        const data = payload?.data || payload; // support both shapes
+        for (const k of keyCandidates) {
+          if (data && data[k] != null) return data[k];
+        }
+      }
+    }
+    return null;
+  };
+
+  const overviewItems = [
+    {
+      key: "light",
+      icon: "☀️",
+      value: pickValue(["lux", "light", "illumination"]) ?? "—",
+      unit: pickValue(["lux", "light", "illumination"]) != null ? "lx" : "",
+      title: "Light",
+      ranges: { ok: [12000, 30000], warn: [8000, 11999], danger: [0, 7999] },
+    },
+    {
+      key: "temp",
+      icon: "🌡️",
+      value: pickValue(["temperature", "temp"]) ?? "—",
+      unit: pickValue(["temperature", "temp"]) != null ? "℃" : "",
+      title: "Temperature",
+      ranges: { ok: [20, 28], warn: [28.1, 32], danger: [32.1, 100] },
+    },
+    {
+      key: "hum",
+      icon: "%",
+      value: pickValue(["humidity", "hum"]) ?? "—",
+      unit: pickValue(["humidity", "hum"]) != null ? "%" : "",
+      title: "Humidity",
+      ranges: { ok: [50, 70], warn: [40, 49.9], danger: [0, 39.9] },
+    },
+    {
+      key: "O2",
+      icon: <span style={{fontWeight:700}}>O₂</span>,
+      value: pickValue(["o2"]) ?? "—",
+      unit: pickValue(["o2"]) != null ? "o2" : "",
+      title: "DO",
+      subtitle: "",
+      ranges: { ok: [4.5, 12], warn: [3.5, 4.5], danger: [0, 3.5] },
+        },
+        {
+            key: "flow",
+            icon: "🌀",
+            value: pickValue(["flowLph", "flow", "lph"]) ?? "—",
+            unit: pickValue(["flowLph", "flow", "lph"]) != null ? "L/h" : "",
+            title: "Flow",
+            ranges: { ok: [300, 1200], warn: [150, 299], danger: [0, 149] },
+        },
+  ];
+
     return (
         <div className={styles.dashboard}>
             <Header system={activeSystem}/>
 
-            {/* System selection tabs */}
-            <SystemTabs systems={Object.keys(deviceData)} activeSystem={activeSystem} onChange={setActiveSystem}/>
+      {/* ⬇️ NEW Overview (replaces SystemTabs) */}
+      <Overview items={overviewItems} />
 
             <div className={styles.section}>
                 <div className={styles.sectionBody}>

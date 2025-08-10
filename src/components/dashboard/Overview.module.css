@@ -1,0 +1,31 @@
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.box {
+    background: #1f2937; /* slate-800 */
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+    color: #e5e7eb; /* gray-200 */
+    user-select: none;
+}
+
+.boxHeader { display: flex; align-items: center; justify-content: space-between; }
+.icon { font-size: 22px; opacity: 0.9; }
+
+.valueRow { display: flex; align-items: baseline; gap: 6px; margin-top: 6px; }
+.value { font-size: 28px; font-weight: 700; letter-spacing: 0.2px; }
+.unit { font-size: 14px; opacity: 0.9; }
+
+.caption { margin-top: 8px; }
+.title { font-size: 12px; opacity: 0.9; }
+.subtitle { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+
+/* State colors */
+.ok { background: linear-gradient(180deg, #065f46 0%, #064e3b 100%); }      /* emerald */
+.warn { background: linear-gradient(180deg, #92400e 0%, #7c2d12 100%); }    /* amber */
+.danger { background: linear-gradient(180deg, #7f1d1d 0%, #450a0a 100%); }  /* red */
+.neutral { background: linear-gradient(180deg, #374151 0%, #1f2937 100%); } /* slate */
