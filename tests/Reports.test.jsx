@@ -6,7 +6,7 @@ vi.mock('../src/components/dashboard/ReportCharts', () => ({
   default: vi.fn(() => <div>ReportCharts</div>),
 }));
 
-import Reports from '../src/pages/Reports';
+import ReportsPage from '../src/pages/ReportsPage';
 import ReportCharts from '../src/components/dashboard/ReportCharts';
 
 vi.mock('../src/components/dashboard/useLiveDevices', () => ({
@@ -56,14 +56,11 @@ vi.mock('../src/context/FiltersContext', () => ({
   ALL: 'ALL',
 }));
 
-vi.mock('../src/components/SpectrumBarChart', () => ({ default: () => <div>SpectrumBarChart</div> }));
 vi.mock('../src/components/Header', () => ({ default: () => <div>Header</div> }));
-vi.mock('../src/components/dashboard/TopicSection', () => ({ default: () => <div>TopicSection</div> }));
 vi.mock('../src/components/dashboard/ReportControls', () => ({ default: () => <div>ReportControls</div> }));
-vi.mock('../src/components/dashboard/NotesBlock', () => ({ default: () => <div>NotesBlock</div> }));
 
 test('Reports page shows charts for AS7343 and SHT3x sensors (case-insensitive)', () => {
-  render(<Reports />);
+  render(<ReportsPage />);
   expect(screen.queryByText('No reports available for this device.')).toBeNull();
   expect(ReportCharts).toHaveBeenCalled();
   const props = ReportCharts.mock.calls[0][0];
