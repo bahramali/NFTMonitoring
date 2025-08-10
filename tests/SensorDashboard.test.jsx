@@ -12,8 +12,9 @@ vi.mock('../src/components/dashboard/useLiveDevices', () => ({
     deviceData: {
       S01: {
         growSensors: {
-          G01: {
+          L01G01: {
             deviceId: 'G01',
+            location: 'L01',
             sensors: [
               { sensorName: 'AS7343' },
               { sensorName: 'SHT3x' },
@@ -23,7 +24,7 @@ vi.mock('../src/components/dashboard/useLiveDevices', () => ({
       },
     },
     sensorData: {},
-    availableBaseIds: ['G01'],
+    availableCompositeIds: ['L01G01'],
     mergedDevices: {},
   }),
 }));
