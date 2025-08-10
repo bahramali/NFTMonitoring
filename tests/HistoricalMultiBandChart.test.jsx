@@ -41,7 +41,7 @@ describe('HistoricalMultiBandChart', () => {
   ];
 
   it('renders checkboxes to toggle bands', () => {
-    const { container, getByLabelText } = render(
+    const { getByLabelText } = render(
       <HistoricalMultiBandChart
         data={mockData}
         bandKeys={['405nm', '425nm', 'F4', '555nm', 'VIS1', 'VIS2', 'NIR855']}
