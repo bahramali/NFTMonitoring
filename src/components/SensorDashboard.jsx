@@ -18,10 +18,9 @@ import { useFilters, ALL } from "../context/FiltersContext";
 
 function SensorDashboard() {
     const [activeSystem, setActiveSystem] = useState("S01");
-    const {deviceData, sensorData, availableBaseIds, mergedDevices} = useLiveDevices(topics, activeSystem);
+    const {deviceData, sensorData, availableCompositeIds, mergedDevices} = useLiveDevices(topics, activeSystem);
 
-    // base deviceId (e.g., G01) used for history API calls
-    const [selectedDevice, setSelectedDevice] = useState("G02");
+    const [selectedDevice, setSelectedDevice] = useState("");
     const [activeTab, setActiveTab] = useState("live");
 
     const now = Date.now();
@@ -41,6 +40,16 @@ function SensorDashboard() {
   } = useFilters();
 
     // History data for the selected device
+  const selectedBaseId = useMemo(() => {
+    const sysTopics = deviceData[activeSystem] || {};
+    for (const topicDevices of Object.values(sysTopics)) {
+      if (selectedDevice in topicDevices) {
+        return topicDevices[selectedDevice].deviceId || selectedDevice;
+      }
+    }
+    return selectedDevice;
+  }, [deviceData, activeSystem, selectedDevice]);
+
   const {
     rangeData,
     tempRangeData,
@@ -51,32 +60,31 @@ function SensorDashboard() {
     startTime,
     endTime,
     fetchReportData,
-  } = useHistory(selectedDevice, fromDate, toDate, autoRefresh, refreshInterval);
+  } = useHistory(selectedBaseId, fromDate, toDate, autoRefresh, refreshInterval);
 
     // Topics for the currently active system across all topic streams
   const activeSystemTopics = deviceData[activeSystem] || {};
   const sensorTopicDevices = activeSystemTopics[SENSOR_TOPIC] || {};
 
   // ──────────────────────────────
-    // 1) Build metadata: baseDeviceId -> { system, layer, topics: [] }
+    // 1) Build metadata: compositeId -> { system, layer, baseId, topics: [] }
     const deviceMeta = useMemo(() => {
         const map = {};
         for (const [sysId, topicsObj] of Object.entries(deviceData || {})) {
             for (const [topicKey, devs] of Object.entries(topicsObj || {})) {
-                for (const [, payload] of Object.entries(devs || {})) {
+                for (const [cid, payload] of Object.entries(devs || {})) {
                     const baseId = payload?.deviceId;
-                    if (!baseId) continue;
                     const layer = payload?.location?.layer || payload?.location || null;
-                    if (!map[baseId]) {
-                        map[baseId] = { system: sysId, layer, topics: new Set([topicKey]) };
+                    if (!map[cid]) {
+                        map[cid] = { system: sysId, layer, baseId, topics: new Set([topicKey]) };
                     } else {
-                        map[baseId].topics.add(topicKey);
+                        map[cid].topics.add(topicKey);
                     }
                 }
             }
         }
         return Object.fromEntries(
-            Object.entries(map).map(([id, m]) => [id, { system: m.system, layer: m.layer, topics: Array.from(m.topics) }])
+            Object.entries(map).map(([cid, m]) => [cid, { system: m.system, layer: m.layer, baseId: m.baseId, topics: Array.from(m.topics) }])
         );
     }, [deviceData]);
 
@@ -103,8 +111,8 @@ function SensorDashboard() {
     }, [sysFilter, activeSystem]);
 
     // 4) Filter available device IDs based on all active filters
-    const filteredBaseIds = useMemo(() => {
-        return availableBaseIds.filter((id) => {
+    const filteredCompositeIds = useMemo(() => {
+        return availableCompositeIds.filter((id) => {
             const meta = deviceMeta[id] || {};
             const okDev = devFilter === ALL || id === devFilter;
             const okLay = layerFilter === ALL || meta.layer === layerFilter;
@@ -112,7 +120,7 @@ function SensorDashboard() {
             const okTopic = topicFilter === ALL || (meta.topics || []).includes(topicFilter);
             return okDev && okLay && okSys && okTopic;
         });
-    }, [availableBaseIds, deviceMeta, devFilter, layerFilter, sysFilter, topicFilter]);
+    }, [availableCompositeIds, deviceMeta, devFilter, layerFilter, sysFilter, topicFilter]);
 
     // 5) Filter topics for live tables based on filtered devices
     const filteredSystemTopics = useMemo(() => {
@@ -120,34 +128,30 @@ function SensorDashboard() {
         for (const [topic, devs] of Object.entries(activeSystemTopics || {})) {
             if (topicFilter !== ALL && topic !== topicFilter) continue;
             out[topic] = Object.fromEntries(
-                Object.entries(devs || {}).filter(([, payload]) =>
-                    filteredBaseIds.includes(payload?.deviceId)
+                Object.entries(devs || {}).filter(([cid]) =>
+                    filteredCompositeIds.includes(cid)
                 )
             );
         }
         return out;
-    }, [activeSystemTopics, filteredBaseIds, topicFilter]);
+    }, [activeSystemTopics, filteredCompositeIds, topicFilter]);
 
     // 6) Ensure selectedDevice remains valid after filters change
     useEffect(() => {
-        if (filteredBaseIds.length && !filteredBaseIds.includes(selectedDevice)) {
-            setSelectedDevice(filteredBaseIds[0]);
+        if (filteredCompositeIds.length && !filteredCompositeIds.includes(selectedDevice)) {
+            setSelectedDevice(filteredCompositeIds[0]);
         }
-    }, [filteredBaseIds, selectedDevice]);
+    }, [filteredCompositeIds, selectedDevice]);
 
     // 7) Determine which report sections to display based on selected device's sensor types
     const sensorTypesForSelected = useMemo(() => {
-        const match = Object.values(sensorTopicDevices).find(
-            (d) => d?.deviceId === selectedDevice
-        );
+        const match = sensorTopicDevices[selectedDevice];
         const sensors = match?.sensors || [];
         return sensors.map((s) => (s.type || s.valueType || '').toLowerCase());
     }, [sensorTopicDevices, selectedDevice]);
 
     const sensorNamesForSelected = useMemo(() => {
-        const match = Object.values(sensorTopicDevices).find(
-            (d) => d?.deviceId === selectedDevice
-        );
+        const match = sensorTopicDevices[selectedDevice];
         const sensors = match?.sensors || [];
         return sensors.map((s) => (s.sensorName || s.source || '-').toLowerCase());
     }, [sensorTopicDevices, selectedDevice]);
@@ -200,7 +204,7 @@ function SensorDashboard() {
                                             value={selectedDevice}
                                             onChange={(e) => setSelectedDevice(e.target.value)}
                                         >
-                                            {filteredBaseIds.map((id) => (
+                                            {filteredCompositeIds.map((id) => (
                                                 <option key={id} value={id}>{id}</option>
                                             ))}
                                         </select>
@@ -209,7 +213,7 @@ function SensorDashboard() {
 
                                 <div className={styles.deviceLabel}>{selectedDevice}</div>
 
-                                {filteredBaseIds.includes(selectedDevice) && (
+                                {filteredCompositeIds.includes(selectedDevice) && (
                                 <div className={styles.spectrumBarChartWrapper}>
                                     <SpectrumBarChart sensorData={sensorData[selectedDevice]}/>
                                 </div>
@@ -239,7 +243,7 @@ function SensorDashboard() {
                                     onNow={() => setToDate(toLocalInputValue(new Date()))}
                                     onApply={fetchReportData}
                                     selectedDevice={selectedDevice}
-                                    availableBaseIds={filteredBaseIds} // filtered list
+                                    availableCompositeIds={filteredCompositeIds} // filtered list
                                     onDeviceChange={(e) => setSelectedDevice(e.target.value)}
                                     autoRefresh={autoRefresh}
                                     onAutoRefreshChange={(e) => setAutoRefresh(e.target.checked)}

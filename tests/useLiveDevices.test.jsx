@@ -10,12 +10,13 @@ vi.mock('../src/hooks/useStomp', () => ({
   }
 }));
 
-test('stores sensor data per device', () => {
+test('stores sensor data per composite device', () => {
   const { result } = renderHook(() => useLiveDevices([SENSOR_TOPIC], 'S01'));
 
   act(() => {
     global.__stompHandler(SENSOR_TOPIC, {
       deviceId: 'G01',
+      location: 'L01',
       system: 'S01',
       sensors: [
         { type: 'temperature', value: '20' },
@@ -35,6 +36,6 @@ test('stores sensor data per device', () => {
     });
   });
 
-  expect(result.current.sensorData['G01'].temperature.value).toBe(20);
+  expect(result.current.sensorData['L01G01'].temperature.value).toBe(20);
   expect(result.current.sensorData['G02'].humidity.value).toBe(55);
 });

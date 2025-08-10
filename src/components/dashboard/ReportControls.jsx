@@ -9,7 +9,7 @@ function ReportControls({
   onNow,
   onApply,
   selectedDevice,
-  availableBaseIds = [],
+  availableCompositeIds = [],
   onDeviceChange,
   autoRefresh,
   onAutoRefreshChange,
@@ -42,7 +42,7 @@ function ReportControls({
         <label className={styles.filterLabel}>
           Device:
           <select className={styles.intervalSelect} value={selectedDevice} onChange={onDeviceChange}>
-            {availableBaseIds.map((id) => (
+            {availableCompositeIds.map((id) => (
               <option key={id} value={id}>
                 {id}
               </option>

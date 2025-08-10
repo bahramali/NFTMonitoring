@@ -22,7 +22,7 @@ export function useLiveDevices(topics, activeSystem) {
             const normalized = normalizeSensorData(payload);
             const cleaned = topic === SENSOR_TOPIC ? filterNoise(normalized) : normalized;
             if (cleaned && topic === SENSOR_TOPIC) {
-                setSensorData(prev => ({...prev, [baseId]: cleaned}));
+                setSensorData(prev => ({...prev, [compositeId]: cleaned}));
             }
         }
 
@@ -30,7 +30,8 @@ export function useLiveDevices(topics, activeSystem) {
             sensors: Array.isArray(payload.sensors) ? payload.sensors : [],
             health: payload.health || {},
             ...(loc ? {location: loc} : {}),
-            deviceId: baseId
+            deviceId: baseId,
+            compositeId
         };
 
         setDeviceData(prev => {
@@ -43,12 +44,12 @@ export function useLiveDevices(topics, activeSystem) {
 
     useStomp(topics, handleStompMessage);
 
-    const availableBaseIds = useMemo(() => {
+    const availableCompositeIds = useMemo(() => {
         const sysData = deviceData[activeSystem] || {};
         const ids = new Set();
         for (const topicDevices of Object.values(sysData)) {
-            for (const d of Object.values(topicDevices)) {
-                ids.add(d?.deviceId || "unknown");
+            for (const cid of Object.keys(topicDevices)) {
+                ids.add(cid);
             }
         }
         return Array.from(ids);
@@ -65,6 +66,6 @@ export function useLiveDevices(topics, activeSystem) {
         return combined;
     }, [deviceData, activeSystem]);
 
-    return {deviceData, sensorData, availableBaseIds, mergedDevices};
+    return {deviceData, sensorData, availableCompositeIds, mergedDevices};
 }
 
