@@ -2,6 +2,13 @@
 
 This project is a React dashboard that subscribes to an MQTT broker and visualises spectral sensor data and temperature readings.
 
+## Live and Reports
+
+The application provides two main views in addition to the default dashboard:
+
+- **Live** – displays real‑time sensor readings as they arrive. Open the "Live" link in the sidebar or navigate to `/live`.
+- **Reports** – shows historical charts for a selected device and time range. Access it from the sidebar or via `/reports`.
+
 ## Setup
 
 1. Copy `.env.example` to `.env` and fill in your MQTT credentials and broker URL.
