@@ -1,10 +1,12 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
+
 vi.mock('../src/components/dashboard/ReportCharts', () => ({
   default: vi.fn(() => <div>ReportCharts</div>),
 }));
-import SensorDashboard from '../src/components/SensorDashboard';
+
+import Reports from '../src/pages/Reports';
 import ReportCharts from '../src/components/dashboard/ReportCharts';
 
 vi.mock('../src/components/dashboard/useLiveDevices', () => ({
@@ -56,12 +58,12 @@ vi.mock('../src/context/FiltersContext', () => ({
 
 vi.mock('../src/components/SpectrumBarChart', () => ({ default: () => <div>SpectrumBarChart</div> }));
 vi.mock('../src/components/Header', () => ({ default: () => <div>Header</div> }));
-vi.mock('../src/components/dashboard/SystemTabs', () => ({ default: () => <div>SystemTabs</div> }));
 vi.mock('../src/components/dashboard/TopicSection', () => ({ default: () => <div>TopicSection</div> }));
 vi.mock('../src/components/dashboard/ReportControls', () => ({ default: () => <div>ReportControls</div> }));
 vi.mock('../src/components/dashboard/NotesBlock', () => ({ default: () => <div>NotesBlock</div> }));
-test('shows charts for AS7343 and SHT3x sensors (case-insensitive)', () => {
-  render(<SensorDashboard view="report" />);
+
+test('Reports page shows charts for AS7343 and SHT3x sensors (case-insensitive)', () => {
+  render(<Reports />);
   expect(screen.queryByText('No reports available for this device.')).toBeNull();
   expect(ReportCharts).toHaveBeenCalled();
   const props = ReportCharts.mock.calls[0][0];
@@ -69,3 +71,4 @@ test('shows charts for AS7343 and SHT3x sensors (case-insensitive)', () => {
   expect(props.showClearLux).toBe(true);
   expect(props.showTempHum).toBe(true);
 });
+
