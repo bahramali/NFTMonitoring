@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, NavLink, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Live from './pages/Live';
@@ -12,8 +12,10 @@ import Layer from './pages/filters/Layer';
 import System from './pages/filters/System';
 
 function App() {
+    const base = import.meta?.env?.BASE_URL || '/';
+
     return (
-        <BrowserRouter>
+        <BrowserRouter basename={base}>
             <Routes>
                 <Route path="/" element={<MainLayout />}>
                     <Route index element={<Dashboard />} />

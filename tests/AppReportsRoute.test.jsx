@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import '@testing-library/jest-dom';
+import App from '../src/App';
 
 vi.mock('../src/components/dashboard/ReportControls', () => ({ default: () => <div>ReportControls</div> }));
 vi.mock('../src/components/Header', () => ({ default: () => <div>Header</div> }));
@@ -12,6 +13,8 @@ vi.mock('../src/components/dashboard/useLiveDevices', () => ({
 vi.mock('../src/components/dashboard/useHistory', () => ({
   useHistory: () => ({}),
 }));
+vi.stubEnv('BASE_URL', '/NFTMonitoring/');
+
 vi.mock('../src/context/FiltersContext', () => ({
   FiltersProvider: ({ children }) => <div>{children}</div>,
   useFilters: () => ({
@@ -25,7 +28,6 @@ vi.mock('../src/context/FiltersContext', () => ({
   ALL: 'ALL',
 }));
 
-import App from '../src/App';
 
 test('reports link retains base path and is active when served from subdirectory', () => {
   vi.stubEnv('BASE_URL', '/NFTMonitoring/');
@@ -33,5 +35,6 @@ test('reports link retains base path and is active when served from subdirectory
   render(<App />);
   const link = screen.getByRole('link', { name: /reports/i });
   expect(link).toHaveAttribute('href', '/NFTMonitoring/reports');
-  expect(link.className).toMatch(/active/);
+  + // In React Router v6 for the active page, aria-current='page' is set
+  expect(link).toHaveAttribute('aria-current', 'page');
 });
