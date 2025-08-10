@@ -1,6 +1,7 @@
 export const SENSOR_TOPIC = "growSensors";
 export const LIVE_NOW_TOPIC = "live_now";
-export const topics = [SENSOR_TOPIC, "rootImages", "waterOutput", "waterTank", LIVE_NOW_TOPIC];
+// Topic list used for device-level streams; excludes aggregated `live_now` data
+export const topics = [SENSOR_TOPIC, "rootImages", "waterOutput", "waterTank"];
 
 export const bandMap = {
   F1: "415nm",
