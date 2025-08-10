@@ -7,7 +7,7 @@ import styles from "./SensorDashboard.module.css";
 import TopicSection from "./dashboard/TopicSection";
 import NotesBlock from "./dashboard/NotesBlock";
 import {SENSOR_TOPIC, topics} from "./dashboard/dashboard.constants";
-import { useFilters, ALL } from "../context/FiltersContext";
+import {useFilters, ALL} from "../context/FiltersContext";
 import Overview from "./dashboard/Overview";
 
 function SensorDashboard() {
@@ -17,19 +17,19 @@ function SensorDashboard() {
     const [selectedDevice, setSelectedDevice] = useState("");
 
     // Filters from the sidebar
-  const {
-    device: devFilter,
-    layer: layerFilter,
-    system: sysFilter,
-    topic: topicFilter,
-    setLists,
-  } = useFilters();
+    const {
+        device: devFilter,
+        layer: layerFilter,
+        system: sysFilter,
+        topic: topicFilter,
+        setLists,
+    } = useFilters();
 
     // Topics for the currently active system across all topic streams
-  const activeSystemTopics = deviceData[activeSystem] || {};
-  const sensorTopicDevices = activeSystemTopics[SENSOR_TOPIC] || {};
+    const activeSystemTopics = deviceData[activeSystem] || {};
+    const sensorTopicDevices = activeSystemTopics[SENSOR_TOPIC] || {};
 
-  // ──────────────────────────────
+    // ──────────────────────────────
     // 1) Build metadata: compositeId -> { system, layer, baseId, topics: [] }
     const deviceMeta = useMemo(() => {
         const map = {};
@@ -39,7 +39,7 @@ function SensorDashboard() {
                     const baseId = payload?.deviceId;
                     const layer = payload?.location?.layer || payload?.location || null;
                     if (!map[cid]) {
-                        map[cid] = { system: sysId, layer, baseId, topics: new Set([topicKey]) };
+                        map[cid] = {system: sysId, layer, baseId, topics: new Set([topicKey])};
                     } else {
                         map[cid].topics.add(topicKey);
                     }
@@ -47,7 +47,12 @@ function SensorDashboard() {
             }
         }
         return Object.fromEntries(
-            Object.entries(map).map(([cid, m]) => [cid, { system: m.system, layer: m.layer, baseId: m.baseId, topics: Array.from(m.topics) }])
+            Object.entries(map).map(([cid, m]) => [cid, {
+                system: m.system,
+                layer: m.layer,
+                baseId: m.baseId,
+                topics: Array.from(m.topics)
+            }])
         );
     }, [deviceData]);
 
@@ -63,7 +68,7 @@ function SensorDashboard() {
                 Object.values(deviceData || {}).flatMap((sys) => Object.keys(sys || {}))
             )
         );
-        setLists({ devices, layers, systems, topics: topicsList });
+        setLists({devices, layers, systems, topics: topicsList});
     }, [deviceMeta, deviceData, setLists]);
 
     // 3) Keep activeSystem in sync with the System filter
@@ -106,55 +111,55 @@ function SensorDashboard() {
         }
     }, [filteredCompositeIds, selectedDevice]);
 
-  // ──────────────────────────────
-  // Overview items (replace SystemTabs)
-  // NOTE: You can feed these from any topic. For now, we try to pick a few common keys
-  // from the latest payloads in the active system. Adjust the selectors as needed.
-  const pickValue = (keyCandidates) => {
-    for (const [, devs] of Object.entries(activeSystemTopics)) {
-      for (const [, payload] of Object.entries(devs || {})) {
-        const data = payload?.data || payload; // support both shapes
-        for (const k of keyCandidates) {
-          if (data && data[k] != null) return data[k];
+    // ──────────────────────────────
+    // Overview items (replace SystemTabs)
+    // NOTE: You can feed these from any topic. For now, we try to pick a few common keys
+    // from the latest payloads in the active system. Adjust the selectors as needed.
+    const pickValue = (keyCandidates) => {
+        for (const [, devs] of Object.entries(activeSystemTopics)) {
+            for (const [, payload] of Object.entries(devs || {})) {
+                const data = payload?.data || payload; // support both shapes
+                for (const k of keyCandidates) {
+                    if (data && data[k] != null) return data[k];
+                }
+            }
         }
-      }
-    }
-    return null;
-  };
+        return null;
+    };
 
-  const overviewItems = [
-    {
-      key: "light",
-      icon: "☀️",
-      value: pickValue(["lux", "light", "illumination"]) ?? "—",
-      unit: pickValue(["lux", "light", "illumination"]) != null ? "lx" : "",
-      title: "Light",
-      ranges: { ok: [12000, 30000], warn: [8000, 11999], danger: [0, 7999] },
-    },
-    {
-      key: "temp",
-      icon: "🌡️",
-      value: pickValue(["temperature", "temp"]) ?? "—",
-      unit: pickValue(["temperature", "temp"]) != null ? "℃" : "",
-      title: "Temperature",
-      ranges: { ok: [20, 28], warn: [28.1, 32], danger: [32.1, 100] },
-    },
-    {
-      key: "hum",
-      icon: "%",
-      value: pickValue(["humidity", "hum"]) ?? "—",
-      unit: pickValue(["humidity", "hum"]) != null ? "%" : "",
-      title: "Humidity",
-      ranges: { ok: [50, 70], warn: [40, 49.9], danger: [0, 39.9] },
-    },
-    {
-      key: "O2",
-      icon: <span style={{fontWeight:700}}>O₂</span>,
-      value: pickValue(["o2"]) ?? "—",
-      unit: pickValue(["o2"]) != null ? "o2" : "",
-      title: "DO",
-      subtitle: "",
-      ranges: { ok: [4.5, 12], warn: [3.5, 4.5], danger: [0, 3.5] },
+    const overviewItems = [
+        {
+            key: "light",
+            icon: "☀️",
+            value: pickValue(["lux", "light", "illumination"]) ?? "—",
+            unit: pickValue(["lux", "light", "illumination"]) != null ? "lx" : "",
+            title: "Light",
+            ranges: {ok: [12000, 30000], warn: [8000, 11999], danger: [0, 7999]},
+        },
+        {
+            key: "temp",
+            icon: "🌡️",
+            value: pickValue(["temperature", "temp"]) ?? "—",
+            unit: pickValue(["temperature", "temp"]) != null ? "℃" : "",
+            title: "Temperature",
+            ranges: {ok: [20, 28], warn: [28.1, 32], danger: [32.1, 100]},
+        },
+        {
+            key: "hum",
+            icon: "%",
+            value: pickValue(["humidity", "hum"]) ?? "—",
+            unit: pickValue(["humidity", "hum"]) != null ? "%" : "",
+            title: "Humidity",
+            ranges: {ok: [50, 70], warn: [40, 49.9], danger: [0, 39.9]},
+        },
+        {
+            key: "O2",
+            icon: <span style={{fontWeight: 700}}>O₂</span>,
+            value: pickValue(["o2"]) ?? "—",
+            unit: pickValue(["o2"]) != null ? "o2" : "",
+            title: "DO",
+            subtitle: "",
+            ranges: {ok: [4.5, 12], warn: [3.5, 4.5], danger: [0, 3.5]},
         },
         {
             key: "flow",
@@ -162,16 +167,24 @@ function SensorDashboard() {
             value: pickValue(["flowLph", "flow", "lph"]) ?? "—",
             unit: pickValue(["flowLph", "flow", "lph"]) != null ? "L/h" : "",
             title: "Flow",
-            ranges: { ok: [300, 1200], warn: [150, 299], danger: [0, 149] },
+            ranges: {ok: [300, 1200], warn: [150, 299], danger: [0, 149]},
         },
-  ];
+        {
+            key: "airPump",
+            icon: "🫧", // bubbles
+            value: "On",
+            unit: "",
+            title: "Air Pump",
+            stateOverride: "neutral" ///pumpRaw == null ? "neutral" : (pumpOn ? "ok" : "danger"),
+        },
+    ];
 
     return (
         <div className={styles.dashboard}>
             <Header system={activeSystem}/>
 
-      {/* ⬇️ NEW Overview (replaces SystemTabs) */}
-      <Overview items={overviewItems} />
+            {/* ⬇️ NEW Overview (replaces SystemTabs) */}
+            <Overview items={overviewItems}/>
 
             <div className={styles.section}>
                 <div className={styles.sectionBody}>
@@ -199,9 +212,9 @@ function SensorDashboard() {
                             <div className={styles.deviceLabel}>{selectedDevice}</div>
 
                             {filteredCompositeIds.includes(selectedDevice) && (
-                            <div className={styles.spectrumBarChartWrapper}>
-                                <SpectrumBarChart sensorData={sensorData[selectedDevice]}/>
-                            </div>
+                                <div className={styles.spectrumBarChartWrapper}>
+                                    <SpectrumBarChart sensorData={sensorData[selectedDevice]}/>
+                                </div>
                             )}
                         </>
                     )}
