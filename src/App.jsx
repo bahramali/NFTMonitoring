@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink, Outlet } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Live from './pages/Live';
@@ -13,7 +13,7 @@ import System from './pages/filters/System';
 
 function App() {
     return (
-        <Router>
+        <BrowserRouter>
             <Routes>
                 <Route path="/" element={<MainLayout />}>
                     <Route index element={<Dashboard />} />
@@ -27,7 +27,7 @@ function App() {
                     <Route path="filters/system" element={<System />} />
                 </Route>
             </Routes>
-        </Router>
+        </BrowserRouter>
     );
 }
 
