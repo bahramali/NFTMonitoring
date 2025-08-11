@@ -159,7 +159,7 @@ function ReportsPage() {
             <div className={styles.section}>
                 <div className={styles.sectionBody}>
                     {!showAnyReport ? (
-                        <div>No reports available for this device.</div>
+                        <div>No reports available for this composite ID.</div>
                     ) : (
                         <>
                             <ReportControls

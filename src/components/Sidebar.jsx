@@ -86,7 +86,7 @@ export default function Sidebar() {
                 {!collapsed && <div className={styles.filtersTitle}>Application filters</div>}
 
                 <CheckboxGroup title="Topic" list={lists.topics} value={topic} onChange={setTopic} />
-                <CheckboxGroup title="Device" list={lists.devices} value={device} onChange={setDevice} />
+                <CheckboxGroup title="Composite ID" list={lists.devices} value={device} onChange={setDevice} />
                 <CheckboxGroup title="Layer" list={lists.layers} value={layer} onChange={setLayer} />
                 <CheckboxGroup title="System" list={lists.systems} value={system} onChange={setSystem} />
             </section>

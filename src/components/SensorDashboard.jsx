@@ -126,7 +126,7 @@ function SensorDashboard() {
                 value: metric("light").average ?? "—",
                 unit: metric("light").average != null ? "lx" : "",
                 title: "Light",
-                subtitle: `Devices: ${metric("light").deviceCount ?? 0}`,
+                subtitle: `Composite IDs: ${metric("light").deviceCount ?? 0}`,
             },
             {
                 key: "temperature",
@@ -134,7 +134,7 @@ function SensorDashboard() {
                 value: metric("temperature").average ?? "—",
                 unit: metric("temperature").average != null ? "℃" : "",
                 title: "Temperature",
-                subtitle: `Devices: ${metric("temperature").deviceCount ?? 0}`,
+                subtitle: `Composite IDs: ${metric("temperature").deviceCount ?? 0}`,
             },
             {
                 key: "humidity",
@@ -142,7 +142,7 @@ function SensorDashboard() {
                 value: metric("humidity").average ?? "—",
                 unit: metric("humidity").average != null ? "%" : "",
                 title: "Humidity",
-                subtitle: `Devices: ${metric("humidity").deviceCount ?? 0}`,
+                subtitle: `Composite IDs: ${metric("humidity").deviceCount ?? 0}`,
             },
             {
                 key: "dissolvedOxygen",
@@ -150,7 +150,7 @@ function SensorDashboard() {
                 value: metric("dissolvedOxygen").average ?? "—",
                 unit: metric("dissolvedOxygen").average != null ? "mg/L" : "",
                 title: "DO",
-                subtitle: `Devices: ${metric("dissolvedOxygen").deviceCount ?? 0}`,
+                subtitle: `Composite IDs: ${metric("dissolvedOxygen").deviceCount ?? 0}`,
             },
             {
                 key: "airpump",
@@ -158,7 +158,7 @@ function SensorDashboard() {
                 value: metric("airpump").average ?? "—",
                 unit: "",
                 title: "Air Pump",
-                subtitle: `Devices: ${metric("airpump").deviceCount ?? 0}`,
+                subtitle: `Composite IDs: ${metric("airpump").deviceCount ?? 0}`,
             },
         ];
     }, [liveNow]);
@@ -180,7 +180,7 @@ function SensorDashboard() {
                         <>
                             <div className={styles.chartFilterRow}>
                                 <label className={styles.filterLabel}>
-                                    Device:
+                                    Composite ID:
                                     <select
                                         className={styles.intervalSelect}
                                         value={selectedDevice}

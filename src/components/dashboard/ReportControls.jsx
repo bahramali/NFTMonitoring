@@ -40,7 +40,7 @@ function ReportControls({
 
       <div className={styles.filterRow}>
         <label className={styles.filterLabel}>
-          Device:
+          Composite ID:
           <select className={styles.intervalSelect} value={selectedDevice} onChange={onDeviceChange}>
             {availableCompositeIds.map((id) => (
               <option key={id} value={id}>

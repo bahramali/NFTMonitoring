@@ -4,7 +4,7 @@ import idealRangeConfig from '../../idealRangeConfig.js';
 import {bandMap, knownFields} from './dashboard.constants';
 
 function NotesBlock({ mergedDevices = {} }) {
-  const metaFields = new Set(['timestamp', 'deviceId', 'location']);
+  const metaFields = new Set(['timestamp', 'deviceId', 'compositeId', 'location']);
 
   const sensors = new Set();
   for (const dev of Object.values(mergedDevices)) {
