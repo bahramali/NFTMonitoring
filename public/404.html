@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>HydroLeaf</title>
+  <script>
+    const redirect = window.location.pathname + window.location.search + window.location.hash;
+    sessionStorage.redirect = redirect;
+    window.location.replace('/');
+  </script>
+</head>
+<body></body>
+</html>
