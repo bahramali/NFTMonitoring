@@ -70,7 +70,7 @@ test('Reports page shows charts for AS7343 and SHT3x sensors (case-insensitive)'
   });
 
   render(<ReportsPage />);
-  expect(screen.queryByText('No reports available for this device.')).toBeNull();
+  expect(screen.queryByText('No reports available for this composite ID.')).toBeNull();
   expect(ReportCharts).toHaveBeenCalled();
   const props = ReportCharts.mock.calls[0][0];
   expect(props.showSpectrum).toBe(true);
@@ -98,6 +98,6 @@ test('Reports page defaults to first available system when initial system has no
 
   render(<ReportsPage />);
   await waitFor(() => expect(ReportCharts).toHaveBeenCalled());
-  expect(screen.queryByText('No reports available for this device.')).toBeNull();
+  expect(screen.queryByText('No reports available for this composite ID.')).toBeNull();
 });
 

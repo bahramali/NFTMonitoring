@@ -7,7 +7,7 @@ This project is a React dashboard that subscribes to an MQTT broker and visualis
 The application provides two main views in addition to the default dashboard:
 
 - **Live** – displays real‑time sensor readings as they arrive. Open the "Live" link in the sidebar or navigate to `/live`.
-- **Reports** – shows historical charts for a selected device and time range. Access it from the sidebar or via `/reports`.
+- **Reports** – shows historical charts for a selected composite ID and time range. Access it from the sidebar or via `/reports`.
 
 ## Setup
 

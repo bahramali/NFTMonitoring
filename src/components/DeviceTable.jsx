@@ -86,12 +86,7 @@ function DeviceTable({devices = {}}) {
                     <th className={styles.modelCell}>Max</th>
                     {deviceIds.map(id => {
                         const dev = devices[id];
-                        const loc = dev?.location ?? dev?.Location ?? dev?.meta?.location ?? "";
-                        let baseId = dev?.deviceId ?? id;
-                        if (!dev?.deviceId && loc && id.startsWith(loc)) {
-                            baseId = id.slice(loc.length);
-                        }
-                        const label = loc ? `${loc}${baseId}` : baseId;
+                        const label = dev?.compositeId ?? id;
                         return <th key={id}>{label}</th>;
                     })}
                 </tr>

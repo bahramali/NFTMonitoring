@@ -13,7 +13,8 @@ function getRowColor(value, range) {
     return '';
 }
 
-function DeviceCard({ deviceId, data }) {
+function DeviceCard({ compositeId, deviceId, data }) {
+    const id = compositeId || deviceId;
     const rows = [];
     for (const [field, valueObj] of Object.entries(data)) {
         if (field === 'health') continue;
@@ -42,7 +43,7 @@ function DeviceCard({ deviceId, data }) {
 
     return (
         <div className={styles.card}>
-            <div className={styles.header}>{deviceId}</div>
+            <div className={styles.header}>{id}</div>
             <div className={styles.body}>
                 <table className={styles.table}>
                     <thead>

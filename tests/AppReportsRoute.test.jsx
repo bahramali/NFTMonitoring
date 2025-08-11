@@ -35,6 +35,6 @@ test('reports link retains base path and is active when served from subdirectory
   render(<App />);
   const link = screen.getByRole('link', { name: /reports/i });
   expect(link).toHaveAttribute('href', '/NFTMonitoring/reports');
-  + // In React Router v6 for the active page, aria-current='page' is set
+  // In React Router v6 for the active page, aria-current='page' is set
   expect(link).toHaveAttribute('aria-current', 'page');
 });
