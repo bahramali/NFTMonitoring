@@ -19,14 +19,17 @@ function ReportCharts({
   phRangeData,
   ecTdsRangeData,
   doRangeData,
-  xDomain
+  xDomain,
+  selectedDevice
 }) {
+  const withDevice = (title) => (selectedDevice ? `${title}(${selectedDevice})` : title);
+
   return (
     <>
       {showTempHum && (
         <div className={styles.historyChartsRow}>
           <div className={styles.historyChartColumn}>
-            <h3 className={styles.sectionTitle}>Temperature</h3>
+            <h3 className={styles.sectionTitle}>{withDevice('Temperature')}</h3>
             <div className={styles.dailyTempChartWrapper}>
               <HistoricalTemperatureChart data={tempRangeData} xDomain={xDomain} />
             </div>
@@ -37,7 +40,7 @@ function ReportCharts({
       {showSpectrum && (
         <div className={styles.historyChartsRow}>
           <div className={styles.historyChartColumn}>
-            <h3 className={styles.sectionTitle}>Spectrum</h3>
+            <h3 className={styles.sectionTitle}>{withDevice('Spectrum')}</h3>
             <div className={styles.multiBandChartWrapper}>
               <HistoricalMultiBandChart
                 data={rangeData}
@@ -52,7 +55,7 @@ function ReportCharts({
       {showClearLux && (
         <div className={styles.historyChartsRow}>
           <div className={styles.historyChartColumn}>
-            <h3 className={styles.sectionTitle}>Lux_Clear</h3>
+            <h3 className={styles.sectionTitle}>{withDevice('Lux_Clear')}</h3>
             <div className={styles.clearLuxChartWrapper}>
               <HistoricalClearLuxChart data={rangeData} xDomain={xDomain} />
             </div>
@@ -64,7 +67,7 @@ function ReportCharts({
         <div className={styles.historyChartsRow}>
           {showPh && (
             <div className={styles.historyChartColumn}>
-              <h3 className={styles.sectionTitle}>pH</h3>
+              <h3 className={styles.sectionTitle}>{withDevice('pH')}</h3>
               <div className={styles.phChartWrapper}>
                 <HistoricalPhChart data={phRangeData} xDomain={xDomain} />
               </div>
@@ -72,7 +75,7 @@ function ReportCharts({
           )}
           {showEcTds && (
             <div className={styles.historyChartColumn}>
-              <h3 className={styles.sectionTitle}>EC &amp; TDS</h3>
+              <h3 className={styles.sectionTitle}>{withDevice('EC & TDS')}</h3>
               <div className={styles.ecTdsChartWrapper}>
                 <HistoricalEcTdsChart data={ecTdsRangeData} xDomain={xDomain} />
               </div>
@@ -84,7 +87,7 @@ function ReportCharts({
       {showDo && (
         <div className={styles.historyChartsRow}>
           <div className={styles.historyChartColumn}>
-            <h3 className={styles.sectionTitle}>Dissolved Oxygen</h3>
+            <h3 className={styles.sectionTitle}>{withDevice('Dissolved Oxygen')}</h3>
             <div className={styles.doChartWrapper}>
               <HistoricalDoChart data={doRangeData} xDomain={xDomain} />
             </div>
