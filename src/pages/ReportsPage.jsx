@@ -192,6 +192,7 @@ function ReportsPage() {
                                 ecTdsRangeData={ecTdsRangeData}
                                 doRangeData={doRangeData}
                                 xDomain={xDomain}
+                                selectedDevice={selectedDevice}
                             />
                         </>
                     )}
