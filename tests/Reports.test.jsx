@@ -1,34 +1,15 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';
+
+const liveDevicesMock = vi.fn();
 
 vi.mock('../src/components/dashboard/ReportCharts', () => ({
   default: vi.fn(() => <div>ReportCharts</div>),
 }));
 
-import ReportsPage from '../src/pages/ReportsPage';
-import ReportCharts from '../src/components/dashboard/ReportCharts';
-
 vi.mock('../src/components/dashboard/useLiveDevices', () => ({
-  useLiveDevices: () => ({
-    deviceData: {
-      S01: {
-        growSensors: {
-          L01G01: {
-            deviceId: 'G01',
-            location: 'L01',
-            sensors: [
-              { sensorName: 'AS7343' },
-              { sensorName: 'SHT3x' },
-            ],
-          },
-        },
-      },
-    },
-    sensorData: {},
-    availableCompositeIds: ['L01G01'],
-    mergedDevices: {},
-  }),
+  useLiveDevices: (...args) => liveDevicesMock(...args),
 }));
 
 vi.mock('../src/components/dashboard/useHistory', () => ({
@@ -59,7 +40,35 @@ vi.mock('../src/context/FiltersContext', () => ({
 vi.mock('../src/components/Header', () => ({ default: () => <div>Header</div> }));
 vi.mock('../src/components/dashboard/ReportControls', () => ({ default: () => <div>ReportControls</div> }));
 
+import ReportsPage from '../src/pages/ReportsPage';
+import ReportCharts from '../src/components/dashboard/ReportCharts';
+
+beforeEach(() => {
+  liveDevicesMock.mockReset();
+  ReportCharts.mockClear();
+});
+
 test('Reports page shows charts for AS7343 and SHT3x sensors (case-insensitive)', () => {
+  liveDevicesMock.mockReturnValue({
+    deviceData: {
+      S01: {
+        growSensors: {
+          L01G01: {
+            deviceId: 'G01',
+            location: 'L01',
+            sensors: [
+              { sensorName: 'AS7343' },
+              { sensorName: 'SHT3x' },
+            ],
+          },
+        },
+      },
+    },
+    sensorData: {},
+    availableCompositeIds: ['L01G01'],
+    mergedDevices: {},
+  });
+
   render(<ReportsPage />);
   expect(screen.queryByText('No reports available for this device.')).toBeNull();
   expect(ReportCharts).toHaveBeenCalled();
@@ -67,5 +76,28 @@ test('Reports page shows charts for AS7343 and SHT3x sensors (case-insensitive)'
   expect(props.showSpectrum).toBe(true);
   expect(props.showClearLux).toBe(true);
   expect(props.showTempHum).toBe(true);
+});
+
+test('Reports page defaults to first available system when initial system has no devices', async () => {
+  liveDevicesMock.mockReturnValue({
+    deviceData: {
+      S02: {
+        growSensors: {
+          L01G01: {
+            deviceId: 'G01',
+            location: 'L01',
+            sensors: [{ sensorName: 'AS7343' }],
+          },
+        },
+      },
+    },
+    sensorData: {},
+    availableCompositeIds: ['L01G01'],
+    mergedDevices: {},
+  });
+
+  render(<ReportsPage />);
+  await waitFor(() => expect(ReportCharts).toHaveBeenCalled());
+  expect(screen.queryByText('No reports available for this device.')).toBeNull();
 });
 
