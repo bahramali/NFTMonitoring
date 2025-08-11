@@ -70,6 +70,21 @@ function ReportsPage() {
         }
     }, [sysFilter, activeSystem]);
 
+    // If no system is selected and the current system has no devices,
+    // automatically switch to the first available system so that reports
+    // are shown without extra user interaction.
+    useEffect(() => {
+        if (
+            sysFilter === ALL &&
+            (!deviceData[activeSystem] || Object.keys(deviceData[activeSystem] || {}).length === 0)
+        ) {
+            const systems = Object.keys(deviceData || {});
+            if (systems.length && activeSystem !== systems[0]) {
+                setActiveSystem(systems[0]);
+            }
+        }
+    }, [deviceData, activeSystem, sysFilter]);
+
     // Filter available device IDs based on active filters
     const filteredCompositeIds = useMemo(() => {
         return availableCompositeIds.filter((id) => {
