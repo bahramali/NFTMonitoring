@@ -9,7 +9,7 @@ import {SENSOR_TOPIC, topics} from "./dashboard/dashboard.constants";
 import {useFilters, ALL} from "../context/FiltersContext";
 import Overview from "./dashboard/Overview";
 
-function SensorDashboard() {
+function SensorDashboard({ view }) {
     const [activeSystem, setActiveSystem] = useState("S01");
     const {deviceData, sensorData, availableCompositeIds, mergedDevices} = useLiveDevices(topics, activeSystem);
     // aggregated metrics from the `live_now` topic
@@ -165,18 +165,19 @@ function SensorDashboard() {
         <div className={styles.dashboard}>
             <Header system={activeSystem}/>
 
-            {/* ⬇️ NEW Overview (replaces SystemTabs) */}
-            <Overview items={overviewItems}/>
+            {view !== 'live' && <Overview items={overviewItems}/>}
 
-            <Live
-                filteredSystemTopics={filteredSystemTopics}
-                sensorTopicDevices={sensorTopicDevices}
-                selectedDevice={selectedDevice}
-                setSelectedDevice={setSelectedDevice}
-                filteredCompositeIds={filteredCompositeIds}
-                sensorData={sensorData}
-                mergedDevices={mergedDevices}
-            />
+            {view !== 'overview' && (
+                <Live
+                    filteredSystemTopics={filteredSystemTopics}
+                    sensorTopicDevices={sensorTopicDevices}
+                    selectedDevice={selectedDevice}
+                    setSelectedDevice={setSelectedDevice}
+                    filteredCompositeIds={filteredCompositeIds}
+                    sensorData={sensorData}
+                    mergedDevices={mergedDevices}
+                />
+            )}
         </div>
     );
 }

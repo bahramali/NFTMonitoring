@@ -2,7 +2,7 @@ import React from 'react';
 import SensorDashboard from '../components/SensorDashboard';
 
 function Dashboard() {
-    return <SensorDashboard />;
+    return <SensorDashboard view="overview" />;
 }
 
 export default Dashboard;
