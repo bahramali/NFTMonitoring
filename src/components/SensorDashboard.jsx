@@ -155,7 +155,7 @@ function SensorDashboard() {
             {
                 key: "airpump",
                 icon: "🫧",
-                value: metric("airpump").average ?? "—",
+                value: metric("airpump").average == 1 ? "On":"Off",
                 unit: "",
                 title: "Air Pump",
                 subtitle: `Composite IDs: ${metric("airpump").deviceCount ?? 0}`,
