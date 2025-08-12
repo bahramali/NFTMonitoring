@@ -151,7 +151,7 @@ function ReportsPage() {
 
     return (
         <div className={styles.dashboard}>
-            <Header system={activeSystem} />
+            <Header title="Reports" />
 
             {/* System selection tabs */}
             <SystemTabs systems={Object.keys(deviceData)} activeSystem={activeSystem} onChange={setActiveSystem} />

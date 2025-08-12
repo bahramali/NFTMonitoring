@@ -1,7 +1,7 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from './Header.module.css';
 
-function Header({system}) {
+function Header({ title }) {
     const [now, setNow] = useState(() => new Date());
 
     useEffect(() => {
@@ -11,7 +11,7 @@ function Header({system}) {
 
     return (
         <header className={styles.header}>
-            <h1 className={styles.title}>{system} Dashboard</h1>
+            <h1 className={styles.title}>{title}</h1>
             <div className={styles.time}>{now.toLocaleTimeString()}</div>
         </header>
     );
