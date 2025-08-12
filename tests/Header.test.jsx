@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Header from '../src/components/Header';
 
-test('renders system title', () => {
-    render(<Header system="S01" />);
-    expect(screen.getByText('S01 Dashboard')).toBeInTheDocument();
+test('renders header title', () => {
+    render(<Header title="Reports" />);
+    expect(screen.getByText('Reports')).toBeInTheDocument();
 });
