@@ -1,12 +1,10 @@
 // SensorDashboard.jsx
 import React, {useEffect, useMemo, useState} from "react";
-import SpectrumBarChart from "./SpectrumBarChart";
 import Header from "./Header";
 import {useLiveDevices} from "./dashboard/useLiveDevices";
 import { useLiveNow } from "../hooks/useLiveNow";
 import styles from "./SensorDashboard.module.css";
-import TopicSection from "./dashboard/TopicSection";
-import NotesBlock from "./dashboard/NotesBlock";
+import Live from "./dashboard/Live";
 import {SENSOR_TOPIC, topics} from "./dashboard/dashboard.constants";
 import {useFilters, ALL} from "../context/FiltersContext";
 import Overview from "./dashboard/Overview";
@@ -170,44 +168,15 @@ function SensorDashboard() {
             {/* ⬇️ NEW Overview (replaces SystemTabs) */}
             <Overview items={overviewItems}/>
 
-            <div className={styles.section}>
-                <div className={styles.sectionBody}>
-                    {/* Live tables filtered by Device/Layer/System */}
-                    <TopicSection systemTopics={filteredSystemTopics}/>
-
-                    {/* Live spectrum chart for the selected device */}
-                    {Object.keys(sensorTopicDevices).length > 0 && (
-                        <>
-                            <div className={styles.chartFilterRow}>
-                                <label className={styles.filterLabel}>
-                                    Composite ID:
-                                    <select
-                                        className={styles.intervalSelect}
-                                        value={selectedDevice}
-                                        onChange={(e) => setSelectedDevice(e.target.value)}
-                                    >
-                                        {filteredCompositeIds.map((id) => (
-                                            <option key={id} value={id}>{id}</option>
-                                        ))}
-                                    </select>
-                                </label>
-                            </div>
-
-                            <div className={styles.deviceLabel}>{selectedDevice}</div>
-
-                            {filteredCompositeIds.includes(selectedDevice) && (
-                                <div className={styles.spectrumBarChartWrapper}>
-                                    <SpectrumBarChart sensorData={sensorData[selectedDevice]}/>
-                                </div>
-                            )}
-                        </>
-                    )}
-
-                    {/* Notes based on mergedDevices */}
-                    <NotesBlock mergedDevices={mergedDevices}/>
-
-                </div>
-            </div>
+            <Live
+                filteredSystemTopics={filteredSystemTopics}
+                sensorTopicDevices={sensorTopicDevices}
+                selectedDevice={selectedDevice}
+                setSelectedDevice={setSelectedDevice}
+                filteredCompositeIds={filteredCompositeIds}
+                sensorData={sensorData}
+                mergedDevices={mergedDevices}
+            />
         </div>
     );
 }
