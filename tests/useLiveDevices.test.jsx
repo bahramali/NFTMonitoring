@@ -16,7 +16,7 @@ test('stores sensor data per composite device', () => {
   act(() => {
     global.__stompHandler(SENSOR_TOPIC, {
       deviceId: 'G01',
-      location: 'L01',
+      layer: 'L01',
       system: 'S01',
       sensors: [
         { type: 'temperature', value: '20' },

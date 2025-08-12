@@ -55,7 +55,7 @@ test('Reports page shows charts for AS7343 and SHT3x sensors (case-insensitive)'
         growSensors: {
           L01G01: {
             deviceId: 'G01',
-            location: 'L01',
+            layer: 'L01',
             sensors: [
               { sensorName: 'AS7343' },
               { sensorName: 'SHT3x' },
@@ -85,7 +85,7 @@ test('Reports page defaults to first available system when initial system has no
         growSensors: {
           L01G01: {
             deviceId: 'G01',
-            location: 'L01',
+            layer: 'L01',
             sensors: [{ sensorName: 'AS7343' }],
           },
         },

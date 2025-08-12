@@ -2,7 +2,7 @@
   "timestamp": "2025-08-04T14:36:02Z",
   "system": "S01",
   "deviceId": "T01",
-  "location": "L01",
+  "layer": "L01",
   "sensors": [
     {
       "sensorName": "HailegeTDS",

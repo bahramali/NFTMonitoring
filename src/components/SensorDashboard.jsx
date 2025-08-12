@@ -40,7 +40,7 @@ function SensorDashboard() {
             for (const [topicKey, devs] of Object.entries(topicsObj || {})) {
                 for (const [cid, payload] of Object.entries(devs || {})) {
                     const baseId = payload?.deviceId;
-                    const layer = payload?.location?.layer || payload?.location || null;
+                    const layer = payload?.layer?.layer || payload?.layer || null;
                     if (!map[cid]) {
                         map[cid] = {system: sysId, layer, baseId, topics: new Set([topicKey])};
                     } else {

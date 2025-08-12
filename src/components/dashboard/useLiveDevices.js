@@ -15,7 +15,7 @@ export function useLiveDevices(topics, activeSystem) {
 
         const baseId = payload.deviceId || "unknown";
         const systemId = payload.system || "unknown";
-        const loc = payload.location || payload.Location || payload.meta?.location || "";
+        const loc = payload.layer || payload.layer || payload.meta?.layer || "";
         const compositeId = loc ? `${loc}${baseId}` : baseId;
 
         if (Array.isArray(payload.sensors)) {
@@ -29,7 +29,7 @@ export function useLiveDevices(topics, activeSystem) {
         const tableData = {
             sensors: Array.isArray(payload.sensors) ? payload.sensors : [],
             health: payload.health || {},
-            ...(loc ? {location: loc} : {}),
+            ...(loc ? {layer: loc} : {}),
             deviceId: baseId,
             compositeId
         };

@@ -1,7 +1,7 @@
 {
   "system": "S01",
   "deviceId": "G01",
-  "location": "L01",
+  "layer": "L01",
   "timestamp": "2025-08-04T14:35:59Z",
   "sensors": [
     {
