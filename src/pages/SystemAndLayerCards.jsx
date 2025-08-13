@@ -1,6 +1,9 @@
 import React from "react";
 import styles from "./SystemAndLayerCards.module.css";
 
+const fmt = (v, d = 1) =>
+    v == null || Number.isNaN(Number(v)) ? "—" : Number(v).toFixed(d);
+
 // map helper: names -> module classes
 const cx = (...names) =>
     names.filter(Boolean).map((n) => styles[n] || n).join(" ");
@@ -43,17 +46,21 @@ function Pill({label, health}) {
 }
 
 /* ========== Metric Card ========== */
-export function MetricCard({title, value, unit, icon}) {
+// کارت با استایل شبیه تصویر (آیکن، عدد بزرگ، عنوان، زیرنویس)
+export function MetricCard({ title, value, unit, icon, subtitle }) {
     return (
-        <div className={cx("metric-card")}>
-            <div className={cx("metric-top")}>
-                <div className={cx("metric-value")}>
-                    <strong>{value}</strong>
-                    {unit ? <span className={cx("metric-unit")}>{unit}</span> : null}
+        <div className={cx("metric-card-neo")}>
+            <div className={cx("metric-row-top")}>
+                <div className={cx("metric-icon-lg")}>{icon}</div>
+                <div className={cx("metric-reading")}>
+                    <span className={cx("metric-big")}>{value}</span>
+                    {unit ? <span className={cx("metric-unit-sm")}>{unit}</span> : null}
                 </div>
             </div>
-            <div className={cx("metric-title")}>{title}</div>
-            {icon ? <div className={cx("metric-icon")}>{icon}</div> : null}
+            <div className={cx("metric-bottom")}>
+                <div className={cx("metric-title2")}>{title}</div>
+                {subtitle ? <div className={cx("metric-sub")}>{subtitle}</div> : null}
+            </div>
         </div>
     );
 }
@@ -102,11 +109,12 @@ export function SystemOverviewCard({
             </div>
 
             <div className={cx("metrics-row")}>
-                <MetricCard title="Water Temp" value={metrics.waterTemp.toFixed(1)} unit="°C" icon={<span>🌡️</span>}/>
-                <MetricCard title="pH" value={metrics.pH.toFixed(1)} icon={<span>⚗️</span>}/>
-                <MetricCard title="EC" value={metrics.EC.toFixed(2)} unit="mS/cm" icon={<span>📈</span>}/>
-                <MetricCard title="DO" value={metrics.DO.toFixed(1)} unit="mg/L" icon={<span>O₂</span>}/>
-                <MetricCard title="Air Pump" value={metrics.airPump ? "On" : "Off"} icon={<span>🫧</span>}/>
+                <MetricCard title="Water Temp" value={fmt(metrics.waterTemp, 1)} unit="°C" icon={<span>🌡️</span>} subtitle={metrics?._counts?.waterTemp != null ? `Composite IDs: ${metrics._counts.waterTemp}` : undefined} />
+                <MetricCard title="pH"        value={fmt(metrics.pH, 1)}              icon={<span>⚗️</span>}     subtitle={metrics?._counts?.pH != null ? `Composite IDs: ${metrics._counts.pH}` : undefined} />
+                <MetricCard title="EC"        value={fmt(metrics.EC, 2)}   unit="mS/cm" icon={<span>📈</span>}     subtitle={metrics?._counts?.EC != null ? `Composite IDs: ${metrics._counts.EC}` : undefined} />
+                <MetricCard title="DO"        value={fmt(metrics.DO, 1)}   unit="mg/L"  icon={<span>O₂</span>}     subtitle={metrics?._counts?.DO != null ? `Composite IDs: ${metrics._counts.DO}` : undefined} />
+                <MetricCard title="Air Pump"  value={metrics.airPump ? "On" : "Off"}    icon={<span>🫧</span>}     subtitle={metrics?._counts?.airPump != null ? `Composite IDs: ${metrics._counts.airPump}` : undefined} />
+
             </div>
         </div>
     );
@@ -121,11 +129,12 @@ export function LayerPanel({id, health, metrics, children}) {
                 <span className={cx("layer-title")}>Layer {id}</span>
             </div>
 
-            <div className={cx("metrics-row", "three")}>
-                <MetricCard title="Light" value={metrics.lux.toFixed(1)} unit="lx"/>
-                <MetricCard title="Temperature" value={metrics.temp.toFixed(1)} unit="°C"/>
-                <MetricCard title="Humidity" value={metrics.humidity.toFixed(1)} unit="%"/>
+            <div className="metrics-row three">
+                <MetricCard title="Light"       value={fmt(metrics.lux, 1)} unit="lx"  icon={<span>☀️</span>}  subtitle={metrics?._counts?.light != null ? `Composite IDs: ${metrics._counts.light}` : undefined} />
+                <MetricCard title="Temperature" value={fmt(metrics.temp, 1)} unit="°C" icon={<span>🌡️</span>}  subtitle={metrics?._counts?.temperature != null ? `Composite IDs: ${metrics._counts.temperature}` : undefined} />
+                <MetricCard title="Humidity"    value={fmt(metrics.humidity, 1)} unit="%" icon={<span>%</span>} subtitle={metrics?._counts?.humidity != null ? `Composite IDs: ${metrics._counts.humidity}` : undefined} />
             </div>
+
 
             {children ? <div className={cx("layer-children")}>{children}</div> : null}
         </div>
