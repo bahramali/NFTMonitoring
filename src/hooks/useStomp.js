@@ -44,11 +44,13 @@ export function useStomp(topics, onMessage, opts = {}) {
         client.subscribe(`/topic/${t}`, (message) => {
           const body = message.body;
           let data = body;
-          try { data = JSON.parse(body); } catch (_) {}
+          try { data = JSON.parse(body); } catch {
+            // ignore parse errors
+          }
           onMessageRef.current?.(t, data);
-                        })
-                    );
-        };
+        })
+      );
+    };
 
     client.onWebSocketClose = () => setConnected(false);
     client.onStompError = (frame) =>
@@ -60,7 +62,14 @@ export function useStomp(topics, onMessage, opts = {}) {
       subs.forEach((s) => s?.unsubscribe?.());
       client.deactivate();
         };
-  }, [topicsKey, opts.url]);
+  }, [
+    topicsArr,
+    topicsKey,
+    opts.url,
+    opts.reconnectDelay,
+    opts.heartbeatIncoming,
+    opts.heartbeatOutgoing,
+  ]);
 
   return { connected };
 }
