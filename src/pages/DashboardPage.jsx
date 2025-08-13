@@ -1,8 +1,8 @@
 // src/pages/DashboardPage.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import styles from "./DashboardPage.module.css"; // اگر نداری حذفش کن
-import { useLiveNow } from "../hooks/useLiveNow";
-import { SystemOverviewCard, LayerPanel } from "./SystemAndLayerCards";
+import {useLiveNow} from "../hooks/useLiveNow";
+import {SystemOverviewCard, LayerPanel} from "./SystemAndLayerCards";
 
 // --- helpers ---
 const toNum = (v) => (v == null ? null : Number(v));
@@ -53,7 +53,7 @@ function normalizeLiveNow(payload) {
                     temp: temp ?? 0,
                     humidity: humidity ?? 0,
                 },
-                water: { DO, airPump },
+                water: {DO, airPump},
             });
         }
 
@@ -70,7 +70,7 @@ function normalizeLiveNow(payload) {
             sensorsHealthy: 0,
             sensorsTotal: 0,
             lastUpdateMs: Date.now(), // زمان دریافت این پیام؛ payload زمان ندارد
-            layers: layerCards.map((l) => ({ id: l.id, health: l.health })),
+            layers: layerCards.map((l) => ({id: l.id, health: l.health})),
             metrics: {
                 waterTemp: waterTemp ?? 0,
                 pH: 0,            // در payload نیست → صفر/نمایش —
@@ -111,11 +111,11 @@ export default function DashboardPage() {
 
     return (
         <div className={styles?.page}>
-            <div style={{ marginBottom: 12 }}>
+            <div style={{marginBottom: 12}}>
                 <select
                     value={active.systemId}
                     onChange={(e) => setSysId(e.target.value)}
-                    style={{ padding: 8, borderRadius: 12, border: "1px solid #e5e7eb" }}
+                    style={{padding: 8, borderRadius: 12, border: "1px solid #e5e7eb"}}
                 >
                     {systemsNorm.map((s) => (
                         <option key={s.systemId} value={s.systemId}>
