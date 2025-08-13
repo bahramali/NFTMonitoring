@@ -1,0 +1,10 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 24px;
+}
+.header {
+    display: flex;
+    justify-content: flex-end;
+}
