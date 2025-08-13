@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import SystemSelect from '../components/dashboard/SystemSelect';
 import OverviewList from '../components/dashboard/OverviewList';
 import LayersBoard from '../components/dashboard/LayersBoard';
 import styles from './DashboardPage.module.css';
@@ -35,19 +34,8 @@ export default function DashboardPage() {
         }
     }, [live]);
 
-    const [selected, setSelected] = useState('');
-
-    useEffect(() => {
-        if (systems.length && !systems.find((s) => s.id === selected)) {
-            setSelected(systems[0].id);
-        }
-    }, [systems, selected]);
-
     return (
         <div className={styles.page}>
-            <div className={styles.header}>
-                <SystemSelect systems={systems} value={selected} onChange={setSelected} />
-            </div>
             <OverviewList systems={systems} />
             <LayersBoard layers={layers} />
         </div>
