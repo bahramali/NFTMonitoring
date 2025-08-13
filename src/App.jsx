@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
-import Dashboard from './pages/Dashboard';
+import DashboardPage  from './pages/DashboardPage';
 import Live from './pages/Live';
 import ReportsPage from './pages/ReportsPage';
 import Settings from './pages/Settings';
@@ -19,7 +19,7 @@ function App() {
         <BrowserRouter basename={base}>
             <Routes>
                 <Route path="/" element={<MainLayout />}>
-                    <Route index element={<Dashboard />} />
+                    <Route index element={<DashboardPage />} />
                     <Route path="live" element={<Live />} />
                     <Route path="reports" element={<ReportsPage />} />
                     <Route path="settings" element={<Settings />} />

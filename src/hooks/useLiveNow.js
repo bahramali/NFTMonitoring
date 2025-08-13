@@ -1,16 +1,14 @@
-import { useState, useCallback } from 'react';
-import { useStomp } from './useStomp';
+// useLiveNow.js
+import {useState, useCallback} from "react";
+import {useStomp} from "./useStomp";
 
-/**
- * Subscribe to the `live_now` topic and expose the latest payload.
- */
+/** Latest payload from topic: live_now */
 export function useLiveNow() {
     const [status, setStatus] = useState(null);
-
-    const handleMessage = useCallback((_topic, msg) => {
-        setStatus(msg);
+    const handle = useCallback((_topic, data) => {
+        console.log('[live_now] message:', data);
+        setStatus(data);
     }, []);
-
-    useStomp('live_now', handleMessage);
+    useStomp("live_now", handle);
     return status;
 }
