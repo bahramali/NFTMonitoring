@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import SystemSelect from '../components/dashboard/SystemSelect';
 import OverviewList from '../components/dashboard/OverviewList';
 import LayersBoard from '../components/dashboard/LayersBoard';
+import styles from './DashboardPage.module.css';
 
 export default function DashboardPage() {
     const systems = [
@@ -24,8 +25,8 @@ export default function DashboardPage() {
     const [selected, setSelected] = useState(systems[0].id);
 
     return (
-        <div className="space-y-6 p-6">
-            <div className="flex justify-end">
+        <div className={styles.page}>
+            <div className={styles.header}>
                 <SystemSelect systems={systems} value={selected} onChange={setSelected} />
             </div>
             <OverviewList systems={systems} />

@@ -1,11 +1,13 @@
 import React from 'react';
 import MetricCard from './MetricCard';
 
+import styles from './DeviceCard.module.css';
+
 export default function DeviceCard({ name, metrics = {} }) {
     return (
-        <div className="bg-white border rounded shadow-sm p-4">
-            <h4 className="font-medium mb-2">{name}</h4>
-            <div className="grid grid-cols-2 gap-2">
+        <div className={styles.card}>
+            <h4 className={styles.title}>{name}</h4>
+            <div className={styles.metrics}>
                 {Object.entries(metrics).map(([key, val]) => (
                     <MetricCard key={key} title={key} value={val} />
                 ))}

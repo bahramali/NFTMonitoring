@@ -1,9 +1,11 @@
 import React from 'react';
+import styles from './SystemSelect.module.css';
 
 export default function SystemSelect({ systems = [], value, onChange }) {
     return (
         <select
-            className="border rounded p-2"
+            className={styles.select}
+
             value={value}
             onChange={(e) => onChange?.(e.target.value)}
         >

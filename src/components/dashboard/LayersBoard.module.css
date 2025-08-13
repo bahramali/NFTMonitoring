@@ -1,0 +1,34 @@
+.board {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.layerCard {
+    background: #f9fafb;
+    border-radius: 4px;
+    padding: 16px;
+}
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+.title {
+    font-size: 18px;
+    font-weight: 600;
+}
+.devices {
+    display: grid;
+    gap: 16px;
+}
+@media (min-width: 640px) {
+    .devices {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media (min-width: 1024px) {
+    .devices {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}

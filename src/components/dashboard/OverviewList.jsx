@@ -1,13 +1,14 @@
 import React from 'react';
 import MetricCard from './MetricCard';
+import styles from './OverviewList.module.css';
 
 export default function OverviewList({ systems = [] }) {
     return (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={styles.grid}>
             {systems.map((sys) => (
-                <div key={sys.id} className="bg-white rounded shadow p-4">
-                    <h3 className="text-lg font-semibold mb-2">{sys.name}</h3>
-                    <div className="grid grid-cols-2 gap-2">
+                <div key={sys.id} className={styles.card}>
+                    <h3 className={styles.title}>{sys.name}</h3>
+                    <div className={styles.metrics}>
                         {sys.metrics &&
                             Object.entries(sys.metrics).map(([key, val]) => (
                                 <MetricCard key={key} title={key} value={val} />
