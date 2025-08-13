@@ -5,6 +5,7 @@ export default function SystemSelect({ systems = [], value, onChange }) {
     return (
         <select
             className={styles.select}
+
             value={value}
             onChange={(e) => onChange?.(e.target.value)}
         >

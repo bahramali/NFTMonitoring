@@ -13,6 +13,7 @@ export default function LayersBoard({ layers = [] }) {
                         {layer.metrics ? <LayerMetrics metrics={layer.metrics} /> : null}
                     </div>
                     <div className={styles.devices}>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {layer.devices?.map((dev) => (
                             <DeviceCard key={dev.id} name={dev.name} metrics={dev.metrics} />
                         ))}

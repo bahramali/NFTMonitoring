@@ -1,5 +1,6 @@
 import React from 'react';
 import MetricCard from './MetricCard';
+
 import styles from './DeviceCard.module.css';
 
 export default function DeviceCard({ name, metrics = {} }) {
