@@ -10,7 +10,7 @@ function NotesBlock({ mergedDevices = {} }) {
   for (const dev of Object.values(mergedDevices)) {
     if (Array.isArray(dev?.sensors)) {
       for (const s of dev.sensors) {
-        const type = s && (s.type || s.valueType);
+        const type = s && (s.sensorType || s.valueType);
         if (type) sensors.add(bandMap[type] || type);
       }
     }

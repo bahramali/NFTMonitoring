@@ -6,10 +6,10 @@ import DeviceTable from '../src/components/DeviceTable';
 const devices = {
   tank1: {
     sensors: [
-      { sensorName: 'HailegeTDS', valueType: 'tds', value: 500, unit: 'ppm' },
-      { sensorName: '', valueType: 'ec', value: 0.8, unit: 'mS/cm', source: 'HailegeTDS' },
-      { sensorName: 'DS18B20', valueType: 'temperature', value: 24.3, unit: '°C' },
-      { sensorName: 'DFROBOT', valueType: 'dissolvedOxygen', value: 3.1, unit: 'mg/L' }
+      { sensorName: 'HailegeTDS', sensorType: 'tds', value: 500, unit: 'ppm' },
+      { sensorName: '', sensorType: 'ec', value: 0.8, unit: 'mS/cm', source: 'HailegeTDS' },
+      { sensorName: 'DS18B20', sensorType: 'temperature', value: 24.3, unit: '°C' },
+      { sensorName: 'DFROBOT', sensorType: 'dissolvedOxygen', value: 3.1, unit: 'mg/L' }
     ],
     health: { HailegeTDS: true, DS18B20: true, DFROBOT: true }
   }

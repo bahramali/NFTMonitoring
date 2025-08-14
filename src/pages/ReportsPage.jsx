@@ -131,7 +131,7 @@ function ReportsPage() {
     const sensorTypesForSelected = useMemo(() => {
         const match = sensorTopicDevices[selectedDevice];
         const sensors = match?.sensors || [];
-        return sensors.map((s) => (s.type || s.valueType || '').toLowerCase());
+        return sensors.map((s) => (s.sensorType || s.valueType || '').toLowerCase());
     }, [sensorTopicDevices, selectedDevice]);
 
     const sensorNamesForSelected = useMemo(() => {

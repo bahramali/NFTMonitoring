@@ -6,79 +6,79 @@
   "sensors": [
     {
       "sensorName": "sht3x",
-      "valueType": "temperature",
+      "sensorType": "temperature",
       "value": 1,
       "unit": "°C"
     },
     {
       "sensorName": "sht3x",
-      "valueType": "humidity",
+      "sensorType": "humidity",
       "value": 2,
       "unit": "%"
     },
     {
       "sensorName": "veml7700",
-      "valueType": "light",
+      "sensorType": "light",
       "value": 100,
       "unit": "lux"
     },
     {
       "sensorName": "as7341",
-      "valueType": "415nm",
+      "sensorType": "415nm",
       "value": 1,
       "unit": "raw"
     },
     {
       "sensorName": "as7341",
-      "valueType": "445nm",
+      "sensorType": "445nm",
       "value": 2,
       "unit": "raw"
     },
     {
       "sensorName": "as7341",
-      "valueType": "480nm",
+      "sensorType": "480nm",
       "value": 3,
       "unit": "raw"
     },
     {
       "sensorName": "as7341",
-      "valueType": "515nm",
+      "sensorType": "515nm",
       "value": 4,
       "unit": "raw"
     },
     {
       "sensorName": "as7341",
-      "valueType": "555nm",
+      "sensorType": "555nm",
       "value": 5,
       "unit": "raw"
     },
     {
       "sensorName": "as7341",
-      "valueType": "590nm",
+      "sensorType": "590nm",
       "value": 6,
       "unit": "raw"
     },
     {
       "sensorName": "as7341",
-      "valueType": "630nm",
+      "sensorType": "630nm",
       "value": 7,
       "unit": "raw"
     },
     {
       "sensorName": "as7341",
-      "valueType": "680nm",
+      "sensorType": "680nm",
       "value": 8,
       "unit": "raw"
     },
     {
       "sensorName": "as7341",
-      "valueType": "clear",
+      "sensorType": "clear",
       "value": 101,
       "unit": "raw"
     },
     {
       "sensorName": "as7341",
-      "valueType": "nir",
+      "sensorType": "nir",
       "value": 102,
       "unit": "raw"
     }

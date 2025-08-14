@@ -7,14 +7,14 @@ import styles from '../src/components/DeviceTable.module.css';
 const devices = {
   dev1: {
     sensors: [
-      { sensorName: 'SHT3x', valueType: 'temperature', value: 22.5, unit: '°C' },
-      { sensorName: 'SHT3x', valueType: 'humidity', value: 55, unit: '%' },
-      { sensorName: 'VEML7700', valueType: 'light', value: 1200, unit: 'lux' },
-      { sensorName: 'HailegeTDS', valueType: 'tds', value: 800, unit: 'ppm' },
-      { sensorName: 'HailegeTDS', valueType: 'ec', value: 1.5, unit: 'mS/cm' },
-      { sensorName: 'E-201', valueType: 'ph', value: 6.2, unit: '' },
-      { sensorName: 'AS7341', valueType: '415nm', value: 10, unit: 'raw' },
-      { sensorName: 'AS7341', valueType: '445nm', value: 20, unit: 'raw' }
+      { sensorName: 'SHT3x', sensorType: 'temperature', value: 22.5, unit: '°C' },
+      { sensorName: 'SHT3x', sensorType: 'humidity', value: 55, unit: '%' },
+      { sensorName: 'VEML7700', sensorType: 'light', value: 1200, unit: 'lux' },
+      { sensorName: 'HailegeTDS', sensorType: 'tds', value: 800, unit: 'ppm' },
+      { sensorName: 'HailegeTDS', sensorType: 'ec', value: 1.5, unit: 'mS/cm' },
+      { sensorName: 'E-201', sensorType: 'ph', value: 6.2, unit: '' },
+      { sensorName: 'AS7341', sensorType: '415nm', value: 10, unit: 'raw' },
+      { sensorName: 'AS7341', sensorType: '445nm', value: 20, unit: 'raw' }
     ],
     health: {
       SHT3x: true,
@@ -63,7 +63,7 @@ test('shows green indicator when health keys are lowercase', () => {
   const devicesLower = {
     dev1: {
       sensors: [
-        { sensorName: 'SHT3x', valueType: 'temperature', value: 22.5, unit: '°C' }
+        { sensorName: 'SHT3x', sensorType: 'temperature', value: 22.5, unit: '°C' }
       ],
       health: { sht3x: true }
     }

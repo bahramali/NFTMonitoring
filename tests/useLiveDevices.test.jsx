@@ -19,8 +19,8 @@ test('stores sensor data per composite device', () => {
       layer: 'L01',
       system: 'S01',
       sensors: [
-        { type: 'temperature', value: '20' },
-        { type: 'humidity', value: '50' }
+        { sensorType: 'temperature', value: '20' },
+        { sensorType: 'humidity', value: '50' }
       ]
     });
   });
@@ -30,8 +30,8 @@ test('stores sensor data per composite device', () => {
       deviceId: 'G02',
       system: 'S01',
       sensors: [
-        { type: 'temperature', value: '21' },
-        { type: 'humidity', value: '55' }
+        { sensorType: 'temperature', value: '21' },
+        { sensorType: 'humidity', value: '55' }
       ]
     });
   });

@@ -20,13 +20,14 @@ function DeviceTable({devices = {}}) {
     const spectralKeyMapFromData = {};
 
     allSensors.forEach(s => {
-        if (s?.valueType) {
-            measurementTypes.add(s.valueType);
-            measurementToSensorModel[s.valueType] = s.sensorName || s.source || '-';
+        const type = s?.sensorType || s?.valueType;
+        if (type) {
+            measurementTypes.add(type);
+            measurementToSensorModel[type] = s.sensorName || s.source || '-';
 
             // Label map (first letter uppercase if common)
-            if (!labelMapFromData[s.valueType]) {
-                const key = s.valueType;
+            if (!labelMapFromData[type]) {
+                const key = type;
                 if (key === 'temperature') labelMapFromData[key] = 'Temp';
                 else if (key === 'humidity') labelMapFromData[key] = 'Hum';
                 else if (key.toLowerCase().includes('oxygen')) labelMapFromData[key] = 'DO';
@@ -34,15 +35,15 @@ function DeviceTable({devices = {}}) {
             }
 
             // Spectral mapping if type is wavelength
-            if (/^\d+nm$/.test(s.valueType)) {
-                const num = s.valueType.replace('nm', '');
+            if (/^\d+nm$/.test(type)) {
+                const num = type.replace('nm', '');
                 const index = ['415', '445', '480', '515', '555', '590', '630', '680'].indexOf(num);
                 if (index !== -1) {
-                    spectralKeyMapFromData[s.valueType] = 'F' + (index + 1);
+                    spectralKeyMapFromData[type] = 'F' + (index + 1);
                 }
             }
-            if (s.valueType === 'clear') spectralKeyMapFromData[s.valueType] = 'clear';
-            if (s.valueType === 'nir') spectralKeyMapFromData[s.valueType] = 'nir';
+            if (type === 'clear') spectralKeyMapFromData[type] = 'clear';
+            if (type === 'nir') spectralKeyMapFromData[type] = 'nir';
         }
     });
 
@@ -61,7 +62,7 @@ function DeviceTable({devices = {}}) {
         const rowColor = bandKey ? `${spectralColors[bandKey]}22` : undefined;
 
         const cells = deviceIds.map(id => {
-            const s = devices[id].sensors?.find(s => s.valueType === measurementType);
+            const s = devices[id].sensors?.find(s => (s.sensorType || s.valueType) === measurementType);
             const value = s?.value;
             const unit = s?.unit || '';
             const display = (value === undefined || value === null) ? '-' : `${typeof value === 'number' ? value.toFixed(1) : value}${unit ? ` ${unit}` : ''}`;

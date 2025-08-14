@@ -22,13 +22,13 @@ function normalizeHealth(health = {}) {
     return normalized;
 }
 
-// Flattens sensor array into a single object keyed by valueType (for charts)
+// Flattens sensor array into a single object keyed by sensorType (for charts)
 export function normalizeSensorData(data) {
     const result = {health: {}};
 
     if (Array.isArray(data.sensors)) {
         for (const sensor of data.sensors) {
-            const type = sensor.type || sensor.valueType;
+            const type = sensor.sensorType || sensor.valueType;
             const val = Number(sensor.value);
 
             switch (type) {
@@ -107,7 +107,7 @@ export function transformAggregatedData(data) {
     if (!data || !Array.isArray(data.sensors)) return [];
     const map = {};
     for (const sensor of data.sensors) {
-        const sensorType = sensor.type || sensor.valueType;
+        const sensorType = sensor.sensorType || sensor.valueType;
         const unit = sensor.unit || '';
 
         for (const entry of sensor.data || []) {
