@@ -6,26 +6,26 @@
   "sensors": [
     {
       "sensorName": "HailegeTDS",
-      "valueType": "tds",
+      "sensorType": "tds",
       "value": 1,
       "unit": "ppm"
     },
     {
       "sensorName": "HailegeTDS",
-      "valueType": "ec",
+      "sensorType": "ec",
       "value": 1,
       "unit": "mS/cm",
       "source": "calculated"
     },
     {
       "sensorName": "DS18B20",
-      "valueType": "temperature",
+      "sensorType": "temperature",
       "value": 2,
       "unit": "°C"
     },
     {
       "sensorName": "DFROBOT",
-      "valueType": "dissolvedOxygen",
+      "sensorType": "dissolvedOxygen",
       "value": 3,
       "unit": "mg/L"
     }

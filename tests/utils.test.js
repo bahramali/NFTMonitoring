@@ -67,19 +67,19 @@ test('parses numeric strings into numbers', () => {
 test('normalizes sensors array structure', () => {
     const raw = {
         sensors: [
-            { sensorId: 'sht3x-01', type: 'temperature', value: 26.5, unit: '°C' },
-            { sensorId: 'sht3x-01', type: 'humidity', value: 50, unit: '%' },
-            { sensorId: 'veml7700-01', type: 'light', value: 9, unit: 'lux' },
-            { sensorId: 'as7341-01', type: '415nm', value: 3, unit: 'raw' },
-            { sensorId: 'as7341-01', type: '445nm', value: 4, unit: 'raw' },
-            { sensorId: 'as7341-01', type: '480nm', value: 7, unit: 'raw' },
-            { sensorId: 'as7341-01', type: '515nm', value: 9, unit: 'raw' },
-            { sensorId: 'as7341-01', type: '555nm', value: 15, unit: 'raw' },
-            { sensorId: 'as7341-01', type: '590nm', value: 24, unit: 'raw' },
-            { sensorId: 'as7341-01', type: '630nm', value: 27, unit: 'raw' },
-            { sensorId: 'as7341-01', type: '680nm', value: 26, unit: 'raw' },
-            { sensorId: 'tds-01', type: 'tds', value: 89, unit: 'ppm' },
-            { sensorId: 'ec-estimated', type: 'ec', value: 0.14, unit: 'mS/cm' }
+            { sensorId: 'sht3x-01', sensorType: 'temperature', value: 26.5, unit: '°C' },
+            { sensorId: 'sht3x-01', sensorType: 'humidity', value: 50, unit: '%' },
+            { sensorId: 'veml7700-01', sensorType: 'light', value: 9, unit: 'lux' },
+            { sensorId: 'as7341-01', sensorType: '415nm', value: 3, unit: 'raw' },
+            { sensorId: 'as7341-01', sensorType: '445nm', value: 4, unit: 'raw' },
+            { sensorId: 'as7341-01', sensorType: '480nm', value: 7, unit: 'raw' },
+            { sensorId: 'as7341-01', sensorType: '515nm', value: 9, unit: 'raw' },
+            { sensorId: 'as7341-01', sensorType: '555nm', value: 15, unit: 'raw' },
+            { sensorId: 'as7341-01', sensorType: '590nm', value: 24, unit: 'raw' },
+            { sensorId: 'as7341-01', sensorType: '630nm', value: 27, unit: 'raw' },
+            { sensorId: 'as7341-01', sensorType: '680nm', value: 26, unit: 'raw' },
+            { sensorId: 'tds-01', sensorType: 'tds', value: 89, unit: 'ppm' },
+            { sensorId: 'ec-estimated', sensorType: 'ec', value: 0.14, unit: 'mS/cm' }
         ],
         health: { sht3x: true, veml7700: true, as7341: true, tds: true, ph: false }
     };
@@ -98,7 +98,7 @@ test('normalizes sensors array structure', () => {
 test('handles ph sensor readings', () => {
     const raw = {
         sensors: [
-            { type: 'ph', value: 6.2, unit: '' }
+            { sensorType: 'ph', value: 6.2, unit: '' }
         ]
     };
     const result = normalizeSensorData(raw);
@@ -138,7 +138,7 @@ test('filterNoise discards out of range values', () => {
 });
 
 test('parseSensorJson fixes missing commas between sensor objects', () => {
-    const malformed = '{"sensors":[{"sensorId":"a","type":"temperature","value":1}{"sensorId":"b","type":"humidity","value":2}]}';
+    const malformed = '{"sensors":[{"sensorId":"a","sensorType":"temperature","value":1}{"sensorId":"b","sensorType":"humidity","value":2}]}';
     const parsed = parseSensorJson(malformed);
     expect(Array.isArray(parsed.sensors)).toBe(true);
     expect(parsed.sensors.length).toBe(2);
@@ -148,10 +148,10 @@ test('parseSensorJson fixes missing commas between sensor objects', () => {
 test('transformAggregatedData converts API response', () => {
     const raw = {
         sensors: [
-            { type: 'temperature', unit: '°C', data: [{ timestamp: '2025-07-25T09:00:04Z', value: 27.5 }] },
-            { type: 'humidity', unit: '%', data: [{ timestamp: '2025-07-25T09:00:04Z', value: 56 }] },
-            { type: 'light', unit: 'lux', data: [{ timestamp: '2025-07-25T09:00:04Z', value: 90 }] },
-            { type: 'colorSpectrum', unit: 'raw', data: [{ timestamp: '2025-07-25T09:00:04Z', value: { '415nm': 1, '445nm': 2, '480nm': 3, '515nm': 4, '555nm': 5, '590nm': 6, '630nm': 7, '680nm': 8, clear: 9, nir: 10 } }] }
+            { sensorType: 'temperature', unit: '°C', data: [{ timestamp: '2025-07-25T09:00:04Z', value: 27.5 }] },
+            { sensorType: 'humidity', unit: '%', data: [{ timestamp: '2025-07-25T09:00:04Z', value: 56 }] },
+            { sensorType: 'light', unit: 'lux', data: [{ timestamp: '2025-07-25T09:00:04Z', value: 90 }] },
+            { sensorType: 'colorSpectrum', unit: 'raw', data: [{ timestamp: '2025-07-25T09:00:04Z', value: { '415nm': 1, '445nm': 2, '480nm': 3, '515nm': 4, '555nm': 5, '590nm': 6, '630nm': 7, '680nm': 8, clear: 9, nir: 10 } }] }
         ]
     };
     const result = transformAggregatedData(raw);
