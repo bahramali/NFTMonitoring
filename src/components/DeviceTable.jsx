@@ -12,8 +12,8 @@ function getCellColor(value, range) {
 }
 
 function DeviceTable({devices = {}}) {
-    const deviceIds = Object.keys(devices);
-    const allSensors = deviceIds.flatMap(id => devices[id].sensors || []);
+    const compositeIds = Object.keys(devices);
+    const allSensors = compositeIds.flatMap(id => devices[id].sensors || []);
     const measurementTypes = new Set();
     const measurementToSensorModel = {};
     const labelMapFromData = {};
@@ -61,7 +61,7 @@ function DeviceTable({devices = {}}) {
         const bandKey = spectralKeyMapFromData[measurementType];
         const rowColor = bandKey ? `${spectralColors[bandKey]}22` : undefined;
 
-        const cells = deviceIds.map(id => {
+        const cells = compositeIds.map(id => {
             const s = devices[id].sensors?.find(s => (s.sensorType || s.valueType) === measurementType);
             const value = s?.value;
             const unit = s?.unit || '';
@@ -85,9 +85,9 @@ function DeviceTable({devices = {}}) {
                     <th className={styles.sensorCell}>M_Type</th>
                     <th className={styles.modelCell}>Min</th>
                     <th className={styles.modelCell}>Max</th>
-                    {deviceIds.map(id => {
+                    {compositeIds.map(id => {
                         const dev = devices[id];
-                        const label = dev?.compositeId ?? id;
+                        const label = dev?.compositeId || id;
                         return <th key={id}>{label}</th>;
                     })}
                 </tr>
@@ -102,7 +102,7 @@ function DeviceTable({devices = {}}) {
                         <td style={{backgroundColor: row.rowColor}}>{row.range?.min ?? '-'}</td>
                         <td style={{backgroundColor: row.rowColor}}>{row.range?.max ?? '-'}</td>
                         {row.cells.map((cell, i) => (
-                            <td key={deviceIds[i]} style={{backgroundColor: cell.color}}>
+                            <td key={compositeIds[i]} style={{backgroundColor: cell.color}}>
                                 <div className={styles.cellWrapper}>
                                     <span className={`${styles.indicator} ${cell.ok ? styles.on : styles.off}`}></span>
                                     <span className={styles.cellValue}>{cell.display}</span>

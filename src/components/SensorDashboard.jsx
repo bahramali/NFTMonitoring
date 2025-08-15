@@ -36,19 +36,19 @@ function SensorDashboard({ view, title = '' }) {
         const map = {};
         for (const [sysId, topicsObj] of Object.entries(deviceData || {})) {
             for (const [topicKey, devs] of Object.entries(topicsObj || {})) {
-                for (const [cid, payload] of Object.entries(devs || {})) {
+                for (const [compositeId, payload] of Object.entries(devs || {})) {
                     const baseId = payload?.deviceId;
                     const layer = payload?.layer?.layer || payload?.layer || null;
-                    if (!map[cid]) {
-                        map[cid] = {system: sysId, layer, baseId, topics: new Set([topicKey])};
+                    if (!map[compositeId]) {
+                        map[compositeId] = {system: sysId, layer, baseId, topics: new Set([topicKey])};
                     } else {
-                        map[cid].topics.add(topicKey);
+                        map[compositeId].topics.add(topicKey);
                     }
                 }
             }
         }
         return Object.fromEntries(
-            Object.entries(map).map(([cid, m]) => [cid, {
+            Object.entries(map).map(([compositeId, m]) => [compositeId, {
                 system: m.system,
                 layer: m.layer,
                 baseId: m.baseId,
@@ -81,9 +81,9 @@ function SensorDashboard({ view, title = '' }) {
 
     // 4) Filter available device IDs based on all active filters
     const filteredCompositeIds = useMemo(() => {
-        return availableCompositeIds.filter((id) => {
-            const meta = deviceMeta[id] || {};
-            const okDev = devFilter === ALL || id === devFilter;
+        return availableCompositeIds.filter((compositeId) => {
+            const meta = deviceMeta[compositeId] || {};
+            const okDev = devFilter === ALL || compositeId === devFilter;
             const okLay = layerFilter === ALL || meta.layer === layerFilter;
             const okSys = sysFilter === ALL || meta.system === sysFilter;
             const okTopic = topicFilter === ALL || (meta.topics || []).includes(topicFilter);
@@ -97,8 +97,8 @@ function SensorDashboard({ view, title = '' }) {
         for (const [topic, devs] of Object.entries(activeSystemTopics || {})) {
             if (topicFilter !== ALL && topic !== topicFilter) continue;
             out[topic] = Object.fromEntries(
-                Object.entries(devs || {}).filter(([cid]) =>
-                    filteredCompositeIds.includes(cid)
+                Object.entries(devs || {}).filter(([compositeId]) =>
+                    filteredCompositeIds.includes(compositeId)
                 )
             );
         }

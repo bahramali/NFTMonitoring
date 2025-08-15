@@ -77,3 +77,23 @@ test('merges controllers from multiple topics', () => {
   expect(valve.state).toBe('open');
   expect(pump.state).toBe('on');
 });
+
+test('uses provided compositeId when present', () => {
+  const { result } = renderHook(() => useLiveDevices([SENSOR_TOPIC], 'S01'));
+
+  act(() => {
+    global.__stompHandler(SENSOR_TOPIC, {
+      compositeId: 'C123',
+      deviceId: 'ignored',
+      layer: 'L99',
+      system: 'S01',
+      sensors: [
+        { sensorType: 'temperature', value: '22' },
+        { sensorType: 'humidity', value: '55' }
+      ]
+    });
+  });
+
+  expect(result.current.sensorData['C123'].temperature.value).toBe(22);
+  expect(result.current.sensorData['C123'].humidity.value).toBe(55);
+});
