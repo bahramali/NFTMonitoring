@@ -62,14 +62,17 @@ function normalizeLiveNow(payload) {
             const {avg: lux, count: lightCount} = getMetric(env, "light");
             const {avg: temp, count: tempCount} = getMetric(env, "temperature");
             const {avg: humidity, count: humidityCount} = getMetric(env, "humidity");
+
+            const {avg: dTemp, count: dTempCount} = getMetric(water, "dissolvedTemp");
             const {avg: DO, count: DOCount} = getMetric(water, "dissolvedOxygen");
-            const {avg: airPumpAvg, count: airPumpCount} = getMetric(
-                acts,
-                "airpump"
-            );
+            const {avg: pH, count: pHCount} = getMetric(water, "pH", "ph");
+            const {avg: EC, count: ECCount} = getMetric(water, "dissolvedEC");
+            const {avg: TDS, count: TDSCount} = getMetric(water, "dissolvedTDS");
+
+            const {avg: airPumpAvg, count: airPumpCount} = getMetric(acts, "airpump");
             const airPump = airPumpAvg == null ? null : airPumpAvg >= 0.5;
 
-            const hasAny = [lux, temp, humidity, DO, airPumpAvg].some(
+            const hasAny = [lux, temp, humidity, dTemp, DO, pH, EC, TDS, airPumpAvg].some(
                 (v) => v != null
             );
             const missingEnv = [lux, temp, humidity].some((v) => v == null);
@@ -89,9 +92,22 @@ function normalizeLiveNow(payload) {
                     },
                 },
                 water: {
-                    DO: DO ?? null,
+                    dissolvedTemp: dTemp ?? null,
+                    dissolvedOxygen: DO ?? null,
+                    pH: pH ?? null,
+                    dissolvedEC: EC ?? null,
+                    dissolvedTDS: TDS ?? null,
+                    _counts: {
+                        dissolvedTemp: dTempCount,
+                        dissolvedOxygen: DOCount,
+                        pH: pHCount,
+                        dissolvedEC: ECCount,
+                        dissolvedTDS: TDSCount,
+                    },
+                },
+                actuators: {
                     airPump,
-                    _counts: {DO: DOCount, airPump: airPumpCount},
+                    _counts: { airPump: airPumpCount },
                 },
             });
         }
@@ -201,6 +217,8 @@ export default function DashboardPage() {
                                 id={l.id}
                                 health={l.health}
                                 metrics={{...l.metrics, _counts: l.metrics?._counts}}
+                                water={{...l.water, _counts: l.water?._counts}}
+                                actuators={{...l.actuators, _counts: l.actuators?._counts}}
                             />
                         ))}
                     </div>
