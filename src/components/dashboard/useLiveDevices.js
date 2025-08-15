@@ -3,6 +3,20 @@ import {filterNoise, normalizeSensorData} from "../../utils";
 import {useStomp} from "../../hooks/useStomp";
 import {SENSOR_TOPIC} from "./dashboard.constants";
 
+function mergeControllers(a = [], b = []) {
+    const map = new Map();
+    for (const ctrl of a) {
+        if (ctrl && ctrl.name) map.set(ctrl.name, ctrl);
+    }
+    for (const ctrl of b) {
+        if (ctrl && ctrl.name) {
+            const existing = map.get(ctrl.name) || {};
+            map.set(ctrl.name, {...existing, ...ctrl});
+        }
+    }
+    return Array.from(map.values());
+}
+
 export function useLiveDevices(topics, activeSystem) {
     const [deviceData, setDeviceData] = useState({});
     const [sensorData, setSensorData] = useState({});
@@ -28,6 +42,7 @@ export function useLiveDevices(topics, activeSystem) {
 
         const tableData = {
             sensors: Array.isArray(payload.sensors) ? payload.sensors : [],
+            controllers: Array.isArray(payload.controllers) ? payload.controllers : [],
             health: payload.health || {},
             ...(loc ? {layer: loc} : {}),
             deviceId: baseId,
@@ -60,7 +75,12 @@ export function useLiveDevices(topics, activeSystem) {
         const combined = {};
         for (const topicKey of Object.keys(sysData)) {
             for (const [cid, data] of Object.entries(sysData[topicKey])) {
-                combined[cid] = {...(combined[cid] || {}), ...data};
+                const existing = combined[cid] || {};
+                combined[cid] = {
+                    ...existing,
+                    ...data,
+                    controllers: mergeControllers(existing.controllers, data.controllers)
+                };
             }
         }
         return combined;
