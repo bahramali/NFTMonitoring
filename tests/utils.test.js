@@ -24,44 +24,45 @@ test('honors custom maxAge', () => {
     expect(result.length).toBe(1);
 });
 
-test('normalizes ch-prefixed keys to F1-F8', () => {
-    const raw = require('./data/growTemp.json');
+test('normalizes sensor readings and spectral bands', () => {
+    const raw = require('./data/growSensors.json');
     const result = normalizeSensorData(raw);
-    expect(result.F1).toBe(1);
-    expect(result.F6).toBe(6);
+    expect(result['405nm']).toBe(274);
+    expect(result.F4).toBe(493); // 515nm -> F4
+    expect(result.F5).toBe(553); // 555nm -> F5
 });
 
-test('keeps temperature and humidity only', () => {
-    const raw = require('./data/tankTemp.json');
+test('parses water tank readings', () => {
+    const raw = require('./data/waterTank.json');
     const result = normalizeSensorData(raw);
-    expect(result.F1).toBeUndefined();
-    expect(result.tds.value).toBe(1);
-    expect(result.temperature.value).toBe(2);
+    expect(result.tds.value).toBeCloseTo(1006.389);
+    expect(result.ec.value).toBeCloseTo(1.572483);
+    expect(result.temperature.value).toBe(23.625);
+    expect(result.do.value).toBeCloseTo(2.809549);
 });
 
 test('includes health statuses', () => {
-    const raw = require('./data/growTempWithHealthFalse.json');
+    const raw = require('./data/growSensorsWithHealthFalse.json');
     const result = normalizeSensorData(raw);
-    expect(result.health.veml7700).toBe(false);
-    expect(result.health.as7341).toBe(true);
     expect(result.health.sht3x).toBe(false);
+    expect(result.health.veml7700).toBe(false);
+    expect(result.health.as7343).toBe(false);
 });
 
 test('parses string and numeric health values', () => {
-    const raw = require('./data/growTempWithHealthFalse.json');
+    const raw = require('./data/growSensorsWithHealthFalse.json');
     const result = normalizeSensorData(raw);
-    expect(result.health.veml7700).toBe(false);
-    expect(result.health.as7341).toBe(true);
     expect(result.health.sht3x).toBe(false);
+    expect(result.health.veml7700).toBe(false);
+    expect(result.health.as7343).toBe(false);
 });
 
 test('parses numeric strings into numbers', () => {
-    const raw = require('./data/growTemp.json');
+    const raw = require('./data/growSensors.json');
     const result = normalizeSensorData(raw);
-    expect(result.F1).toBe(1);
-    expect(result.temperature.value).toBe(1);
-    expect(result.humidity.value).toBe(2);
-    expect(result.lux.value).toBe(100);
+    expect(result.temperature.value).toBeCloseTo(27.75);
+    expect(result.humidity.value).toBeCloseTo(47.17);
+    expect(result.lux.value).toBeCloseTo(3818.189);
 });
 
 test('normalizes sensors array structure', () => {

@@ -1,0 +1,10 @@
+{
+  "system": "S01",
+  "layer": "L01",
+  "deviceId": "R01",
+  "compositeId": "S01-L01-R01",
+  "timestamp": "2025-08-14T13:44:53Z",
+  "controllers": [
+    { "name": "airPump", "type": "relay", "state": true, "valueType": "boolean" }
+  ]
+}
