@@ -2,6 +2,8 @@ import { renderHook, act } from '@testing-library/react';
 import { vi } from 'vitest';
 import { useLiveDevices } from '../src/components/dashboard/useLiveDevices';
 import { SENSOR_TOPIC } from '../src/components/dashboard/dashboard.constants';
+import growPayload from './data/growTemp.json';
+import tankPayload from './data/tankTemp.json';
 
 // Mock useStomp to capture the message handler
 vi.mock('../src/hooks/useStomp', () => ({
@@ -10,34 +12,21 @@ vi.mock('../src/hooks/useStomp', () => ({
   }
 }));
 
-test('stores sensor data per composite device', () => {
+test('stores sensor and controller data per composite device', () => {
   const { result } = renderHook(() => useLiveDevices([SENSOR_TOPIC], 'S01'));
 
   act(() => {
-    global.__stompHandler(SENSOR_TOPIC, {
-      deviceId: 'G01',
-      layer: 'L01',
-      system: 'S01',
-      sensors: [
-        { sensorType: 'temperature', value: '20' },
-        { sensorType: 'humidity', value: '50' }
-      ]
-    });
+    global.__stompHandler(SENSOR_TOPIC, growPayload);
   });
 
   act(() => {
-    global.__stompHandler(SENSOR_TOPIC, {
-      deviceId: 'G02',
-      system: 'S01',
-      sensors: [
-        { sensorType: 'temperature', value: '21' },
-        { sensorType: 'humidity', value: '55' }
-      ]
-    });
+    global.__stompHandler(SENSOR_TOPIC, tankPayload);
   });
 
-  expect(result.current.sensorData['L01G01'].temperature.value).toBe(20);
-  expect(result.current.sensorData['G02'].humidity.value).toBe(55);
+  expect(result.current.sensorData[growPayload.compositeId].temperature.value).toBe(1);
+  expect(result.current.sensorData[tankPayload.compositeId]).toBeUndefined();
+  expect(result.current.mergedDevices[growPayload.compositeId].controllers[0]).toEqual(growPayload.controllers[0]);
+  expect(result.current.mergedDevices[tankPayload.compositeId].controllers[0]).toEqual(tankPayload.controllers[0]);
 });
 
 test('merges controllers from multiple topics', () => {

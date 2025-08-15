@@ -2,7 +2,11 @@
   "system": "S01",
   "deviceId": "G01",
   "layer": "L01",
+  "compositeId": "L01G01",
   "timestamp": "2025-08-04T14:35:59Z",
+  "controllers": [
+    { "name": "Fan1", "type": "fan", "state": "off" }
+  ],
   "sensors": [
     {
       "sensorName": "sht3x",

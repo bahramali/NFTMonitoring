@@ -1,8 +1,12 @@
 {
-  "timestamp": "2025-08-04T14:36:02Z",
   "system": "S01",
   "deviceId": "T01",
   "layer": "L01",
+  "compositeId": "L01T01",
+  "timestamp": "2025-08-04T14:36:02Z",
+  "controllers": [
+    { "name": "Pump1", "type": "pump", "state": "on" }
+  ],
   "sensors": [
     {
       "sensorName": "HailegeTDS",
