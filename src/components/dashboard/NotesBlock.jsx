@@ -15,7 +15,7 @@ function NotesBlock({ mergedDevices = {} }) {
       }
     }
     for (const key of Object.keys(dev || {})) {
-      if (key === 'health' || key === 'sensors') continue;
+      if (key === 'health' || key === 'sensors' || key === 'controllers') continue;
       if (metaFields.has(key)) continue;
       if (Array.isArray(dev?.sensors) && knownFields.has(key)) continue;
       sensors.add(bandMap[key] || key);

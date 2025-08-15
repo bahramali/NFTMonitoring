@@ -17,7 +17,7 @@ function DeviceCard({ compositeId, deviceId, data }) {
     const id = compositeId || deviceId;
     const rows = [];
     for (const [field, valueObj] of Object.entries(data)) {
-        if (field === 'health') continue;
+        if (field === 'health' || field === 'controllers') continue;
         const value =
             valueObj && typeof valueObj === 'object' && 'value' in valueObj
                 ? valueObj.value
@@ -56,6 +56,34 @@ function DeviceCard({ compositeId, deviceId, data }) {
                     </thead>
                     <tbody>{rows}</tbody>
                 </table>
+                {Array.isArray(data.controllers) && data.controllers.length > 0 && (
+                    <div className={styles.controllers}>
+                        <h4>Controllers</h4>
+                        <table className={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>State</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {data.controllers.map((c, i) => {
+                                    const name = c.name || c.controllerName || '-';
+                                    const type = c.type || c.controllerType || '-';
+                                    const state = c.state ?? c.value ?? c.currentState ?? '-';
+                                    return (
+                                        <tr key={i}>
+                                            <td>{name}</td>
+                                            <td>{type}</td>
+                                            <td>{String(state)}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         </div>
     );

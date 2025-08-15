@@ -39,3 +39,41 @@ test('stores sensor data per composite device', () => {
   expect(result.current.sensorData['L01G01'].temperature.value).toBe(20);
   expect(result.current.sensorData['G02'].humidity.value).toBe(55);
 });
+
+test('merges controllers from multiple topics', () => {
+  const { result } = renderHook(() => useLiveDevices([SENSOR_TOPIC, 'waterOutput'], 'S01'));
+
+  act(() => {
+    global.__stompHandler(SENSOR_TOPIC, {
+      deviceId: 'G01',
+      layer: 'L01',
+      system: 'S01',
+      controllers: [{ name: 'Valve1', type: 'valve', state: 'open' }]
+    });
+  });
+
+  act(() => {
+    global.__stompHandler('waterOutput', {
+      deviceId: 'G01',
+      layer: 'L01',
+      system: 'S01',
+      controllers: [{ name: 'Pump1', type: 'pump', state: 'off' }]
+    });
+  });
+
+  act(() => {
+    global.__stompHandler('waterOutput', {
+      deviceId: 'G01',
+      layer: 'L01',
+      system: 'S01',
+      controllers: [{ name: 'Pump1', type: 'pump', state: 'on' }]
+    });
+  });
+
+  const ctrls = result.current.mergedDevices['L01G01'].controllers;
+  expect(ctrls).toHaveLength(2);
+  const valve = ctrls.find(c => c.name === 'Valve1');
+  const pump = ctrls.find(c => c.name === 'Pump1');
+  expect(valve.state).toBe('open');
+  expect(pump.state).toBe('on');
+});
