@@ -9,12 +9,13 @@ vi.mock('../src/hooks/useStomp', () => ({
   }
 }));
 
-test('captures live_now updates', () => {
+test('captures live_now updates and normalizes keys', () => {
   const { result } = renderHook(() => useLiveNow());
 
   act(() => {
-    global.__liveNowHandler('live_now', { ok: true });
+    global.__liveNowHandler('live_now', { 'Air Pump': { average: 1 }, Light: { average: 2 } });
   });
 
-  expect(result.current).toEqual({ ok: true });
+  expect(result.current).toHaveProperty('airpump');
+  expect(result.current).toHaveProperty('light');
 });
