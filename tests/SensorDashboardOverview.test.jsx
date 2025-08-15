@@ -37,7 +37,7 @@ test('overview items reflect live_now data', () => {
       humidity: { average: 50, deviceCount: 2 },
       temperature: { average: 25, deviceCount: 3 },
       dissolvedOxygen: { average: 8, deviceCount: 4 },
-      airpump: { average: 1, deviceCount: 5 },
+      'Air Pump': { average: 1, deviceCount: 5 },
     });
   });
 
@@ -46,5 +46,8 @@ test('overview items reflect live_now data', () => {
 
   const tempBox = screen.getByTitle('Temperature');
   expect(within(tempBox).getByText('25')).toBeInTheDocument();
+
+  const pumpBox = screen.getByTitle('Air Pump');
+  expect(within(pumpBox).getByText('On')).toBeInTheDocument();
 });
 
