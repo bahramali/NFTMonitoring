@@ -30,7 +30,7 @@ export function useLiveDevices(topics, activeSystem) {
         const baseId = payload.deviceId || "unknown";
         const systemId = payload.system || "unknown";
         const loc = payload.layer || payload.layer || payload.meta?.layer || "";
-        const compositeId = loc ? `${loc}${baseId}` : baseId;
+        const compositeId = payload.compositeId || (loc ? `${loc}${baseId}` : baseId);
 
         if (Array.isArray(payload.sensors)) {
             const normalized = normalizeSensorData(payload);
