@@ -115,9 +115,10 @@ function SensorDashboard({ view, title = '' }) {
     // ──────────────────────────────
     // Overview items sourced from the aggregated `live_now` topic
     const overviewItems = useMemo(() => {
-        const metric = (name) => liveNow[name] || {};
+        const norm = (name) => String(name).replace(/[\s_-]/g, "").toLowerCase();
+        const metric = (name) => liveNow[norm(name)] || {};
 
-        return [
+        const items = [
             {
                 key: "light",
                 icon: "☀️",
@@ -150,15 +151,29 @@ function SensorDashboard({ view, title = '' }) {
                 title: "DO",
                 subtitle: `Composite IDs: ${metric("dissolvedOxygen").deviceCount ?? 0}`,
             },
-            {
-                key: "airpump",
-                icon: "🫧",
-                value: metric("airpump").average == 1 ? "On":"Off",
-                unit: "",
-                title: "Air Pump",
-                subtitle: `Composite IDs: ${metric("airpump").deviceCount ?? 0}`,
-            },
         ];
+
+        const controllerMeta = {
+            airpump: { icon: "🫧", title: "Air Pump" },
+        };
+        const sensorKeys = ["light", "temperature", "humidity", "dissolvedoxygen"];
+
+        const controllers = Object.entries(liveNow || {})
+            .filter(([k]) => !sensorKeys.includes(norm(k)))
+            .map(([k, v]) => {
+                const key = norm(k);
+                const meta = controllerMeta[key] || {};
+                return {
+                    key,
+                    icon: meta.icon || "🔧",
+                    value: v?.average == null ? "—" : v.average == 1 ? "On" : "Off",
+                    unit: "",
+                    title: meta.title || k,
+                    subtitle: `Composite IDs: ${v?.deviceCount ?? 0}`,
+                };
+            });
+
+        return [...items, ...controllers];
     }, [liveNow]);
 
     return (
