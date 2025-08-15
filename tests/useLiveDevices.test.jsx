@@ -78,6 +78,50 @@ test('merges controllers from multiple topics', () => {
   expect(pump.state).toBe('on');
 });
 
+test('handles actuator payloads with JSON payload and merges controllers', () => {
+  const { result } = renderHook(() =>
+    useLiveDevices([SENSOR_TOPIC, 'actuator/oxygenPump'], 'S01')
+  );
+
+  act(() => {
+    global.__stompHandler(SENSOR_TOPIC, {
+      deviceId: 'G01',
+      layer: 'L01',
+      system: 'S01',
+      controllers: [{ name: 'Valve1', type: 'valve', state: 'open' }],
+    });
+  });
+
+  act(() => {
+    const payload = {
+      deviceId: 'G01',
+      layer: 'L01',
+      system: 'S01',
+      controllers: [{ name: 'OxyPump', type: 'pump', state: 'off' }],
+    };
+    global.__stompHandler('actuator/oxygenPump', {
+      payload: JSON.stringify(payload),
+    });
+  });
+
+  act(() => {
+    const payload = {
+      deviceId: 'G01',
+      layer: 'L01',
+      system: 'S01',
+      controllers: [{ name: 'OxyPump', type: 'pump', state: 'on' }],
+    };
+    global.__stompHandler('actuator/oxygenPump', { payload });
+  });
+
+  const ctrls = result.current.mergedDevices['L01G01'].controllers;
+  expect(ctrls).toHaveLength(2);
+  const valve = ctrls.find((c) => c.name === 'Valve1');
+  const pump = ctrls.find((c) => c.name === 'OxyPump');
+  expect(valve.state).toBe('open');
+  expect(pump.state).toBe('on');
+});
+
 test('uses provided compositeId when present', () => {
   const { result } = renderHook(() => useLiveDevices([SENSOR_TOPIC], 'S01'));
 
