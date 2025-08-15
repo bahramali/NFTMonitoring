@@ -22,7 +22,7 @@ const normLayerId = (k) => {
  *  {lastUpdate, environment, water, actuators, layers: []}
  * Output: array of systems shaped for SystemOverviewCard + _layerCards for LayerPanel
  */
-function normalizeLiveNow(payload) {
+export function normalizeLiveNow(payload) {
     const root = payload?.systems ?? payload;
     if (!root || typeof root !== "object") return [];
 

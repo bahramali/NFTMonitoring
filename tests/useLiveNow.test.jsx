@@ -13,9 +13,9 @@ test('captures live_now updates and normalizes keys', () => {
   const { result } = renderHook(() => useLiveNow());
 
   act(() => {
-    global.__liveNowHandler('live_now', { 'Air Pump': { average: 1 }, Light: { average: 2 } });
+    global.__liveNowHandler('live_now', { Systems: {}, 'Last Update': 123 });
   });
 
-  expect(result.current).toHaveProperty('airpump');
-  expect(result.current).toHaveProperty('light');
+  expect(result.current).toHaveProperty('systems');
+  expect(result.current).toHaveProperty('lastupdate');
 });
