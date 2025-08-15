@@ -8,10 +8,6 @@ const styles = {};
 
 // ---------- helpers ----------
 const toNum = (v) => (v == null ? null : Number(v));
-const avg = (arr) => {
-    const xs = arr.map(toNum).filter((n) => typeof n === "number" && !Number.isNaN(n));
-    return xs.length ? Number((xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(1)) : null;
-};
 // Normalize "L01" / "layer1" → "L01"
 const normLayerId = (k) => {
     if (/^L\d+$/i.test(k)) return k.toUpperCase();
@@ -100,52 +96,41 @@ function normalizeLiveNow(payload) {
             });
         }
 
-        // System-level metrics or aggregates from layers
-        const sysWater = sys.water ?? {};
-        const sysActs = sys.actuators ?? {};
-        const {avg: waterTempAvg, count: waterTempCount} = getMetric(
-            sysWater,
-            "temperature"
+        // System-level metrics taken directly from system JSON
+        const sysEnv = sys.environment ?? {};
+        const {avg: lightAvg, count: lightCount} = getMetric(sysEnv, "light");
+        const {avg: humidityAvg, count: humidityCount} = getMetric(sysEnv, "humidity");
+        const {avg: airTempAvg, count: airTempCount} = getMetric(
+            sysEnv,
+            "airTemperature"
         );
-        const {avg: pHavg, count: pHcount} = getMetric(sysWater, "pH", "ph");
-        const {avg: ECavg, count: ECcount} = getMetric(sysWater, "EC", "ec");
+
+        const sysWater = sys.water ?? {};
+        const {avg: dTempAvg, count: dTempCount} = getMetric(
+            sysWater,
+            "dissolvedTemp"
+        );
         const {avg: DOavg, count: DOcount} = getMetric(
             sysWater,
             "dissolvedOxygen"
         );
-        const {avg: airPumpSysAvg, count: airPumpSysCount} = getMetric(
+        const {avg: ECavg, count: ECcount} = getMetric(
+            sysWater,
+            "dissolvedEC"
+        );
+        const {avg: TDSavg, count: TDScount} = getMetric(
+            sysWater,
+            "dissolvedTDS"
+        );
+        const {avg: pHavg, count: pHcount} = getMetric(sysWater, "pH", "ph");
+
+        const sysActs = sys.actuators ?? {};
+        const {avg: airPumpAvg, count: airPumpCount} = getMetric(
             sysActs,
+            "airPump",
             "airpump"
         );
-
-        const waterTemp =
-            waterTempAvg ?? avg(layerCards.map((l) => l.metrics.temp));
-        const DOmetric =
-            DOavg ?? avg(layerCards.map((l) => l.water.DO).filter((v) => v != null));
-        const airPumpOn =
-            airPumpSysAvg != null
-                ? airPumpSysAvg >= 0.5
-                : layerCards.some((l) => l.water.airPump === true);
-
-        const sysCounts = {
-            waterTemp:
-                waterTempCount ??
-                layerCards.reduce(
-                    (a, l) => a + (l.metrics?._counts?.temperature ?? 0),
-                    0
-                ),
-            pH: pHcount ?? null,
-            EC: ECcount ?? null,
-            DO:
-                DOcount ??
-                layerCards.reduce((a, l) => a + (l.water?._counts?.DO ?? 0), 0),
-            airPump:
-                airPumpSysCount ??
-                layerCards.reduce(
-                    (a, l) => a + (l.water?._counts?.airPump ?? 0),
-                    0
-                ),
-        };
+        const airPump = airPumpAvg == null ? null : airPumpAvg >= 0.5;
 
         systems.push({
             systemId: sys.systemId ?? sysId,
@@ -154,15 +139,29 @@ function normalizeLiveNow(payload) {
             devicesTotal: sys.devicesTotal ?? 0,
             sensorsHealthy: sys.sensorsHealthy ?? 0,
             sensorsTotal: sys.sensorsTotal ?? 0,
-            lastUpdateMs: toNum(sys.lastUpdate) ?? Date.now(),
+            lastUpdateMs: toNum(sys.lastUpdate),
             layers: layerCards.map((l) => ({id: l.id, health: l.health})),
             metrics: {
-                waterTemp: waterTemp ?? null,
+                light: lightAvg ?? null,
+                humidity: humidityAvg ?? null,
+                airTemperature: airTempAvg ?? null,
+                dissolvedTemp: dTempAvg ?? null,
+                dissolvedOxygen: DOavg ?? null,
+                dissolvedEC: ECavg ?? null,
+                dissolvedTDS: TDSavg ?? null,
                 pH: pHavg ?? null,
-                EC: ECavg ?? null,
-                DO: DOmetric ?? null,
-                airPump: !!airPumpOn,
-                _counts: sysCounts,
+                airPump: airPump,
+                _counts: {
+                    light: lightCount,
+                    humidity: humidityCount,
+                    airTemperature: airTempCount,
+                    dissolvedTemp: dTempCount,
+                    dissolvedOxygen: DOcount,
+                    dissolvedEC: ECcount,
+                    dissolvedTDS: TDScount,
+                    pH: pHcount,
+                    airPump: airPumpCount,
+                },
             },
             _layerCards: layerCards,
         });
