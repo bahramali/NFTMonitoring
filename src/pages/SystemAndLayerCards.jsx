@@ -108,13 +108,19 @@ export function SystemOverviewCard({
                 </div>
             </div>
 
-            <div className={cx("metrics-row")}>
-                <MetricCard title="Water Temp" value={fmt(metrics.waterTemp, 1)} unit="°C" icon={<span>🌡️</span>} subtitle={metrics?._counts?.waterTemp != null ? `Composite IDs: ${metrics._counts.waterTemp}` : undefined} />
-                <MetricCard title="pH"        value={fmt(metrics.pH, 1)}              icon={<span>⚗️</span>}     subtitle={metrics?._counts?.pH != null ? `Composite IDs: ${metrics._counts.pH}` : undefined} />
-                <MetricCard title="EC"        value={fmt(metrics.EC, 2)}   unit="mS/cm" icon={<span>📈</span>}     subtitle={metrics?._counts?.EC != null ? `Composite IDs: ${metrics._counts.EC}` : undefined} />
-                <MetricCard title="DO"        value={fmt(metrics.DO, 1)}   unit="mg/L"  icon={<span>O₂</span>}     subtitle={metrics?._counts?.DO != null ? `Composite IDs: ${metrics._counts.DO}` : undefined} />
-                <MetricCard title="Air Pump"  value={metrics.airPump ? "On" : "Off"}    icon={<span>🫧</span>}     subtitle={metrics?._counts?.airPump != null ? `Composite IDs: ${metrics._counts.airPump}` : undefined} />
+            <div className={cx("metrics-row", "three")}> 
+                <MetricCard title="Light" value={fmt(metrics.light, 1)} unit="lux" icon={<span>☀️</span>} subtitle={metrics?._counts?.light != null ? `Composite IDs: ${metrics._counts.light}` : undefined} />
+                <MetricCard title="Humidity" value={fmt(metrics.humidity, 1)} unit="%" icon={<span>%</span>} subtitle={metrics?._counts?.humidity != null ? `Composite IDs: ${metrics._counts.humidity}` : undefined} />
+                <MetricCard title="Air Temp" value={fmt(metrics.airTemperature, 1)} unit="°C" icon={<span>🌡️</span>} subtitle={metrics?._counts?.airTemperature != null ? `Composite IDs: ${metrics._counts.airTemperature}` : undefined} />
+            </div>
 
+            <div className={cx("metrics-row")}> 
+                <MetricCard title="Water Temp" value={fmt(metrics.dissolvedTemp, 1)} unit="°C" icon={<span>🌡️</span>} subtitle={metrics?._counts?.dissolvedTemp != null ? `Composite IDs: ${metrics._counts.dissolvedTemp}` : undefined} />
+                <MetricCard title="DO" value={fmt(metrics.dissolvedOxygen, 1)} unit="mg/L" icon={<span>O₂</span>} subtitle={metrics?._counts?.dissolvedOxygen != null ? `Composite IDs: ${metrics._counts.dissolvedOxygen}` : undefined} />
+                <MetricCard title="EC" value={fmt(metrics.dissolvedEC, 2)} unit="mS/cm" icon={<span>📈</span>} subtitle={metrics?._counts?.dissolvedEC != null ? `Composite IDs: ${metrics._counts.dissolvedEC}` : undefined} />
+                <MetricCard title="TDS" value={fmt(metrics.dissolvedTDS, 0)} unit="ppm" icon={<span>💧</span>} subtitle={metrics?._counts?.dissolvedTDS != null ? `Composite IDs: ${metrics._counts.dissolvedTDS}` : undefined} />
+                <MetricCard title="pH" value={fmt(metrics.pH, 1)} icon={<span>⚗️</span>} subtitle={metrics?._counts?.pH != null ? `Composite IDs: ${metrics._counts.pH}` : undefined} />
+                <MetricCard title="Air Pump" value={metrics.airPump ? "On" : "Off"} icon={<span>🫧</span>} subtitle={metrics?._counts?.airPump != null ? `Composite IDs: ${metrics._counts.airPump}` : undefined} />
             </div>
         </div>
     );
