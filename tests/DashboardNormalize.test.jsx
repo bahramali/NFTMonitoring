@@ -15,7 +15,7 @@ const samplePayload = {
       environment: {
         light: { average: 12, deviceCount: 1 },
         humidity: { average: 55, deviceCount: 1 },
-        airTemperature: { average: 25, deviceCount: 1 }
+        temperature: { average: 25, deviceCount: 1 }
       },
       water: {
         dissolvedTemp: { average: 20, deviceCount: 1 },
@@ -67,7 +67,7 @@ describe('normalizeLiveNow', () => {
     // system-level metrics
     expect(sys.metrics.light).toBe(12);
     expect(sys.metrics.humidity).toBe(55);
-    expect(sys.metrics.airTemperature).toBe(25);
+    expect(sys.metrics.temperature).toBe(25);
     expect(sys.metrics.airPump).toBe(true);
     expect(sys.metrics._counts.light).toBe(1);
     // layer summary counts
