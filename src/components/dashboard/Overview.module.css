@@ -29,3 +29,24 @@
 .warn { background: linear-gradient(180deg, #92400e 0%, #7c2d12 100%); }    /* amber */
 .danger { background: linear-gradient(180deg, #7f1d1d 0%, #450a0a 100%); }  /* red */
 .neutral { background: linear-gradient(180deg, #374151 0%, #1f2937 100%); } /* slate */
+
+@media (max-width: 480px) {
+    .grid {
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(120px, 1fr);
+        overflow-x: auto;
+    }
+
+    .box {
+        padding: 10px 12px;
+    }
+
+    .icon { font-size: 20px; }
+
+    .valueRow { margin-top: 4px; }
+    .value { font-size: 22px; }
+    .unit { font-size: 12px; }
+
+    .title { font-size: 11px; }
+    .subtitle { font-size: 10px; }
+}
