@@ -93,6 +93,22 @@
   gap:12px;
 }
 
+.metrics-group{
+  display:contents;
+}
+
+@media (max-width:600px){
+  .metrics-row{
+    display:flex;
+    flex-direction:column;
+  }
+  .metrics-group{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+    gap:12px;
+  }
+}
+
 .metric-bottom{ margin-top:8px; }
 
 .metric-title2{
