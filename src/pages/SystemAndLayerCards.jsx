@@ -111,7 +111,7 @@ export function SystemOverviewCard({
             <div className={cx("metrics-row")}>
                 <MetricCard compact title="Light" value={fmt(metrics.light, 1)} unit="lux" icon={<span>☀️</span>} subtitle={metrics?._counts?.light != null ? `Composite IDs: ${metrics._counts.light}` : undefined} />
                 <MetricCard compact title="Humidity" value={fmt(metrics.humidity, 1)} unit="%" icon={<span>%</span>} subtitle={metrics?._counts?.humidity != null ? `Composite IDs: ${metrics._counts.humidity}` : undefined} />
-                <MetricCard compact title="Air Temp" value={fmt(metrics.airTemperature, 1)} unit="°C" icon={<span>🌡️</span>} subtitle={metrics?._counts?.airTemperature != null ? `Composite IDs: ${metrics._counts.airTemperature}` : undefined} />
+                <MetricCard compact title="Temperature" value={fmt(metrics.temperature, 1)} unit="°C" icon={<span>🌡️</span>} subtitle={metrics?._counts?.temperature != null ? `Composite IDs: ${metrics._counts.temperature}` : undefined} />
                 <MetricCard compact title="Water Temp" value={fmt(metrics.dissolvedTemp, 1)} unit="°C" icon={<span>🌡️</span>} subtitle={metrics?._counts?.dissolvedTemp != null ? `Composite IDs: ${metrics._counts.dissolvedTemp}` : undefined} />
                 <MetricCard compact title="DO" value={fmt(metrics.dissolvedOxygen, 1)} unit="mg/L" icon={<span>O₂</span>} subtitle={metrics?._counts?.dissolvedOxygen != null ? `Composite IDs: ${metrics._counts.dissolvedOxygen}` : undefined} />
                 <MetricCard compact title="EC" value={fmt(metrics.dissolvedEC, 2)} unit="mS/cm" icon={<span>📈</span>} subtitle={metrics?._counts?.dissolvedEC != null ? `Composite IDs: ${metrics._counts.dissolvedEC}` : undefined} />
