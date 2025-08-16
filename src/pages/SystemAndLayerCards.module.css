@@ -84,6 +84,16 @@
 .sys-sub{ font-size:14px; color:#9ca3af; }
 .sys-head-right{ display:flex; gap:12px; color:#6b7280; font-size:14px; }
 
+/* Layer card */
+.layer-card{
+  width:95%;
+  background:#f9fafb;
+  border:1px solid #e5e7eb;
+  border-radius:16px;
+  box-shadow:var(--shadow-2);
+  padding:16px;
+}
+
 .sys-section{ margin-top:12px; }
 .layers-row{ display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
 
