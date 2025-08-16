@@ -1,4 +1,5 @@
 // src/pages/DashboardPage.jsx
+/* eslint-disable react-refresh/only-export-components */
 import React, {useMemo} from "react";
 import {useLiveNow} from "../hooks/useLiveNow";
 import {SystemOverviewCard, LayerPanel} from "./SystemAndLayerCards";
@@ -207,8 +208,9 @@ export default function DashboardPage() {
                         style={{
                             display: "grid",
                             gap: 12,
-                            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                            gridTemplateColumns: "1fr",
                             marginTop: 16,
+                            marginLeft: "1rem",
                         }}
                     >
                         {(sys._layerCards || []).map((l) => (
