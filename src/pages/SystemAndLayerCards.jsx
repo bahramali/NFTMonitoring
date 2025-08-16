@@ -49,7 +49,7 @@ function Pill({label, health}) {
 // کارت با استایل شبیه تصویر (آیکن، عدد بزرگ، عنوان، زیرنویس)
 export function MetricCard({ title, value, unit, icon, subtitle, compact }) {
     return (
-        <div className={cx("metric-card-neo", compact && "compact")}>
+        <div className={cx("metric-card", compact && "compact")}>
             <div className={cx("metric-row-top")}>
                 <div className={cx("metric-icon-lg")}>{icon}</div>
                 <div className={cx("metric-reading")}>
@@ -79,7 +79,7 @@ export function SystemOverviewCard({
                                        onClick,
                                    }) {
     return (
-        <div className={cx("sys-card")} onClick={onClick} role={onClick ? "button" : undefined}>
+        <div className={cx("card")} onClick={onClick} role={onClick ? "button" : undefined}>
             <div className={cx("sys-head")}>
                 <div className={cx("sys-head-left")}>
                     <StatusDot health={status === "Active" ? "ok" : "down"}/>
@@ -126,7 +126,7 @@ export function SystemOverviewCard({
 /* ========== Layer Panel ========== */
 export function LayerPanel({id, health, metrics, water = {}, actuators = {}, children}) {
     return (
-        <div className={cx("layer-card")}>
+        <div className={cx("card", "layer-card")}> 
             <div className={cx("layer-head")}>
                 <StatusDot health={health}/>
                 <span className={cx("layer-title")}>Layer {id}</span>

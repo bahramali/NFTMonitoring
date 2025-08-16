@@ -1,13 +1,11 @@
 :root{
-  --card-radius: 18px;
+  --card-radius: 8px;
   --surface: #ffffff;
   --muted: #6b7280; /* gray-500 */
   --muted-2: #94a3b8; /* slate-400 */
-  --ring: rgba(0,0,0,.08);
-  --shadow: 0 10px 16px rgba(0,0,0,.10);
-  --shadow-2: 0 6px 12px rgba(0,0,0,.08);
-  --grad-top: #2f3b4a; /* slate-ish */
-  --grad-bot: #1f2a36;
+  --ring: rgba(0,0,0,.05);
+  --shadow: 0 1px 2px rgba(0,0,0,.05);
+  --shadow-2: 0 1px 2px rgba(0,0,0,.04);
 }
 
 /* demo container */
@@ -25,17 +23,16 @@
 .sep{ color:#d1d5db; margin-inline:8px; }
 
 /* ====== metric card ====== */
-/* کارت گرادیان شبیه تصویر */
-.metric-card-neo{
-  --radius: 14px;
-  --pad-y: 14px;
-  --pad-x: 16px;
-  background: linear-gradient(180deg, #203959 0%, #2b5b7e 100%);
-  color: #fff;
+.metric-card{
+  --radius: 8px;
+  --pad-y: 12px;
+  --pad-x: 14px;
+  background: #ffffff;
+  color: #111827;
   border-radius: var(--radius);
   padding: var(--pad-y) var(--pad-x);
-  box-shadow: 0 4px 14px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.06);
+  box-shadow: 0 1px 2px rgba(0,0,0,.05);
+  border: 1px solid #e5e7eb;
 }
 
 /* ردیف بالا: آیکن + عدد */
@@ -44,10 +41,6 @@
   align-items:baseline;   /* aligns number + unit nicely */
   gap:10px;
 }
-.metric-icon-lg{ font-size:24px; line-height:1; }
-.metric-reading{ display:flex; align-items:baseline; gap:6px; }
-.metric-big{ font-size:34px; font-weight:800; line-height:1; }
-.metric-unit-sm{ font-size:14px; opacity:.9; }
 
 .metric-icon-lg{
   font-size:18px;         /* smaller icon */
@@ -76,8 +69,8 @@
 .metric-title2{ font-weight:700; }
 .metric-sub{ font-size:12px; color:#cbd5e1; margin-top:2px; }
 
-/* ====== system card ====== */
-.sys-card{ border-radius:24px; background:#fff; border:1px solid #e5e7eb; box-shadow: var(--shadow); padding: 18px; }
+/* ====== generic card ====== */
+.card{ border-radius:var(--card-radius); background:#fafafa; border:1px solid #e5e7eb; box-shadow: var(--shadow); padding:16px; }
 .sys-head{ display:flex; justify-content:space-between; gap:12px; align-items:center; }
 .sys-head-left{ display:flex; align-items:center; gap:10px; font-weight:700; }
 .sys-status{ font-size:18px; }
@@ -87,11 +80,6 @@
 /* Layer card */
 .layer-card{
   width:95%;
-  background:#f9fafb;
-  border:1px solid #e5e7eb;
-  border-radius:16px;
-  box-shadow:var(--shadow-2);
-  padding:16px;
 }
 
 .sys-section{ margin-top:12px; }
@@ -121,10 +109,10 @@
 }
 
 /* Optional extra-compact variant */
-.metric-card-neo.compact{
-  --pad-y: 12px;
-  --pad-x: 14px;
+.metric-card.compact{
+  --pad-y: 10px;
+  --pad-x: 12px;
 }
-.metric-card-neo.compact .metric-big{ font-size:22px; }
-.metric-card-neo.compact .metric-title2{ font-size:13px; }
-.metric-card-neo.compact .metric-sub{ font-size:10.5px; }
+.metric-card.compact .metric-big{ font-size:22px; }
+.metric-card.compact .metric-title2{ font-size:13px; }
+.metric-card.compact .metric-sub{ font-size:10.5px; }
