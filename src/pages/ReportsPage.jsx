@@ -104,17 +104,6 @@ function ReportsPage() {
         }
     }, [filteredCompositeIds, selectedDevice]);
 
-    // Determine base device ID for history lookup
-    const selectedBaseId = useMemo(() => {
-        const sysTopics = deviceData[activeSystem] || {};
-        for (const topicDevices of Object.values(sysTopics)) {
-            if (selectedDevice in topicDevices) {
-                return topicDevices[selectedDevice].deviceId || selectedDevice;
-            }
-        }
-        return selectedDevice;
-    }, [deviceData, activeSystem, selectedDevice]);
-
     const {
         rangeData = [],
         tempRangeData = [],
@@ -125,7 +114,7 @@ function ReportsPage() {
         startTime = 0,
         endTime = 0,
         fetchReportData = () => {},
-    } = useHistory(selectedBaseId, fromDate, toDate, autoRefresh, refreshInterval);
+    } = useHistory(selectedDevice, fromDate, toDate, autoRefresh, refreshInterval);
 
     // Determine which report sections to display
     const sensorTypesForSelected = useMemo(() => {
