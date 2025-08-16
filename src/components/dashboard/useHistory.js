@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from "react";
 import {transformAggregatedData} from "../../utils";
 
-export function useHistory(espId, from, to, autoRefresh, interval) {
+export function useHistory(compositeId, from, to, autoRefresh, interval) {
     const [rangeData, setRangeData] = useState([]);
     const [tempRangeData, setTempRangeData] = useState([]);
     const [phRangeData, setPhRangeData] = useState([]);
@@ -20,11 +20,11 @@ export function useHistory(espId, from, to, autoRefresh, interval) {
     useEffect(() => { startTimeRef.current = startTime; }, [startTime]);
 
     const fetchReportData = useCallback(async () => {
-        if (!from || !to || !espId) return;
+        if (!from || !to || !compositeId) return;
         try {
             const fromIso = new Date(from).toISOString();
             const toIso = new Date(to).toISOString();
-            const url = `https://api.hydroleaf.se/api/sensors/history/aggregated?espId=${espId}&from=${fromIso}&to=${toIso}`;
+            const url = `https://api.hydroleaf.se/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}`;
             const res = await fetch(url);
             if (!res.ok) throw new Error("bad response");
             const json = await res.json();
@@ -52,14 +52,14 @@ export function useHistory(espId, from, to, autoRefresh, interval) {
         } catch (e) {
             console.error("Failed to fetch history", e);
         }
-    }, [espId, from, to]);
+    }, [compositeId, from, to]);
 
     const fetchNewData = useCallback(async () => {
         try {
             const fromIso = new Date(endTimeRef.current).toISOString();
             const nowDate = new Date();
             const toIso = nowDate.toISOString();
-            const url = `https://api.hydroleaf.se/api/sensors/history/aggregated?espId=${espId}&from=${fromIso}&to=${toIso}`;
+            const url = `https://api.hydroleaf.se/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}`;
             const res = await fetch(url);
             if (!res.ok) throw new Error("bad response");
             const json = await res.json();
@@ -89,7 +89,7 @@ export function useHistory(espId, from, to, autoRefresh, interval) {
         } catch (e) {
             console.error("Failed to fetch history", e);
         }
-    }, [espId]);
+    }, [compositeId]);
 
     useEffect(() => {
         fetchReportData();
