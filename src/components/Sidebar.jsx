@@ -1,11 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import styles from "./Sidebar.module.css";
 import { useFilters, ALL } from "../context/FiltersContext";
 
 export default function Sidebar() {
-    const [collapsed, setCollapsed] = useState(false);
+    const [collapsed, setCollapsed] = useState(() => window.innerWidth < 768);
     const { device, layer, system, topic, setDevice, setLayer, setSystem, setTopic, lists } = useFilters();
+
+    useEffect(() => {
+        const handleResize = () => {
+            const shouldCollapse = window.innerWidth < 768;
+            setCollapsed((prev) => (prev === shouldCollapse ? prev : shouldCollapse));
+        };
+
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
 
     const linkClass = ({ isActive }) =>
         `${styles.menuItem} ${isActive ? styles.active : ""}`;
