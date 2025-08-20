@@ -3,7 +3,6 @@ import Header from '../components/Header';
 import { useLiveDevices } from '../components/dashboard/useLiveDevices';
 import { useHistory } from '../components/dashboard/useHistory';
 import styles from '../components/SensorDashboard.module.css';
-import SystemTabs from '../components/dashboard/SystemTabs';
 import ReportControls from '../components/dashboard/ReportControls';
 import ReportCharts from '../components/dashboard/ReportCharts';
 import { SENSOR_TOPIC, topics } from '../components/dashboard/dashboard.constants';
@@ -141,9 +140,6 @@ function ReportsPage() {
     return (
         <div className={styles.dashboard}>
             <Header title="Reports" />
-
-            {/* System selection tabs */}
-            <SystemTabs systems={Object.keys(deviceData)} activeSystem={activeSystem} onChange={setActiveSystem} />
 
             <div className={styles.section}>
                 <div className={styles.sectionBody}>
