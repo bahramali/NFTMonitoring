@@ -6,79 +6,23 @@ export const useFilters = () => useContext(Ctx);
 export const ALL = "ALL";
 
 export function FiltersProvider({ children, initialLists }) {
-    const [layer, setLayerState] = useState([]);
-    const [system, setSystemState] = useState([]);
-    const [topic, setTopicState] = useState([]);
-    const [device, setDeviceState] = useState([]);
-    const [timing, setTimingState] = useState([]);
-    const [location, setLocationState] = useState([]);
-    const [sensorType, setSensorTypeState] = useState([]);
-    const [lists, setListsState] = useState({
-        layers: initialLists?.layers ?? [],
+    const [device, setDevice] = useState(ALL);
+    const [layer, setLayer]   = useState(ALL);
+    const [system, setSystem] = useState(ALL);
+    const [topic, setTopic] = useState(ALL);
+
+    const [lists, setLists] = useState({
+        devices: initialLists?.devices ?? [],
+        layers:  initialLists?.layers ?? [],
         systems: initialLists?.systems ?? [],
-        topics: initialLists?.topics ?? [],
-        timings: initialLists?.timings ?? [],
-        locations: initialLists?.locations ?? [],
-        sensorTypes: initialLists?.sensorTypes ?? [],
+        topics:  initialLists?.topics ?? [],
     });
 
-    const setLists = (next) => setListsState((prev) => ({ ...prev, ...next }));
-
-    const toggle = (setter) => (val) =>
-        setter((prev) => {
-            if (Array.isArray(val)) return val;
-            if (val === ALL) return [];
-            return prev.includes(val)
-                ? prev.filter((v) => v !== val)
-                : [...prev, val];
-        });
-
-    const setLayer = toggle(setLayerState);
-    const setSystem = toggle(setSystemState);
-    const setTopic = toggle(setTopicState);
-    const setDevice = toggle(setDeviceState);
-    const setTiming = toggle(setTimingState);
-    const setLocation = toggle(setLocationState);
-    const setSensorType = toggle(setSensorTypeState);
-
-    const value = useMemo(
-        () => ({
-            ALL,
-            layer,
-            system,
-            topic,
-            device,
-            timing,
-            location,
-            sensorType,
-            setLayer,
-            setSystem,
-            setTopic,
-            setDevice,
-            setTiming,
-            setLocation,
-            setSensorType,
-            lists,
-            setLists,
-        }),
-        [
-            layer,
-            system,
-            topic,
-            device,
-            timing,
-            location,
-            sensorType,
-            lists,
-            setLayer,
-            setSystem,
-            setTopic,
-            setDevice,
-            setTiming,
-            setLocation,
-            setSensorType,
-        ]
-    );
+    const value = useMemo(() => ({
+        ALL, device, layer, system, topic,
+        setDevice, setLayer, setSystem, setTopic,
+        lists, setLists,
+    }), [device, layer, system, topic, lists]);
 
     return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
