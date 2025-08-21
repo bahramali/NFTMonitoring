@@ -16,7 +16,9 @@ export function useLiveNow() {
     };
 
     const handle = useCallback((_topic, data) => {
-        console.log('[live_now] message:', data);
+        if (import.meta.env.VITE_DEBUG) {
+            console.log('[live_now] message:', data);
+        }
         setStatus(normalize(data));
     }, []);
 
