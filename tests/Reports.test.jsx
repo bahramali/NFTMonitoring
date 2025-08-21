@@ -28,7 +28,6 @@ vi.mock('../src/components/dashboard/useHistory', () => ({
 
 vi.mock('../src/context/FiltersContext', () => ({
   useFilters: () => ({
-    device: 'ALL',
     layer: 'ALL',
     system: 'ALL',
     topic: 'ALL',

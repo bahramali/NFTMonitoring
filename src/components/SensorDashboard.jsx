@@ -19,7 +19,6 @@ function SensorDashboard({ view, title = '' }) {
 
     // Filters from the sidebar
     const {
-        device: devFilter,
         layer: layerFilter,
         system: sysFilter,
         topic: topicFilter,
@@ -57,9 +56,8 @@ function SensorDashboard({ view, title = '' }) {
         );
     }, [deviceData]);
 
-    // 2) Populate sidebar lists (Device / Layer / System)
+    // 2) Populate sidebar lists (Layer / System)
     useEffect(() => {
-        const devices = Object.keys(deviceMeta);
         const layers = Array.from(
             new Set(Object.values(deviceMeta).map((m) => m.layer).filter(Boolean))
         );
@@ -69,7 +67,7 @@ function SensorDashboard({ view, title = '' }) {
                 Object.values(deviceData || {}).flatMap((sys) => Object.keys(sys || {}))
             )
         );
-        setLists({devices, layers, systems, topics: topicsList});
+        setLists({ layers, systems, topics: topicsList });
     }, [deviceMeta, deviceData, setLists]);
 
     // 3) Keep activeSystem in sync with the System filter
@@ -79,17 +77,16 @@ function SensorDashboard({ view, title = '' }) {
         }
     }, [sysFilter, activeSystem]);
 
-    // 4) Filter available device IDs based on all active filters
+    // 4) Filter available device IDs based on active filters
     const filteredCompositeIds = useMemo(() => {
         return availableCompositeIds.filter((compositeId) => {
             const meta = deviceMeta[compositeId] || {};
-            const okDev = devFilter === ALL || compositeId === devFilter;
             const okLay = layerFilter === ALL || meta.layer === layerFilter;
             const okSys = sysFilter === ALL || meta.system === sysFilter;
             const okTopic = topicFilter === ALL || (meta.topics || []).includes(topicFilter);
-            return okDev && okLay && okSys && okTopic;
+            return okLay && okSys && okTopic;
         });
-    }, [availableCompositeIds, deviceMeta, devFilter, layerFilter, sysFilter, topicFilter]);
+    }, [availableCompositeIds, deviceMeta, layerFilter, sysFilter, topicFilter]);
 
     // 5) Filter topics for live tables based on filtered devices
     const filteredSystemTopics = useMemo(() => {
