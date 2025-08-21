@@ -5,7 +5,7 @@ import SensorTypeFilters from './SensorTypeFilters';
 import { useFilters } from '../../context/FiltersContext';
 import styles from './ReportsUX.module.css';
 
-function ReportsUX({ onRun, onExport }) {
+function ReportsUX({ onRun, onExport, onAddToCompare }) {
   const { timing, location, sensorType } = useFilters();
   const filters = { timing, location, sensorType };
 
@@ -27,9 +27,16 @@ function ReportsUX({ onRun, onExport }) {
         <button
           type="button"
           className={styles.exportButton}
+          onClick={() => onAddToCompare?.(filters)}
+        >
+          Add to Compare
+        </button>
+        <button
+          type="button"
+          className={styles.exportButton}
           onClick={() => onExport?.(filters)}
         >
-          Export
+          Export CSV
         </button>
       </div>
     </div>
