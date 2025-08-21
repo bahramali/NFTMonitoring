@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Header from '../components/Header';
 import ReportsUX from '../components/reports/ReportsUX';
 import ComparePanel from '../components/reports/ComparePanel';
+import Tabs from '../components/reports/Tabs';
 import styles from '../components/SensorDashboard.module.css';
 
 function ReportsPage() {
@@ -81,6 +82,7 @@ function ReportsPage() {
             onRefreshIntervalChange={setRefreshInterval}
           />
           <ComparePanel items={compareList} onClear={clearCompare} />
+          <Tabs data={reportData} />
         </div>
       </div>
     </div>
