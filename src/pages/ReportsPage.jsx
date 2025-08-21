@@ -3,14 +3,20 @@ import React, { useState } from 'react';
 import Header from '../components/Header';
 import ReportsUX from '../components/reports/ReportsUX';
 import ComparePanel from '../components/reports/ComparePanel';
+import Tabs from '../components/reports/Tabs';
 import styles from '../components/SensorDashboard.module.css';
 
 function ReportsPage() {
   const [compareList, setCompareList] = useState([]);
+  const [reportData, setReportData] = useState([]);
 
   const handleRun = (filters) => {
     // Placeholder for data fetching logic
     console.log('Run report', filters);
+    setReportData([
+      { time: '2024-01-01', value: 10 },
+      { time: '2024-01-02', value: 15 },
+    ]);
   };
 
   const addToCompare = (filters) => {
@@ -48,6 +54,7 @@ function ReportsPage() {
         <div className={styles.sectionBody}>
           <ReportsUX onRun={handleRun} onExport={handleExport} onAddToCompare={addToCompare} />
           <ComparePanel items={compareList} onClear={clearCompare} />
+          <Tabs data={reportData} />
         </div>
       </div>
     </div>
