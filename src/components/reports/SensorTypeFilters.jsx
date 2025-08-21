@@ -7,15 +7,6 @@ function SensorTypeFilters() {
 
   const allSelected = sensorTypes.length > 0 && sensorType.length === sensorTypes.length;
   const noneSelected = sensorType.length === 0;
-
-  const handleToggle = (val) => {
-    if (sensorType.includes(val)) {
-      setSensorType(sensorType.filter((v) => v !== val));
-    } else {
-      setSensorType([...sensorType, val]);
-    }
-  };
-
   const selectAll = () => setSensorType(sensorTypes);
   const selectNone = () => setSensorType([]);
 
@@ -48,7 +39,7 @@ function SensorTypeFilters() {
             <input
               type="checkbox"
               checked={sensorType.includes(s)}
-              onChange={() => handleToggle(s)}
+              onChange={() => setSensorType(s)}
             />
             {' '}{s}
           </label>

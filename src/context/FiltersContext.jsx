@@ -10,10 +10,9 @@ export function FiltersProvider({ children, initialLists }) {
     const [system, setSystemState] = useState([]);
     const [topic, setTopicState] = useState([]);
     const [device, setDeviceState] = useState([]);
-    const [timing, setTiming] = useState([]);
-    const [location, setLocation] = useState([]);
-    const [sensorType, setSensorType] = useState([]);
-
+    const [timing, setTimingState] = useState([]);
+    const [location, setLocationState] = useState([]);
+    const [sensorType, setSensorTypeState] = useState([]);
     const [lists, setListsState] = useState({
         layers: initialLists?.layers ?? [],
         systems: initialLists?.systems ?? [],
@@ -27,6 +26,7 @@ export function FiltersProvider({ children, initialLists }) {
 
     const toggle = (setter) => (val) =>
         setter((prev) => {
+            if (Array.isArray(val)) return val;
             if (val === ALL) return [];
             return prev.includes(val)
                 ? prev.filter((v) => v !== val)
@@ -37,6 +37,9 @@ export function FiltersProvider({ children, initialLists }) {
     const setSystem = toggle(setSystemState);
     const setTopic = toggle(setTopicState);
     const setDevice = toggle(setDeviceState);
+    const setTiming = toggle(setTimingState);
+    const setLocation = toggle(setLocationState);
+    const setSensorType = toggle(setSensorTypeState);
 
     const value = useMemo(
         () => ({
@@ -58,7 +61,23 @@ export function FiltersProvider({ children, initialLists }) {
             lists,
             setLists,
         }),
-        [layer, system, topic, device, timing, location, sensorType, lists]
+        [
+            layer,
+            system,
+            topic,
+            device,
+            timing,
+            location,
+            sensorType,
+            lists,
+            setLayer,
+            setSystem,
+            setTopic,
+            setDevice,
+            setTiming,
+            setLocation,
+            setSensorType,
+        ]
     );
 
     return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

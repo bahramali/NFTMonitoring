@@ -7,15 +7,6 @@ function TimingFilters() {
 
   const allSelected = timings.length > 0 && timing.length === timings.length;
   const noneSelected = timing.length === 0;
-
-  const handleToggle = (val) => {
-    if (timing.includes(val)) {
-      setTiming(timing.filter((v) => v !== val));
-    } else {
-      setTiming([...timing, val]);
-    }
-  };
-
   const selectAll = () => setTiming(timings);
   const selectNone = () => setTiming([]);
 
@@ -48,7 +39,7 @@ function TimingFilters() {
             <input
               type="checkbox"
               checked={timing.includes(t)}
-              onChange={() => handleToggle(t)}
+              onChange={() => setTiming(t)}
             />
             {' '}{t}
           </label>

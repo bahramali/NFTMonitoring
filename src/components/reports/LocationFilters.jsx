@@ -7,15 +7,6 @@ function LocationFilters() {
 
   const allSelected = locations.length > 0 && location.length === locations.length;
   const noneSelected = location.length === 0;
-
-  const handleToggle = (val) => {
-    if (location.includes(val)) {
-      setLocation(location.filter((v) => v !== val));
-    } else {
-      setLocation([...location, val]);
-    }
-  };
-
   const selectAll = () => setLocation(locations);
   const selectNone = () => setLocation([]);
 
@@ -48,7 +39,7 @@ function LocationFilters() {
             <input
               type="checkbox"
               checked={location.includes(l)}
-              onChange={() => handleToggle(l)}
+              onChange={() => setLocation(l)}
             />
             {' '}{l}
           </label>
