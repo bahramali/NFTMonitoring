@@ -3,14 +3,14 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
-import ReportCharts from '../src/components/dashboard/ReportCharts';
+import ReportCharts from './ReportCharts';
 
-vi.mock('../src/components/HistoricalTemperatureChart', () => ({ default: () => <div /> }));
-vi.mock('../src/components/HistoricalMultiBandChart', () => ({ default: () => <div /> }));
-vi.mock('../src/components/HistoricalClearLuxChart', () => ({ default: () => <div /> }));
-vi.mock('../src/components/HistoricalPhChart', () => ({ default: () => <div /> }));
-vi.mock('../src/components/HistoricalEcTdsChart', () => ({ default: () => <div /> }));
-vi.mock('../src/components/HistoricalDoChart', () => ({ default: () => <div /> }));
+vi.mock('../HistoricalTemperatureChart', () => ({ default: () => <div /> }));
+vi.mock('../HistoricalMultiBandChart', () => ({ default: () => <div /> }));
+vi.mock('../HistoricalClearLuxChart', () => ({ default: () => <div /> }));
+vi.mock('../HistoricalPhChart', () => ({ default: () => <div /> }));
+vi.mock('../HistoricalEcTdsChart', () => ({ default: () => <div /> }));
+vi.mock('../HistoricalDoChart', () => ({ default: () => <div /> }));
 
 function setup() {
   render(

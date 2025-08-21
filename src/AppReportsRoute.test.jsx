@@ -2,12 +2,12 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import '@testing-library/jest-dom';
-import App from '../src/App';
+import App from './App';
 
-vi.mock('../src/components/reports/ReportsUX', () => ({ default: () => <div>ReportsUX</div> }));
-vi.mock('../src/components/Header', () => ({ default: () => <div>Header</div> }));
+vi.mock('./components/reports/ReportsUX', () => ({ default: () => <div>ReportsUX</div> }));
+vi.mock('./components/Header', () => ({ default: () => <div>Header</div> }));
 
-vi.mock('../src/context/FiltersContext', () => ({
+vi.mock('./context/FiltersContext', () => ({
   FiltersProvider: ({ children }) => <div>{children}</div>,
   useFilters: () => ({
     layer: [],

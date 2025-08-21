@@ -12,8 +12,8 @@ vi.mock('react-router-dom', () => ({
 }));
 
 import { MemoryRouter } from 'react-router-dom';
-import Sidebar from '../src/components/Sidebar';
-import { FiltersProvider } from '../src/context/FiltersContext';
+import Sidebar from './Sidebar';
+import { FiltersProvider } from '../context/FiltersContext';
 
 test('renders Live link', () => {
     render(

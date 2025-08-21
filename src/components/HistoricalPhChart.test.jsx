@@ -1,10 +1,10 @@
 import React from 'react';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import HistoricalPhChart from '../src/components/HistoricalPhChart';
+import HistoricalPhChart from './HistoricalPhChart';
 import { vi } from 'vitest';
 
-vi.mock('../src/config/idealRangeConfig', () => ({
+vi.mock('../config/idealRangeConfig', () => ({
     __esModule: true,
     default: {
         ph: { idealRange: { min: 5.5, max: 6.5 } },

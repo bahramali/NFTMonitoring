@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import DeviceTable from '../src/components/DeviceTable';
+import DeviceTable from './DeviceTable';
 
 const devices = {
   tank1: {

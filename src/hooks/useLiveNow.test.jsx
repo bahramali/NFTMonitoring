@@ -1,9 +1,9 @@
 import { renderHook, act } from '@testing-library/react';
 import { vi } from 'vitest';
-import { useLiveNow } from '../src/hooks/useLiveNow';
+import { useLiveNow } from './useLiveNow';
 
 // Mock useStomp to capture the message handler
-vi.mock('../src/hooks/useStomp', () => ({
+vi.mock('./useStomp', () => ({
   useStomp: (_topics, onMessage) => {
     global.__liveNowHandler = onMessage;
   }

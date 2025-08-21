@@ -1,10 +1,10 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import HistoricalEcTdsChart from '../src/components/HistoricalEcTdsChart';
+import HistoricalEcTdsChart from './HistoricalEcTdsChart';
 import { vi } from 'vitest';
 
-vi.mock('../src/config/idealRangeConfig', () => ({
+vi.mock('../config/idealRangeConfig', () => ({
   __esModule: true,
   default: {
     ec: { idealRange: { min: 1.1, max: 1.8 } },

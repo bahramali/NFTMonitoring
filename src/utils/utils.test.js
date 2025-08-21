@@ -1,7 +1,7 @@
-import { normalizeSensorData, filterNoise, transformAggregatedData } from '../src/utils/utils';
+import { normalizeSensorData, filterNoise, transformAggregatedData } from './utils';
 
 test('normalizes sensor readings and spectral bands', () => {
-    const raw = require('./data/growSensors.json');
+    const raw = require('../testData/growSensors.json');
     const result = normalizeSensorData(raw);
     expect(result['405nm']).toBe(274);
     expect(result.F4).toBe(493); // 515nm -> F4
@@ -9,7 +9,7 @@ test('normalizes sensor readings and spectral bands', () => {
 });
 
 test('parses water tank readings', () => {
-    const raw = require('./data/waterTank.json');
+    const raw = require('../testData/waterTank.json');
     const result = normalizeSensorData(raw);
     expect(result.tds.value).toBeCloseTo(1006.389);
     expect(result.ec.value).toBeCloseTo(1.572483);
@@ -18,7 +18,7 @@ test('parses water tank readings', () => {
 });
 
 test('includes health statuses', () => {
-    const raw = require('./data/growSensorsWithHealthFalse.json');
+    const raw = require('../testData/growSensorsWithHealthFalse.json');
     const result = normalizeSensorData(raw);
     expect(result.health.sht3x).toBe(false);
     expect(result.health.veml7700).toBe(false);
@@ -26,7 +26,7 @@ test('includes health statuses', () => {
 });
 
 test('parses string and numeric health values', () => {
-    const raw = require('./data/growSensorsWithHealthFalse.json');
+    const raw = require('../testData/growSensorsWithHealthFalse.json');
     const result = normalizeSensorData(raw);
     expect(result.health.sht3x).toBe(false);
     expect(result.health.veml7700).toBe(false);
@@ -34,7 +34,7 @@ test('parses string and numeric health values', () => {
 });
 
 test('parses numeric strings into numbers', () => {
-    const raw = require('./data/growSensors.json');
+    const raw = require('../testData/growSensors.json');
     const result = normalizeSensorData(raw);
     expect(result.temperature.value).toBeCloseTo(27.75);
     expect(result.humidity.value).toBeCloseTo(47.17);
