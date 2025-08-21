@@ -1,5 +1,5 @@
 import React from 'react';
-import idealRanges from '../idealRangeConfig';
+import idealRanges from '../config/idealRangeConfig';
 import {
     LineChart,
     Line,
@@ -11,7 +11,7 @@ import {
     ReferenceArea,
     ResponsiveContainer,
 } from 'recharts';
-import palette from '../colorPalette';
+import palette from '../constants/colorPalette';
 
 const HistoricalTemperatureChart = ({
     data,

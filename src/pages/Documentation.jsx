@@ -1,5 +1,5 @@
 import React from 'react';
-import idealRangeConfig from '../idealRangeConfig';
+import idealRangeConfig from '../config/idealRangeConfig';
 
 function Documentation() {
     return (

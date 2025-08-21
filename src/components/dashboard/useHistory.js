@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from "react";
-import {transformAggregatedData} from "../../utils";
+import {transformAggregatedData} from "../../utils/utils";
 
 export function useHistory(compositeId, from, to, autoRefresh, interval) {
     const [rangeData, setRangeData] = useState([]);

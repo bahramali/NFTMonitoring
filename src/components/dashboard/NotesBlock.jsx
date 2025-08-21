@@ -1,6 +1,6 @@
 import React from 'react';
 import styles from '../SensorDashboard.module.css';
-import idealRangeConfig from '../../idealRangeConfig.js';
+import idealRangeConfig from '../../config/idealRangeConfig.js';
 import {bandMap, knownFields} from './dashboard.constants';
 
 function NotesBlock({ mergedDevices = {} }) {

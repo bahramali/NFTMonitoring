@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import HistoricalPhChart from '../src/components/HistoricalPhChart';
 import { vi } from 'vitest';
 
-vi.mock('../src/idealRangeConfig', () => ({
+vi.mock('../src/config/idealRangeConfig', () => ({
     __esModule: true,
     default: {
         ph: { idealRange: { min: 5.5, max: 6.5 } },

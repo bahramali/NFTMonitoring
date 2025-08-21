@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import HistoricalTemperatureChart from '../src/components/HistoricalTemperatureChart';
 import { vi } from 'vitest';
 
-vi.mock('../idealRangeConfig', () => ({
+vi.mock('../src/config/idealRangeConfig', () => ({
     __esModule: true,
     default: {
         temperature: { idealRange: { min: 20, max: 26 } },

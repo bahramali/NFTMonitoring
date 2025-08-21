@@ -1,4 +1,4 @@
-import { normalizeSensorData, filterNoise, transformAggregatedData } from '../src/utils';
+import { normalizeSensorData, filterNoise, transformAggregatedData } from '../src/utils/utils';
 
 test('normalizes sensor readings and spectral bands', () => {
     const raw = require('./data/growSensors.json');

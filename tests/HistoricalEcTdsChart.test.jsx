@@ -4,7 +4,7 @@ import '@testing-library/jest-dom';
 import HistoricalEcTdsChart from '../src/components/HistoricalEcTdsChart';
 import { vi } from 'vitest';
 
-vi.mock('../src/idealRangeConfig', () => ({
+vi.mock('../src/config/idealRangeConfig', () => ({
   __esModule: true,
   default: {
     ec: { idealRange: { min: 1.1, max: 1.8 } },
