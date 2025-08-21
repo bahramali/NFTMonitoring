@@ -1,6 +1,6 @@
 import React from 'react';
 import styles from './DeviceCard.module.css';
-import idealRanges from '../idealRangeConfig';
+import idealRanges from '../../idealRangeConfig';
 
 function getRowColor(value, range) {
     if (!range) return '';

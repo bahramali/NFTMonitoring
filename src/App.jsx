@@ -1,9 +1,9 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
-import DashboardPage  from './pages/DashboardPage';
+import Dashboard from './pages/Dashboard';
 import Live from './pages/Live';
-import ReportsPage from './pages/ReportsPage';
+import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import UserInfo from './pages/UserInfo';
 import Documentation from './pages/Documentation';
@@ -19,9 +19,9 @@ function App() {
         <BrowserRouter basename={base}>
             <Routes>
                 <Route path="/" element={<MainLayout />}>
-                    <Route index element={<DashboardPage />} />
+                    <Route index element={<Dashboard />} />
                     <Route path="live" element={<Live />} />
-                    <Route path="reports" element={<ReportsPage />} />
+                    <Route path="reports" element={<Reports />} />
                     <Route path="settings" element={<Settings />} />
                     <Route path="user" element={<UserInfo />} />
                     <Route path="docs" element={<Documentation />} />

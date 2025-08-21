@@ -40,7 +40,7 @@ vi.mock('../src/context/FiltersContext', () => ({
 vi.mock('../src/components/Header', () => ({ default: () => <div>Header</div> }));
 vi.mock('../src/components/dashboard/ReportControls', () => ({ default: () => <div>ReportControls</div> }));
 
-import ReportsPage from '../src/pages/ReportsPage';
+import Reports from '../src/pages/Reports';
 import ReportCharts from '../src/components/dashboard/ReportCharts';
 
 beforeEach(() => {
@@ -69,7 +69,7 @@ test('Reports page shows charts for AS7343 and SHT3x sensors (case-insensitive)'
     mergedDevices: {},
   });
 
-  render(<ReportsPage />);
+  render(<Reports />);
   expect(screen.queryByText('No reports available for this composite ID.')).toBeNull();
   expect(ReportCharts).toHaveBeenCalled();
   const props = ReportCharts.mock.calls[0][0];
@@ -96,7 +96,7 @@ test('Reports page defaults to first available system when initial system has no
     mergedDevices: {},
   });
 
-  render(<ReportsPage />);
+  render(<Reports />);
   await waitFor(() => expect(ReportCharts).toHaveBeenCalled());
   expect(screen.queryByText('No reports available for this composite ID.')).toBeNull();
 });

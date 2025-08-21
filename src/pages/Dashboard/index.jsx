@@ -1,9 +1,9 @@
-// src/pages/DashboardPage.jsx
+// src/pages/Dashboard/index.jsx
 /* eslint-disable react-refresh/only-export-components */
 import React, {useEffect, useMemo, useState} from "react";
-import {useLiveNow} from "../hooks/useLiveNow";
-import {SystemOverviewCard, LayerPanel} from "./SystemAndLayerCards";
-import FilterBar from "../components/dashboard/FilterBar";
+import {useLiveNow} from "../../hooks/useLiveNow";
+import {SystemOverviewCard, LayerPanel} from "../SystemAndLayerCards";
+import FilterBar from "../../components/dashboard/FilterBar";
 
 // If you don't have a CSS module for this page, keep styles as empty.
 const styles = {};
@@ -190,7 +190,7 @@ export function normalizeLiveNow(payload) {
 }
 
 // ---------- Page (no system filter) ----------
-export default function DashboardPage() {
+export default function Dashboard() {
     const live = useLiveNow();
     const systems = useMemo(() => normalizeLiveNow(live), [live]);
 
