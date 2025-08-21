@@ -10,12 +10,20 @@ export function FiltersProvider({ children, initialLists }) {
     const [system, setSystemState] = useState([]);
     const [topic, setTopicState] = useState([]);
     const [device, setDeviceState] = useState([]);
+    const [timing, setTiming] = useState([]);
+    const [location, setLocation] = useState([]);
+    const [sensorType, setSensorType] = useState([]);
 
-    const [lists, setLists] = useState({
+    const [lists, setListsState] = useState({
         layers: initialLists?.layers ?? [],
         systems: initialLists?.systems ?? [],
         topics: initialLists?.topics ?? [],
+        timings: initialLists?.timings ?? [],
+        locations: initialLists?.locations ?? [],
+        sensorTypes: initialLists?.sensorTypes ?? [],
     });
+
+    const setLists = (next) => setListsState((prev) => ({ ...prev, ...next }));
 
     const toggle = (setter) => (val) =>
         setter((prev) => {
@@ -37,14 +45,20 @@ export function FiltersProvider({ children, initialLists }) {
             system,
             topic,
             device,
+            timing,
+            location,
+            sensorType,
             setLayer,
             setSystem,
             setTopic,
             setDevice,
+            setTiming,
+            setLocation,
+            setSensorType,
             lists,
             setLists,
         }),
-        [layer, system, topic, device, lists]
+        [layer, system, topic, device, timing, location, sensorType, lists]
     );
 
     return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
