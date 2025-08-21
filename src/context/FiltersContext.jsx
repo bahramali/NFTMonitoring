@@ -6,9 +6,10 @@ export const useFilters = () => useContext(Ctx);
 export const ALL = "ALL";
 
 export function FiltersProvider({ children, initialLists }) {
-    const [layer, setLayer] = useState(ALL);
-    const [system, setSystem] = useState(ALL);
-    const [topic, setTopic] = useState(ALL);
+    const [layer, setLayerState] = useState([]);
+    const [system, setSystemState] = useState([]);
+    const [topic, setTopicState] = useState([]);
+    const [device, setDeviceState] = useState([]);
 
     const [lists, setLists] = useState({
         layers: initialLists?.layers ?? [],
@@ -16,17 +17,35 @@ export function FiltersProvider({ children, initialLists }) {
         topics: initialLists?.topics ?? [],
     });
 
-    const value = useMemo(() => ({
-        ALL,
-        layer,
-        system,
-        topic,
-        setLayer,
-        setSystem,
-        setTopic,
-        lists,
-        setLists,
-    }), [layer, system, topic, lists]);
+    const toggle = (setter) => (val) =>
+        setter((prev) => {
+            if (val === ALL) return [];
+            return prev.includes(val)
+                ? prev.filter((v) => v !== val)
+                : [...prev, val];
+        });
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+    const setLayer = toggle(setLayerState);
+    const setSystem = toggle(setSystemState);
+    const setTopic = toggle(setTopicState);
+    const setDevice = toggle(setDeviceState);
+
+    const value = useMemo(
+        () => ({
+            ALL,
+            layer,
+            system,
+            topic,
+            device,
+            setLayer,
+            setSystem,
+            setTopic,
+            setDevice,
+            lists,
+            setLists,
+        }),
+        [layer, system, topic, device, lists]
+    );
+
+    return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

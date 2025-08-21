@@ -73,8 +73,10 @@ function ReportsPage() {
 
     // Keep activeSystem in sync with filter
     useEffect(() => {
-        if (sysFilter !== activeSystem) {
-            setActiveSystem(sysFilter);
+        if (sysFilter.length === 1 && sysFilter[0] !== activeSystem) {
+            setActiveSystem(sysFilter[0]);
+        } else if (sysFilter.length === 0 && activeSystem !== ALL) {
+            setActiveSystem(ALL);
         }
     }, [sysFilter, activeSystem]);
 
@@ -83,7 +85,7 @@ function ReportsPage() {
     // are shown without extra user interaction.
     useEffect(() => {
         if (
-            sysFilter === ALL &&
+            sysFilter.length === 0 &&
             activeSystem !== ALL &&
             (!deviceData[activeSystem] || Object.keys(deviceData[activeSystem] || {}).length === 0)
         ) {
@@ -98,9 +100,10 @@ function ReportsPage() {
     const filteredCompositeIds = useMemo(() => {
         return availableCompositeIds.filter((id) => {
             const meta = deviceMeta[id] || {};
-            const okLay = layerFilter === ALL || meta.layer === layerFilter;
+            const okLay = layerFilter.length === 0 || layerFilter.includes(meta.layer);
             const okSys = activeSystem === ALL || meta.system === activeSystem;
-            const okTopic = topicFilter === ALL || (meta.topics || []).includes(topicFilter);
+            const okTopic =
+                topicFilter.length === 0 || topicFilter.some((t) => (meta.topics || []).includes(t));
             return okLay && okSys && okTopic;
         });
     }, [availableCompositeIds, deviceMeta, layerFilter, topicFilter, activeSystem]);

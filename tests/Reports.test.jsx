@@ -28,9 +28,12 @@ vi.mock('../src/components/dashboard/useHistory', () => ({
 
 vi.mock('../src/context/FiltersContext', () => ({
   useFilters: () => ({
-    layer: 'ALL',
-    system: 'ALL',
-    topic: 'ALL',
+    layer: [],
+    system: [],
+    topic: [],
+    setLayer: vi.fn(),
+    setSystem: vi.fn(),
+    setTopic: vi.fn(),
     setLists: vi.fn(),
   }),
   ALL: 'ALL',
