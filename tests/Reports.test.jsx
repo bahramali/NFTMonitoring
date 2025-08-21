@@ -1,18 +1,26 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
-import ReportsPage from '../src/pages/ReportsPage';
+import ReportsUX from '../src/components/reports/ReportsUX';
+import { FiltersProvider } from '../src/context/FiltersContext';
 
-vi.mock('../src/components/reports/ReportsUX', () => ({
-  default: () => <div>ReportsUX</div>,
-}));
+test('ReportsUX invokes callback with selected filters', () => {
+  const onRun = vi.fn();
+  const initialLists = {
+    timings: ['Daily'],
+    locations: ['Lab'],
+    sensorTypes: ['Temp'],
+  };
 
-vi.mock('../src/components/Header', () => ({
-  default: () => <div>Header</div>,
-}));
+  render(
+    <FiltersProvider initialLists={initialLists}>
+      <ReportsUX onRun={onRun} />
+    </FiltersProvider>
+  );
 
-test('Reports page renders ReportsUX component', () => {
-  render(<ReportsPage />);
-  expect(screen.getByText('ReportsUX')).toBeInTheDocument();
+  fireEvent.click(screen.getByLabelText('Daily'));
+  fireEvent.click(screen.getByRole('button', { name: /run/i }));
+
+  expect(onRun).toHaveBeenCalledWith({ timing: ['Daily'], location: [], sensorType: [] });
 });
