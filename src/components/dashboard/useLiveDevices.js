@@ -1,5 +1,5 @@
 import {useCallback, useMemo, useState} from "react";
-import {filterNoise, normalizeSensorData} from "../../utils";
+import {filterNoise, normalizeSensorData} from "../../utils/utils";
 import {useStomp} from "../../hooks/useStomp";
 import {SENSOR_TOPIC} from "./dashboard.constants";
 

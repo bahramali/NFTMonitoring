@@ -3,9 +3,9 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     Label, ReferenceArea, Cell
 } from 'recharts';
-import idealRanges from '../idealRangeConfig';
-import palette from '../colorPalette';
-import spectralColors from '../spectralColors';
+import idealRanges from '../config/idealRangeConfig';
+import palette from '../constants/colorPalette';
+import spectralColors from '../constants/spectralColors';
 
 const legacyBandMeta = [
     ['F1', 'F1 (400–430 nm)'],
