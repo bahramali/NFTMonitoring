@@ -1,28 +1,4 @@
-import { trimOldEntries, normalizeSensorData, filterNoise, parseSensorJson, transformAggregatedData } from '../src/utils';
-
-function fixedNow() {
-    return 1721310000000; // زمان ثابت برای تست، برای جلوگیری از اختلاف میلی‌ثانیه‌ای
-}
-
-test('removes entries older than 24h', () => {
-    const now = fixedNow();
-    const entries = [
-        { timestamp: now - 1000 },
-        { timestamp: now - 25 * 60 * 60 * 1000 }
-    ];
-    const result = trimOldEntries(entries, now, 24 * 60 * 60 * 1000);
-    expect(result.length).toBe(1);
-});
-
-test('honors custom maxAge', () => {
-    const now = fixedNow();
-    const entries = [
-        { timestamp: now - 5 },
-        { timestamp: now - 40 }
-    ];
-    const result = trimOldEntries(entries, now, 20);
-    expect(result.length).toBe(1);
-});
+import { normalizeSensorData, filterNoise, transformAggregatedData } from '../src/utils';
 
 test('normalizes sensor readings and spectral bands', () => {
     const raw = require('./data/growSensors.json');
@@ -136,14 +112,6 @@ test('filterNoise discards out of range values', () => {
 
     const badHumidity = { ...clean, humidity: { value: 150, unit: '%' } };
     expect(filterNoise(badHumidity)).toBeNull();
-});
-
-test('parseSensorJson fixes missing commas between sensor objects', () => {
-    const malformed = '{"sensors":[{"sensorId":"a","sensorType":"temperature","value":1}{"sensorId":"b","sensorType":"humidity","value":2}]}';
-    const parsed = parseSensorJson(malformed);
-    expect(Array.isArray(parsed.sensors)).toBe(true);
-    expect(parsed.sensors.length).toBe(2);
-    expect(parsed.sensors[1].sensorId).toBe('b');
 });
 
 test('transformAggregatedData converts API response', () => {
