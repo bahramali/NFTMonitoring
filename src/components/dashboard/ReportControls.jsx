@@ -8,7 +8,7 @@ function ReportControls({
   onToDateChange,
   onNow,
   onApply,
-  selectedDevice,
+  selectedDevices = [],
   availableCompositeIds = [],
   onDeviceChange,
   autoRefresh,
@@ -41,7 +41,16 @@ function ReportControls({
       <div className={styles.filterRow}>
         <label className={styles.filterLabel}>
           Composite ID:
-          <select className={styles.intervalSelect} value={selectedDevice} onChange={onDeviceChange}>
+          <select
+            className={styles.intervalSelect}
+            multiple
+            value={selectedDevices}
+            onChange={(e) =>
+              onDeviceChange(
+                Array.from(e.target.selectedOptions).map((opt) => opt.value)
+              )
+            }
+          >
             {availableCompositeIds.map((id) => (
               <option key={id} value={id}>
                 {id}

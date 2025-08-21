@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Header from '../components/Header';
 import { useLiveDevices } from '../components/dashboard/useLiveDevices';
 import { useHistory } from '../components/dashboard/useHistory';
@@ -12,7 +12,7 @@ import { useFilters, ALL } from '../context/FiltersContext';
 function ReportsPage() {
     const [activeSystem, setActiveSystem] = useState(ALL);
     const { deviceData, availableCompositeIds } = useLiveDevices(topics, activeSystem);
-    const [selectedDevice, setSelectedDevice] = useState('');
+    const [selectedDevices, setSelectedDevices] = useState([]);
 
     const now = Date.now();
     const [fromDate, setFromDate] = useState(toLocalInputValue(new Date(now - 6 * 60 * 60 * 1000)));
@@ -108,46 +108,98 @@ function ReportsPage() {
         });
     }, [availableCompositeIds, deviceMeta, layerFilter, topicFilter, activeSystem]);
 
-    // Ensure selectedDevice is valid
+    // Ensure selectedDevices are valid
     useEffect(() => {
-        if (filteredCompositeIds.length && !filteredCompositeIds.includes(selectedDevice)) {
-            setSelectedDevice(filteredCompositeIds[0]);
+        if (!filteredCompositeIds.length) {
+            setSelectedDevices([]);
+            return;
         }
-    }, [filteredCompositeIds, selectedDevice]);
+        setSelectedDevices((prev) => {
+            const valid = prev.filter((id) => filteredCompositeIds.includes(id));
+            return valid.length ? valid : [filteredCompositeIds[0]];
+        });
+    }, [filteredCompositeIds]);
 
-    const {
-        rangeData = [],
-        tempRangeData = [],
-        phRangeData = [],
-        ecTdsRangeData = [],
-        doRangeData = [],
-        xDomain = [],
-        startTime = 0,
-        endTime = 0,
-        fetchReportData = () => {},
-    } = useHistory(selectedDevice, fromDate, toDate, autoRefresh, refreshInterval);
+    const fetchersRef = useRef({});
+    const registerFetcher = useCallback((id, fn) => {
+        fetchersRef.current[id] = fn;
+    }, []);
 
-    // Determine which report sections to display
-    const sensorTypesForSelected = useMemo(() => {
-        const match = sensorTopicDevices[selectedDevice];
-        const sensors = match?.sensors || [];
-        return sensors.map((s) => (s.sensorType || s.valueType || '').toLowerCase());
-    }, [sensorTopicDevices, selectedDevice]);
+    const handleApply = () => {
+        selectedDevices.forEach((id) => fetchersRef.current[id]?.());
+    };
 
-    const sensorNamesForSelected = useMemo(() => {
-        const match = sensorTopicDevices[selectedDevice];
-        const sensors = match?.sensors || [];
-        return sensors.map((s) => (s.sensorName || s.source || '-').toLowerCase());
-    }, [sensorTopicDevices, selectedDevice]);
+    const DeviceReport = ({ deviceId }) => {
+        const {
+            rangeData = [],
+            tempRangeData = [],
+            phRangeData = [],
+            ecTdsRangeData = [],
+            doRangeData = [],
+            xDomain = [],
+            fetchReportData = () => {},
+        } = useHistory(deviceId, fromDate, toDate, autoRefresh, refreshInterval);
 
-    const showTempHum = sensorNamesForSelected.includes('sht3x');
-    const hasAs734x = sensorNamesForSelected.includes('as7343') || sensorNamesForSelected.includes('as7341');
-    const showSpectrum = hasAs734x;
-    const showClearLux = sensorNamesForSelected.includes('veml7700') || hasAs734x;
-    const showPh = sensorTypesForSelected.includes('ph');
-    const showEcTds = sensorTypesForSelected.includes('ec') || sensorTypesForSelected.includes('tds');
-    const showDo = sensorTypesForSelected.includes('do') || sensorTypesForSelected.includes('dissolvedoxygen');
-    const showAnyReport = showTempHum || showSpectrum || showClearLux || showPh || showEcTds || showDo;
+        useEffect(() => {
+            registerFetcher(deviceId, fetchReportData);
+        }, [deviceId, fetchReportData, registerFetcher]);
+
+        const sensorTypesForSelected = useMemo(() => {
+            const match = sensorTopicDevices[deviceId];
+            const sensors = match?.sensors || [];
+            return sensors.map((s) => (s.sensorType || s.valueType || '').toLowerCase());
+        }, [sensorTopicDevices, deviceId]);
+
+        const sensorNamesForSelected = useMemo(() => {
+            const match = sensorTopicDevices[deviceId];
+            const sensors = match?.sensors || [];
+            return sensors.map((s) => (s.sensorName || s.source || '-').toLowerCase());
+        }, [sensorTopicDevices, deviceId]);
+
+        const showTempHum = sensorNamesForSelected.includes('sht3x');
+        const hasAs734x =
+            sensorNamesForSelected.includes('as7343') ||
+            sensorNamesForSelected.includes('as7341');
+        const showSpectrum = hasAs734x;
+        const showClearLux =
+            sensorNamesForSelected.includes('veml7700') || hasAs734x;
+        const showPh = sensorTypesForSelected.includes('ph');
+        const showEcTds =
+            sensorTypesForSelected.includes('ec') ||
+            sensorTypesForSelected.includes('tds');
+        const showDo =
+            sensorTypesForSelected.includes('do') ||
+            sensorTypesForSelected.includes('dissolvedoxygen');
+        const showAnyReport =
+            showTempHum ||
+            showSpectrum ||
+            showClearLux ||
+            showPh ||
+            showEcTds ||
+            showDo;
+
+        if (!showAnyReport) {
+            return <div>No reports available for this composite ID.</div>;
+        }
+
+        return (
+            <ReportCharts
+                showTempHum={showTempHum}
+                showSpectrum={showSpectrum}
+                showClearLux={showClearLux}
+                showPh={showPh}
+                showEcTds={showEcTds}
+                showDo={showDo}
+                rangeData={rangeData}
+                tempRangeData={tempRangeData}
+                phRangeData={phRangeData}
+                ecTdsRangeData={ecTdsRangeData}
+                doRangeData={doRangeData}
+                xDomain={xDomain}
+                selectedDevice={deviceId}
+            />
+        );
+    };
 
     return (
         <div className={styles.dashboard}>
@@ -155,44 +207,32 @@ function ReportsPage() {
 
             <div className={styles.section}>
                 <div className={styles.sectionBody}>
-                    {!showAnyReport ? (
-                        <div>No reports available for this composite ID.</div>
-                    ) : (
-                        <>
-                            <ReportControls
-                                fromDate={fromDate}
-                                toDate={toDate}
-                                onFromDateChange={(e) => setFromDate(e.target.value)}
-                                onToDateChange={(e) => setToDate(e.target.value)}
-                                onNow={() => setToDate(toLocalInputValue(new Date()))}
-                                onApply={fetchReportData}
-                                selectedDevice={selectedDevice}
-                                availableCompositeIds={filteredCompositeIds}
-                                onDeviceChange={(e) => setSelectedDevice(e.target.value)}
-                                autoRefresh={autoRefresh}
-                                onAutoRefreshChange={(e) => setAutoRefresh(e.target.checked)}
-                                refreshInterval={refreshInterval}
-                                onRefreshIntervalChange={(e) => setRefreshInterval(Number(e.target.value))}
-                                rangeLabel={`From: ${formatTime(startTime)} until: ${formatTime(endTime)}`}
-                            />
+                    <>
+                        <ReportControls
+                            fromDate={fromDate}
+                            toDate={toDate}
+                            onFromDateChange={(e) => setFromDate(e.target.value)}
+                            onToDateChange={(e) => setToDate(e.target.value)}
+                            onNow={() => setToDate(toLocalInputValue(new Date()))}
+                            onApply={handleApply}
+                            selectedDevices={selectedDevices}
+                            availableCompositeIds={filteredCompositeIds}
+                            onDeviceChange={(vals) => setSelectedDevices(vals)}
+                            autoRefresh={autoRefresh}
+                            onAutoRefreshChange={(e) => setAutoRefresh(e.target.checked)}
+                            refreshInterval={refreshInterval}
+                            onRefreshIntervalChange={(e) =>
+                                setRefreshInterval(Number(e.target.value))
+                            }
+                            rangeLabel={`From: ${formatTime(
+                                Date.parse(fromDate)
+                            )} until: ${formatTime(Date.parse(toDate))}`}
+                        />
 
-                            <ReportCharts
-                                showTempHum={showTempHum}
-                                showSpectrum={showSpectrum}
-                                showClearLux={showClearLux}
-                                showPh={showPh}
-                                showEcTds={showEcTds}
-                                showDo={showDo}
-                                rangeData={rangeData}
-                                tempRangeData={tempRangeData}
-                                phRangeData={phRangeData}
-                                ecTdsRangeData={ecTdsRangeData}
-                                doRangeData={doRangeData}
-                                xDomain={xDomain}
-                                selectedDevice={selectedDevice}
-                            />
-                        </>
-                    )}
+                        {selectedDevices.map((id) => (
+                            <DeviceReport key={id} deviceId={id} />
+                        ))}
+                    </>
                 </div>
             </div>
         </div>
