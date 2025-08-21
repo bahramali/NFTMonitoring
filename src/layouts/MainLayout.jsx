@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-import { FiltersProvider } from "../context/FiltersContext";
+import { FiltersProvider } from "../features/dashboard/FiltersContext";
 
 export default function MainLayout() {
     return (

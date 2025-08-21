@@ -13,7 +13,7 @@ vi.mock('react-router-dom', () => ({
 
 import { MemoryRouter } from 'react-router-dom';
 import Sidebar from '../src/components/Sidebar';
-import { FiltersProvider } from '../src/context/FiltersContext';
+import { FiltersProvider } from '../src/features/dashboard/FiltersContext';
 
 test('renders Live link', () => {
     render(

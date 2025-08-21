@@ -4,10 +4,10 @@ import { vi } from 'vitest';
 import '@testing-library/jest-dom';
 import App from '../src/App';
 
-vi.mock('../src/components/reports/ReportsUX', () => ({ default: () => <div>ReportsUX</div> }));
+vi.mock('../src/features/reports/ReportsUX', () => ({ default: () => <div>ReportsUX</div> }));
 vi.mock('../src/components/Header', () => ({ default: () => <div>Header</div> }));
 
-vi.mock('../src/context/FiltersContext', () => ({
+vi.mock('../src/features/dashboard/FiltersContext', () => ({
   FiltersProvider: ({ children }) => <div>{children}</div>,
   useFilters: () => ({
     layer: [],

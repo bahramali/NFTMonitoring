@@ -1,13 +1,13 @@
 import { renderHook, act } from '@testing-library/react';
 import { vi } from 'vitest';
-import { useLiveDevices } from '../src/components/dashboard/useLiveDevices';
-import { SENSOR_TOPIC } from '../src/components/dashboard/dashboard.constants';
+import { useLiveDevices } from '../src/features/dashboard/useLiveDevices';
+import { SENSOR_TOPIC } from '../src/features/dashboard/dashboard.constants';
 import growPayload from './data/growSensors.json';
 import tankPayload from './data/waterTank.json';
 import oxyPayload from './data/oxygenPump.json';
 
 // Mock useStomp to capture the message handler
-vi.mock('../src/hooks/useStomp', () => ({
+vi.mock('../src/features/dashboard/useStomp', () => ({
   useStomp: (_topics, onMessage) => {
     global.__stompHandler = onMessage;
   }

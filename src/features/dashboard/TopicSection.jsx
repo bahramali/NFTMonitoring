@@ -1,6 +1,6 @@
 import React from 'react';
-import DeviceTable from '../DeviceTable';
-import styles from '../SensorDashboard.module.css';
+import DeviceTable from '../../components/DeviceTable';
+import styles from './SensorDashboard.module.css';
 
 function TopicSection({systemTopics = {}}) {
     return (

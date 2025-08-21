@@ -1,5 +1,5 @@
 import React from 'react';
-import { useFilters } from '../../context/FiltersContext';
+import { useFilters } from '../dashboard/FiltersContext';
 import styles from './ReportsUX.module.css';
 
 function SensorTypeFilters() {

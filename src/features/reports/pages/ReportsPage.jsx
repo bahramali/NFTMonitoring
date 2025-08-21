@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
-import Header from '../components/Header';
-import ReportsUX from '../components/reports/ReportsUX';
-import ComparePanel from '../components/reports/ComparePanel';
-import Tabs from '../components/reports/Tabs';
-import styles from '../components/SensorDashboard.module.css';
+import Header from '../../../components/Header';
+import ReportsUX from '../ReportsUX';
+import ComparePanel from '../ComparePanel';
+import Tabs from '../Tabs';
+import styles from '../../dashboard/SensorDashboard.module.css';
 
 function ReportsPage() {
   const [compareList, setCompareList] = useState([]);

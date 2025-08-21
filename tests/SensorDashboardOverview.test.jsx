@@ -3,11 +3,11 @@ import { render, screen, within, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
-import SensorDashboard from '../src/components/SensorDashboard';
-import { FiltersProvider } from '../src/context/FiltersContext';
+import SensorDashboard from '../src/features/dashboard/SensorDashboard';
+import { FiltersProvider } from '../src/features/dashboard/FiltersContext';
 
 // Mock WebSocket hook so we can control messages
-vi.mock('../src/hooks/useStomp', () => ({
+vi.mock('../src/features/dashboard/useStomp', () => ({
   useStomp: (topics, onMessage) => {
     const list = Array.isArray(topics) ? topics : [topics];
     list.forEach((t) => {
@@ -21,8 +21,8 @@ vi.mock('../src/hooks/useStomp', () => ({
 // Stub components that are not relevant for this test
 vi.mock('../src/components/SpectrumBarChart', () => ({ default: () => <div /> }));
 vi.mock('../src/components/Header', () => ({ default: () => <div /> }));
-vi.mock('../src/components/dashboard/TopicSection', () => ({ default: () => <div /> }));
-vi.mock('../src/components/dashboard/NotesBlock', () => ({ default: () => <div /> }));
+vi.mock('../src/features/dashboard/TopicSection', () => ({ default: () => <div /> }));
+vi.mock('../src/features/dashboard/NotesBlock', () => ({ default: () => <div /> }));
 
 test('overview items reflect live_now data', () => {
   render(

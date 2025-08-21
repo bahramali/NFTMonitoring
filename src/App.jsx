@@ -1,9 +1,9 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
-import DashboardPage  from './pages/DashboardPage';
-import Live from './pages/Live';
-import ReportsPage from './pages/ReportsPage';
+import DashboardPage from './features/dashboard/pages/DashboardPage';
+import Live from './features/dashboard/pages/Live';
+import ReportsPage from './features/reports/pages/ReportsPage';
 import Settings from './pages/Settings';
 import UserInfo from './pages/UserInfo';
 import Documentation from './pages/Documentation';

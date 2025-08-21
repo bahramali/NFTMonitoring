@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import ChartsPanel from './ChartsPanel';
 import TablePanel from './TablePanel';
 import RawPanel from './RawPanel';
-import styles from '../SensorDashboard.module.css';
+import styles from '../dashboard/SensorDashboard.module.css';
 
 function Tabs({ data = [] }) {
   const [active, setActive] = useState('charts');

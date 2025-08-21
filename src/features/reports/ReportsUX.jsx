@@ -3,7 +3,7 @@ import TimingFilters from './TimingFilters';
 import LocationFilters from './LocationFilters';
 import SensorTypeFilters from './SensorTypeFilters';
 import AutoRefreshControls from './AutoRefreshControls';
-import { useFilters } from '../../context/FiltersContext';
+import { useFilters } from '../dashboard/FiltersContext';
 import styles from './ReportsUX.module.css';
 
 function ReportsUX({

@@ -1,6 +1,6 @@
 import {useCallback, useMemo, useState} from "react";
 import {filterNoise, normalizeSensorData} from "../../utils/utils";
-import {useStomp} from "../../hooks/useStomp";
+import { useStomp } from "./useStomp";
 import {SENSOR_TOPIC} from "./dashboard.constants";
 
 function mergeControllers(a = [], b = []) {

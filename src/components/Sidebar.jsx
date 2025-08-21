@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import styles from "./Sidebar.module.css";
-import { useFilters, ALL } from "../context/FiltersContext";
+import { useFilters, ALL } from "../features/dashboard/FiltersContext";
 
 export default function Sidebar() {
     const [collapsed, setCollapsed] = useState(() => window.innerWidth < 768);
