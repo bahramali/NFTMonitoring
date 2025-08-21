@@ -1,8 +1,3 @@
-// Removes old entries older than maxAgeMs from the dataset
-export function trimOldEntries(data, now, maxAgeMs = 24 * 60 * 60 * 1000) {
-    return data.filter(d => d.timestamp >= now - maxAgeMs);
-}
-
 // Filters out obviously invalid temperature/humidity readings
 export function filterNoise(data) {
     const temp = data.temperature?.value;
@@ -90,16 +85,6 @@ export function normalizeSensorData(data) {
     }
 
     return result;
-}
-
-// Parses JSON string, fixes concatenated objects without commas
-export function parseSensorJson(str) {
-    try {
-        return JSON.parse(str);
-    } catch {
-        const fixed = str.replace(/}\s*{"sensorId":/g, '},{"sensorId":');
-        return JSON.parse(fixed);
-    }
 }
 
 // Transforms aggregated history API output into time-indexed array
