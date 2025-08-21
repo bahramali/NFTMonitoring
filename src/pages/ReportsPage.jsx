@@ -18,9 +18,7 @@ function ReportsPage() {
   const handleRun = useCallback((filters) => {
     const merged = { ...filters, bucket };
     setActiveFilters(merged);
-    // Placeholder for report generation logic
-    setReportData([]);
-    console.log('Run report', merged);
+    setReportData([merged]);
   }, [bucket]);
 
   useEffect(() => {
