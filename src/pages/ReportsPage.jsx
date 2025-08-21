@@ -12,11 +12,14 @@ function ReportsPage() {
   const [refreshInterval, setRefreshInterval] = useState(60000);
   const [bucket, setBucket] = useState('1m');
   const [activeFilters, setActiveFilters] = useState(null);
+  const [reportData, setReportData] = useState([]);
   const intervalRef = useRef(null);
 
   const handleRun = useCallback((filters) => {
     const merged = { ...filters, bucket };
     setActiveFilters(merged);
+    // Placeholder for report generation logic
+    setReportData([]);
     console.log('Run report', merged);
   }, [bucket]);
 
