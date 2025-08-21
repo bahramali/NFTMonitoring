@@ -7,7 +7,6 @@ function TimingFilters() {
 
   const allSelected = timings.length > 0 && timing.length === timings.length;
   const noneSelected = timing.length === 0;
-
   const selectAll = () => setTiming(timings);
   const selectNone = () => setTiming([]);
 

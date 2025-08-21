@@ -7,7 +7,6 @@ function SensorTypeFilters() {
 
   const allSelected = sensorTypes.length > 0 && sensorType.length === sensorTypes.length;
   const noneSelected = sensorType.length === 0;
-
   const selectAll = () => setSensorType(sensorTypes);
   const selectNone = () => setSensorType([]);
 

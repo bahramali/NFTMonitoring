@@ -7,7 +7,6 @@ function LocationFilters() {
 
   const allSelected = locations.length > 0 && location.length === locations.length;
   const noneSelected = location.length === 0;
-
   const selectAll = () => setLocation(locations);
   const selectNone = () => setLocation([]);
 

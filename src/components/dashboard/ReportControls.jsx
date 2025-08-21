@@ -10,7 +10,7 @@ function ReportControls({
   onApply,
   selectedDevices = [],
   availableCompositeIds = [],
-  onDeviceChange,
+  onDevicesChange,
   autoRefresh,
   onAutoRefreshChange,
   refreshInterval,
@@ -46,7 +46,7 @@ function ReportControls({
             multiple
             value={selectedDevices}
             onChange={(e) =>
-              onDeviceChange(
+              onDevicesChange(
                 Array.from(e.target.selectedOptions).map((opt) => opt.value)
               )
             }

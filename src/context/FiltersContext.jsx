@@ -13,7 +13,6 @@ export function FiltersProvider({ children, initialLists }) {
     const [timing, setTimingState] = useState([]);
     const [location, setLocationState] = useState([]);
     const [sensorType, setSensorTypeState] = useState([]);
-
     const [lists, setListsState] = useState({
         layers: initialLists?.layers ?? [],
         systems: initialLists?.systems ?? [],
