@@ -13,11 +13,22 @@ function Live({
     sensorData = {},
     mergedDevices = {},
 }) {
+    const isArray = Array.isArray(selectedDevice);
+    const selectedId = isArray ? selectedDevice[0] || "" : selectedDevice;
+    const handleChange = (e) => {
+        const val = e.target.value;
+        if (isArray) {
+            setSelectedDevice([val]);
+        } else {
+            setSelectedDevice(val);
+        }
+    };
+
     return (
         <div className={styles.section}>
             <div className={styles.sectionBody}>
                 {/* Live tables filtered by Device/Layer/System */}
-                <TopicSection systemTopics={filteredSystemTopics}/>
+                <TopicSection systemTopics={filteredSystemTopics} />
 
                 {/* Live spectrum chart for the selected device */}
                 {Object.keys(sensorTopicDevices).length > 0 && (
@@ -27,28 +38,34 @@ function Live({
                                 Composite ID:
                                 <select
                                     className={styles.intervalSelect}
-                                    value={selectedDevice}
-                                    onChange={(e) => setSelectedDevice(e.target.value)}
+                                    value={selectedId}
+                                    onChange={handleChange}
                                 >
                                     {filteredCompositeIds.map((id) => (
-                                        <option key={id} value={id}>{id}</option>
+                                        <option key={id} value={id}>
+                                            {id}
+                                        </option>
                                     ))}
                                 </select>
                             </label>
                         </div>
 
-                        <div className={styles.deviceLabel}>{selectedDevice}</div>
+                        {isArray && selectedDevice.length > 1 && (
+                            <div>Multiple devices selected; showing first.</div>
+                        )}
 
-                        {filteredCompositeIds.includes(selectedDevice) && (
+                        <div className={styles.deviceLabel}>{selectedId}</div>
+
+                        {filteredCompositeIds.includes(selectedId) && (
                             <div className={styles.spectrumBarChartWrapper}>
-                                <SpectrumBarChart sensorData={sensorData[selectedDevice]}/>
+                                <SpectrumBarChart sensorData={sensorData[selectedId]} />
                             </div>
                         )}
                     </>
                 )}
 
                 {/* Notes based on mergedDevices */}
-                <NotesBlock mergedDevices={mergedDevices}/>
+                <NotesBlock mergedDevices={mergedDevices} />
 
             </div>
         </div>
