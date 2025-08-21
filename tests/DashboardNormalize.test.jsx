@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeLiveNow } from '../src/pages/DashboardPage.jsx';
+import { normalizeLiveNow } from '../src/pages/DashboardPage';
 
 // Sample payload matching new live_now JSON structure
 const samplePayload = {
