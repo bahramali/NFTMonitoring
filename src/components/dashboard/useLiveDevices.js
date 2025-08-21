@@ -60,29 +60,39 @@ export function useLiveDevices(topics, activeSystem) {
     useStomp(topics, handleStompMessage);
 
     const availableCompositeIds = useMemo(() => {
-        const sysData = deviceData[activeSystem] || {};
         const ids = new Set();
-        for (const topicDevices of Object.values(sysData)) {
-            for (const cid of Object.keys(topicDevices)) {
-                ids.add(cid);
+        const isAll = String(activeSystem).toLowerCase() === "all";
+        const systems = isAll ? Object.values(deviceData) : [deviceData[activeSystem] || {}];
+
+        for (const sysData of systems) {
+            for (const topicDevices of Object.values(sysData || {})) {
+                for (const cid of Object.keys(topicDevices)) {
+                    ids.add(cid);
+                }
             }
         }
+
         return Array.from(ids);
     }, [deviceData, activeSystem]);
 
     const mergedDevices = useMemo(() => {
-        const sysData = deviceData[activeSystem] || {};
         const combined = {};
-        for (const topicKey of Object.keys(sysData)) {
-            for (const [cid, data] of Object.entries(sysData[topicKey])) {
-                const existing = combined[cid] || {};
-                combined[cid] = {
-                    ...existing,
-                    ...data,
-                    controllers: mergeControllers(existing.controllers, data.controllers)
-                };
+        const isAll = String(activeSystem).toLowerCase() === "all";
+        const systems = isAll ? Object.values(deviceData) : [deviceData[activeSystem] || {}];
+
+        for (const sysData of systems) {
+            for (const topicKey of Object.keys(sysData || {})) {
+                for (const [cid, data] of Object.entries(sysData[topicKey])) {
+                    const existing = combined[cid] || {};
+                    combined[cid] = {
+                        ...existing,
+                        ...data,
+                        controllers: mergeControllers(existing.controllers, data.controllers)
+                    };
+                }
             }
         }
+
         return combined;
     }, [deviceData, activeSystem]);
 

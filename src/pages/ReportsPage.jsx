@@ -10,7 +10,7 @@ import { toLocalInputValue, formatTime } from '../components/dashboard/dashboard
 import { useFilters, ALL } from '../context/FiltersContext';
 
 function ReportsPage() {
-    const [activeSystem, setActiveSystem] = useState('S01');
+    const [activeSystem, setActiveSystem] = useState(ALL);
     const { deviceData, availableCompositeIds } = useLiveDevices(topics, activeSystem);
     const [selectedDevice, setSelectedDevice] = useState('');
 
@@ -29,7 +29,18 @@ function ReportsPage() {
         setLists,
     } = useFilters();
 
-    const activeSystemTopics = deviceData[activeSystem] || {};
+    const activeSystemTopics = useMemo(() => {
+        if (activeSystem === ALL) {
+            const out = {};
+            for (const topicsObj of Object.values(deviceData || {})) {
+                for (const [topic, devs] of Object.entries(topicsObj || {})) {
+                    out[topic] = { ...(out[topic] || {}), ...(devs || {}) };
+                }
+            }
+            return out;
+        }
+        return deviceData[activeSystem] || {};
+    }, [activeSystem, deviceData]);
     const sensorTopicDevices = activeSystemTopics[SENSOR_TOPIC] || {};
 
     // Build metadata for filtering
@@ -64,7 +75,7 @@ function ReportsPage() {
 
     // Keep activeSystem in sync with filter
     useEffect(() => {
-        if (sysFilter !== ALL && sysFilter !== activeSystem) {
+        if (sysFilter !== activeSystem) {
             setActiveSystem(sysFilter);
         }
     }, [sysFilter, activeSystem]);
@@ -75,6 +86,7 @@ function ReportsPage() {
     useEffect(() => {
         if (
             sysFilter === ALL &&
+            activeSystem !== ALL &&
             (!deviceData[activeSystem] || Object.keys(deviceData[activeSystem] || {}).length === 0)
         ) {
             const systems = Object.keys(deviceData || {});
@@ -90,11 +102,11 @@ function ReportsPage() {
             const meta = deviceMeta[id] || {};
             const okDev = devFilter === ALL || id === devFilter;
             const okLay = layerFilter === ALL || meta.layer === layerFilter;
-            const okSys = sysFilter === ALL || meta.system === sysFilter;
+            const okSys = activeSystem === ALL || meta.system === activeSystem;
             const okTopic = topicFilter === ALL || (meta.topics || []).includes(topicFilter);
             return okDev && okLay && okSys && okTopic;
         });
-    }, [availableCompositeIds, deviceMeta, devFilter, layerFilter, sysFilter, topicFilter]);
+    }, [availableCompositeIds, deviceMeta, devFilter, layerFilter, topicFilter, activeSystem]);
 
     // Ensure selectedDevice is valid
     useEffect(() => {
