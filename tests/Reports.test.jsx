@@ -1,102 +1,18 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { vi } from 'vitest';
-
-const liveDevicesMock = vi.fn();
-
-vi.mock('../src/components/dashboard/ReportCharts', () => ({
-  default: vi.fn(() => <div>ReportCharts</div>),
-}));
-
-vi.mock('../src/components/dashboard/useLiveDevices', () => ({
-  useLiveDevices: (...args) => liveDevicesMock(...args),
-}));
-
-vi.mock('../src/components/dashboard/useHistory', () => ({
-  useHistory: () => ({
-    rangeData: [],
-    tempRangeData: [],
-    phRangeData: [],
-    ecTdsRangeData: [],
-    doRangeData: [],
-    xDomain: [],
-    startTime: 0,
-    endTime: 0,
-    fetchReportData: vi.fn(),
-  }),
-}));
-
-vi.mock('../src/context/FiltersContext', () => ({
-  useFilters: () => ({
-    layer: 'ALL',
-    system: 'ALL',
-    topic: 'ALL',
-    setLists: vi.fn(),
-  }),
-  ALL: 'ALL',
-}));
-
-vi.mock('../src/components/Header', () => ({ default: () => <div>Header</div> }));
-vi.mock('../src/components/dashboard/ReportControls', () => ({ default: () => <div>ReportControls</div> }));
-
 import ReportsPage from '../src/pages/ReportsPage';
-import ReportCharts from '../src/components/dashboard/ReportCharts';
 
-beforeEach(() => {
-  liveDevicesMock.mockReset();
-  ReportCharts.mockClear();
-});
+vi.mock('../src/components/reports/ReportsUX', () => ({
+  default: () => <div>ReportsUX</div>,
+}));
 
-test('Reports page shows charts for AS7343 and SHT3x sensors (case-insensitive)', () => {
-  liveDevicesMock.mockReturnValue({
-    deviceData: {
-      S01: {
-        growSensors: {
-          L01G01: {
-            deviceId: 'G01',
-            layer: 'L01',
-            sensors: [
-              { sensorName: 'AS7343' },
-              { sensorName: 'SHT3x' },
-            ],
-          },
-        },
-      },
-    },
-    sensorData: {},
-    availableCompositeIds: ['L01G01'],
-    mergedDevices: {},
-  });
+vi.mock('../src/components/Header', () => ({
+  default: () => <div>Header</div>,
+}));
 
+test('Reports page renders ReportsUX component', () => {
   render(<ReportsPage />);
-  expect(screen.queryByText('No reports available for this composite ID.')).toBeNull();
-  expect(ReportCharts).toHaveBeenCalled();
-  const props = ReportCharts.mock.calls[0][0];
-  expect(props.showSpectrum).toBe(true);
-  expect(props.showClearLux).toBe(true);
-  expect(props.showTempHum).toBe(true);
+  expect(screen.getByText('ReportsUX')).toBeInTheDocument();
 });
-
-test('Reports page defaults to first available system when initial system has no devices', async () => {
-  liveDevicesMock.mockReturnValue({
-    deviceData: {
-      S02: {
-        growSensors: {
-          L01G01: {
-            deviceId: 'G01',
-            layer: 'L01',
-            sensors: [{ sensorName: 'AS7343' }],
-          },
-        },
-      },
-    },
-    sensorData: {},
-    availableCompositeIds: ['L01G01'],
-    mergedDevices: {},
-  });
-
-  render(<ReportsPage />);
-  await waitFor(() => expect(ReportCharts).toHaveBeenCalled());
-  expect(screen.queryByText('No reports available for this composite ID.')).toBeNull();
-});
-

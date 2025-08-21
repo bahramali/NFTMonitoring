@@ -4,23 +4,18 @@ import { vi } from 'vitest';
 import '@testing-library/jest-dom';
 import App from '../src/App';
 
-vi.mock('../src/components/dashboard/ReportControls', () => ({ default: () => <div>ReportControls</div> }));
+vi.mock('../src/components/reports/ReportsUX', () => ({ default: () => <div>ReportsUX</div> }));
 vi.mock('../src/components/Header', () => ({ default: () => <div>Header</div> }));
-vi.mock('../src/components/dashboard/ReportCharts', () => ({ default: () => <div>ReportCharts</div> }));
-vi.mock('../src/components/dashboard/useLiveDevices', () => ({
-  useLiveDevices: () => ({ deviceData: {}, availableCompositeIds: [] }),
-}));
-vi.mock('../src/components/dashboard/useHistory', () => ({
-  useHistory: () => ({}),
-}));
-vi.stubEnv('BASE_URL', '/NFTMonitoring/');
 
 vi.mock('../src/context/FiltersContext', () => ({
   FiltersProvider: ({ children }) => <div>{children}</div>,
   useFilters: () => ({
-    layer: 'ALL',
-    system: 'ALL',
-    topic: 'ALL',
+    layer: [],
+    system: [],
+    topic: [],
+    setLayer: () => {},
+    setSystem: () => {},
+    setTopic: () => {},
     setLists: () => {},
     lists: { topics: [], layers: [], systems: [] },
   }),
