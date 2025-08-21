@@ -22,7 +22,6 @@ function ReportsPage() {
     const [refreshInterval, setRefreshInterval] = useState(60000);
 
     const {
-        device: devFilter,
         layer: layerFilter,
         system: sysFilter,
         topic: topicFilter,
@@ -66,11 +65,10 @@ function ReportsPage() {
 
     // Populate sidebar lists
     useEffect(() => {
-        const devices = Object.keys(deviceMeta);
         const layers = Array.from(new Set(Object.values(deviceMeta).map((m) => m.layer).filter(Boolean)));
         const systems = Object.keys(deviceData || {});
         const topicsList = Array.from(new Set(Object.values(deviceData || {}).flatMap((sys) => Object.keys(sys || {}))));
-        setLists({ devices, layers, systems, topics: topicsList });
+        setLists({ layers, systems, topics: topicsList });
     }, [deviceMeta, deviceData, setLists]);
 
     // Keep activeSystem in sync with filter
@@ -100,13 +98,12 @@ function ReportsPage() {
     const filteredCompositeIds = useMemo(() => {
         return availableCompositeIds.filter((id) => {
             const meta = deviceMeta[id] || {};
-            const okDev = devFilter === ALL || id === devFilter;
             const okLay = layerFilter === ALL || meta.layer === layerFilter;
             const okSys = activeSystem === ALL || meta.system === activeSystem;
             const okTopic = topicFilter === ALL || (meta.topics || []).includes(topicFilter);
-            return okDev && okLay && okSys && okTopic;
+            return okLay && okSys && okTopic;
         });
-    }, [availableCompositeIds, deviceMeta, devFilter, layerFilter, topicFilter, activeSystem]);
+    }, [availableCompositeIds, deviceMeta, layerFilter, topicFilter, activeSystem]);
 
     // Ensure selectedDevice is valid
     useEffect(() => {
