@@ -72,8 +72,10 @@ function SensorDashboard({ view, title = '' }) {
 
     // 3) Keep activeSystem in sync with the System filter
     useEffect(() => {
-        if (sysFilter !== ALL && sysFilter !== activeSystem) {
-            setActiveSystem(sysFilter);
+        if (sysFilter.length === 1 && sysFilter[0] !== activeSystem) {
+            setActiveSystem(sysFilter[0]);
+        } else if (sysFilter.length === 0 && activeSystem !== ALL) {
+            setActiveSystem(ALL);
         }
     }, [sysFilter, activeSystem]);
 
@@ -81,9 +83,10 @@ function SensorDashboard({ view, title = '' }) {
     const filteredCompositeIds = useMemo(() => {
         return availableCompositeIds.filter((compositeId) => {
             const meta = deviceMeta[compositeId] || {};
-            const okLay = layerFilter === ALL || meta.layer === layerFilter;
-            const okSys = sysFilter === ALL || meta.system === sysFilter;
-            const okTopic = topicFilter === ALL || (meta.topics || []).includes(topicFilter);
+            const okLay = layerFilter.length === 0 || layerFilter.includes(meta.layer);
+            const okSys = sysFilter.length === 0 || sysFilter.includes(meta.system);
+            const okTopic =
+                topicFilter.length === 0 || topicFilter.some((t) => (meta.topics || []).includes(t));
             return okLay && okSys && okTopic;
         });
     }, [availableCompositeIds, deviceMeta, layerFilter, sysFilter, topicFilter]);
@@ -92,7 +95,7 @@ function SensorDashboard({ view, title = '' }) {
     const filteredSystemTopics = useMemo(() => {
         const out = {};
         for (const [topic, devs] of Object.entries(activeSystemTopics || {})) {
-            if (topicFilter !== ALL && topic !== topicFilter) continue;
+            if (topicFilter.length && !topicFilter.includes(topic)) continue;
             out[topic] = Object.fromEntries(
                 Object.entries(devs || {}).filter(([compositeId]) =>
                     filteredCompositeIds.includes(compositeId)

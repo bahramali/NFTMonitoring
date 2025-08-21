@@ -18,9 +18,12 @@ vi.stubEnv('BASE_URL', '/NFTMonitoring/');
 vi.mock('../src/context/FiltersContext', () => ({
   FiltersProvider: ({ children }) => <div>{children}</div>,
   useFilters: () => ({
-    layer: 'ALL',
-    system: 'ALL',
-    topic: 'ALL',
+    layer: [],
+    system: [],
+    topic: [],
+    setLayer: () => {},
+    setSystem: () => {},
+    setTopic: () => {},
     setLists: () => {},
     lists: { topics: [], layers: [], systems: [] },
   }),

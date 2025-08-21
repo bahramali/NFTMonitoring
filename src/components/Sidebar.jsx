@@ -20,16 +20,16 @@ export default function Sidebar() {
     const linkClass = ({ isActive }) =>
         `${styles.menuItem} ${isActive ? styles.active : ""}`;
 
-    const CheckboxGroup = ({ title, list, value, onChange }) => (
+    const CheckboxGroup = ({ title, list, values, onChange }) => (
         <div className={styles.filterGroup}>
             {!collapsed && <div className={styles.filterLabel}>{title}</div>}
 
             {!collapsed && (
                 <div className={styles.dropdown}>
-                    <label className={`${styles.option} ${value === ALL ? styles.selected : ""}`}>
+                    <label className={`${styles.option} ${values.length === 0 ? styles.selected : ""}`}>
                         <input
                             type="checkbox"
-                            checked={value === ALL}
+                            checked={values.length === 0}
                             onChange={() => onChange(ALL)}
                         />
                         All
@@ -38,12 +38,12 @@ export default function Sidebar() {
                     {list.map((item) => (
                         <label
                             key={item}
-                            className={`${styles.option} ${value === item ? styles.selected : ""}`}
+                            className={`${styles.option} ${values.includes(item) ? styles.selected : ""}`}
                         >
                             <input
                                 type="checkbox"
-                                checked={value === item}
-                                onChange={() => onChange(value === item ? ALL : item)}
+                                checked={values.includes(item)}
+                                onChange={() => onChange(item)}
                             />
                             {item}
                         </label>
@@ -95,9 +95,9 @@ export default function Sidebar() {
             <section className={styles.filters}>
                 {!collapsed && <div className={styles.filtersTitle}>Application filters</div>}
 
-                <CheckboxGroup title="Topic" list={lists.topics} value={topic} onChange={setTopic} />
-                <CheckboxGroup title="Layer" list={lists.layers} value={layer} onChange={setLayer} />
-                <CheckboxGroup title="System" list={lists.systems} value={system} onChange={setSystem} />
+                <CheckboxGroup title="Topic" list={lists.topics} values={topic} onChange={setTopic} />
+                <CheckboxGroup title="Layer" list={lists.layers} values={layer} onChange={setLayer} />
+                <CheckboxGroup title="System" list={lists.systems} values={system} onChange={setSystem} />
             </section>
         </aside>
     );
