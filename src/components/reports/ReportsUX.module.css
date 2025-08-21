@@ -38,6 +38,10 @@
   gap: 10px;
 }
 
+.intervalSelect {
+  margin-left: 10px;
+}
+
 .runButton {
   background-color: #1976d2;
   color: #fff;
