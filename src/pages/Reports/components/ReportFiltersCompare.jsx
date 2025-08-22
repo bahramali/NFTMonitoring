@@ -15,16 +15,20 @@ function AllNone({name, onAll, onNone}) {
 function Checklist({options = [], values = [], onToggle}) {
     return (
         <div className={styles.checklist}>
-            {options.map((opt) => (
-                <label key={opt} className={styles.item}>
-                    <input
-                        type="checkbox"
-                        checked={values.includes(opt)}
-                        onChange={() => onToggle && onToggle(opt)}
-                    />
-                    {opt}
-                </label>
-            ))}
+            {options.map((opt) => {
+                const checked = values.includes(opt);
+                return (
+                    <label key={opt} className={styles.item}>
+                        <input
+                            type="checkbox"
+                            checked={onToggle ? checked : undefined}
+                            defaultChecked={!onToggle ? checked : undefined}
+                            onChange={() => onToggle && onToggle(opt)}
+                        />
+                        {opt}
+                    </label>
+                );
+            })}
         </div>
     );
 }
@@ -105,17 +109,20 @@ export default function ReportFiltersCompare({
         }
     }, []);
 
-    const systems = systemsProp.length ? systemsProp : useMemo(() => {
+    const systemsFromCatalog = useMemo(() => {
         return Array.from(new Set((catalog?.systems || []).map(s => s.id))).sort();
     }, [catalog]);
+    const systems = systemsProp.length ? systemsProp : systemsFromCatalog;
 
-    const layers = layersProp.length ? layersProp : useMemo(() => {
+    const layersFromCatalog = useMemo(() => {
         return Array.from(new Set((catalog?.devices || []).map(d => d.layerId))).sort();
     }, [catalog]);
+    const layers = layersProp.length ? layersProp : layersFromCatalog;
 
-    const devices = devicesProp.length ? devicesProp : useMemo(() => {
+    const devicesFromCatalog = useMemo(() => {
         return Array.from(new Set((catalog?.devices || []).map(d => d.deviceId))).sort();
     }, [catalog]);
+    const devices = devicesProp.length ? devicesProp : devicesFromCatalog;
 
     const sensorGroups = useMemo(() => {
         const groups = {water: [], light: [], blue: [], red: [], airq: []};

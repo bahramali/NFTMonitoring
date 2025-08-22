@@ -186,7 +186,7 @@ function Reports() {
                                selectedSystem={activeSystem}
                                onSystemChange={(e) => setActiveSystem(e.target.value)}
                                selectedLayer={layerFilter !== ALL ? layerFilter : (deviceMeta[selectedDevice]?.layer || '')}
-                               onLayerChange={(e) => {/* optional: wire to FiltersContext if لازم */}}
+                                onLayerChange={() => {/* optional: wire to FiltersContext if needed */}}
                                selectedDevice={selectedDevice}
                                onDeviceChange={(e) => setSelectedDevice(e.target.value)}
                                // sensors (detected)
