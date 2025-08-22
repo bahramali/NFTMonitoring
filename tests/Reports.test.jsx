@@ -4,15 +4,15 @@ import { vi } from 'vitest';
 
 const liveDevicesMock = vi.fn();
 
-vi.mock('../src/components/dashboard/ReportCharts', () => ({
+vi.mock('../src/pages/Reports/components/ReportCharts', () => ({
   default: vi.fn(() => <div>ReportCharts</div>),
 }));
 
-vi.mock('../src/components/dashboard/useLiveDevices', () => ({
+vi.mock('../src/components/useLiveDevices', () => ({
   useLiveDevices: (...args) => liveDevicesMock(...args),
 }));
 
-vi.mock('../src/components/dashboard/useHistory', () => ({
+vi.mock('../src/components/useHistory', () => ({
   useHistory: () => ({
     rangeData: [],
     tempRangeData: [],
@@ -38,10 +38,10 @@ vi.mock('../src/context/FiltersContext', () => ({
 }));
 
 vi.mock('../src/components/Header', () => ({ default: () => <div>Header</div> }));
-vi.mock('../src/components/dashboard/ReportControls', () => ({ default: () => <div>ReportControls</div> }));
+vi.mock('../src/pages/Reports/components/ReportControls', () => ({ default: () => <div>ReportControls</div> }));
 
 import Reports from '../src/pages/Reports';
-import ReportCharts from '../src/components/dashboard/ReportCharts';
+import ReportCharts from '../src/pages/Reports/components/ReportCharts';
 
 beforeEach(() => {
   liveDevicesMock.mockReset();

@@ -1,7 +1,7 @@
 import React from 'react';
-import styles from '../SensorDashboard/SensorDashboard.module.css';
-import idealRangeConfig from '../../idealRangeConfig.js';
-import {bandMap, knownFields} from './dashboard.constants';
+import styles from './SensorDashboard/SensorDashboard.module.css';
+import idealRangeConfig from '../../../idealRangeConfig.js';
+import {bandMap, knownFields} from '../../../components/dashboard.constants';
 
 function NotesBlock({ mergedDevices = {} }) {
   const metaFields = new Set(['timestamp', 'deviceId', 'compositeId', 'layer']);

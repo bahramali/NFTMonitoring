@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Header from '../../components/Header';
-import { useLiveDevices } from '../../components/dashboard/useLiveDevices';
-import { useHistory } from '../../components/dashboard/useHistory';
-import styles from '../../components/SensorDashboard/SensorDashboard.module.css';
-import ReportControls from '../../components/dashboard/ReportControls';
-import ReportCharts from '../../components/dashboard/ReportCharts';
-import { SENSOR_TOPIC, topics } from '../../components/dashboard/dashboard.constants';
-import { toLocalInputValue, formatTime } from '../../components/dashboard/dashboard.utils';
+import { useLiveDevices } from '../../components/useLiveDevices';
+import { useHistory } from '../../components/useHistory';
+import styles from '../Live/components/SensorDashboard/SensorDashboard.module.css';
+import ReportControls from '../Reports/components/ReportControls';
+import ReportCharts from '../Reports/components/ReportCharts';
+import { SENSOR_TOPIC, topics } from '../../components/dashboard.constants';
+import { toLocalInputValue, formatTime } from '../../components/dashboard.utils';
 import { useFilters, ALL } from '../../context/FiltersContext';
 
 function ReportsPage() {

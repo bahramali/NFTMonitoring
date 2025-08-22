@@ -4,13 +4,13 @@ import { vi } from 'vitest';
 import '@testing-library/jest-dom';
 import App from '../src/App';
 
-vi.mock('../src/components/dashboard/ReportControls', () => ({ default: () => <div>ReportControls</div> }));
+vi.mock('../src/pages/Reports/components/ReportControls', () => ({ default: () => <div>ReportControls</div> }));
 vi.mock('../src/components/Header', () => ({ default: () => <div>Header</div> }));
-vi.mock('../src/components/dashboard/ReportCharts', () => ({ default: () => <div>ReportCharts</div> }));
-vi.mock('../src/components/dashboard/useLiveDevices', () => ({
+vi.mock('../src/pages/Reports/components/ReportCharts', () => ({ default: () => <div>ReportCharts</div> }));
+vi.mock('../src/components/useLiveDevices', () => ({
   useLiveDevices: () => ({ deviceData: {}, availableCompositeIds: [] }),
 }));
-vi.mock('../src/components/dashboard/useHistory', () => ({
+vi.mock('../src/components/useHistory', () => ({
   useHistory: () => ({}),
 }));
 vi.stubEnv('BASE_URL', '/NFTMonitoring/');

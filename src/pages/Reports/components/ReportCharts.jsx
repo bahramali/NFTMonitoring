@@ -1,11 +1,11 @@
 import React from 'react';
-import HistoricalMultiBandChart from '../HistoricalMultiBandChart';
-import HistoricalClearLuxChart from '../HistoricalClearLuxChart';
-import HistoricalPhChart from '../HistoricalPhChart';
-import HistoricalEcTdsChart from '../HistoricalEcTdsChart';
-import HistoricalTemperatureChart from '../HistoricalTemperatureChart';
-import HistoricalDoChart from '../HistoricalDoChart';
-import styles from '../SensorDashboard/SensorDashboard.module.css';
+import HistoricalMultiBandChart from '../../../components/HistoricalMultiBandChart';
+import HistoricalClearLuxChart from '../../../components/HistoricalClearLuxChart';
+import HistoricalPhChart from '../../../components/HistoricalPhChart';
+import HistoricalEcTdsChart from '../../../components/HistoricalEcTdsChart';
+import HistoricalTemperatureChart from '../../../components/HistoricalTemperatureChart';
+import HistoricalDoChart from '../../../components/HistoricalDoChart';
+import styles from '../../Live/components/SensorDashboard/SensorDashboard.module.css';
 
 function ReportCharts({
   showTempHum,

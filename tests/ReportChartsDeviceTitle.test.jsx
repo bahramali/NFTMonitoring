@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
-import ReportCharts from '../src/components/dashboard/ReportCharts';
+import ReportCharts from '../src/pages/Reports/components/ReportCharts';
 
 vi.mock('../src/components/HistoricalTemperatureChart', () => ({ default: () => <div /> }));
 vi.mock('../src/components/HistoricalMultiBandChart', () => ({ default: () => <div /> }));

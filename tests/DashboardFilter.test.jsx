@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import FilterBar from '../src/components/dashboard/FilterBar';
+import FilterBar from '../src/pages/Dashboard/components/FilterBar';
 
 const systems = [
   {
