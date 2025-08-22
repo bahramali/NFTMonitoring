@@ -1,11 +1,11 @@
 // SensorDashboard.jsx
 import React, {useEffect, useMemo, useState} from "react";
 import Header from "../../../common/Header";
-import {useLiveDevices} from "../../../../components/useLiveDevices";
+import {useLiveDevices} from "../../../common/useLiveDevices.js";
 import { useLiveNow } from "../../../../hooks/useLiveNow";
 import styles from "../../../common/SensorDashboard.module.css";
 import Live from "../Live";
-import {SENSOR_TOPIC, topics} from "../../../../components/dashboard.constants";
+import {SENSOR_TOPIC, topics} from "../../../Dashboard/components/dashboard.constants.js";
 import {useFilters, ALL} from "../../../../context/FiltersContext";
 import Overview from "../Overview";
 
