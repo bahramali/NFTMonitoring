@@ -182,11 +182,12 @@ function Reports() {
                                // location lists from computed metadata
                                systems={Object.keys(deviceData || {})}
                                layers={Array.from(new Set(Object.values(deviceMeta).map(m => m.layer).filter(Boolean)))}
-                               devices={filteredCompositeIds}
+                               devices={filteredCompositeIds.map(id => ({ value: id, label: deviceMeta[id]?.baseId || id }))}
                                selectedSystem={activeSystem}
                                onSystemChange={(e) => setActiveSystem(e.target.value)}
                                selectedLayer={layerFilter !== ALL ? layerFilter : (deviceMeta[selectedDevice]?.layer || '')}
-                                onLayerChange={() => {/* optional: wire to FiltersContext if needed */}}
+
+                               onLayerChange={() => {/* optional: wire to FiltersContext if needed */}}
                                selectedDevice={selectedDevice}
                                onDeviceChange={(e) => setSelectedDevice(e.target.value)}
                                // sensors (detected)
