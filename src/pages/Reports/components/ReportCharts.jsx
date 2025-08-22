@@ -5,7 +5,7 @@ import HistoricalPhChart from './HistoricalPhChart';
 import HistoricalEcTdsChart from './HistoricalEcTdsChart';
 import HistoricalTemperatureChart from './HistoricalTemperatureChart';
 import HistoricalDoChart from './HistoricalDoChart';
-import styles from '../../Live/components/SensorDashboard/SensorDashboard.module.css';
+import styles from '../../common/SensorDashboard.module.css';
 
 function ReportCharts({
   showTempHum,
