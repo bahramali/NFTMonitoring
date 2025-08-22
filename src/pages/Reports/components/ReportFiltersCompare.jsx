@@ -99,6 +99,16 @@ export default function ReportFiltersCompare({
                                                  onRemoveCompare,
                                              }) {
     const [catalog, setCatalog] = useState(null);
+    // local selection state for multi-select
+    const [selectedSystems, setSelectedSystems] = useState(() =>
+        selectedSystem ? [selectedSystem] : []
+    );
+    const [selectedLayers, setSelectedLayers] = useState(() =>
+        selectedLayer ? [selectedLayer] : []
+    );
+    const [selectedDevices, setSelectedDevices] = useState(() =>
+        selectedDevice ? [selectedDevice] : []
+    );
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -118,22 +128,43 @@ export default function ReportFiltersCompare({
     const systems = systemsProp.length ? systemsProp : systemsFromCatalog;
 
     const layersFromCatalog = useMemo(() => {
-        return Array.from(new Set((catalog?.devices || []).map(d => d.layerId))).sort();
-    }, [catalog]);
+        return Array.from(new Set((catalog?.devices || [])
+            .filter(d => !selectedSystems.length || selectedSystems.includes(d.systemId))
+            .map(d => d.layerId))).sort();
+    }, [catalog, selectedSystems]);
     const layers = layersProp.length ? layersProp : layersFromCatalog;
 
     const devicesFromCatalog = useMemo(() => {
-        return Array.from(new Set((catalog?.devices || []).map(d => d.deviceId))).sort();
-    }, [catalog]);
+        return Array.from(new Set((catalog?.devices || [])
+            .filter(d => {
+                const sysOk = !selectedSystems.length || selectedSystems.includes(d.systemId);
+                const layOk = !selectedLayers.length || selectedLayers.includes(d.layerId);
+                return sysOk && layOk;
+            })
+            .map(d => d.deviceId))).sort();
+    }, [catalog, selectedSystems, selectedLayers]);
     const devices = devicesProp.length ? devicesProp : devicesFromCatalog;
+
+    const filteredCatalogDevices = useMemo(() => {
+        const all = catalog?.devices || [];
+        return all.filter(d => {
+            const sysOk = !selectedSystems.length || selectedSystems.includes(d.systemId);
+            const layOk = !selectedLayers.length || selectedLayers.includes(d.layerId);
+            const devOk =
+                !selectedDevices.length ||
+                selectedDevices.includes(d.deviceId) ||
+                selectedDevices.includes(`${d.layerId}${d.deviceId}`);
+            return sysOk && layOk && devOk;
+        });
+    }, [catalog, selectedSystems, selectedLayers, selectedDevices]);
 
     const sensorGroups = useMemo(() => {
         const groups = {water: [], light: [], blue: [], red: [], airq: []};
-        let sensors = (catalog?.devices || []).flatMap(d => d.sensors || []);
+        let sensors = filteredCatalogDevices.flatMap(d => d.sensors || []);
         // Fallback to provided sensor lists when catalog data is unavailable
         if (!sensors.length) {
             const fallback = Array.from(new Set([...(sensorNames || []), ...(sensorTypes || [])])).filter(Boolean);
-            sensors = fallback.map((n) => ({sensorName: n}));
+            sensors = fallback.map((n) => ({ sensorName: n }));
         }
         sensors.forEach(s => {
             const rawName = s?.sensorName || s?.sensorType || s?.valueType || '';
@@ -149,7 +180,7 @@ export default function ReportFiltersCompare({
             if (['temp', 'humidity', 'co2', 'voc', 'air'].some(k => lower.includes(k))) add('airq');
         });
         return groups;
-    }, [catalog, sensorNames, sensorTypes]);
+    }, [filteredCatalogDevices, sensorNames, sensorTypes]);
 
     const water = waterProp || {options: sensorGroups.water, values: []};
     const light = lightProp || {options: sensorGroups.light, values: []};
@@ -196,13 +227,21 @@ export default function ReportFiltersCompare({
                     <div className={styles.group}>
                         <div className={styles.groupTitle}>Systems</div>
                         <AllNone name="sys-allnone" onAll={() => {
+                            setSelectedSystems(systems);
+                            onSystemChange && onSystemChange({target: {value: 'ALL'}});
                         }} onNone={() => {
+                            setSelectedSystems([]);
+                            onSystemChange && onSystemChange({target: {value: ''}});
                         }}/>
                         <div className={styles.checklist}>
                             {systems.map(s => (
                                 <label key={s} className={styles.item}>
-                                    <input type="checkbox" checked={selectedSystem === s}
-                                           onChange={() => onSystemChange && onSystemChange({target: {value: s}})}/> {s}
+                                    <input type="checkbox" checked={selectedSystems.includes(s)}
+                                           onChange={() => {
+                                               setSelectedSystems(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
+                                               onSystemChange && onSystemChange({target: {value: s}});
+                                           }}/>
+                                    {s}
                                 </label>
                             ))}
                         </div>
@@ -211,13 +250,21 @@ export default function ReportFiltersCompare({
                     <div className={styles.group}>
                         <div className={styles.groupTitle}>Layers</div>
                         <AllNone name="lay-allnone" onAll={() => {
+                            setSelectedLayers(layers);
+                            onLayerChange && onLayerChange({target: {value: 'ALL'}});
                         }} onNone={() => {
+                            setSelectedLayers([]);
+                            onLayerChange && onLayerChange({target: {value: ''}});
                         }}/>
                         <div className={styles.checklist}>
                             {layers.map(l => (
                                 <label key={l} className={styles.item}>
-                                    <input type="checkbox" checked={selectedLayer === l}
-                                           onChange={() => onLayerChange && onLayerChange({target: {value: l}})}/> {l}
+                                    <input type="checkbox" checked={selectedLayers.includes(l)}
+                                           onChange={() => {
+                                               setSelectedLayers(prev => prev.includes(l) ? prev.filter(x => x !== l) : [...prev, l]);
+                                               onLayerChange && onLayerChange({target: {value: l}});
+                                           }}/>
+                                    {l}
                                 </label>
                             ))}
                         </div>
@@ -226,7 +273,12 @@ export default function ReportFiltersCompare({
                     <div className={styles.group}>
                         <div className={styles.groupTitle}>Devices</div>
                         <AllNone name="dev-allnone" onAll={() => {
+                            const allValues = devices.map(d => typeof d === 'string' ? d : d.value);
+                            setSelectedDevices(allValues);
+                            onDeviceChange && onDeviceChange({target: {value: 'ALL'}});
                         }} onNone={() => {
+                            setSelectedDevices([]);
+                            onDeviceChange && onDeviceChange({target: {value: ''}});
                         }}/>
                         <div className={styles.checklist}>
                             {devices.map(d => {
@@ -234,8 +286,15 @@ export default function ReportFiltersCompare({
                                 const label = typeof d === 'string' ? d : (d.label || d.value);
                                 return (
                                     <label key={value} className={styles.item}>
-                                        <input type="checkbox" checked={selectedDevice === value}
-                                               onChange={() => onDeviceChange && onDeviceChange({target: {value}})}/> {label}
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedDevices.includes(value)}
+                                            onChange={() => {
+                                                setSelectedDevices(prev => prev.includes(value) ? prev.filter(x => x !== value) : [...prev, value]);
+                                                onDeviceChange && onDeviceChange({target: {value}});
+                                            }}
+                                        />
+                                        {label}
                                     </label>
                                 );
                             })}
