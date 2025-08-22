@@ -1,5 +1,5 @@
 import React from 'react';
-import idealRanges from '../idealRangeConfig';
+import idealRanges from '../../../idealRangeConfig';
 import {
     LineChart,
     Line,
@@ -12,7 +12,7 @@ import {
     Label,
     ReferenceArea
 } from 'recharts';
-import spectralColors from '../spectralColors';
+import spectralColors from '../../../spectralColors';
 
 const defaultBandKeys = [
     'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'clear', 'nir', 'lux'

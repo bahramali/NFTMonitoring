@@ -2,7 +2,7 @@ import React from 'react';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
-import SpectrumBarChart from '../src/components/SpectrumBarChart';
+import SpectrumBarChart from '../src/pages/Live/components/SpectrumBarChart';
 
 
 Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {

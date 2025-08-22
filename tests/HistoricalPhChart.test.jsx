@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import HistoricalPhChart from '../src/components/HistoricalPhChart';
+import HistoricalPhChart from '../src/pages/Reports/components/HistoricalPhChart';
 import { vi } from 'vitest';
 
 vi.mock('../src/idealRangeConfig', () => ({

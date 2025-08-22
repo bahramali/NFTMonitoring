@@ -19,7 +19,7 @@ vi.mock('../src/hooks/useStomp', () => ({
 }));
 
 // Stub components that are not relevant for this test
-vi.mock('../src/components/SpectrumBarChart', () => ({ default: () => <div /> }));
+vi.mock('../src/pages/Live/components/SpectrumBarChart', () => ({ default: () => <div /> }));
 vi.mock('../src/components/Header', () => ({ default: () => <div /> }));
 vi.mock('../src/pages/Live/components/TopicSection', () => ({ default: () => <div /> }));
 vi.mock('../src/pages/Live/components/NotesBlock', () => ({ default: () => <div /> }));

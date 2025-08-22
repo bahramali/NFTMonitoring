@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import HistoricalMultiBandChart from '../src/components/HistoricalMultiBandChart';
+import HistoricalMultiBandChart from '../src/pages/Reports/components/HistoricalMultiBandChart';
 
 beforeAll(() => {
   Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {

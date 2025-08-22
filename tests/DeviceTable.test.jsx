@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import DeviceTable from '../src/components/DeviceTable';
-import styles from '../src/components/DeviceTable/DeviceTable.module.css';
+import DeviceTable from '../src/pages/Live/components/DeviceTable';
+import styles from '../src/pages/Live/components/DeviceTable/DeviceTable.module.css';
 
 const devices = {
   dev1: {
