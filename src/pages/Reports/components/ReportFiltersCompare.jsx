@@ -174,10 +174,10 @@ export default function ReportFiltersCompare({
                 if (!groups[grp].includes(name)) groups[grp].push(name);
             };
             if (['ph', 'tds', 'ec', 'do', 'water'].some(k => lower.includes(k))) add('water');
-            if (['lux', 'vis', 'light'].some(k => lower.includes(k))) add('light');
+            if (['lux', 'vis1','vis2', 'light'].some(k => lower.includes(k))) add('light');
             if (['405', '425', '450', '475', '515'].some(k => lower.includes(k))) add('blue');
-            if (['600', '640', '690', '745'].some(k => lower.includes(k))) add('red');
-            if (['temp', 'humidity', 'co2', 'voc', 'air'].some(k => lower.includes(k))) add('airq');
+            if (['550','555','600', '640', '690', '745'].some(k => lower.includes(k))) add('red');
+            if (['temp', 'humidity', 'co2'].some(k => lower.includes(k))) add('airq');
         });
         return groups;
     }, [filteredCatalogDevices, sensorNames, sensorTypes]);
