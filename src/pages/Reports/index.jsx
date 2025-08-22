@@ -111,20 +111,6 @@ function Reports() {
         }
     }, [filteredCompositeIds, selectedDevice]);
 
-    const {
-        rangeData = [],
-        tempRangeData = [],
-        phRangeData = [],
-        ecTdsRangeData = [],
-        doRangeData = [],
-        xDomain = [],
-        startTime = 0,
-        endTime = 0,
-        fetchReportData = () => {
-        },
-    } = useHistory(selectedDevice, fromDate, toDate, autoRefresh, refreshInterval);
-
-    // Determine which report sections to display
     const sensorTypesForSelected = useMemo(() => {
         const match = sensorTopicDevices[selectedDevice];
         const sensors = match?.sensors || [];
@@ -137,6 +123,90 @@ function Reports() {
         return sensors.map((s) => (s.sensorName || s.source || '-').toLowerCase());
     }, [sensorTopicDevices, selectedDevice]);
 
+    // Sensor group classification
+    const sensorGroups = useMemo(() => {
+        const groups = {water: [], light: [], blue: [], red: [], airq: []};
+        const sensors = Array.from(new Set([...(sensorNamesForSelected || []), ...(sensorTypesForSelected || [])])).filter(Boolean);
+        sensors.forEach((name) => {
+            const lower = name.toLowerCase();
+            const add = (grp) => { if (!groups[grp].includes(name)) groups[grp].push(name); };
+            if (['ph', 'tds', 'ec', 'do', 'water'].some(k => lower.includes(k))) add('water');
+            if (['lux', 'vis1','vis2', 'light'].some(k => lower.includes(k))) add('light');
+            if (['405', '425', '450', '475', '515'].some(k => lower.includes(k))) add('blue');
+            if (['550','555','600', '640', '690', '745'].some(k => lower.includes(k))) add('red');
+            if (['temp', 'humidity', 'co2'].some(k => lower.includes(k))) add('airq');
+        });
+        return groups;
+    }, [sensorNamesForSelected, sensorTypesForSelected]);
+
+    const [selectedWater, setSelectedWater] = useState([]);
+    const [selectedLight, setSelectedLight] = useState([]);
+    const [selectedBlue, setSelectedBlue] = useState([]);
+    const [selectedRed, setSelectedRed] = useState([]);
+    const [selectedAirq, setSelectedAirq] = useState([]);
+
+    useEffect(() => {
+        setSelectedWater([]);
+        setSelectedLight([]);
+        setSelectedBlue([]);
+        setSelectedRed([]);
+        setSelectedAirq([]);
+    }, [sensorGroups]);
+
+    const selectedSensorTypes = useMemo(() => {
+        return Array.from(new Set([
+            ...selectedWater,
+            ...selectedLight,
+            ...selectedBlue,
+            ...selectedRed,
+            ...selectedAirq,
+        ]));
+    }, [selectedWater, selectedLight, selectedBlue, selectedRed, selectedAirq]);
+
+    const toggle = (setter) => (opt) => setter(prev => prev.includes(opt) ? prev.filter(o => o !== opt) : [...prev, opt]);
+    const all = (options, setter) => () => setter(options);
+    const none = (setter) => () => setter([]);
+
+    const onToggleWater = toggle(setSelectedWater);
+    const onToggleLight = toggle(setSelectedLight);
+    const onToggleBlue = toggle(setSelectedBlue);
+    const onToggleRed = toggle(setSelectedRed);
+    const onToggleAirq = toggle(setSelectedAirq);
+
+    const onAllWater = all(sensorGroups.water, setSelectedWater);
+    const onAllLight = all(sensorGroups.light, setSelectedLight);
+    const onAllBlue = all(sensorGroups.blue, setSelectedBlue);
+    const onAllRed = all(sensorGroups.red, setSelectedRed);
+    const onAllAirq = all(sensorGroups.airq, setSelectedAirq);
+
+    const onNoneWater = none(setSelectedWater);
+    const onNoneLight = none(setSelectedLight);
+    const onNoneBlue = none(setSelectedBlue);
+    const onNoneRed = none(setSelectedRed);
+    const onNoneAirq = none(setSelectedAirq);
+
+    const resetSensors = () => {
+        setSelectedWater([]);
+        setSelectedLight([]);
+        setSelectedBlue([]);
+        setSelectedRed([]);
+        setSelectedAirq([]);
+    };
+
+    const {
+        rangeData = [],
+        tempRangeData = [],
+        phRangeData = [],
+        ecTdsRangeData = [],
+        doRangeData = [],
+        xDomain = [],
+        startTime = 0,
+        endTime = 0,
+        fetchReportData = () => {
+        },
+    } = useHistory(selectedDevice, fromDate, toDate, autoRefresh, refreshInterval, selectedSensorTypes);
+
+    // Determine which report sections to display
     const showTempHum = sensorNamesForSelected.includes('sht3x');
     const hasAs734x = sensorNamesForSelected.includes('as7343') || sensorNamesForSelected.includes('as7341');
     const showSpectrum = hasAs734x;
@@ -148,7 +218,7 @@ function Reports() {
     // compare state
     const [compareItems, setCompareItems] = useState([]);
     const addToCompare = () => {
-        const sensors = sensorNamesForSelected.length ? sensorNamesForSelected : sensorTypesForSelected;
+        const sensors = selectedSensorTypes.length ? selectedSensorTypes : (sensorNamesForSelected.length ? sensorNamesForSelected : sensorTypesForSelected);
         const title = `${(sensors[0] || 'No-sensor')} @ ${activeSystem||'-'}/${(layerFilter||'-')}/${selectedDevice||'-'}`;
         setCompareItems(prev => [...prev, {
           id: String(Date.now()),
@@ -193,6 +263,27 @@ function Reports() {
                                // sensors (detected)
                                sensorNames={sensorNamesForSelected}
                                sensorTypes={sensorTypesForSelected}
+                               water={{ options: sensorGroups.water, values: selectedWater }}
+                               light={{ options: sensorGroups.light, values: selectedLight }}
+                               blue={{ options: sensorGroups.blue, values: selectedBlue }}
+                               red={{ options: sensorGroups.red, values: selectedRed }}
+                               airq={{ options: sensorGroups.airq, values: selectedAirq }}
+                               onToggleWater={onToggleWater}
+                               onToggleLight={onToggleLight}
+                               onToggleBlue={onToggleBlue}
+                               onToggleRed={onToggleRed}
+                               onToggleAirq={onToggleAirq}
+                               onAllWater={onAllWater}
+                               onNoneWater={onNoneWater}
+                               onAllLight={onAllLight}
+                               onNoneLight={onNoneLight}
+                               onAllBlue={onAllBlue}
+                               onNoneBlue={onNoneBlue}
+                               onAllRed={onAllRed}
+                               onNoneRed={onNoneRed}
+                               onAllAirq={onAllAirq}
+                               onNoneAirq={onNoneAirq}
+                               onReset={resetSensors}
                                // compare
                                compareItems={compareItems}
                                onAddCompare={addToCompare}
