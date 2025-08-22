@@ -65,6 +65,9 @@ export default function ReportFiltersCompare({
                                                  onLayerChange,
                                                  selectedDevice = '',
                                                  onDeviceChange,
+                                                 // sensors detected for selected device
+                                                 sensorNames = [],
+                                                 sensorTypes = [],
                                                  // sensor groups
                                                  water: waterProp,
                                                  light: lightProp,
@@ -126,7 +129,12 @@ export default function ReportFiltersCompare({
 
     const sensorGroups = useMemo(() => {
         const groups = {water: [], light: [], blue: [], red: [], airq: []};
-        const sensors = (catalog?.devices || []).flatMap(d => d.sensors || []);
+        let sensors = (catalog?.devices || []).flatMap(d => d.sensors || []);
+        // Fallback to provided sensor lists when catalog data is unavailable
+        if (!sensors.length) {
+            const fallback = Array.from(new Set([...(sensorNames || []), ...(sensorTypes || [])])).filter(Boolean);
+            sensors = fallback.map((n) => ({sensorName: n}));
+        }
         sensors.forEach(s => {
             const rawName = s?.sensorName || s?.sensorType || s?.valueType || '';
             const name = rawName.toString();
@@ -141,7 +149,7 @@ export default function ReportFiltersCompare({
             if (['temp', 'humidity', 'co2', 'voc', 'air'].some(k => lower.includes(k))) add('airq');
         });
         return groups;
-    }, [catalog]);
+    }, [catalog, sensorNames, sensorTypes]);
 
     const water = waterProp || {options: sensorGroups.water, values: []};
     const light = lightProp || {options: sensorGroups.light, values: []};
