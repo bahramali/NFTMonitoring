@@ -105,17 +105,20 @@ export default function ReportFiltersCompare({
         }
     }, []);
 
-    const systems = systemsProp.length ? systemsProp : useMemo(() => {
+    const memoSystems = useMemo(() => {
         return Array.from(new Set((catalog?.systems || []).map(s => s.id))).sort();
     }, [catalog]);
+    const systems = systemsProp.length ? systemsProp : memoSystems;
 
-    const layers = layersProp.length ? layersProp : useMemo(() => {
+    const memoLayers = useMemo(() => {
         return Array.from(new Set((catalog?.devices || []).map(d => d.layerId))).sort();
     }, [catalog]);
+    const layers = layersProp.length ? layersProp : memoLayers;
 
-    const devices = devicesProp.length ? devicesProp : useMemo(() => {
+    const memoDevices = useMemo(() => {
         return Array.from(new Set((catalog?.devices || []).map(d => d.deviceId))).sort();
     }, [catalog]);
+    const devices = devicesProp.length ? devicesProp : memoDevices;
 
     const sensorGroups = useMemo(() => {
         const groups = {water: [], light: [], blue: [], red: [], airq: []};
@@ -214,12 +217,16 @@ export default function ReportFiltersCompare({
                         }} onNone={() => {
                         }}/>
                         <div className={styles.checklist}>
-                            {devices.map(d => (
-                                <label key={d} className={styles.item}>
-                                    <input type="checkbox" checked={selectedDevice === d}
-                                           onChange={() => onDeviceChange && onDeviceChange({target: {value: d}})}/> {d}
-                                </label>
-                            ))}
+                            {devices.map(d => {
+                                const value = typeof d === 'string' ? d : d.value;
+                                const label = typeof d === 'string' ? d : (d.label || d.value);
+                                return (
+                                    <label key={value} className={styles.item}>
+                                        <input type="checkbox" checked={selectedDevice === value}
+                                               onChange={() => onDeviceChange && onDeviceChange({target: {value}})}/> {label}
+                                    </label>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>

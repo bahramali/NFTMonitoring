@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
 const liveDevicesMock = vi.fn();
@@ -99,5 +100,28 @@ test('Reports page defaults to first available system when initial system has no
   render(<Reports />);
   await waitFor(() => expect(ReportCharts).toHaveBeenCalled());
   expect(screen.queryByText('No reports available for this composite ID.')).toBeNull();
+});
+
+test('Devices box displays device name instead of composite ID', () => {
+  liveDevicesMock.mockReturnValue({
+    deviceData: {
+      S01: {
+        growSensors: {
+          L01G01: {
+            deviceId: 'G01',
+            layer: 'L01',
+            sensors: [{ sensorName: 'SHT3x' }],
+          },
+        },
+      },
+    },
+    sensorData: {},
+    availableCompositeIds: ['L01G01'],
+    mergedDevices: {},
+  });
+
+  render(<Reports />);
+  expect(screen.getByText('G01')).toBeInTheDocument();
+  expect(screen.queryByText('L01G01')).toBeNull();
 });
 
