@@ -4,9 +4,7 @@ import React, {useEffect, useMemo, useState} from "react";
 import {useLiveNow} from "../../hooks/useLiveNow";
 import {SystemOverviewCard, LayerPanel} from "../SystemAndLayerCards";
 import FilterBar from "./components/FilterBar";
-
-// If you don't have a CSS module for this page, keep styles as empty.
-const styles = {};
+import styles from "./Dashboard.module.css";
 
 // ---------- helpers ----------
 const toNum = (v) => (v == null ? null : Number(v));
