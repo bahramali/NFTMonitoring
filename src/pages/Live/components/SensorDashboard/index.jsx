@@ -1,6 +1,6 @@
 // SensorDashboard.jsx
 import React, {useEffect, useMemo, useState} from "react";
-import Header from "../../../../components/Header";
+import Header from "../../../common/Header";
 import {useLiveDevices} from "../../../../components/useLiveDevices";
 import { useLiveNow } from "../../../../hooks/useLiveNow";
 import styles from "../../../common/SensorDashboard.module.css";
