@@ -1,17 +1,17 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import Header from '../common/Header';
-import { useLiveDevices } from '../../components/useLiveDevices.js';
-import { useHistory } from '../common/useHistory.js';
+import {useLiveDevices} from '../../components/useLiveDevices.js';
+import {useHistory} from '../common/useHistory.js';
 import styles from '../common/SensorDashboard.module.css';
-import ReportControls from './components/ReportControls';
+import ReportFiltersCompare from './components/ReportFiltersCompare';
 import ReportCharts from './components/ReportCharts';
-import { SENSOR_TOPIC, topics } from '../Dashboard/components/dashboard.constants.js';
-import { toLocalInputValue, formatTime } from '../Dashboard/components/dashboard.utils.js';
-import { useFilters, ALL } from '../../context/FiltersContext';
+import {SENSOR_TOPIC, topics} from '../Dashboard/components/dashboard.constants.js';
+import {toLocalInputValue, formatTime} from '../Dashboard/components/dashboard.utils.js';
+import {useFilters, ALL} from '../../context/FiltersContext';
 
 function Reports() {
     const [activeSystem, setActiveSystem] = useState('S01');
-    const { deviceData, availableCompositeIds } = useLiveDevices(topics, activeSystem);
+    const {deviceData, availableCompositeIds} = useLiveDevices(topics, activeSystem);
     // Initialize the selected device immediately so that report sections are
     // rendered without a transient "No reports" message. This ensures tests can
     // assert on the initial UI without waiting for effects to run.
@@ -44,7 +44,7 @@ function Reports() {
                     const baseId = payload?.deviceId;
                     const layer = payload?.layer?.layer || payload?.layer || null;
                     if (!map[cid]) {
-                        map[cid] = { system: sysId, layer, baseId, topics: new Set([topicKey]) };
+                        map[cid] = {system: sysId, layer, baseId, topics: new Set([topicKey])};
                     } else {
                         map[cid].topics.add(topicKey);
                     }
@@ -52,7 +52,12 @@ function Reports() {
             }
         }
         return Object.fromEntries(
-            Object.entries(map).map(([cid, m]) => [cid, { system: m.system, layer: m.layer, baseId: m.baseId, topics: Array.from(m.topics) }])
+            Object.entries(map).map(([cid, m]) => [cid, {
+                system: m.system,
+                layer: m.layer,
+                baseId: m.baseId,
+                topics: Array.from(m.topics)
+            }])
         );
     }, [deviceData]);
 
@@ -62,7 +67,7 @@ function Reports() {
         const layers = Array.from(new Set(Object.values(deviceMeta).map((m) => m.layer).filter(Boolean)));
         const systems = Object.keys(deviceData || {});
         const topicsList = Array.from(new Set(Object.values(deviceData || {}).flatMap((sys) => Object.keys(sys || {}))));
-        setLists({ devices, layers, systems, topics: topicsList });
+        setLists({devices, layers, systems, topics: topicsList});
     }, [deviceMeta, deviceData, setLists]);
 
     // Keep activeSystem in sync with filter
@@ -115,7 +120,8 @@ function Reports() {
         xDomain = [],
         startTime = 0,
         endTime = 0,
-        fetchReportData = () => {},
+        fetchReportData = () => {
+        },
     } = useHistory(selectedDevice, fromDate, toDate, autoRefresh, refreshInterval);
 
     // Determine which report sections to display
@@ -139,10 +145,25 @@ function Reports() {
     const showEcTds = sensorTypesForSelected.includes('ec') || sensorTypesForSelected.includes('tds');
     const showDo = sensorTypesForSelected.includes('do') || sensorTypesForSelected.includes('dissolvedoxygen');
     const showAnyReport = showTempHum || showSpectrum || showClearLux || showPh || showEcTds || showDo;
-
+    // compare state
+    const [compareItems, setCompareItems] = useState([]);
+    const addToCompare = () => {
+        const sensors = sensorNamesForSelected.length ? sensorNamesForSelected : sensorTypesForSelected;
+        const title = `${(sensors[0] || 'No-sensor')} @ ${activeSystem||'-'}/${(layerFilter||'-')}/${selectedDevice||'-'}`;
+        setCompareItems(prev => [...prev, {
+          id: String(Date.now()),
+          from: fromDate, to: toDate,
+          system: activeSystem, layer: layerFilter !== ALL ? layerFilter : (deviceMeta[selectedDevice]?.layer || '-'),
+          device: selectedDevice,
+          sensors: sensors,
+          title
+        }]);
+      };
+      const removeCompare = (id) => setCompareItems(prev => prev.filter(i => i.id !== id));
+      const clearCompare = () => setCompareItems([]);
     return (
         <div className={styles.dashboard}>
-            <Header title="Reports" />
+            <Header title="Reports"/>
 
             <div className={styles.section}>
                 <div className={styles.sectionBody}>
@@ -150,22 +171,39 @@ function Reports() {
                         <div>No reports available for this composite ID.</div>
                     ) : (
                         <>
-                            <ReportControls
-                                fromDate={fromDate}
-                                toDate={toDate}
-                                onFromDateChange={(e) => setFromDate(e.target.value)}
-                                onToDateChange={(e) => setToDate(e.target.value)}
-                                onNow={() => setToDate(toLocalInputValue(new Date()))}
-                                onApply={fetchReportData}
-                                selectedDevice={selectedDevice}
-                                availableCompositeIds={filteredCompositeIds}
-                                onDeviceChange={(e) => setSelectedDevice(e.target.value)}
-                                autoRefresh={autoRefresh}
-                                onAutoRefreshChange={(e) => setAutoRefresh(e.target.checked)}
-                                refreshInterval={refreshInterval}
-                                onRefreshIntervalChange={(e) => setRefreshInterval(Number(e.target.value))}
-                                rangeLabel={`From: ${formatTime(startTime)} until: ${formatTime(endTime)}`}
-                            />
+                            <ReportFiltersCompare
+                               // timing
+                               fromDate={fromDate}
+                               toDate={toDate}
+                               onFromDateChange={(e) => setFromDate(e.target.value)}
+                               onToDateChange={(e) => setToDate(e.target.value)}
+                               onNow={() => setToDate(toLocalInputValue(new Date()))}
+                               onApply={fetchReportData}
+                               // location lists from computed metadata
+                               systems={Object.keys(deviceData || {})}
+                               layers={Array.from(new Set(Object.values(deviceMeta).map(m => m.layer).filter(Boolean)))}
+                               devices={filteredCompositeIds}
+                               selectedSystem={activeSystem}
+                               onSystemChange={(e) => setActiveSystem(e.target.value)}
+                               selectedLayer={layerFilter !== ALL ? layerFilter : (deviceMeta[selectedDevice]?.layer || '')}
+                               onLayerChange={(e) => {/* optional: wire to FiltersContext if لازم */}}
+                               selectedDevice={selectedDevice}
+                               onDeviceChange={(e) => setSelectedDevice(e.target.value)}
+                               // sensors (detected)
+                               sensorNames={sensorNamesForSelected}
+                               sensorTypes={sensorTypesForSelected}
+                               // compare
+                               compareItems={compareItems}
+                               onAddCompare={addToCompare}
+                               onRemoveCompare={removeCompare}
+                               onClearCompare={clearCompare}
+                               // auto refresh
+                               autoRefresh={autoRefresh}
+                               onAutoRefreshChange={(e) => setAutoRefresh(e.target.checked)}
+                               refreshInterval={refreshInterval}
+                               onRefreshIntervalChange={(e) => setRefreshInterval(Number(e.target.value))}
+                               rangeLabel={`From: ${formatTime(startTime)} until: ${formatTime(endTime)}`}
+                             />
 
                             <ReportCharts
                                 showTempHum={showTempHum}
