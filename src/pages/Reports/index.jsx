@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Header from '../common/Header';
-import { useLiveDevices } from '../common/useLiveDevices.js';
+import { useLiveDevices } from '../../components/useLiveDevices.js';
 import { useHistory } from '../common/useHistory.js';
 import styles from '../common/SensorDashboard.module.css';
 import ReportControls from './components/ReportControls';
@@ -12,7 +12,10 @@ import { useFilters, ALL } from '../../context/FiltersContext';
 function Reports() {
     const [activeSystem, setActiveSystem] = useState('S01');
     const { deviceData, availableCompositeIds } = useLiveDevices(topics, activeSystem);
-    const [selectedDevice, setSelectedDevice] = useState('');
+    // Initialize the selected device immediately so that report sections are
+    // rendered without a transient "No reports" message. This ensures tests can
+    // assert on the initial UI without waiting for effects to run.
+    const [selectedDevice, setSelectedDevice] = useState(() => availableCompositeIds[0] || '');
 
     const now = Date.now();
     const [fromDate, setFromDate] = useState(toLocalInputValue(new Date(now - 6 * 60 * 60 * 1000)));
