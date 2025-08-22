@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import styles from './ReportFiltersCompare.module.css';
 
 // comment: tiny util to render radio pair
@@ -52,24 +52,21 @@ export default function ReportFiltersCompare({
                                                  autoRefreshValue = 'Off',
                                                  onAutoRefreshValueChange,
                                                  // location
-                                                 systems = ['S01', 'S02'],
-                                                 layers = ['L01', 'L02', 'L03'],
-                                                 devices = ['G01', 'G02', 'G03'],
+                                                 systems: systemsProp = [],
+                                                 layers: layersProp = [],
+                                                 devices: devicesProp = [],
                                                  selectedSystem = '',
                                                  onSystemChange,
                                                  selectedLayer = '',
                                                  onLayerChange,
                                                  selectedDevice = '',
                                                  onDeviceChange,
-                                                 // sensor groups (UI-only defaults like target design)
-                                                 water = {options: ['pH', 'TDS', 'EC', 'DO', 'Water Temp'], values: []},
-                                                 light = {options: ['Lux', 'VIS1', 'VIS2'], values: []},
-                                                 blue = {
-                                                     options: ['405nm', '425nm', '450nm', '475nm', '515nm'],
-                                                     values: []
-                                                 },
-                                                 red = {options: ['600nm', '640nm', '690nm', '745nm'], values: []},
-                                                 airq = {options: ['Air Temp', 'Humidity', 'CO₂', 'VOC'], values: []},
+                                                 // sensor groups
+                                                 water: waterProp,
+                                                 light: lightProp,
+                                                 blue: blueProp,
+                                                 red: redProp,
+                                                 airq: airqProp,
                                                  onToggleWater,
                                                  onToggleLight,
                                                  onToggleBlue,
@@ -94,6 +91,57 @@ export default function ReportFiltersCompare({
                                                  onClearCompare,
                                                  onRemoveCompare,
                                              }) {
+    const [catalog, setCatalog] = useState(null);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            const cached = localStorage.getItem('deviceCatalog');
+            if (cached) {
+                setCatalog(JSON.parse(cached));
+            }
+        } catch {
+            /* ignore */
+        }
+    }, []);
+
+    const systems = systemsProp.length ? systemsProp : useMemo(() => {
+        return Array.from(new Set((catalog?.systems || []).map(s => s.id))).sort();
+    }, [catalog]);
+
+    const layers = layersProp.length ? layersProp : useMemo(() => {
+        return Array.from(new Set((catalog?.devices || []).map(d => d.layerId))).sort();
+    }, [catalog]);
+
+    const devices = devicesProp.length ? devicesProp : useMemo(() => {
+        return Array.from(new Set((catalog?.devices || []).map(d => d.deviceId))).sort();
+    }, [catalog]);
+
+    const sensorGroups = useMemo(() => {
+        const groups = {water: [], light: [], blue: [], red: [], airq: []};
+        const sensors = (catalog?.devices || []).flatMap(d => d.sensors || []);
+        sensors.forEach(s => {
+            const rawName = s?.sensorName || s?.sensorType || s?.valueType || '';
+            const name = rawName.toString();
+            const lower = name.toLowerCase();
+            const add = (grp) => {
+                if (!groups[grp].includes(name)) groups[grp].push(name);
+            };
+            if (['ph', 'tds', 'ec', 'do', 'water'].some(k => lower.includes(k))) add('water');
+            if (['lux', 'vis', 'light'].some(k => lower.includes(k))) add('light');
+            if (['405', '425', '450', '475', '515'].some(k => lower.includes(k))) add('blue');
+            if (['600', '640', '690', '745'].some(k => lower.includes(k))) add('red');
+            if (['temp', 'humidity', 'co2', 'voc', 'air'].some(k => lower.includes(k))) add('airq');
+        });
+        return groups;
+    }, [catalog]);
+
+    const water = waterProp || {options: sensorGroups.water, values: []};
+    const light = lightProp || {options: sensorGroups.light, values: []};
+    const blue = blueProp || {options: sensorGroups.blue, values: []};
+    const red = redProp || {options: sensorGroups.red, values: []};
+    const airq = airqProp || {options: sensorGroups.airq, values: []};
+
     return (
         <div className={styles.rf}>
             {/* Title */}
