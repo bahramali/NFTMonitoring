@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from "react";
 import {transformAggregatedData} from "../../utils.js";
 
-export function useHistory(compositeId, from, to, autoRefresh, interval) {
+export function useHistory(compositeId, from, to, autoRefresh, interval, sensorTypes = []) {
     const [rangeData, setRangeData] = useState([]);
     const [tempRangeData, setTempRangeData] = useState([]);
     const [phRangeData, setPhRangeData] = useState([]);
@@ -24,7 +24,8 @@ export function useHistory(compositeId, from, to, autoRefresh, interval) {
         try {
             const fromIso = new Date(from).toISOString();
             const toIso = new Date(to).toISOString();
-            const url = `https://api.hydroleaf.se/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}`;
+            const sensorParam = sensorTypes.length ? `&sensorType=${sensorTypes.join(',')}` : '';
+            const url = `https://api.hydroleaf.se/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}${sensorParam}`;
             const res = await fetch(url);
             if (!res.ok) throw new Error("bad response");
             const json = await res.json();
@@ -52,14 +53,15 @@ export function useHistory(compositeId, from, to, autoRefresh, interval) {
         } catch (e) {
             console.error("Failed to fetch history", e);
         }
-    }, [compositeId, from, to]);
+    }, [compositeId, from, to, sensorTypes]);
 
     const fetchNewData = useCallback(async () => {
         try {
             const fromIso = new Date(endTimeRef.current).toISOString();
             const nowDate = new Date();
             const toIso = nowDate.toISOString();
-            const url = `https://api.hydroleaf.se/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}`;
+            const sensorParam = sensorTypes.length ? `&sensorType=${sensorTypes.join(',')}` : '';
+            const url = `https://api.hydroleaf.se/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}${sensorParam}`;
             const res = await fetch(url);
             if (!res.ok) throw new Error("bad response");
             const json = await res.json();
@@ -89,7 +91,7 @@ export function useHistory(compositeId, from, to, autoRefresh, interval) {
         } catch (e) {
             console.error("Failed to fetch history", e);
         }
-    }, [compositeId]);
+    }, [compositeId, sensorTypes]);
 
     useEffect(() => {
         fetchReportData();
