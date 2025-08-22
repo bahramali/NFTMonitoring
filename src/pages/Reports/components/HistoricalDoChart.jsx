@@ -1,5 +1,5 @@
 import React from 'react';
-import idealRanges from '../idealRangeConfig';
+import idealRanges from '../../../idealRangeConfig';
 import {
     LineChart,
     Line,
@@ -11,9 +11,9 @@ import {
     ReferenceArea,
     ResponsiveContainer,
 } from 'recharts';
-import palette from '../colorPalette';
+import palette from '../../../colorPalette';
 
-const HistoricalPhChart = ({
+const HistoricalDoChart = ({
     data,
     width = 600,
     height = 300,
@@ -38,14 +38,14 @@ const HistoricalPhChart = ({
     const computedMax = React.useMemo(() => {
         let max = 0;
         for (const entry of data || []) {
-            const v = Number(entry.ph);
+            const v = Number(entry.do);
             if (v > max) max = v;
         }
         return max || 1;
     }, [data]);
     const yDomain = [0, computedMax];
 
-    const phRange = idealRanges.ph?.idealRange;
+    const doRange = idealRanges.do?.idealRange;
 
     return (
         <ResponsiveContainer width="100%" height={height} debounce={200}>
@@ -67,15 +67,15 @@ const HistoricalPhChart = ({
                     tick={{ fontSize: 10 }}
                 />
                 <YAxis domain={yDomain} allowDataOverflow>
-                    <Label value="pH" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
+                    <Label value="Dissolved Oxygen (mg/L)" angle={-90} position="insideLeft" style={{ textAnchor: 'middle' }} />
                 </YAxis>
-                {phRange && (
+                {doRange && (
                     <ReferenceArea
-                        y1={phRange.min}
-                        y2={phRange.max}
+                        y1={doRange.min}
+                        y2={doRange.max}
                         x1={start}
                         x2={end}
-                        fill={palette[4]}
+                        fill={palette[3]}
                         fillOpacity={0.1}
                         stroke="none"
                     />
@@ -83,8 +83,8 @@ const HistoricalPhChart = ({
                 <Tooltip />
                 <Line
                     type="monotone"
-                    dataKey="ph"
-                    stroke={palette[4]}
+                    dataKey="do"
+                    stroke={palette[3]}
                     dot={false}
                     isAnimationActive={false}
                 />
@@ -93,4 +93,5 @@ const HistoricalPhChart = ({
     );
 };
 
-export default React.memo(HistoricalPhChart);
+export default React.memo(HistoricalDoChart);
+

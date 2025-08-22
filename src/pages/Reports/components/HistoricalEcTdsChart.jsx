@@ -1,5 +1,5 @@
 import React from 'react';
-import idealRanges from '../idealRangeConfig';
+import idealRanges from '../../../idealRangeConfig';
 import {
     LineChart,
     Line,
@@ -12,7 +12,7 @@ import {
     Legend,
     ResponsiveContainer,
 } from 'recharts';
-import palette from '../colorPalette';
+import palette from '../../../colorPalette';
 
 const HistoricalEcTdsChart = ({
     data,

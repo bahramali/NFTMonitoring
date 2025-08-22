@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import HistoricalEcTdsChart from '../src/components/HistoricalEcTdsChart';
+import HistoricalEcTdsChart from '../src/pages/Reports/components/HistoricalEcTdsChart';
 import { vi } from 'vitest';
 
 vi.mock('../src/idealRangeConfig', () => ({

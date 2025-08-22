@@ -5,12 +5,12 @@ import { vi } from 'vitest';
 
 import ReportCharts from '../src/pages/Reports/components/ReportCharts';
 
-vi.mock('../src/components/HistoricalTemperatureChart', () => ({ default: () => <div /> }));
-vi.mock('../src/components/HistoricalMultiBandChart', () => ({ default: () => <div /> }));
-vi.mock('../src/components/HistoricalClearLuxChart', () => ({ default: () => <div /> }));
-vi.mock('../src/components/HistoricalPhChart', () => ({ default: () => <div /> }));
-vi.mock('../src/components/HistoricalEcTdsChart', () => ({ default: () => <div /> }));
-vi.mock('../src/components/HistoricalDoChart', () => ({ default: () => <div /> }));
+vi.mock('../src/pages/Reports/components/HistoricalTemperatureChart', () => ({ default: () => <div /> }));
+vi.mock('../src/pages/Reports/components/HistoricalMultiBandChart', () => ({ default: () => <div /> }));
+vi.mock('../src/pages/Reports/components/HistoricalClearLuxChart', () => ({ default: () => <div /> }));
+vi.mock('../src/pages/Reports/components/HistoricalPhChart', () => ({ default: () => <div /> }));
+vi.mock('../src/pages/Reports/components/HistoricalEcTdsChart', () => ({ default: () => <div /> }));
+vi.mock('../src/pages/Reports/components/HistoricalDoChart', () => ({ default: () => <div /> }));
 
 function setup() {
   render(

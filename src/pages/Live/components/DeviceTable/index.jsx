@@ -1,7 +1,7 @@
 import React from 'react';
 import styles from './DeviceTable.module.css';
-import idealRanges from '../../idealRangeConfig';
-import spectralColors from '../../spectralColors';
+import idealRanges from '../../../../idealRangeConfig';
+import spectralColors from '../../../../spectralColors';
 
 function getCellColor(value, range) {
     if (!range || typeof value !== 'number' || Number.isNaN(value)) return '';
