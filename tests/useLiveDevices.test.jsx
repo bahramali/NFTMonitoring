@@ -1,7 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { vi } from 'vitest';
-import { useLiveDevices } from '../src/components/dashboard/useLiveDevices';
-import { SENSOR_TOPIC } from '../src/components/dashboard/dashboard.constants';
+import { useLiveDevices } from '../src/components/useLiveDevices';
+import { SENSOR_TOPIC } from '../src/components/dashboard.constants';
 import growPayload from './data/growSensors.json';
 import tankPayload from './data/waterTank.json';
 import oxyPayload from './data/oxygenPump.json';

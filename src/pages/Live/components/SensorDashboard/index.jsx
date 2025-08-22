@@ -1,13 +1,13 @@
 // SensorDashboard.jsx
 import React, {useEffect, useMemo, useState} from "react";
-import Header from "../Header";
-import {useLiveDevices} from "../dashboard/useLiveDevices";
-import { useLiveNow } from "../../hooks/useLiveNow";
+import Header from "../../../../components/Header";
+import {useLiveDevices} from "../../../../components/useLiveDevices";
+import { useLiveNow } from "../../../../hooks/useLiveNow";
 import styles from "./SensorDashboard.module.css";
-import Live from "../dashboard/Live";
-import {SENSOR_TOPIC, topics} from "../dashboard/dashboard.constants";
-import {useFilters, ALL} from "../../context/FiltersContext";
-import Overview from "../dashboard/Overview";
+import Live from "../Live";
+import {SENSOR_TOPIC, topics} from "../../../../components/dashboard.constants";
+import {useFilters, ALL} from "../../../../context/FiltersContext";
+import Overview from "../Overview";
 
 function SensorDashboard({ view, title = '' }) {
     const [activeSystem, setActiveSystem] = useState("S01");

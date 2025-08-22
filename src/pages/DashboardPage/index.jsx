@@ -3,7 +3,7 @@
 import React, {useEffect, useMemo, useState} from "react";
 import {useLiveNow} from "../../hooks/useLiveNow";
 import {SystemOverviewCard, LayerPanel} from "../SystemAndLayerCards";
-import FilterBar from "../../components/dashboard/FilterBar";
+import FilterBar from "../Dashboard/components/FilterBar";
 
 // If you don't have a CSS module for this page, keep styles as empty.
 const styles = {};
