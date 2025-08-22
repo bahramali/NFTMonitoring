@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from './SensorDashboard/SensorDashboard.module.css';
+import styles from '../../common/SensorDashboard.module.css';
 import idealRangeConfig from '../../../idealRangeConfig.js';
 import {bandMap, knownFields} from '../../../components/dashboard.constants';
 

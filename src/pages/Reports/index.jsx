@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Header from '../../components/Header';
 import { useLiveDevices } from '../../components/useLiveDevices';
 import { useHistory } from '../../components/useHistory';
-import styles from '../Live/components/SensorDashboard/SensorDashboard.module.css';
+import styles from '../common/SensorDashboard.module.css';
 import ReportControls from './components/ReportControls';
 import ReportCharts from './components/ReportCharts';
 import { SENSOR_TOPIC, topics } from '../../components/dashboard.constants';

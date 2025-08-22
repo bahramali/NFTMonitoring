@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from '../../Live/components/SensorDashboard/SensorDashboard.module.css';
+import styles from '../../common/SensorDashboard.module.css';
 
 function SystemTabs({systems = [], activeSystem, onChange}) {
     return (
