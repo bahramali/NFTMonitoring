@@ -1,28 +1,33 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ReportFiltersCompare from '../src/pages/Reports/components/ReportFiltersCompare.jsx';
 
-test('lists composite IDs for selected system, layer and device', () => {
+beforeEach(() => {
+  const catalog = {
+    systems: [
+      { id: 'S01', compositeIds: ['S01-L01-D1'] },
+      { id: 'S02', compositeIds: ['S02-L02-D2'] },
+    ],
+  };
+  window.localStorage.setItem('deviceCatalog', JSON.stringify(catalog));
+});
+
+afterEach(() => {
+  window.localStorage.clear();
+});
+
+test('lists composite IDs from local storage', () => {
   render(
     <ReportFiltersCompare
       fromDate=""
       toDate=""
       onFromDateChange={() => {}}
       onToDateChange={() => {}}
-      systems={["S01"]}
-      layers={["L02"]}
-      devices={[{ value: 'S01-L02-D2', label: 'D2' }]}
       rangeLabel=""
     />
   );
 
-  expect(screen.queryByText('S01-L02-D2')).toBeNull();
-
-  fireEvent.click(screen.getByLabelText('S01'));
-  fireEvent.click(screen.getByLabelText('L02'));
-  fireEvent.click(screen.getByLabelText('D2'));
-
-  expect(screen.getByText('S01-L02-D2')).toBeInTheDocument();
+  expect(screen.getByText('S01-L01-D1')).toBeInTheDocument();
+  expect(screen.getByText('S02-L02-D2')).toBeInTheDocument();
 });
-
