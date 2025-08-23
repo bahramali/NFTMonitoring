@@ -2,18 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import '@testing-library/jest-dom';
-import App from '../src/App';
-
-vi.mock('../src/pages/Reports/components/ReportControls', () => ({ default: () => <div>ReportControls</div> }));
-vi.mock('../src/components/Header', () => ({ default: () => <div>Header</div> }));
-vi.mock('../src/pages/Reports/components/ReportCharts', () => ({ default: () => <div>ReportCharts</div> }));
-vi.mock('../src/components/useLiveDevices', () => ({
-  useLiveDevices: () => ({ deviceData: {}, availableCompositeIds: [] }),
-}));
-vi.mock('../src/components/useHistory', () => ({
-  useHistory: () => ({}),
-}));
-vi.stubEnv('BASE_URL', '/NFTMonitoring/');
+vi.mock('../src/pages/Reports', () => ({ default: () => <div>Reports Page</div> }));
 
 vi.mock('../src/context/FiltersContext', () => ({
   FiltersProvider: ({ children }) => <div>{children}</div>,
@@ -28,9 +17,11 @@ vi.mock('../src/context/FiltersContext', () => ({
   ALL: 'ALL',
 }));
 
+vi.stubEnv('BASE_URL', '/NFTMonitoring/');
+
+import App from '../src/App';
 
 test('reports link retains base path and is active when served from subdirectory', () => {
-  vi.stubEnv('BASE_URL', '/NFTMonitoring/');
   window.history.pushState({}, '', '/NFTMonitoring/reports');
   render(<App />);
   const link = screen.getByRole('link', { name: /reports/i });
