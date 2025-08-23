@@ -29,6 +29,7 @@ input[type=datetime-local]::-webkit-calendar-picker-indicator{filter:invert(0) b
 .allnone{display:flex;gap:12px;align-items:center;font-size:12px;color:#64748b}
 .checklist{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px;max-height:160px;overflow:auto;display:flex;flex-direction:column;gap:6px}
 .item{display:flex;align-items:center;gap:8px;font-size:13px}
+.disabled{opacity:.5}
 
 /* action buttons row (bottom) */
 .actionsRight{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
