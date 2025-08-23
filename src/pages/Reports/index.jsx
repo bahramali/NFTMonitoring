@@ -24,6 +24,8 @@ function useDevicesMeta() {
         if (cached) {
             try { setMeta(JSON.parse(cached)); } catch { /* ignore */ }
         }
+        // comment: refresh here if you have an API
+        // fetch("/api/meta/devices").then(r=>r.json()).then(d=>{ localStorage.setItem("reportsMeta:v1", JSON.stringify(d)); setMeta(d); });
     }, []);
 
     return meta;
@@ -46,12 +48,14 @@ export default function Reports() {
     const [selDevices, setSelDevices]   = useState(new Set());
     const [selCIDs, setSelCIDs]         = useState(new Set());
 
+    // ---------- sensor selections (per group) ----------
+    // comment: values are EXACT keys e.g., dissolvedEC, 405nm, humidity, light, ...
     const [selSensors, setSelSensors] = useState({
-        water: new Set(),
-        light: new Set(),
-        blue:  new Set(),
-        red:   new Set(),
-        airq:  new Set(),
+        water: new Set(),   // dissolvedTemp, dissolvedEC, dissolvedTDS, dissolvedOxygen, (pH if available)
+        light: new Set(),   // VIS1, VIS2, NIR855, light
+        blue:  new Set(),   // 405nm, 425nm, ...
+        red:   new Set(),   // 550nm, 600nm, ...
+        airq:  new Set(),   // humidity, temperature, CO2
     });
 
     const toggleSensor = (group, key) => {
@@ -113,12 +117,13 @@ export default function Reports() {
     const [error, setError] = useState("");
     const abortRef = useRef(null);
 
+    // comment: datasets kept here (simple structure — replace with real data structure if API exists)
     const [chartData, setChartData] = useState({
-        tempRangeData: [],
-        phRangeData:   [],
-        ecTdsRangeData:[],
-        doRangeData:   [],
-        rangeData:     [],
+        tempRangeData: [],   // for HistoricalTemperatureChart
+        phRangeData:   [],   // for HistoricalPhChart (if pH is available)
+        ecTdsRangeData:[],   // for HistoricalEcTdsChart
+        doRangeData:   [],   // for HistoricalDoChart
+        rangeData:     [],   // for MultiBand / ClearLux (if needed)
     });
 
     const fetchReportData = async () => {
@@ -129,7 +134,7 @@ export default function Reports() {
             const { signal } = abortRef.current;
 
             if (!selectedCIDs.length) return;
-
+            // selected sensor union — to send to the API
             const sensorsSelected = [
                 ...selSensors.water,
                 ...selSensors.light,
@@ -137,6 +142,7 @@ export default function Reports() {
                 ...selSensors.red,
                 ...selSensors.airq,
             ];
+            // If no sensors are selected, you can leave this empty so the API returns its default
             const sensorsParam = sensorsSelected.join(',');
 
             const baseParams = {
@@ -148,8 +154,7 @@ export default function Reports() {
             const requests = selectedCIDs.map(async (cid) => {
                 const params = new URLSearchParams(baseParams);
                 params.set("compositeId", cid);
-                if (sensorsParam) params.set("sensors", sensorsParam);
-
+                if (sensorsParam) params.set("sensors", sensorsParam); // comment: if the backend supports it
                 const url = `/api/records/history/aggregate?${params.toString()}`;
                 const res = await fetch(url, { signal });
                 if (!res.ok) {
@@ -217,6 +222,7 @@ export default function Reports() {
         return () => clearInterval(t);
     }, [autoRefreshValue, fromDate, toDate, bucket, selectedCIDs.join(','), sensorDeps]);
 
+    // ---------- compare (same as before) ----------
     const [compareItems, setCompareItems] = useState([]);
     const onAddCompare = () => {
         if (!selectedCIDs.length) return;
@@ -246,11 +252,12 @@ export default function Reports() {
         setSelCIDs(new Set());
         setSelSensors({ water:new Set(), light:new Set(), blue:new Set(), red:new Set(), airq:new Set() });
     };
-    
+
+    // ---------- flags for charts (display sections based on sensor selection) ----------
     const showTempHum  = selSensors.airq.has('temperature') || selSensors.airq.has('humidity');
     const showSpectrum = selSensors.blue.size > 0 || selSensors.red.size > 0;
-    const showClearLux = selSensors.light.size > 0;
-    const showPh       = selSensors.water.has('ph') || selSensors.water.has('pH');
+    const showClearLux = selSensors.light.size > 0; // VIS1/VIS2/NIR855/light
+    const showPh       = selSensors.water.has('ph') || selSensors.water.has('pH'); // if pH is available
     const showEcTds    = selSensors.water.has('dissolvedEC') || selSensors.water.has('dissolvedTDS');
     const showDo       = selSensors.water.has('dissolvedOxygen');
 
@@ -279,6 +286,8 @@ export default function Reports() {
                 compareItems={compareItems}
                 onClearCompare={onClearCompare}
                 onRemoveCompare={onRemoveCompare}
+
+                // sensors — only values and handlers (the component builds options from the catalog)
                 water={{ values: Array.from(selSensors.water) }}
                 light={{ values: Array.from(selSensors.light) }}
                 blue={{  values: Array.from(selSensors.blue)  }}
@@ -301,6 +310,8 @@ export default function Reports() {
                 onNoneAirq={()=>clearSensors('airq')}
             />
 
+n           {/* Location (checklists and Composite IDs) — if you've built this section elsewhere, keep it as is */}
+            {/* Error / Loading */}
             {error && <div style={{ color: "#b91c1c", marginTop: 8, fontSize: 14 }}>{error}</div>}
 
             <div style={{ marginTop: 16 }}>
@@ -311,6 +322,7 @@ export default function Reports() {
                     showPh={showPh}
                     showEcTds={showEcTds}
                     showDo={showDo}
+                    // comment: datasets — currently empty, later fill by mapping API results
                     tempRangeData={chartData.tempRangeData}
                     phRangeData={chartData.phRangeData}
                     ecTdsRangeData={chartData.ecTdsRangeData}
