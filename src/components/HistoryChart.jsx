@@ -17,13 +17,10 @@ const HistoryChart = ({
     yDataKey,
     yLabel,
     title,
-    width = 600,
     height = 300,
 }) => (
     <ResponsiveContainer width="100%" height={height} debounce={200}>
         <LineChart
-            width={width}
-            height={height}
             data={data}
             margin={{ top: 20, right: 30, left: 0, bottom: 50 }}
             isAnimationActive={false}
@@ -54,7 +51,7 @@ const HistoryChart = ({
                 isAnimationActive={false}
             />
             {title && (
-                <text x={width / 2} y={0} textAnchor="middle" dominantBaseline="hanging">
+                <text x="50%" y={0} textAnchor="middle" dominantBaseline="hanging">
                     {title}
                 </text>
             )}

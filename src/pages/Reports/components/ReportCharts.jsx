@@ -14,7 +14,6 @@ function ReportCharts({
   phRangeData,
   ecTdsRangeData,
   doRangeData,
-  xDomain,
   selectedDevice
 }) {
   const withDevice = (title) => (selectedDevice ? `${title}(${selectedDevice})` : title);
