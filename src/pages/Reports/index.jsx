@@ -253,14 +253,6 @@ export default function Reports() {
         setSelSensors({ water:new Set(), light:new Set(), blue:new Set(), red:new Set(), airq:new Set() });
     };
 
-    // ---------- flags for charts (display sections based on sensor selection) ----------
-    const showTempHum  = selSensors.airq.has('temperature') || selSensors.airq.has('humidity');
-    const showSpectrum = selSensors.blue.size > 0 || selSensors.red.size > 0;
-    const showClearLux = selSensors.light.size > 0; // VIS1/VIS2/NIR855/light
-    const showPh       = selSensors.water.has('ph') || selSensors.water.has('pH'); // if pH is available
-    const showEcTds    = selSensors.water.has('dissolvedEC') || selSensors.water.has('dissolvedTDS');
-    const showDo       = selSensors.water.has('dissolvedOxygen');
-
     const xDomain = [new Date(fromDate).getTime(), new Date(toDate).getTime()];
     const selectedDeviceLabel = selectedCIDs.length === 1 ? selectedCIDs[0] : "";
 
@@ -316,12 +308,6 @@ n           {/* Location (checklists and Composite IDs) — if you've built this
 
             <div style={{ marginTop: 16 }}>
                 <ReportCharts
-                    showTempHum={showTempHum}
-                    showSpectrum={showSpectrum}
-                    showClearLux={showClearLux}
-                    showPh={showPh}
-                    showEcTds={showEcTds}
-                    showDo={showDo}
                     // comment: datasets — currently empty, later fill by mapping API results
                     tempRangeData={chartData.tempRangeData}
                     phRangeData={chartData.phRangeData}
@@ -330,6 +316,13 @@ n           {/* Location (checklists and Composite IDs) — if you've built this
                     rangeData={chartData.rangeData}
                     xDomain={xDomain}
                     selectedDevice={selectedDeviceLabel}
+                    selectedSensors={{
+                        water: Array.from(selSensors.water),
+                        light: Array.from(selSensors.light),
+                        blue: Array.from(selSensors.blue),
+                        red: Array.from(selSensors.red),
+                        airq: Array.from(selSensors.airq),
+                    }}
                 />
             </div>
         </div>
