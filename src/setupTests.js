@@ -1,3 +1,7 @@
+import '@testing-library/jest-dom';
+import { cleanup } from '@testing-library/react';
+import { afterEach } from 'vitest';
+
 // Mock ResizeObserver
 global.ResizeObserver = class {
     constructor() {}
@@ -5,3 +9,7 @@ global.ResizeObserver = class {
     unobserve() {}
     disconnect() {}
 };
+
+afterEach(() => {
+    cleanup();
+});
