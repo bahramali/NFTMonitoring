@@ -156,7 +156,7 @@ export default function Reports() {
                 for (const sensor of sensors) {
                     const params = new URLSearchParams(base);
                     if (sensor) params.set("sensors", sensor); // one request per sensor
-                    const url = `/api/records/history/aggregate?${params.toString()}`;
+                    const url = `/api/records/history/aggregated?${params.toString()}`;
                     console.log("Request:", url);
                     const p = (async () => {
                         const res = await fetch(url, { signal });
