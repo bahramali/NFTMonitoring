@@ -1,127 +1,106 @@
+// Reports.test.jsx
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
-const liveDevicesMock = vi.fn();
-
+// mock ReportCharts to observe render
 vi.mock('../src/pages/Reports/components/ReportCharts', () => ({
-  default: vi.fn(() => <div>ReportCharts</div>),
+  default: vi.fn(() => <div data-testid="charts">ReportCharts</div>),
 }));
 
-vi.mock('../src/components/useLiveDevices', () => ({
-  useLiveDevices: (...args) => liveDevicesMock(...args),
-}));
-
-vi.mock('../src/pages/common/useHistory.js', () => ({
-  useHistory: () => ({
-    rangeData: [],
-    tempRangeData: [],
-    phRangeData: [],
-    ecTdsRangeData: [],
-    doRangeData: [],
-    xDomain: [],
-    startTime: 0,
-    endTime: 0,
-    fetchReportData: vi.fn(),
-  }),
-}));
-
-vi.mock('../src/context/FiltersContext', () => ({
-  useFilters: () => ({
-    device: 'ALL',
-    layer: 'ALL',
-    system: 'ALL',
-    topic: 'ALL',
-    setLists: vi.fn(),
-  }),
-  ALL: 'ALL',
-}));
-
-vi.mock('../src/components/Header', () => ({ default: () => <div>Header</div> }));
-vi.mock('../src/pages/Reports/components/ReportControls', () => ({ default: () => <div>ReportControls</div> }));
-
+// import after mocks
 import Reports from '../src/pages/Reports';
 import ReportCharts from '../src/pages/Reports/components/ReportCharts';
 
+const setMeta = (meta) =>
+    localStorage.setItem('reportsMeta:v1', JSON.stringify(meta));
+
 beforeEach(() => {
-  liveDevicesMock.mockReset();
-  ReportCharts.mockClear();
+  localStorage.clear();
+  vi.restoreAllMocks();
+  // mock fetch
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ series: [] }),
+  });
 });
 
-test('Reports page shows charts for AS7343 and SHT3x sensors (case-insensitive)', () => {
-  liveDevicesMock.mockReturnValue({
-    deviceData: {
-      S01: {
-        growSensors: {
-          L01G01: {
-            deviceId: 'G01',
-            layer: 'L01',
-            sensors: [
-              { sensorName: 'AS7343' },
-              { sensorName: 'SHT3x' },
-            ],
-          },
-        },
-      },
-    },
-    sensorData: {},
-    availableCompositeIds: ['L01G01'],
-    mergedDevices: {},
+afterEach(() => {
+  vi.clearAllMocks();
+});
+
+test('renders Reports and shows charts', async () => {
+  setMeta({
+    version: 'x',
+    devices: [
+      { systemId: 'S01', layerId: 'L01', deviceId: 'G01', sensors: ['ph'] },
+    ],
   });
 
   render(<Reports />);
-  expect(screen.queryByText('No reports available for this composite ID.')).toBeNull();
+
+  // charts component should render
+  expect(await screen.findByTestId('charts')).toBeInTheDocument();
   expect(ReportCharts).toHaveBeenCalled();
-  const props = ReportCharts.mock.calls[0][0];
-  expect(props.showSpectrum).toBe(true);
-  expect(props.showClearLux).toBe(true);
-  expect(props.showTempHum).toBe(true);
 });
 
-test('Reports page defaults to first available system when initial system has no devices', async () => {
-  liveDevicesMock.mockReturnValue({
-    deviceData: {
-      S02: {
-        growSensors: {
-          L01G01: {
-            deviceId: 'G01',
-            layer: 'L01',
-            sensors: [{ sensorName: 'AS7343' }],
-          },
-        },
-      },
-    },
-    sensorData: {},
-    availableCompositeIds: ['L01G01'],
-    mergedDevices: {},
+test('Apply sends one request per compositeId (separate fetch per CID)', async () => {
+  setMeta({
+    version: 'x',
+    devices: [
+      { systemId: 'S01', layerId: 'L01', deviceId: 'G01', sensors: ['ph'] },
+      { systemId: 'S01', layerId: 'L01', deviceId: 'G02', sensors: ['lux'] },
+      { systemId: 'S02', layerId: 'L02', deviceId: 'G01', sensors: ['600nm'] },
+    ],
   });
 
   render(<Reports />);
-  await waitFor(() => expect(ReportCharts).toHaveBeenCalled());
-  expect(screen.queryByText('No reports available for this composite ID.')).toBeNull();
-});
 
-test('Devices box displays device name instead of composite ID', () => {
-  liveDevicesMock.mockReturnValue({
-    deviceData: {
-      S01: {
-        growSensors: {
-          L01G01: {
-            deviceId: 'G01',
-            layer: 'L01',
-            sensors: [{ sensorName: 'SHT3x' }],
-          },
-        },
-      },
-    },
-    sensorData: {},
-    availableCompositeIds: ['L01G01'],
-    mergedDevices: {},
+  // click Apply
+  const applyBtn = await screen.findByRole('button', { name: /apply/i });
+  fireEvent.click(applyBtn);
+
+  // expect one fetch per CID
+  await waitFor(() => {
+    expect(global.fetch).toHaveBeenCalledTimes(3);
+  });
+
+  const calledUrls = global.fetch.mock.calls.map((c) => c[0].toString());
+  expect(calledUrls.some((u) => u.includes('compositeId=S01-L01-G01'))).toBe(true);
+  expect(calledUrls.some((u) => u.includes('compositeId=S01-L01-G02'))).toBe(true);
+  expect(calledUrls.some((u) => u.includes('compositeId=S02-L02-G01'))).toBe(true);
+});
+/*
+
+test('filters by Composite ID selection only fetches selected CIDs', async () => {
+  setMeta({
+    version: 'x',
+    devices: [
+      { systemId: 'S01', layerId: 'L01', deviceId: 'G01', sensors: [] },
+      { systemId: 'S01', layerId: 'L01', deviceId: 'G02', sensors: [] },
+    ],
   });
 
   render(<Reports />);
-  expect(screen.getByText('G01')).toBeInTheDocument();
-  expect(screen.queryByText('L01G01')).toBeNull();
-});
 
+
+  const cid2 = await screen.findByLabelText('S01-L01-G02');
+  fireEvent.click(cid2);
+  const cid1 = await screen.findByLabelText('S01-L01-G01');
+  if (cid1 instanceof HTMLInputElement && cid1.checked) {
+    fireEvent.click(cid1);
+  }
+
+  // Apply
+  fireEvent.click(screen.getByRole('button', { name: /apply/i }));
+
+  await waitFor(() => {
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  const url = global.fetch.mock.calls[0][0].toString();
+  expect(url.includes('compositeId=S01-L01-G02')).toBe(true);
+  expect(url.includes('compositeId=S01-L01-G01')).toBe(false);
+});
+*/

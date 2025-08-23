@@ -1,12 +1,11 @@
 // index.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import ReportCharts from "./components/ReportCharts";
 import ReportFiltersCompare from "./components/ReportFiltersCompare";
 
 // ---------- utils ----------
 const toCID = (d) => `${d.systemId}-${d.layerId}-${d.deviceId}`;
 const toLocalInputValue = (date) => {
-    // comment: yyyy-MM-ddTHH:mm for <input type="datetime-local">
     const pad = (n) => `${n}`.padStart(2, "0");
     const y = date.getFullYear();
     const m = pad(date.getMonth() + 1);
@@ -17,9 +16,9 @@ const toLocalInputValue = (date) => {
 };
 const toISOSeconds = (v) => (v ? new Date(v).toISOString() : "");
 
-// ---------- meta loader (from cache or endpoint) ----------
+// ---------- meta loader ----------
 function useDevicesMeta() {
-    const [meta, setMeta] = useState({ devices: [] });
+    const [meta, setMeta] = useState({devices: []});
 
     useEffect(() => {
         // Try cache first
@@ -27,16 +26,9 @@ function useDevicesMeta() {
         if (cached) {
             try {
                 setMeta(JSON.parse(cached));
-            } catch { /* empty */ }
+            } catch {
+            }
         }
-        // Optional: fetch fresh
-        // fetch("/api/meta/devices")
-        //   .then((r) => r.json())
-        //   .then((data) => {
-        //     localStorage.setItem("reportsMeta:v1", JSON.stringify(data));
-        //     setMeta(data);
-        //   })
-        //   .catch(() => {});
     }, []);
 
     return meta;
@@ -44,7 +36,7 @@ function useDevicesMeta() {
 
 export default function Reports() {
     // ---------- meta ----------
-    const { devices: deviceRows } = useDevicesMeta(); // [{systemId,layerId,deviceId,sensors:[]}, ...]
+    const {devices: deviceRows} = useDevicesMeta(); // [{systemId,layerId,deviceId,sensors:[]}, ...]
 
     // ---------- timing ----------
     const [fromDate, setFromDate] = useState(() => {
@@ -59,8 +51,8 @@ export default function Reports() {
     // ---------- location selections ----------
     const [selSystems, setSelSystems] = useState(new Set());
     const [selLayers, setSelLayers] = useState(new Set());
-    const [selDevices, setSelDevices] = useState(new Set()); // deviceId level
-    const [selCIDs, setSelCIDs] = useState(new Set()); // compositeId explicit selection
+    const [selDevices, setSelDevices] = useState(new Set());
+    const [selCIDs, setSelCIDs] = useState(new Set());
     const [cidQuery, setCidQuery] = useState("");
 
     // ---------- derived lists ----------
@@ -107,12 +99,7 @@ export default function Reports() {
                 (selDevices.size ? selDevices.has(d.deviceId) : true)
         );
         setSelCIDs(new Set(filtered.map(toCID)));
-    }, [
-        deviceRows,
-        Array.from(selSystems).join(","),
-        Array.from(selLayers).join(","),
-        Array.from(selDevices).join(","),
-    ]);
+    }, [deviceRows, Array.from(selSystems).join(","), Array.from(selLayers).join(","), Array.from(selDevices).join(",")]);
 
     // ---------- toggle helpers ----------
     const toggleInSet = (value, set, setter) => {
@@ -169,40 +156,26 @@ export default function Reports() {
                 return;
             }
 
-            const baseParams = {
-                from: toISOSeconds(fromDate),
-                to: toISOSeconds(toDate),
-                bucket,
-            };
-
-            // comment: one fetch per compositeId
+            const baseParams = {from: toISOSeconds(fromDate), to: toISOSeconds(toDate), bucket};
             const requests = selectedCIDs.map(async (cid) => {
                 const params = new URLSearchParams(baseParams);
                 params.set("compositeId", cid);
                 const url = `/api/records/history/aggregate?${params.toString()}`;
-                const res = await fetch(url, { signal });
-                if (!res.ok) {
-                    const txt = await res.text().catch(() => "");
-                    throw new Error(`CID ${cid} -> ${res.status} ${txt}`);
-                }
-                const data = await res.json();
-                return { cid, data };
+                const res = await fetch(url, {signal});
+                if (!res.ok) throw new Error(`CID ${cid} -> ${res.status}`);
+                return {cid, data: await res.json()};
             });
 
             const results = await Promise.all(requests);
-            // TODO: pass results to charts (merge or render per-series)
             console.log("history results", results);
         } catch (e) {
-            if (e.name !== "AbortError") {
-                console.error(e);
-                setError(String(e.message || e));
-            }
+            if (e.name !== "AbortError") setError(String(e.message || e));
         } finally {
             setLoading(false);
         }
     };
 
-    // ---------- auto refresh ----------
+    // auto refresh
     useEffect(() => {
         if (autoRefreshValue === "Off") return;
         const ms =
@@ -213,33 +186,26 @@ export default function Reports() {
                     : 5 * 60_000;
         const t = setInterval(fetchReportData, ms);
         return () => clearInterval(t);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [autoRefreshValue, fromDate, toDate, bucket, selectedCIDs.join(",")]);
 
-    // ---------- compare list ----------
+    // compare list
     const [compareItems, setCompareItems] = useState([]);
     const onAddCompare = () => {
         if (!selectedCIDs.length) return;
         const title = `${selectedCIDs[0]} (${bucket})`;
-        setCompareItems((p) => [
-            ...p,
-            {
-                id: String(Date.now()),
-                title,
-                from: toISOSeconds(fromDate),
-                to: toISOSeconds(toDate),
-                system: "-",
-                layer: "-",
-                device: "-",
-                sensors: Array.from(allowedSensors),
-            },
-        ]);
+        setCompareItems((p) => [...p, {
+            id: String(Date.now()),
+            title,
+            from: toISOSeconds(fromDate),
+            to: toISOSeconds(toDate),
+            sensors: Array.from(allowedSensors)
+        }]);
     };
     const onRemoveCompare = (id) =>
         setCompareItems((p) => p.filter((x) => x.id !== id));
     const onClearCompare = () => setCompareItems([]);
 
-    // ---------- actions ----------
+    // actions
     const onApply = () => fetchReportData();
     const onReset = () => {
         setSelSystems(new Set());
@@ -249,11 +215,9 @@ export default function Reports() {
         setCidQuery("");
     };
 
-    // ---------- render ----------
     return (
-        <div style={{ padding: 16 }}>
+        <div style={{padding: 16}}>
             <ReportFiltersCompare
-                // timing
                 fromDate={fromDate}
                 toDate={toDate}
                 onFromDateChange={(e) => setFromDate(e.target.value)}
@@ -263,43 +227,22 @@ export default function Reports() {
                 onBucketChange={(e) => setBucket(e.target.value)}
                 autoRefreshValue={autoRefreshValue}
                 onAutoRefreshValueChange={(e) => setAutoRefreshValue(e.target.value)}
-                // location dropdown props (unused when using checklists below)
-                systems={systems}
-                layers={layers}
-                devices={deviceIds}
-                selectedSystem={null}
-                onSystemChange={() => {}}
-                selectedLayer={null}
-                onLayerChange={() => {}}
-                selectedDevice={null}
-                onDeviceChange={() => {}}
-                // actions
-                onReset={onReset}
-                onAddCompare={onAddCompare}
-                onExportCsv={() => {}}
-                // range
-                rangeLabel={`From: ${new Date(fromDate).toLocaleString()} until: ${new Date(
-                    toDate
-                ).toLocaleString()}`}
-                // compare
-                compareItems={compareItems}
-                onClearCompare={onClearCompare}
-                onRemoveCompare={onRemoveCompare}
+                systems={systems} layers={layers} devices={deviceIds}
+                selectedSystem={null} onSystemChange={() => {
+            }}
+                selectedLayer={null} onLayerChange={() => {
+            }}
+                selectedDevice={null} onDeviceChange={() => {
+            }}
+                onReset={onReset} onAddCompare={onAddCompare} onExportCsv={() => {
+            }}
+                rangeLabel={`From: ${new Date(fromDate).toLocaleString()} until: ${new Date(toDate).toLocaleString()}`}
+                compareItems={compareItems} onClearCompare={onClearCompare} onRemoveCompare={onRemoveCompare}
+                allowedSensors={allowedSensors}
             />
-
-            {/* Location cards (cascading selection + composite IDs) */}
-            <div style={{ marginTop: 12 }} />
-
-            {/* Error / Loading */}
-            {error && (
-                <div style={{ color: "#b91c1c", marginTop: 8, fontSize: 14 }}>
-                    {error}
-                </div>
-            )}
-
-            {/* Charts */}
-            <div style={{ marginTop: 16 }}>
-                <ReportCharts loading={loading} />
+            {error && <div style={{color: "#b91c1c", marginTop: 8}}>{error}</div>}
+            <div style={{marginTop: 16}}>
+                <ReportCharts loading={loading}/>
             </div>
         </div>
     );
