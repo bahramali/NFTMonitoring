@@ -5,19 +5,19 @@ import ReportFiltersCompare from '../src/pages/Reports/components/ReportFiltersC
 
 beforeEach(() => {
   const catalog = {
-    systems: [{ id: 'S01' }, { id: 'S02' }],
+    systems: [{ id: 'S1' }, { id: 'S2' }],
     devices: [
       {
-        systemId: 'S01',
-        layerId: 'L01',
+        systemId: 'S1',
+        layerId: 'L1',
         deviceId: 'D1',
-        sensors: [{ sensorName: 'Temp' }, { sensorName: 'pH' }],
+        sensors: [{ sensorName: 'humidity' }],
       },
       {
-        systemId: 'S02',
-        layerId: 'L02',
+        systemId: 'S2',
+        layerId: 'L2',
         deviceId: 'D2',
-        sensors: [{ sensorName: 'Lux' }],
+        sensors: [{ sensorName: 'temperature' }],
       },
     ],
   };
@@ -28,7 +28,7 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-test('filters sensors based on selected system', async () => {
+test('selecting multiple devices enables union of sensors', async () => {
   render(
     <ReportFiltersCompare
       fromDate=""
@@ -39,20 +39,26 @@ test('filters sensors based on selected system', async () => {
     />
   );
 
-  // initially sensors from both systems are visible
-  await screen.findByText('Lux');
-  expect(screen.getByText('Lux')).toBeInTheDocument();
-  expect(screen.getByText('Temp')).toBeInTheDocument();
+  const humidity = screen.getByLabelText('humidity');
+  const temperature = screen.getByLabelText('temperature');
 
-  // select only system S01
-  fireEvent.click(screen.getByLabelText('S01'));
+  // both disabled initially
+  expect(humidity).toBeDisabled();
+  expect(temperature).toBeDisabled();
 
-  // lux sensor (from S02) should disappear
+  // select first device
+  fireEvent.click(screen.getByLabelText('D1'));
+
   await waitFor(() => {
-    expect(screen.queryByText('Lux')).toBeNull();
+    expect(humidity).not.toBeDisabled();
   });
+  expect(temperature).toBeDisabled();
 
-  // sensor from S01 remains
-  expect(screen.getByText('Temp')).toBeInTheDocument();
+  // select second device
+  fireEvent.click(screen.getByLabelText('D2'));
+
+  await waitFor(() => {
+    expect(temperature).not.toBeDisabled();
+  });
 });
 

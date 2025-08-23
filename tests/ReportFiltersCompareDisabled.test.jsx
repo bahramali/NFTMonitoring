@@ -1,14 +1,14 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ReportFiltersCompare from '../src/pages/Reports/components/ReportFiltersCompare.jsx';
 
 beforeEach(() => {
   const catalog = {
-    systems: [{ id: 'S01' }],
+    systems: [{ id: 'S1' }],
     devices: [
-      { systemId: 'S01', layerId: 'L01', deviceId: 'D1', sensors: [{ sensorName: 'Temp' }] },
-      { systemId: 'S01', layerId: 'L01', deviceId: 'D2', sensors: [{ sensorName: 'Lux' }] },
+      { systemId: 'S1', layerId: 'L1', deviceId: 'D1', sensors: [{ sensorName: 'humidity' }] },
+      { systemId: 'S1', layerId: 'L1', deviceId: 'D2', sensors: [{ sensorName: 'temperature' }] },
     ],
   };
   window.localStorage.setItem('deviceCatalog', JSON.stringify(catalog));
@@ -18,7 +18,7 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-test('non-matching device sensors remain disabled', async () => {
+test('enables only sensors for selected device', async () => {
   render(
     <ReportFiltersCompare
       fromDate=""
@@ -26,11 +26,21 @@ test('non-matching device sensors remain disabled', async () => {
       onFromDateChange={() => {}}
       onToDateChange={() => {}}
       rangeLabel=""
-      selectedDevice="D1"
     />
   );
-  const temp = await screen.findByLabelText('Temp');
-  const lux = await screen.findByLabelText('Lux');
-  expect(temp).not.toBeDisabled();
-  expect(lux).toBeDisabled();
+  const d1 = await screen.findByLabelText('D1');
+  const humidity = screen.getByLabelText('humidity');
+  const temperature = screen.getByLabelText('temperature');
+
+  // initially both disabled
+  expect(humidity).toBeDisabled();
+  expect(temperature).toBeDisabled();
+
+  // select first device
+  d1.click();
+
+  await waitFor(() => {
+    expect(humidity).not.toBeDisabled();
+  });
+  expect(temperature).toBeDisabled();
 });
