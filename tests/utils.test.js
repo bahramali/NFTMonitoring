@@ -1,7 +1,7 @@
 import { trimOldEntries, normalizeSensorData, filterNoise, parseSensorJson, transformAggregatedData } from '../src/utils';
 
 function fixedNow() {
-    return 1721310000000; // زمان ثابت برای تست، برای جلوگیری از اختلاف میلی‌ثانیه‌ای
+    return 1721310000000; // fixed time for testing to avoid millisecond differences
 }
 
 test('removes entries older than 24h', () => {
@@ -132,7 +132,7 @@ test('filterNoise discards out of range values', () => {
     expect(filterNoise(clean)).toEqual(clean);
 
     const noisy = { ...clean, F1: 20000 };
-    expect(filterNoise(noisy)).toEqual(noisy); // چون فعلاً filterNoise مقدار طیفی رو چک نمی‌کنه
+    expect(filterNoise(noisy)).toEqual(noisy); // because filterNoise currently doesn't check spectral values
 
     const badHumidity = { ...clean, humidity: { value: 150, unit: '%' } };
     expect(filterNoise(badHumidity)).toBeNull();

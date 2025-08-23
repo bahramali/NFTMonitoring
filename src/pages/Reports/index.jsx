@@ -27,7 +27,7 @@ function useDevicesMeta() {
         if (cached) {
             try { setMeta(JSON.parse(cached)); } catch { /* ignore bad cache */ }
         }
-        // comment: اگر API داری اینجا تازه‌سازی کن
+        // comment: refresh here if you have an API
         // fetch("/api/meta/devices").then(r=>r.json()).then(d=>{ localStorage.setItem("reportsMeta:v1", JSON.stringify(d)); setMeta(d); });
     }, []);
 
@@ -55,9 +55,9 @@ export default function Reports() {
     const [selCIDs, setSelCIDs]         = useState(new Set());
 
     // ---------- sensor selections (per group) ----------
-    // comment: values are EXACT keys مثل: dissolvedEC, 405nm, humidity, light, ...
+    // comment: values are EXACT keys e.g., dissolvedEC, 405nm, humidity, light, ...
     const [selSensors, setSelSensors] = useState({
-        water: new Set(),   // dissolvedTemp, dissolvedEC, dissolvedTDS, dissolvedOxygen, (ph اگر داری)
+        water: new Set(),   // dissolvedTemp, dissolvedEC, dissolvedTDS, dissolvedOxygen, (pH if available)
         light: new Set(),   // VIS1, VIS2, NIR855, light
         blue:  new Set(),   // 405nm, 425nm, ...
         red:   new Set(),   // 550nm, 600nm, ...
@@ -129,13 +129,13 @@ export default function Reports() {
     const [error, setError]     = useState("");
     const abortRef = useRef(null);
 
-    // comment: datasets kept here (structure ساده — اگه API داره، نگه‌داری شکل واقعی رو جایگزین کن)
+    // comment: datasets kept here (simple structure — replace with real data structure if API exists)
     const [chartData, setChartData] = useState({
         tempRangeData: [],   // for HistoricalTemperatureChart
-        phRangeData:   [],   // for HistoricalPhChart (در صورت داشتن pH)
+        phRangeData:   [],   // for HistoricalPhChart (if pH is available)
         ecTdsRangeData:[],   // for HistoricalEcTdsChart
         doRangeData:   [],   // for HistoricalDoChart
-        rangeData:     [],   // برای MultiBand / ClearLux (در صورت نیاز)
+        rangeData:     [],   // for MultiBand / ClearLux (if needed)
     });
 
     const fetchReportData = async () => {
@@ -148,13 +148,13 @@ export default function Reports() {
 
             if (!selectedCIDs.length) { setLoading(false); return; }
 
-            // sensors union انتخاب‌شده — برای ارسال به API
+            // selected sensor union — to send to the API
             const sensorsSelected = [
                 ...selSensors.water, ...selSensors.light,
                 ...selSensors.blue,  ...selSensors.red,
                 ...selSensors.airq,
             ];
-            // اگر هیچ سنسوری انتخاب نشده بود، می‌تونی اینو خالی بذاری تا API پیش‌فرض برگردونه
+            // If no sensors are selected, you can leave this empty so the API returns its default
             const sensorsParam = sensorsSelected.join(',');
 
             const baseParams = {
@@ -166,7 +166,7 @@ export default function Reports() {
             const requests = selectedCIDs.map(async (cid) => {
                 const params = new URLSearchParams(baseParams);
                 params.set("compositeId", cid);
-                if (sensorsParam) params.set("sensors", sensorsParam); // comment: در صورت پشتیبانی بک‌اند
+                if (sensorsParam) params.set("sensors", sensorsParam); // comment: if the backend supports it
 
                 const url = `/api/records/history/aggregate?${params.toString()}`;
                 const res = await fetch(url, { signal });
@@ -235,7 +235,7 @@ export default function Reports() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [autoRefreshValue, fromDate, toDate, bucket, selectedCIDs.join(","), JSON.stringify([...selSensors.water, ...selSensors.light, ...selSensors.blue, ...selSensors.red, ...selSensors.airq])]);
 
-    // ---------- compare (همون قبلی) ----------
+    // ---------- compare (same as before) ----------
     const [compareItems, setCompareItems] = useState([]);
     const onAddCompare = () => {
         if (!selectedCIDs.length) return;
@@ -267,11 +267,11 @@ export default function Reports() {
         setSelSensors({ water:new Set(), light:new Set(), blue:new Set(), red:new Set(), airq:new Set() });
     };
 
-    // ---------- flags for charts (نمایش سکشن‌ها بر اساس انتخاب سنسور) ----------
+    // ---------- flags for charts (display sections based on sensor selection) ----------
     const showTempHum  = selSensors.airq.has('temperature') || selSensors.airq.has('humidity');
     const showSpectrum = selSensors.blue.size > 0 || selSensors.red.size > 0;
     const showClearLux = selSensors.light.size > 0; // VIS1/VIS2/NIR855/light
-    const showPh       = selSensors.water.has('ph') || selSensors.water.has('pH'); // اگر pH داری
+    const showPh       = selSensors.water.has('ph') || selSensors.water.has('pH'); // if pH is available
     const showEcTds    = selSensors.water.has('dissolvedEC') || selSensors.water.has('dissolvedTDS');
     const showDo       = selSensors.water.has('dissolvedOxygen');
 
@@ -307,7 +307,7 @@ export default function Reports() {
                 onClearCompare={onClearCompare}
                 onRemoveCompare={onRemoveCompare}
 
-                // sensors — فقط values و handlerها (خود کامپوننت optionها را از کاتالوگ می‌سازد)
+                // sensors — only values and handlers (the component builds options from the catalog)
                 water={{ values: Array.from(selSensors.water) }}
                 light={{ values: Array.from(selSensors.light) }}
                 blue={{  values: Array.from(selSensors.blue)  }}
@@ -330,7 +330,7 @@ export default function Reports() {
                 onNoneAirq={()=>clearSensors('airq')}
             />
 
-            {/* Location (چک‌لیست‌ها و Composite IDs) — اگر این سکشن را جای دیگری ساخته‌ای، همونو نگه دار */}
+            {/* Location (checklists and Composite IDs) — if you've built this section elsewhere, keep it as is */}
 
             {/* Error / Loading */}
             {error && <div style={{ color: "#b91c1c", marginTop: 8, fontSize: 14 }}>{error}</div>}
@@ -344,7 +344,7 @@ export default function Reports() {
                     showPh={showPh}
                     showEcTds={showEcTds}
                     showDo={showDo}
-                    // comment: datasets — الان خالی، بعداً با map نتایج API پر کن
+                    // comment: datasets — currently empty, later fill by mapping API results
                     tempRangeData={chartData.tempRangeData}
                     phRangeData={chartData.phRangeData}
                     ecTdsRangeData={chartData.ecTdsRangeData}

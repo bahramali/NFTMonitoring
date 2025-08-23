@@ -46,7 +46,7 @@ function Pill({label, health}) {
 }
 
 /* ========== Metric Card ========== */
-// کارت با استایل شبیه تصویر (آیکن، عدد بزرگ، عنوان، زیرنویس)
+// Card styled like the image (icon, large number, title, subtitle)
 export function MetricCard({ title, value, unit, icon, subtitle, compact }) {
     return (
         <div className={cx("metric-card", compact && "compact")}>
