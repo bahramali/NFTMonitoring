@@ -114,19 +114,19 @@ export default function ReportFiltersCompare({
     );
 
     const compositeIds = useMemo(() => {
-        if (!selectedSystems.length || !selectedLayers.length || !selectedDevices.length) return [];
-        const deviceIds = selectedDevices.map((d) => {
-            const parts = String(d).split('-');
-            return parts[parts.length - 1];
+        const systems = catalog?.systems || [];
+        const ids = systems.flatMap(sys => {
+            const direct = sys.deviceCompositeIds || sys.compositeIds || [];
+            const nested = (sys.layers || []).flatMap(lay =>
+                (lay.devices || []).map(dev => dev.compositeId).filter(Boolean)
+            );
+            return [...direct, ...nested];
         });
-        const ids = new Set();
-        selectedSystems.forEach((sys) => {
-            selectedLayers.forEach((lay) => {
-                deviceIds.forEach((dev) => ids.add(`${sys}-${lay}-${dev}`));
-            });
-        });
-        return Array.from(ids);
-    }, [selectedSystems, selectedLayers, selectedDevices]);
+        if (!ids.length) {
+            return (catalog?.devices || []).map(d => `${d.systemId}-${d.layerId}-${d.deviceId}`);
+        }
+        return Array.from(new Set(ids));
+    }, [catalog]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
