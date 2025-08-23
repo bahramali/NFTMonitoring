@@ -71,7 +71,6 @@ test('Apply sends one request per compositeId (separate fetch per CID)', async (
   expect(calledUrls.some((u) => u.includes('compositeId=S01-L01-G02'))).toBe(true);
   expect(calledUrls.some((u) => u.includes('compositeId=S02-L02-G01'))).toBe(true);
 });
-/*
 
 test('filters by Composite ID selection only fetches selected CIDs', async () => {
   setMeta({
@@ -84,12 +83,9 @@ test('filters by Composite ID selection only fetches selected CIDs', async () =>
 
   render(<Reports />);
 
-
-  const cid2 = await screen.findByLabelText('S01-L01-G02');
-  fireEvent.click(cid2);
   const cid1 = await screen.findByLabelText('S01-L01-G01');
   if (cid1 instanceof HTMLInputElement && cid1.checked) {
-    fireEvent.click(cid1);
+    fireEvent.click(cid1); // uncheck G01
   }
 
   // Apply
@@ -103,4 +99,4 @@ test('filters by Composite ID selection only fetches selected CIDs', async () =>
   expect(url.includes('compositeId=S01-L01-G02')).toBe(true);
   expect(url.includes('compositeId=S01-L01-G01')).toBe(false);
 });
-*/
+
