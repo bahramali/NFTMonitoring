@@ -140,3 +140,21 @@ test('uses provided compositeId when present', () => {
   expect(result.current.sensorData['C123'].temperature.value).toBe(22);
   expect(result.current.sensorData['C123'].humidity.value).toBe(55);
 });
+
+test('constructs compositeId from object layer field', () => {
+  const { result } = renderHook(() => useLiveDevices([SENSOR_TOPIC], 'S01'));
+
+  act(() => {
+    global.__stompHandler(SENSOR_TOPIC, {
+      deviceId: 'T01',
+      layer: { layer: 'L01' },
+      system: 'S01',
+      sensors: [
+        { sensorType: 'temperature', value: 20 },
+        { sensorType: 'humidity', value: 50 }
+      ]
+    });
+  });
+
+  expect(result.current.sensorData['L01T01'].temperature.value).toBe(20);
+});

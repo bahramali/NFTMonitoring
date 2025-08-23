@@ -29,7 +29,10 @@ export function useLiveDevices(topics, activeSystem) {
 
         const baseId = payload.deviceId || "unknown";
         const systemId = payload.system || "unknown";
-        const loc = payload.layer || payload.layer || payload.meta?.layer || "";
+        // Some payloads send `layer` as an object `{ layer: "L01" }` while others
+        // use a plain string. Normalise to a string so the composite ID is built
+        // correctly regardless of format.
+        const loc = payload.layer?.layer || payload.layer || payload.meta?.layer || "";
         const compositeId = payload.compositeId || (loc ? `${loc}${baseId}` : baseId);
 
         if (Array.isArray(payload.sensors)) {
