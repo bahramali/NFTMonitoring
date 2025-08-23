@@ -1,7 +1,7 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import Header from '../common/Header';
 import {useLiveDevices} from '../../components/useLiveDevices.js';
-import {useHistory} from '../common/useHistory.js';
+import {useHistory} from '../../components/useHistory.js';
 import styles from '../common/SensorDashboard.module.css';
 import ReportFiltersCompare from './components/ReportFiltersCompare';
 import ReportCharts from './components/ReportCharts';
@@ -206,14 +206,23 @@ function Reports() {
         },
     } = useHistory(selectedDevice, fromDate, toDate, autoRefresh, refreshInterval, selectedSensorTypes);
 
-    // Determine which report sections to display
-    const showTempHum = sensorNamesForSelected.includes('sht3x');
-    const hasAs734x = sensorNamesForSelected.includes('as7343') || sensorNamesForSelected.includes('as7341');
-    const showSpectrum = hasAs734x;
-    const showClearLux = sensorNamesForSelected.includes('veml7700') || hasAs734x;
-    const showPh = sensorTypesForSelected.includes('ph');
-    const showEcTds = sensorTypesForSelected.includes('ec') || sensorTypesForSelected.includes('tds');
-    const showDo = sensorTypesForSelected.includes('do') || sensorTypesForSelected.includes('dissolvedoxygen');
+    // Determine which report sections to display based on selected sensor types.
+    // If no sensors are explicitly selected, fall back to the full list of sensors
+    // available for the device.
+    const sensorsForDisplay = useMemo(() => {
+        const base = selectedSensorTypes.length
+            ? selectedSensorTypes
+            : [...sensorNamesForSelected, ...sensorTypesForSelected];
+        return base.map((s) => (s || '').toString().toLowerCase());
+    }, [selectedSensorTypes, sensorNamesForSelected, sensorTypesForSelected]);
+
+    const hasAs734x = sensorsForDisplay.some((s) => s.includes('as7343') || s.includes('as7341'));
+    const showTempHum = sensorsForDisplay.some((s) => s.includes('sht3x') || s.includes('temp') || s.includes('humidity'));
+    const showSpectrum = hasAs734x || sensorsForDisplay.some((s) => ['405', '425', '450', '475', '515', '550', '555', '600', '640', '690', '745', 'vis1', 'vis2', 'nir855'].some((k) => s.includes(k)));
+    const showClearLux = sensorsForDisplay.some((s) => s.includes('veml7700') || s.includes('lux') || s.includes('light') || s.includes('vis1') || s.includes('vis2')) || hasAs734x;
+    const showPh = sensorsForDisplay.some((s) => s.includes('ph'));
+    const showEcTds = sensorsForDisplay.some((s) => s.includes('ec') || s.includes('tds'));
+    const showDo = sensorsForDisplay.some((s) => s.includes('do') || s.includes('dissolvedoxygen'));
     const showAnyReport = showTempHum || showSpectrum || showClearLux || showPh || showEcTds || showDo;
     // compare state
     const [compareItems, setCompareItems] = useState([]);
