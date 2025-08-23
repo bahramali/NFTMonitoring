@@ -1,6 +1,14 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import styles from './ReportFiltersCompare.module.css';
 
+const DEFAULT_SENSOR_GROUPS = {
+    water: ['dissolvedTemp', 'dissolvedEC', 'dissolvedTDS', 'dissolvedOxygen'],
+    light: ['VIS1', 'VIS2', 'NIR855', 'light'],
+    blue: ['405nm', '425nm', '450nm', '475nm', '515nm'],
+    red: ['550nm', '555nm', '600nm', '640nm', '690nm', '745nm'],
+    airq: ['humidity', 'temperature', 'CO2'],
+};
+
 // comment: tiny util to render radio pair
 function AllNone({name, onAll, onNone}) {
     return (
@@ -68,9 +76,6 @@ export default function ReportFiltersCompare({
                                                  onLayerChange,
                                                  selectedDevice = '',
                                                  onDeviceChange,
-                                                 // sensors detected for selected device
-                                                 sensorNames = [],
-                                                 sensorTypes = [],
                                                  // sensor groups
                                                  water: waterProp,
                                                  light: lightProp,
@@ -181,36 +186,23 @@ export default function ReportFiltersCompare({
     }, [filteredCatalogDevices, selectedDevices]);
 
     const sensorGroups = useMemo(() => {
-        const groups = {water: [], light: [], blue: [], red: [], airq: []};
-        let allSensors = filteredCatalogDevices.flatMap(d => d.sensors || []);
-        if (!allSensors.length) {
-            const fallback = Array.from(new Set([...(sensorNames || []), ...(sensorTypes || [])])).filter(Boolean);
-            allSensors = fallback.map((n) => ({ sensorName: n }));
-        }
         const activeSensors = selectedCatalogDevices.flatMap(d => d.sensors || []);
         const activeSet = new Set(activeSensors.map(s => (s?.sensorName || s?.sensorType || s?.valueType || '').toString().toLowerCase()));
-        allSensors.forEach(s => {
-            const rawName = s?.sensorName || s?.sensorType || s?.valueType || '';
-            const name = rawName.toString();
-            const lower = name.toLowerCase();
-            const disabled = !activeSet.has(lower);
-            const add = (grp) => {
-                if (!groups[grp].some(o => o.label === name)) groups[grp].push({label: name, disabled});
-            };
-            if (['ph', 'tds', 'ec', 'do', 'water'].some(k => lower.includes(k))) add('water');
-            if (['lux', 'vis1','vis2', 'light'].some(k => lower.includes(k))) add('light');
-            if (['405', '425', '450', '475', '515'].some(k => lower.includes(k))) add('blue');
-            if (['550','555','600', '640', '690', '745'].some(k => lower.includes(k))) add('red');
-            if (['temp', 'humidity', 'co2'].some(k => lower.includes(k))) add('airq');
+        const groups = {};
+        Object.entries(DEFAULT_SENSOR_GROUPS).forEach(([grp, labels]) => {
+            groups[grp] = labels.map(label => ({
+                label,
+                disabled: !activeSet.has(label.toLowerCase()),
+            }));
         });
         return groups;
-    }, [filteredCatalogDevices, selectedCatalogDevices, sensorNames, sensorTypes]);
+    }, [selectedCatalogDevices]);
 
-    const water = waterProp || {options: sensorGroups.water, values: []};
-    const light = lightProp || {options: sensorGroups.light, values: []};
-    const blue = blueProp || {options: sensorGroups.blue, values: []};
-    const red = redProp || {options: sensorGroups.red, values: []};
-    const airq = airqProp || {options: sensorGroups.airq, values: []};
+    const water = {options: sensorGroups.water, values: waterProp?.values || []};
+    const light = {options: sensorGroups.light, values: lightProp?.values || []};
+    const blue = {options: sensorGroups.blue, values: blueProp?.values || []};
+    const red = {options: sensorGroups.red, values: redProp?.values || []};
+    const airq = {options: sensorGroups.airq, values: airqProp?.values || []};
 
     return (
         <div className={styles.rf}>
