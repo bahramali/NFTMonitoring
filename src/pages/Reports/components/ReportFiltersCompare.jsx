@@ -117,21 +117,22 @@ export default function ReportFiltersCompare({
     const [selectedDevices, setSelectedDevices] = useState(() =>
         selectedDevice ? [selectedDevice] : []
     );
+    const [selectedCompositeIds, setSelectedCompositeIds] = useState([]);
 
     const compositeIds = useMemo(() => {
-        if (!selectedSystems.length || !selectedLayers.length || !selectedDevices.length) return [];
-        const deviceIds = selectedDevices.map((d) => {
-            const parts = String(d).split('-');
-            return parts[parts.length - 1];
+        const systems = catalog?.systems || [];
+        const ids = systems.flatMap(sys => {
+            const direct = sys.deviceCompositeIds || sys.compositeIds || [];
+            const nested = (sys.layers || []).flatMap(lay =>
+                (lay.devices || []).map(dev => dev.compositeId).filter(Boolean)
+            );
+            return [...direct, ...nested];
         });
-        const ids = new Set();
-        selectedSystems.forEach((sys) => {
-            selectedLayers.forEach((lay) => {
-                deviceIds.forEach((dev) => ids.add(`${sys}-${lay}-${dev}`));
-            });
-        });
-        return Array.from(ids);
-    }, [selectedSystems, selectedLayers, selectedDevices]);
+        if (!ids.length) {
+            return (catalog?.devices || []).map(d => `${d.systemId}-${d.layerId}-${d.deviceId}`);
+        }
+        return Array.from(new Set(ids));
+    }, [catalog]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -167,6 +168,17 @@ export default function ReportFiltersCompare({
             .map(d => d.deviceId))).sort();
     }, [catalog, selectedSystems, selectedLayers]);
     const devices = devicesProp.length ? devicesProp : devicesFromCatalog;
+
+    useEffect(() => {
+        const matched = compositeIds.filter(id => {
+            const [s, l, d] = id.split('-');
+            return selectedSystems.includes(s) && selectedLayers.includes(l) && selectedDevices.includes(d);
+        });
+        setSelectedCompositeIds(prev => {
+            if (prev.length === matched.length && prev.every(x => matched.includes(x))) return prev;
+            return matched;
+        });
+    }, [selectedSystems, selectedLayers, selectedDevices, compositeIds]);
 
     const filteredCatalogDevices = useMemo(() => {
         const all = catalog?.devices || [];
@@ -321,7 +333,42 @@ export default function ReportFiltersCompare({
                         <div className={styles.groupTitle}>Device Composite IDs</div>
                         <div className={styles.checklist}>
                             {compositeIds.map((id) => (
-                                <div key={id} className={styles.item}>{id}</div>
+                                <label key={id} className={styles.item}>
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedCompositeIds.includes(id)}
+                                        onChange={() => {
+                                            const [s, l, d] = id.split('-');
+                                            const isSelected = selectedCompositeIds.includes(id);
+                                            setSelectedCompositeIds(prev => isSelected ? prev.filter(x => x !== id) : [...prev, id]);
+                                            setSelectedSystems(prev => {
+                                                if (isSelected) {
+                                                    const still = selectedCompositeIds.filter(x => x !== id).some(x => x.split('-')[0] === s);
+                                                    return still ? prev : prev.filter(x => x !== s);
+                                                }
+                                                return prev.includes(s) ? prev : [...prev, s];
+                                            });
+                                            setSelectedLayers(prev => {
+                                                if (isSelected) {
+                                                    const still = selectedCompositeIds.filter(x => x !== id).some(x => x.split('-')[1] === l);
+                                                    return still ? prev : prev.filter(x => x !== l);
+                                                }
+                                                return prev.includes(l) ? prev : [...prev, l];
+                                            });
+                                            setSelectedDevices(prev => {
+                                                if (isSelected) {
+                                                    const still = selectedCompositeIds.filter(x => x !== id).some(x => x.split('-')[2] === d);
+                                                    return still ? prev : prev.filter(x => x !== d);
+                                                }
+                                                return prev.includes(d) ? prev : [...prev, d];
+                                            });
+                                            onSystemChange && onSystemChange({target: {value: s}});
+                                            onLayerChange && onLayerChange({target: {value: l}});
+                                            onDeviceChange && onDeviceChange({target: {value: d}});
+                                        }}
+                                    />
+                                    {id}
+                                </label>
                             ))}
                         </div>
                     </div>
