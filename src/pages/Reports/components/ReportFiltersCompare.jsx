@@ -16,16 +16,19 @@ function Checklist({options = [], values = [], onToggle}) {
     return (
         <div className={styles.checklist}>
             {options.map((opt) => {
-                const checked = values.includes(opt);
+                const label = typeof opt === 'string' ? opt : opt.label;
+                const disabled = typeof opt === 'string' ? false : !!opt.disabled;
+                const checked = values.includes(label);
                 return (
-                    <label key={opt} className={styles.item}>
+                    <label key={label} className={`${styles.item} ${disabled ? styles.disabled : ''}`}>
                         <input
                             type="checkbox"
+                            disabled={disabled}
                             checked={onToggle ? checked : undefined}
                             defaultChecked={!onToggle ? checked : undefined}
-                            onChange={() => onToggle && onToggle(opt)}
+                            onChange={() => onToggle && onToggle(label)}
                         />
-                        {opt}
+                        {label}
                     </label>
                 );
             })}
@@ -150,28 +153,34 @@ export default function ReportFiltersCompare({
         return all.filter(d => {
             const sysOk = !selectedSystems.length || selectedSystems.includes(d.systemId);
             const layOk = !selectedLayers.length || selectedLayers.includes(d.layerId);
-            const devOk =
-                !selectedDevices.length ||
-                selectedDevices.includes(d.deviceId) ||
-                selectedDevices.includes(`${d.layerId}${d.deviceId}`);
-            return sysOk && layOk && devOk;
+            return sysOk && layOk;
         });
-    }, [catalog, selectedSystems, selectedLayers, selectedDevices]);
+    }, [catalog, selectedSystems, selectedLayers]);
+
+    const selectedCatalogDevices = useMemo(() => {
+        if (!selectedDevices.length) return [];
+        return filteredCatalogDevices.filter(d =>
+            selectedDevices.includes(d.deviceId) ||
+            selectedDevices.includes(`${d.layerId}${d.deviceId}`)
+        );
+    }, [filteredCatalogDevices, selectedDevices]);
 
     const sensorGroups = useMemo(() => {
         const groups = {water: [], light: [], blue: [], red: [], airq: []};
-        let sensors = filteredCatalogDevices.flatMap(d => d.sensors || []);
-        // Fallback to provided sensor lists when catalog data is unavailable
-        if (!sensors.length) {
+        let allSensors = filteredCatalogDevices.flatMap(d => d.sensors || []);
+        if (!allSensors.length) {
             const fallback = Array.from(new Set([...(sensorNames || []), ...(sensorTypes || [])])).filter(Boolean);
-            sensors = fallback.map((n) => ({ sensorName: n }));
+            allSensors = fallback.map((n) => ({ sensorName: n }));
         }
-        sensors.forEach(s => {
+        const activeSensors = selectedCatalogDevices.flatMap(d => d.sensors || []);
+        const activeSet = new Set(activeSensors.map(s => (s?.sensorName || s?.sensorType || s?.valueType || '').toString().toLowerCase()));
+        allSensors.forEach(s => {
             const rawName = s?.sensorName || s?.sensorType || s?.valueType || '';
             const name = rawName.toString();
             const lower = name.toLowerCase();
+            const disabled = !activeSet.has(lower);
             const add = (grp) => {
-                if (!groups[grp].includes(name)) groups[grp].push(name);
+                if (!groups[grp].some(o => o.label === name)) groups[grp].push({label: name, disabled});
             };
             if (['ph', 'tds', 'ec', 'do', 'water'].some(k => lower.includes(k))) add('water');
             if (['lux', 'vis1','vis2', 'light'].some(k => lower.includes(k))) add('light');
@@ -180,7 +189,7 @@ export default function ReportFiltersCompare({
             if (['temp', 'humidity', 'co2'].some(k => lower.includes(k))) add('airq');
         });
         return groups;
-    }, [filteredCatalogDevices, sensorNames, sensorTypes]);
+    }, [filteredCatalogDevices, selectedCatalogDevices, sensorNames, sensorTypes]);
 
     const water = waterProp || {options: sensorGroups.water, values: []};
     const light = lightProp || {options: sensorGroups.light, values: []};

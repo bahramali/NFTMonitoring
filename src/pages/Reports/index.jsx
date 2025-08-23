@@ -123,13 +123,29 @@ function Reports() {
         return sensors.map((s) => (s.sensorName || s.source || '-').toLowerCase());
     }, [sensorTopicDevices, selectedDevice]);
 
-    // Sensor group classification
+    const allSensorNamesTypes = useMemo(() => {
+        const set = new Set();
+        Object.values(sensorTopicDevices || {}).forEach(dev => {
+            (dev.sensors || []).forEach(s => {
+                const name = (s.sensorName || s.source || '').toLowerCase();
+                const type = (s.sensorType || s.valueType || '').toLowerCase();
+                if (name) set.add(name);
+                if (type) set.add(type);
+            });
+        });
+        return Array.from(set);
+    }, [sensorTopicDevices]);
+
+    // Sensor group classification with disabled state
     const sensorGroups = useMemo(() => {
         const groups = {water: [], light: [], blue: [], red: [], airq: []};
-        const sensors = Array.from(new Set([...(sensorNamesForSelected || []), ...(sensorTypesForSelected || [])])).filter(Boolean);
-        sensors.forEach((name) => {
+        const activeSet = new Set([...(sensorNamesForSelected || []), ...(sensorTypesForSelected || [])]);
+        allSensorNamesTypes.forEach((name) => {
             const lower = name.toLowerCase();
-            const add = (grp) => { if (!groups[grp].includes(name)) groups[grp].push(name); };
+            const disabled = !activeSet.has(name);
+            const add = (grp) => {
+                if (!groups[grp].some(o => o.label === name)) groups[grp].push({label: name, disabled});
+            };
             if (['ph', 'tds', 'ec', 'do', 'water'].some(k => lower.includes(k))) add('water');
             if (['lux', 'vis1','vis2', 'light'].some(k => lower.includes(k))) add('light');
             if (['405', '425', '450', '475', '515'].some(k => lower.includes(k))) add('blue');
@@ -137,7 +153,7 @@ function Reports() {
             if (['temp', 'humidity', 'co2'].some(k => lower.includes(k))) add('airq');
         });
         return groups;
-    }, [sensorNamesForSelected, sensorTypesForSelected]);
+    }, [allSensorNamesTypes, sensorNamesForSelected, sensorTypesForSelected]);
 
     const [selectedWater, setSelectedWater] = useState([]);
     const [selectedLight, setSelectedLight] = useState([]);
@@ -164,7 +180,8 @@ function Reports() {
     }, [selectedWater, selectedLight, selectedBlue, selectedRed, selectedAirq]);
 
     const toggle = (setter) => (opt) => setter(prev => prev.includes(opt) ? prev.filter(o => o !== opt) : [...prev, opt]);
-    const all = (options, setter) => () => setter(options);
+    const all = (options, setter) => () =>
+        setter(options.filter(o => !o.disabled).map(o => o.label));
     const none = (setter) => () => setter([]);
 
     const onToggleWater = toggle(setSelectedWater);
