@@ -1,350 +1,306 @@
-import React, {useEffect, useMemo, useState} from 'react';
-import Header from '../common/Header';
-import {useLiveDevices} from '../../components/useLiveDevices.js';
-import {useHistory} from '../../components/useHistory.js';
-import styles from '../common/SensorDashboard.module.css';
-import ReportFiltersCompare from './components/ReportFiltersCompare';
-import ReportCharts from './components/ReportCharts';
-import {SENSOR_TOPIC, topics} from '../Dashboard/components/dashboard.constants.js';
-import {toLocalInputValue, formatTime} from '../Dashboard/components/dashboard.utils.js';
-import {useFilters, ALL} from '../../context/FiltersContext';
+// index.jsx
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import ReportCharts from "./components/ReportCharts";
+import ReportFiltersCompare from "./components/ReportFiltersCompare";
 
-function Reports() {
-    const [activeSystem, setActiveSystem] = useState('S01');
-    const {deviceData, availableCompositeIds} = useLiveDevices(topics, activeSystem);
-    // Initialize the selected device immediately so that report sections are
-    // rendered without a transient "No reports" message. This ensures tests can
-    // assert on the initial UI without waiting for effects to run.
-    const [selectedDevice, setSelectedDevice] = useState(() => availableCompositeIds[0] || '');
+// ---------- utils ----------
+const toCID = (d) => `${d.systemId}-${d.layerId}-${d.deviceId}`;
+const toLocalInputValue = (date) => {
+    // comment: yyyy-MM-ddTHH:mm for <input type="datetime-local">
+    const pad = (n) => `${n}`.padStart(2, "0");
+    const y = date.getFullYear();
+    const m = pad(date.getMonth() + 1);
+    const d = pad(date.getDate());
+    const hh = pad(date.getHours());
+    const mm = pad(date.getMinutes());
+    return `${y}-${m}-${d}T${hh}:${mm}`;
+};
+const toISOSeconds = (v) => (v ? new Date(v).toISOString() : "");
 
-    const now = Date.now();
-    const [fromDate, setFromDate] = useState(toLocalInputValue(new Date(now - 6 * 60 * 60 * 1000)));
-    const [toDate, setToDate] = useState(toLocalInputValue(new Date(now)));
+// ---------- meta loader (from cache or endpoint) ----------
+function useDevicesMeta() {
+    const [meta, setMeta] = useState({ devices: [] });
 
-    const [autoRefresh, setAutoRefresh] = useState(false);
-    const [refreshInterval, setRefreshInterval] = useState(60000);
-
-    const {
-        device: devFilter,
-        layer: layerFilter,
-        system: sysFilter,
-        topic: topicFilter,
-        setLists,
-    } = useFilters();
-
-    const activeSystemTopics = deviceData[activeSystem] || {};
-    const sensorTopicDevices = activeSystemTopics[SENSOR_TOPIC] || {};
-
-    // Build metadata for filtering
-    const deviceMeta = useMemo(() => {
-        const map = {};
-        for (const [sysId, topicsObj] of Object.entries(deviceData || {})) {
-            for (const [topicKey, devs] of Object.entries(topicsObj || {})) {
-                for (const [cid, payload] of Object.entries(devs || {})) {
-                    const baseId = payload?.deviceId;
-                    const layer = payload?.layer?.layer || payload?.layer || null;
-                    if (!map[cid]) {
-                        map[cid] = {system: sysId, layer, baseId, topics: new Set([topicKey])};
-                    } else {
-                        map[cid].topics.add(topicKey);
-                    }
-                }
-            }
+    useEffect(() => {
+        // Try cache first
+        const cached = localStorage.getItem("reportsMeta:v1");
+        if (cached) {
+            try {
+                setMeta(JSON.parse(cached));
+            } catch { /* empty */ }
         }
-        return Object.fromEntries(
-            Object.entries(map).map(([cid, m]) => [cid, {
-                system: m.system,
-                layer: m.layer,
-                baseId: m.baseId,
-                topics: Array.from(m.topics)
-            }])
+        // Optional: fetch fresh
+        // fetch("/api/meta/devices")
+        //   .then((r) => r.json())
+        //   .then((data) => {
+        //     localStorage.setItem("reportsMeta:v1", JSON.stringify(data));
+        //     setMeta(data);
+        //   })
+        //   .catch(() => {});
+    }, []);
+
+    return meta;
+}
+
+export default function Reports() {
+    // ---------- meta ----------
+    const { devices: deviceRows } = useDevicesMeta(); // [{systemId,layerId,deviceId,sensors:[]}, ...]
+
+    // ---------- timing ----------
+    const [fromDate, setFromDate] = useState(() => {
+        const d = new Date();
+        d.setHours(d.getHours() - 6);
+        return toLocalInputValue(d);
+    });
+    const [toDate, setToDate] = useState(() => toLocalInputValue(new Date()));
+    const [bucket, setBucket] = useState("5m");
+    const [autoRefreshValue, setAutoRefreshValue] = useState("Off");
+
+    // ---------- location selections ----------
+    const [selSystems, setSelSystems] = useState(new Set());
+    const [selLayers, setSelLayers] = useState(new Set());
+    const [selDevices, setSelDevices] = useState(new Set()); // deviceId level
+    const [selCIDs, setSelCIDs] = useState(new Set()); // compositeId explicit selection
+    const [cidQuery, setCidQuery] = useState("");
+
+    // ---------- derived lists ----------
+    const systems = useMemo(
+        () => Array.from(new Set(deviceRows.map((d) => d.systemId))).sort(),
+        [deviceRows]
+    );
+
+    const layers = useMemo(() => {
+        const filtered = deviceRows.filter((d) =>
+            selSystems.size ? selSystems.has(d.systemId) : true
         );
-    }, [deviceData]);
+        return Array.from(new Set(filtered.map((d) => d.layerId))).sort();
+    }, [deviceRows, selSystems]);
 
-    // Populate sidebar lists
-    useEffect(() => {
-        const devices = Object.keys(deviceMeta);
-        const layers = Array.from(new Set(Object.values(deviceMeta).map((m) => m.layer).filter(Boolean)));
-        const systems = Object.keys(deviceData || {});
-        const topicsList = Array.from(new Set(Object.values(deviceData || {}).flatMap((sys) => Object.keys(sys || {}))));
-        setLists({devices, layers, systems, topics: topicsList});
-    }, [deviceMeta, deviceData, setLists]);
+    const filteredDeviceRows = useMemo(
+        () =>
+            deviceRows.filter(
+                (d) =>
+                    (selSystems.size ? selSystems.has(d.systemId) : true) &&
+                    (selLayers.size ? selLayers.has(d.layerId) : true)
+            ),
+        [deviceRows, selSystems, selLayers]
+    );
 
-    // Keep activeSystem in sync with filter
+    const deviceIds = useMemo(
+        () => Array.from(new Set(filteredDeviceRows.map((d) => d.deviceId))).sort(),
+        [filteredDeviceRows]
+    );
+
+    const cidsVisible = useMemo(() => {
+        const list = filteredDeviceRows.map(toCID);
+        return cidQuery
+            ? list.filter((x) => x.toLowerCase().includes(cidQuery.toLowerCase()))
+            : list;
+    }, [filteredDeviceRows, cidQuery]);
+
+    // ---------- sync: S/L/D -> CIDs ----------
     useEffect(() => {
-        if (sysFilter !== ALL && sysFilter !== activeSystem) {
-            setActiveSystem(sysFilter);
+        const filtered = deviceRows.filter(
+            (d) =>
+                (selSystems.size ? selSystems.has(d.systemId) : true) &&
+                (selLayers.size ? selLayers.has(d.layerId) : true) &&
+                (selDevices.size ? selDevices.has(d.deviceId) : true)
+        );
+        setSelCIDs(new Set(filtered.map(toCID)));
+    }, [
+        deviceRows,
+        Array.from(selSystems).join(","),
+        Array.from(selLayers).join(","),
+        Array.from(selDevices).join(","),
+    ]);
+
+    // ---------- toggle helpers ----------
+    const toggleInSet = (value, set, setter) => {
+        const next = new Set(set);
+        next.has(value) ? next.delete(value) : next.add(value);
+        setter(next);
+    };
+    const setAll = (list, setter) => setter(new Set(list));
+    const setNone = (setter) => setter(new Set());
+
+    // ---------- explicit CID toggle (back-propagate) ----------
+    const toggleCID = (cid) => {
+        const next = new Set(selCIDs);
+        next.has(cid) ? next.delete(cid) : next.add(cid);
+        setSelCIDs(next);
+
+        if (next.size) {
+            const rows = deviceRows.filter((d) => next.has(toCID(d)));
+            setSelSystems(new Set(rows.map((d) => d.systemId)));
+            setSelLayers(new Set(rows.map((d) => d.layerId)));
+            setSelDevices(new Set(rows.map((d) => d.deviceId)));
         }
-    }, [sysFilter, activeSystem]);
-
-    // If no system is selected and the current system has no devices,
-    // automatically switch to the first available system so that reports
-    // are shown without extra user interaction.
-    useEffect(() => {
-        if (
-            sysFilter === ALL &&
-            (!deviceData[activeSystem] || Object.keys(deviceData[activeSystem] || {}).length === 0)
-        ) {
-            const systems = Object.keys(deviceData || {});
-            if (systems.length && activeSystem !== systems[0]) {
-                setActiveSystem(systems[0]);
-            }
-        }
-    }, [deviceData, activeSystem, sysFilter]);
-
-    // Filter available device IDs based on active filters
-    const filteredCompositeIds = useMemo(() => {
-        return availableCompositeIds.filter((id) => {
-            const meta = deviceMeta[id] || {};
-            const okDev = devFilter === ALL || id === devFilter;
-            const okLay = layerFilter === ALL || meta.layer === layerFilter;
-            const okSys = sysFilter === ALL || meta.system === sysFilter;
-            const okTopic = topicFilter === ALL || (meta.topics || []).includes(topicFilter);
-            return okDev && okLay && okSys && okTopic;
-        });
-    }, [availableCompositeIds, deviceMeta, devFilter, layerFilter, sysFilter, topicFilter]);
-
-    // Ensure selectedDevice is valid
-    useEffect(() => {
-        if (filteredCompositeIds.length && !filteredCompositeIds.includes(selectedDevice)) {
-            setSelectedDevice(filteredCompositeIds[0]);
-        }
-    }, [filteredCompositeIds, selectedDevice]);
-
-    const sensorTypesForSelected = useMemo(() => {
-        const match = sensorTopicDevices[selectedDevice];
-        const sensors = match?.sensors || [];
-        return sensors.map((s) => (s.sensorType || s.valueType || '').toLowerCase());
-    }, [sensorTopicDevices, selectedDevice]);
-
-    const sensorNamesForSelected = useMemo(() => {
-        const match = sensorTopicDevices[selectedDevice];
-        const sensors = match?.sensors || [];
-        return sensors.map((s) => (s.sensorName || s.source || '-').toLowerCase());
-    }, [sensorTopicDevices, selectedDevice]);
-
-    const allSensorNamesTypes = useMemo(() => {
-        const set = new Set();
-        Object.values(sensorTopicDevices || {}).forEach(dev => {
-            (dev.sensors || []).forEach(s => {
-                const name = (s.sensorName || s.source || '').toLowerCase();
-                const type = (s.sensorType || s.valueType || '').toLowerCase();
-                if (name) set.add(name);
-                if (type) set.add(type);
-            });
-        });
-        return Array.from(set);
-    }, [sensorTopicDevices]);
-
-    // Sensor group classification with disabled state
-    const sensorGroups = useMemo(() => {
-        const groups = {water: [], light: [], blue: [], red: [], airq: []};
-        const activeSet = new Set([...(sensorNamesForSelected || []), ...(sensorTypesForSelected || [])]);
-        allSensorNamesTypes.forEach((name) => {
-            const lower = name.toLowerCase();
-            const disabled = !activeSet.has(name);
-            const add = (grp) => {
-                if (!groups[grp].some(o => o.label === name)) groups[grp].push({label: name, disabled});
-            };
-            if (['ph', 'tds', 'ec', 'do', 'water'].some(k => lower.includes(k))) add('water');
-            if (['lux', 'vis1','vis2', 'light'].some(k => lower.includes(k))) add('light');
-            if (['405', '425', '450', '475', '515'].some(k => lower.includes(k))) add('blue');
-            if (['550','555','600', '640', '690', '745'].some(k => lower.includes(k))) add('red');
-            if (['temp', 'humidity', 'co2'].some(k => lower.includes(k))) add('airq');
-        });
-        return groups;
-    }, [allSensorNamesTypes, sensorNamesForSelected, sensorTypesForSelected]);
-
-    const [selectedWater, setSelectedWater] = useState([]);
-    const [selectedLight, setSelectedLight] = useState([]);
-    const [selectedBlue, setSelectedBlue] = useState([]);
-    const [selectedRed, setSelectedRed] = useState([]);
-    const [selectedAirq, setSelectedAirq] = useState([]);
-
-    useEffect(() => {
-        setSelectedWater([]);
-        setSelectedLight([]);
-        setSelectedBlue([]);
-        setSelectedRed([]);
-        setSelectedAirq([]);
-    }, [sensorGroups]);
-
-    const selectedSensorTypes = useMemo(() => {
-        return Array.from(new Set([
-            ...selectedWater,
-            ...selectedLight,
-            ...selectedBlue,
-            ...selectedRed,
-            ...selectedAirq,
-        ]));
-    }, [selectedWater, selectedLight, selectedBlue, selectedRed, selectedAirq]);
-
-    const toggle = (setter) => (opt) => setter(prev => prev.includes(opt) ? prev.filter(o => o !== opt) : [...prev, opt]);
-    const all = (options, setter) => () =>
-        setter(options.filter(o => !o.disabled).map(o => o.label));
-    const none = (setter) => () => setter([]);
-
-    const onToggleWater = toggle(setSelectedWater);
-    const onToggleLight = toggle(setSelectedLight);
-    const onToggleBlue = toggle(setSelectedBlue);
-    const onToggleRed = toggle(setSelectedRed);
-    const onToggleAirq = toggle(setSelectedAirq);
-
-    const onAllWater = all(sensorGroups.water, setSelectedWater);
-    const onAllLight = all(sensorGroups.light, setSelectedLight);
-    const onAllBlue = all(sensorGroups.blue, setSelectedBlue);
-    const onAllRed = all(sensorGroups.red, setSelectedRed);
-    const onAllAirq = all(sensorGroups.airq, setSelectedAirq);
-
-    const onNoneWater = none(setSelectedWater);
-    const onNoneLight = none(setSelectedLight);
-    const onNoneBlue = none(setSelectedBlue);
-    const onNoneRed = none(setSelectedRed);
-    const onNoneAirq = none(setSelectedAirq);
-
-    const resetSensors = () => {
-        setSelectedWater([]);
-        setSelectedLight([]);
-        setSelectedBlue([]);
-        setSelectedRed([]);
-        setSelectedAirq([]);
     };
 
-    const {
-        rangeData = [],
-        tempRangeData = [],
-        phRangeData = [],
-        ecTdsRangeData = [],
-        doRangeData = [],
-        xDomain = [],
-        startTime = 0,
-        endTime = 0,
-        fetchReportData = () => {
-        },
-    } = useHistory(selectedDevice, fromDate, toDate, autoRefresh, refreshInterval, selectedSensorTypes);
+    // ---------- selected CIDs to use ----------
+    const selectedCIDs = useMemo(() => {
+        const arr = Array.from(selCIDs);
+        return arr.length ? arr : Array.from(new Set(filteredDeviceRows.map(toCID)));
+    }, [selCIDs, filteredDeviceRows]);
 
-    // Determine which report sections to display based on selected sensor types.
-    // If no sensors are explicitly selected, fall back to the full list of sensors
-    // available for the device.
-    const sensorsForDisplay = useMemo(() => {
-        const base = selectedSensorTypes.length
-            ? selectedSensorTypes
-            : [...sensorNamesForSelected, ...sensorTypesForSelected];
-        return base.map((s) => (s || '').toString().toLowerCase());
-    }, [selectedSensorTypes, sensorNamesForSelected, sensorTypesForSelected]);
+    // ---------- sensors union ----------
+    const allowedSensors = useMemo(() => {
+        const rows = selectedCIDs
+            .map((x) => deviceRows.find((d) => toCID(d) === x))
+            .filter(Boolean);
+        return new Set(rows.flatMap((d) => d.sensors || []));
+    }, [selectedCIDs, deviceRows]);
 
-    const hasAs734x = sensorsForDisplay.some((s) => s.includes('as7343') || s.includes('as7341'));
-    const showTempHum = sensorsForDisplay.some((s) => s.includes('sht3x') || s.includes('temp') || s.includes('humidity'));
-    const showSpectrum = hasAs734x || sensorsForDisplay.some((s) => ['405', '425', '450', '475', '515', '550', '555', '600', '640', '690', '745', 'vis1', 'vis2', 'nir855'].some((k) => s.includes(k)));
-    const showClearLux = sensorsForDisplay.some((s) => s.includes('veml7700') || s.includes('lux') || s.includes('light') || s.includes('vis1') || s.includes('vis2')) || hasAs734x;
-    const showPh = sensorsForDisplay.some((s) => s.includes('ph'));
-    const showEcTds = sensorsForDisplay.some((s) => s.includes('ec') || s.includes('tds'));
-    const showDo = sensorsForDisplay.some((s) => s.includes('do') || s.includes('dissolvedoxygen'));
-    const showAnyReport = showTempHum || showSpectrum || showClearLux || showPh || showEcTds || showDo;
-    // compare state
+    // ---------- fetch (one request per compositeId) ----------
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const abortRef = useRef(null);
+
+    const fetchReportData = async () => {
+        try {
+            setError("");
+            setLoading(true);
+            if (abortRef.current) abortRef.current.abort();
+            abortRef.current = new AbortController();
+            const signal = abortRef.current.signal;
+
+            if (!selectedCIDs.length) {
+                setLoading(false);
+                return;
+            }
+
+            const baseParams = {
+                from: toISOSeconds(fromDate),
+                to: toISOSeconds(toDate),
+                bucket,
+            };
+
+            // comment: one fetch per compositeId
+            const requests = selectedCIDs.map(async (cid) => {
+                const params = new URLSearchParams(baseParams);
+                params.set("compositeId", cid);
+                const url = `/api/records/history/aggregate?${params.toString()}`;
+                const res = await fetch(url, { signal });
+                if (!res.ok) {
+                    const txt = await res.text().catch(() => "");
+                    throw new Error(`CID ${cid} -> ${res.status} ${txt}`);
+                }
+                const data = await res.json();
+                return { cid, data };
+            });
+
+            const results = await Promise.all(requests);
+            // TODO: pass results to charts (merge or render per-series)
+            console.log("history results", results);
+        } catch (e) {
+            if (e.name !== "AbortError") {
+                console.error(e);
+                setError(String(e.message || e));
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // ---------- auto refresh ----------
+    useEffect(() => {
+        if (autoRefreshValue === "Off") return;
+        const ms =
+            autoRefreshValue === "30s"
+                ? 30_000
+                : autoRefreshValue === "1m"
+                    ? 60_000
+                    : 5 * 60_000;
+        const t = setInterval(fetchReportData, ms);
+        return () => clearInterval(t);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [autoRefreshValue, fromDate, toDate, bucket, selectedCIDs.join(",")]);
+
+    // ---------- compare list ----------
     const [compareItems, setCompareItems] = useState([]);
-    const addToCompare = () => {
-        const sensors = selectedSensorTypes.length ? selectedSensorTypes : (sensorNamesForSelected.length ? sensorNamesForSelected : sensorTypesForSelected);
-        const title = `${(sensors[0] || 'No-sensor')} @ ${activeSystem||'-'}/${(layerFilter||'-')}/${selectedDevice||'-'}`;
-        setCompareItems(prev => [...prev, {
-          id: String(Date.now()),
-          from: fromDate, to: toDate,
-          system: activeSystem, layer: layerFilter !== ALL ? layerFilter : (deviceMeta[selectedDevice]?.layer || '-'),
-          device: selectedDevice,
-          sensors: sensors,
-          title
-        }]);
-      };
-      const removeCompare = (id) => setCompareItems(prev => prev.filter(i => i.id !== id));
-      const clearCompare = () => setCompareItems([]);
+    const onAddCompare = () => {
+        if (!selectedCIDs.length) return;
+        const title = `${selectedCIDs[0]} (${bucket})`;
+        setCompareItems((p) => [
+            ...p,
+            {
+                id: String(Date.now()),
+                title,
+                from: toISOSeconds(fromDate),
+                to: toISOSeconds(toDate),
+                system: "-",
+                layer: "-",
+                device: "-",
+                sensors: Array.from(allowedSensors),
+            },
+        ]);
+    };
+    const onRemoveCompare = (id) =>
+        setCompareItems((p) => p.filter((x) => x.id !== id));
+    const onClearCompare = () => setCompareItems([]);
+
+    // ---------- actions ----------
+    const onApply = () => fetchReportData();
+    const onReset = () => {
+        setSelSystems(new Set());
+        setSelLayers(new Set());
+        setSelDevices(new Set());
+        setSelCIDs(new Set());
+        setCidQuery("");
+    };
+
+    // ---------- render ----------
     return (
-        <div className={styles.dashboard}>
-            <Header title="Reports"/>
+        <div style={{ padding: 16 }}>
+            <ReportFiltersCompare
+                // timing
+                fromDate={fromDate}
+                toDate={toDate}
+                onFromDateChange={(e) => setFromDate(e.target.value)}
+                onToDateChange={(e) => setToDate(e.target.value)}
+                onApply={onApply}
+                bucket={bucket}
+                onBucketChange={(e) => setBucket(e.target.value)}
+                autoRefreshValue={autoRefreshValue}
+                onAutoRefreshValueChange={(e) => setAutoRefreshValue(e.target.value)}
+                // location dropdown props (unused when using checklists below)
+                systems={systems}
+                layers={layers}
+                devices={deviceIds}
+                selectedSystem={null}
+                onSystemChange={() => {}}
+                selectedLayer={null}
+                onLayerChange={() => {}}
+                selectedDevice={null}
+                onDeviceChange={() => {}}
+                // actions
+                onReset={onReset}
+                onAddCompare={onAddCompare}
+                onExportCsv={() => {}}
+                // range
+                rangeLabel={`From: ${new Date(fromDate).toLocaleString()} until: ${new Date(
+                    toDate
+                ).toLocaleString()}`}
+                // compare
+                compareItems={compareItems}
+                onClearCompare={onClearCompare}
+                onRemoveCompare={onRemoveCompare}
+            />
 
-            <div className={styles.section}>
-                <div className={styles.sectionBody}>
-                    {!showAnyReport ? (
-                        <div>No reports available for this composite ID.</div>
-                    ) : (
-                        <>
-                            <ReportFiltersCompare
-                               // timing
-                               fromDate={fromDate}
-                               toDate={toDate}
-                               onFromDateChange={(e) => setFromDate(e.target.value)}
-                               onToDateChange={(e) => setToDate(e.target.value)}
-                               onNow={() => setToDate(toLocalInputValue(new Date()))}
-                               onApply={fetchReportData}
-                               // location lists from computed metadata
-                               systems={Object.keys(deviceData || {})}
-                               layers={Array.from(new Set(Object.values(deviceMeta).map(m => m.layer).filter(Boolean)))}
-                               devices={filteredCompositeIds.map(id => ({ value: id, label: deviceMeta[id]?.baseId || id }))}
-                               selectedSystem={activeSystem}
-                               onSystemChange={(e) => setActiveSystem(e.target.value)}
-                               selectedLayer={layerFilter !== ALL ? layerFilter : (deviceMeta[selectedDevice]?.layer || '')}
+            {/* Location cards (cascading selection + composite IDs) */}
+            <div style={{ marginTop: 12 }} />
 
-                               onLayerChange={() => {/* optional: wire to FiltersContext if needed */}}
-                               selectedDevice={selectedDevice}
-                               onDeviceChange={(e) => setSelectedDevice(e.target.value)}
-                               // sensors (detected)
-                               sensorNames={sensorNamesForSelected}
-                               sensorTypes={sensorTypesForSelected}
-                               water={{ options: sensorGroups.water, values: selectedWater }}
-                               light={{ options: sensorGroups.light, values: selectedLight }}
-                               blue={{ options: sensorGroups.blue, values: selectedBlue }}
-                               red={{ options: sensorGroups.red, values: selectedRed }}
-                               airq={{ options: sensorGroups.airq, values: selectedAirq }}
-                               onToggleWater={onToggleWater}
-                               onToggleLight={onToggleLight}
-                               onToggleBlue={onToggleBlue}
-                               onToggleRed={onToggleRed}
-                               onToggleAirq={onToggleAirq}
-                               onAllWater={onAllWater}
-                               onNoneWater={onNoneWater}
-                               onAllLight={onAllLight}
-                               onNoneLight={onNoneLight}
-                               onAllBlue={onAllBlue}
-                               onNoneBlue={onNoneBlue}
-                               onAllRed={onAllRed}
-                               onNoneRed={onNoneRed}
-                               onAllAirq={onAllAirq}
-                               onNoneAirq={onNoneAirq}
-                               onReset={resetSensors}
-                               // compare
-                               compareItems={compareItems}
-                               onAddCompare={addToCompare}
-                               onRemoveCompare={removeCompare}
-                               onClearCompare={clearCompare}
-                               // auto refresh
-                               autoRefresh={autoRefresh}
-                               onAutoRefreshChange={(e) => setAutoRefresh(e.target.checked)}
-                               refreshInterval={refreshInterval}
-                               onRefreshIntervalChange={(e) => setRefreshInterval(Number(e.target.value))}
-                               rangeLabel={`From: ${formatTime(startTime)} until: ${formatTime(endTime)}`}
-                             />
-
-                            <ReportCharts
-                                showTempHum={showTempHum}
-                                showSpectrum={showSpectrum}
-                                showClearLux={showClearLux}
-                                showPh={showPh}
-                                showEcTds={showEcTds}
-                                showDo={showDo}
-                                rangeData={rangeData}
-                                tempRangeData={tempRangeData}
-                                phRangeData={phRangeData}
-                                ecTdsRangeData={ecTdsRangeData}
-                                doRangeData={doRangeData}
-                                xDomain={xDomain}
-                                selectedDevice={selectedDevice}
-                            />
-                        </>
-                    )}
+            {/* Error / Loading */}
+            {error && (
+                <div style={{ color: "#b91c1c", marginTop: 8, fontSize: 14 }}>
+                    {error}
                 </div>
+            )}
+
+            {/* Charts */}
+            <div style={{ marginTop: 16 }}>
+                <ReportCharts loading={loading} />
             </div>
         </div>
     );
 }
-
-export default Reports;
-
