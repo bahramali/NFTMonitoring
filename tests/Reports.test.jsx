@@ -9,7 +9,6 @@ vi.mock('../src/pages/Reports/components/ReportCharts', () => ({
   default: vi.fn(() => <div data-testid="charts">ReportCharts</div>),
 }));
 
-// import after mocks
 import Reports from '../src/pages/Reports';
 import ReportCharts from '../src/pages/Reports/components/ReportCharts';
 
@@ -19,7 +18,6 @@ const setMeta = (meta) =>
 beforeEach(() => {
   localStorage.clear();
   vi.restoreAllMocks();
-  // mock fetch
   global.fetch = vi.fn().mockResolvedValue({
     ok: true,
     json: async () => ({ series: [] }),
@@ -40,12 +38,11 @@ test('renders Reports and shows charts', async () => {
 
   render(<Reports />);
 
-  // charts component should render
   expect(await screen.findByTestId('charts')).toBeInTheDocument();
   expect(ReportCharts).toHaveBeenCalled();
 });
 
-test('Apply sends one request per compositeId (separate fetch per CID)', async () => {
+test('Apply sends one request per compositeId', async () => {
   setMeta({
     version: 'x',
     devices: [
@@ -57,22 +54,18 @@ test('Apply sends one request per compositeId (separate fetch per CID)', async (
 
   render(<Reports />);
 
-  // click Apply
-  const applyBtn = await screen.findByRole('button', { name: /apply/i });
-  fireEvent.click(applyBtn);
+  fireEvent.click(await screen.findByRole('button', { name: /apply/i }));
 
-  // expect one fetch per CID
   await waitFor(() => {
     expect(global.fetch).toHaveBeenCalledTimes(3);
   });
-
-  const calledUrls = global.fetch.mock.calls.map((c) => c[0].toString());
-  expect(calledUrls.some((u) => u.includes('compositeId=S01-L01-G01'))).toBe(true);
-  expect(calledUrls.some((u) => u.includes('compositeId=S01-L01-G02'))).toBe(true);
-  expect(calledUrls.some((u) => u.includes('compositeId=S02-L02-G01'))).toBe(true);
+  const called = global.fetch.mock.calls.map((c) => c[0].toString());
+  expect(called.some((u) => u.includes('compositeId=S01-L01-G01'))).toBe(true);
+  expect(called.some((u) => u.includes('compositeId=S01-L01-G02'))).toBe(true);
+  expect(called.some((u) => u.includes('compositeId=S02-L02-G01'))).toBe(true);
 });
 
-/*test('filters by Composite ID selection only fetches selected CIDs', async () => {
+test('filters by Composite ID selection only fetches selected CIDs', async () => {
   setMeta({
     version: 'x',
     devices: [
@@ -84,19 +77,23 @@ test('Apply sends one request per compositeId (separate fetch per CID)', async (
   render(<Reports />);
 
   const cid1 = await screen.findByLabelText('S01-L01-G01');
-  if (cid1 instanceof HTMLInputElement && cid1.checked) {
-    fireEvent.click(cid1); // uncheck G01
-  }
+  const cid2 = await screen.findByLabelText('S01-L01-G02');
 
-  // Apply
-  fireEvent.click(screen.getByRole('button', { name: /apply/i }));
+  // ensure only cid2 is selected
+  if ((cid1).checked) fireEvent.click(cid1); // uncheck if any
+  if (!(cid2).checked) fireEvent.click(cid2); // check cid2
 
   await waitFor(() => {
-    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect((cid1 ).checked).toBe(false);
+    expect((cid2 ).checked).toBe(true);
   });
+
+  fireEvent.click(screen.getByRole('button', { name: /apply/i }));
+
+  await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
 
   const url = global.fetch.mock.calls[0][0].toString();
   expect(url.includes('compositeId=S01-L01-G02')).toBe(true);
   expect(url.includes('compositeId=S01-L01-G01')).toBe(false);
-});*/
+});
 
