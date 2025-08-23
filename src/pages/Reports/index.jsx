@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import ReportCharts from "./components/ReportCharts";
 import ReportFiltersCompare from "./components/ReportFiltersCompare";
+import { transformAggregatedData } from "../../utils.js";
 
 // ---------- utils ----------
 const toCID = (d) => `${d.systemId}-${d.layerId}-${d.deviceId}`;
@@ -24,7 +25,7 @@ function useDevicesMeta() {
     useEffect(() => {
         const cached = localStorage.getItem("reportsMeta:v1") || localStorage.getItem("deviceCatalog");
         if (cached) {
-            try { setMeta(JSON.parse(cached)); } catch {}
+            try { setMeta(JSON.parse(cached)); } catch { /* ignore bad cache */ }
         }
         // comment: اگر API داری اینجا تازه‌سازی کن
         // fetch("/api/meta/devices").then(r=>r.json()).then(d=>{ localStorage.setItem("reportsMeta:v1", JSON.stringify(d)); setMeta(d); });
@@ -52,7 +53,6 @@ export default function Reports() {
     const [selLayers, setSelLayers]     = useState(new Set());
     const [selDevices, setSelDevices]   = useState(new Set());
     const [selCIDs, setSelCIDs]         = useState(new Set());
-    const [cidQuery, setCidQuery]       = useState("");
 
     // ---------- sensor selections (per group) ----------
     // comment: values are EXACT keys مثل: dissolvedEC, 405nm, humidity, light, ...
@@ -102,13 +102,6 @@ export default function Reports() {
         [filteredDeviceRows]
     );
 
-    const cidsVisible = useMemo(() => {
-        const list = filteredDeviceRows.map(toCID);
-        return cidQuery
-            ? list.filter((x) => x.toLowerCase().includes(cidQuery.toLowerCase()))
-            : list;
-    }, [filteredDeviceRows, cidQuery]);
-
     // ---------- sync: S/L/D -> CIDs ----------
     useEffect(() => {
         const filtered = deviceRows.filter(
@@ -125,20 +118,6 @@ export default function Reports() {
         Array.from(selDevices).join(","),
     ]);
 
-    // ---------- explicit CID toggle ----------
-    const toggleCID = (cid) => {
-        const next = new Set(selCIDs);
-        next.has(cid) ? next.delete(cid) : next.add(cid);
-        setSelCIDs(next);
-
-        if (next.size) {
-            const rows = deviceRows.filter((d) => next.has(toCID(d)));
-            setSelSystems(new Set(rows.map((d) => d.systemId)));
-            setSelLayers(new Set(rows.map((d) => d.layerId)));
-            setSelDevices(new Set(rows.map((d) => d.deviceId)));
-        }
-    };
-
     // ---------- selected CIDs used for requests ----------
     const selectedCIDs = useMemo(() => {
         const arr = Array.from(selCIDs);
@@ -146,7 +125,7 @@ export default function Reports() {
     }, [selCIDs, filteredDeviceRows]);
 
     // ---------- REQUESTS (one per compositeId) ----------
-    const [loading, setLoading] = useState(false);
+    const [, setLoading] = useState(false);
     const [error, setError]     = useState("");
     const abortRef = useRef(null);
 
@@ -200,9 +179,39 @@ export default function Reports() {
             });
 
             const results = await Promise.all(requests);
-            // comment: اینجا دیتارو به شکل مورد نیاز چارت‌ها مپ کن.
-            // فعلاً خالی نگه می‌داریم تا سکشن‌ها دیده بشن و بعداً مپ واقعی‌ت رو بذاری.
-            setChartData((prev) => ({ ...prev }));
+
+            let allProcessed = [];
+            for (const { data } of results) {
+                const entries = transformAggregatedData(data);
+                const processed = entries.map((d) => ({
+                    time: d.timestamp,
+                    ...d,
+                    lux: d.lux?.value ?? 0,
+                }));
+                allProcessed = allProcessed.concat(processed);
+            }
+
+            setChartData({
+                rangeData: allProcessed,
+                tempRangeData: allProcessed.map((d) => ({
+                    time: d.time,
+                    temperature: d.temperature?.value ?? 0,
+                    humidity: d.humidity?.value ?? 0,
+                })),
+                phRangeData: allProcessed.map((d) => ({
+                    time: d.time,
+                    ph: d.ph?.value ?? 0,
+                })),
+                ecTdsRangeData: allProcessed.map((d) => ({
+                    time: d.time,
+                    ec: d.ec?.value ?? 0,
+                    tds: d.tds?.value ?? 0,
+                })),
+                doRangeData: allProcessed.map((d) => ({
+                    time: d.time,
+                    do: d.do?.value ?? 0,
+                })),
+            });
             console.log("history results", results);
         } catch (e) {
             if (e.name !== "AbortError") {
@@ -255,7 +264,6 @@ export default function Reports() {
         setSelLayers(new Set());
         setSelDevices(new Set());
         setSelCIDs(new Set());
-        setCidQuery("");
         setSelSensors({ water:new Set(), light:new Set(), blue:new Set(), red:new Set(), airq:new Set() });
     };
 
