@@ -1,10 +1,5 @@
 import React from 'react';
-import HistoricalMultiBandChart from './HistoricalMultiBandChart';
-import HistoricalClearLuxChart from './HistoricalClearLuxChart';
-import HistoricalPhChart from './HistoricalPhChart';
-import HistoricalEcTdsChart from './HistoricalEcTdsChart';
-import HistoricalTemperatureChart from './HistoricalTemperatureChart';
-import HistoricalDoChart from './HistoricalDoChart';
+import HistoryChart from '../../../components/HistoryChart';
 import styles from '../../common/SensorDashboard.module.css';
 
 function ReportCharts({
@@ -31,7 +26,23 @@ function ReportCharts({
           <div className={styles.historyChartColumn}>
             <h3 className={styles.sectionTitle}>{withDevice('Temperature')}</h3>
             <div className={styles.dailyTempChartWrapper}>
-              <HistoricalTemperatureChart data={tempRangeData} xDomain={xDomain} />
+              <HistoryChart
+                data={tempRangeData}
+                xDataKey="time"
+                yDataKey="temperature"
+                yLabel="Temperature (°C)"
+              />
+            </div>
+          </div>
+          <div className={styles.historyChartColumn}>
+            <h3 className={styles.sectionTitle}>{withDevice('Humidity')}</h3>
+            <div className={styles.dailyTempChartWrapper}>
+              <HistoryChart
+                data={tempRangeData}
+                xDataKey="time"
+                yDataKey="humidity"
+                yLabel="Humidity (%)"
+              />
             </div>
           </div>
         </div>
@@ -39,25 +50,44 @@ function ReportCharts({
 
       {showSpectrum && (
         <div className={styles.historyChartsRow}>
-          <div className={styles.historyChartColumn}>
-            <h3 className={styles.sectionTitle}>{withDevice('Spectrum')}</h3>
-            <div className={styles.multiBandChartWrapper}>
-              <HistoricalMultiBandChart
-                data={rangeData}
-                xDomain={xDomain}
-                bandKeys={['405nm','425nm','450nm','475nm','F4','550nm','555nm','600nm','640nm','690nm','745nm','VIS1','VIS2','NIR855']}
-              />
+          {['405nm','425nm','450nm','475nm','F4','550nm','555nm','600nm','640nm','690nm','745nm','VIS1','VIS2','NIR855'].map((key) => (
+            <div key={key} className={styles.historyChartColumn}>
+              <h3 className={styles.sectionTitle}>{withDevice(key)}</h3>
+              <div className={styles.multiBandChartWrapper}>
+                <HistoryChart
+                  data={rangeData}
+                  xDataKey="time"
+                  yDataKey={key}
+                  yLabel={key}
+                />
+              </div>
             </div>
-          </div>
+          ))}
         </div>
       )}
 
       {showClearLux && (
         <div className={styles.historyChartsRow}>
           <div className={styles.historyChartColumn}>
-            <h3 className={styles.sectionTitle}>{withDevice('Lux_Clear')}</h3>
+            <h3 className={styles.sectionTitle}>{withDevice('Clear')}</h3>
             <div className={styles.clearLuxChartWrapper}>
-              <HistoricalClearLuxChart data={rangeData} xDomain={xDomain} />
+              <HistoryChart
+                data={rangeData}
+                xDataKey="time"
+                yDataKey="clear"
+                yLabel="Clear"
+              />
+            </div>
+          </div>
+          <div className={styles.historyChartColumn}>
+            <h3 className={styles.sectionTitle}>{withDevice('Lux')}</h3>
+            <div className={styles.clearLuxChartWrapper}>
+              <HistoryChart
+                data={rangeData}
+                xDataKey="time"
+                yDataKey="lux"
+                yLabel="Lux"
+              />
             </div>
           </div>
         </div>
@@ -69,17 +99,40 @@ function ReportCharts({
             <div className={styles.historyChartColumn}>
               <h3 className={styles.sectionTitle}>{withDevice('pH')}</h3>
               <div className={styles.phChartWrapper}>
-                <HistoricalPhChart data={phRangeData} xDomain={xDomain} />
+                <HistoryChart
+                  data={phRangeData}
+                  xDataKey="time"
+                  yDataKey="ph"
+                  yLabel="pH"
+                />
               </div>
             </div>
           )}
           {showEcTds && (
-            <div className={styles.historyChartColumn}>
-              <h3 className={styles.sectionTitle}>{withDevice('EC & TDS')}</h3>
-              <div className={styles.ecTdsChartWrapper}>
-                <HistoricalEcTdsChart data={ecTdsRangeData} xDomain={xDomain} />
+            <>
+              <div className={styles.historyChartColumn}>
+                <h3 className={styles.sectionTitle}>{withDevice('EC')}</h3>
+                <div className={styles.ecTdsChartWrapper}>
+                  <HistoryChart
+                    data={ecTdsRangeData}
+                    xDataKey="time"
+                    yDataKey="ec"
+                    yLabel="EC (mS/cm)"
+                  />
+                </div>
               </div>
-            </div>
+              <div className={styles.historyChartColumn}>
+                <h3 className={styles.sectionTitle}>{withDevice('TDS')}</h3>
+                <div className={styles.ecTdsChartWrapper}>
+                  <HistoryChart
+                    data={ecTdsRangeData}
+                    xDataKey="time"
+                    yDataKey="tds"
+                    yLabel="TDS (ppm)"
+                  />
+                </div>
+              </div>
+            </>
           )}
         </div>
       )}
@@ -89,7 +142,12 @@ function ReportCharts({
           <div className={styles.historyChartColumn}>
             <h3 className={styles.sectionTitle}>{withDevice('Dissolved Oxygen')}</h3>
             <div className={styles.doChartWrapper}>
-              <HistoricalDoChart data={doRangeData} xDomain={xDomain} />
+              <HistoryChart
+                data={doRangeData}
+                xDataKey="time"
+                yDataKey="do"
+                yLabel="Dissolved Oxygen (mg/L)"
+              />
             </div>
           </div>
         </div>

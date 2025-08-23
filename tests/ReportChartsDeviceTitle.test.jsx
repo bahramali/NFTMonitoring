@@ -5,12 +5,7 @@ import { vi } from 'vitest';
 
 import ReportCharts from '../src/pages/Reports/components/ReportCharts';
 
-vi.mock('../src/pages/Reports/components/HistoricalTemperatureChart', () => ({ default: () => <div /> }));
-vi.mock('../src/pages/Reports/components/HistoricalMultiBandChart', () => ({ default: () => <div /> }));
-vi.mock('../src/pages/Reports/components/HistoricalClearLuxChart', () => ({ default: () => <div /> }));
-vi.mock('../src/pages/Reports/components/HistoricalPhChart', () => ({ default: () => <div /> }));
-vi.mock('../src/pages/Reports/components/HistoricalEcTdsChart', () => ({ default: () => <div /> }));
-vi.mock('../src/pages/Reports/components/HistoricalDoChart', () => ({ default: () => <div /> }));
+vi.mock('../src/components/HistoryChart', () => ({ default: () => <div /> }));
 
 function setup() {
   render(
