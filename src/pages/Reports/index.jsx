@@ -1,13 +1,10 @@
-// index.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import ReportCharts from "./components/ReportCharts";
 import ReportFiltersCompare from "./components/ReportFiltersCompare";
 import { transformAggregatedData } from "../../utils.js";
 
-// ---------- utils ----------
 const toCID = (d) => `${d.systemId}-${d.layerId}-${d.deviceId}`;
 const toLocalInputValue = (date) => {
-    // comment: yyyy-MM-ddTHH:mm for <input type="datetime-local">
     const pad = (n) => `${n}`.padStart(2, "0");
     const y = date.getFullYear();
     const m = pad(date.getMonth() + 1);
@@ -17,28 +14,24 @@ const toLocalInputValue = (date) => {
     return `${y}-${m}-${d}T${hh}:${mm}`;
 };
 const toISOSeconds = (v) => (v ? new Date(v).toISOString() : "");
+const AUTO_REFRESH_MS = { '30s': 30_000, '1m': 60_000, '5m': 300_000 };
 
-// ---------- meta loader (localStorage) ----------
 function useDevicesMeta() {
     const [meta, setMeta] = useState({ devices: [] });
 
     useEffect(() => {
         const cached = localStorage.getItem("reportsMeta:v1") || localStorage.getItem("deviceCatalog");
         if (cached) {
-            try { setMeta(JSON.parse(cached)); } catch { /* ignore bad cache */ }
+            try { setMeta(JSON.parse(cached)); } catch { /* ignore */ }
         }
-        // comment: اگر API داری اینجا تازه‌سازی کن
-        // fetch("/api/meta/devices").then(r=>r.json()).then(d=>{ localStorage.setItem("reportsMeta:v1", JSON.stringify(d)); setMeta(d); });
     }, []);
 
     return meta;
 }
 
 export default function Reports() {
-    // ---------- meta ----------
-    const { devices: deviceRows } = useDevicesMeta(); // [{systemId,layerId,deviceId,sensors:[]}, ...]
+    const { devices: deviceRows } = useDevicesMeta();
 
-    // ---------- timing ----------
     const [fromDate, setFromDate] = useState(() => {
         const d = new Date();
         d.setHours(d.getHours() - 6);
@@ -48,20 +41,17 @@ export default function Reports() {
     const [bucket, setBucket] = useState("5m");
     const [autoRefreshValue, setAutoRefreshValue] = useState("Off");
 
-    // ---------- location selections ----------
     const [selSystems, setSelSystems]   = useState(new Set());
     const [selLayers, setSelLayers]     = useState(new Set());
     const [selDevices, setSelDevices]   = useState(new Set());
     const [selCIDs, setSelCIDs]         = useState(new Set());
 
-    // ---------- sensor selections (per group) ----------
-    // comment: values are EXACT keys مثل: dissolvedEC, 405nm, humidity, light, ...
     const [selSensors, setSelSensors] = useState({
-        water: new Set(),   // dissolvedTemp, dissolvedEC, dissolvedTDS, dissolvedOxygen, (ph اگر داری)
-        light: new Set(),   // VIS1, VIS2, NIR855, light
-        blue:  new Set(),   // 405nm, 425nm, ...
-        red:   new Set(),   // 550nm, 600nm, ...
-        airq:  new Set(),   // humidity, temperature, CO2
+        water: new Set(),
+        light: new Set(),
+        blue:  new Set(),
+        red:   new Set(),
+        airq:  new Set(),
     });
 
     const toggleSensor = (group, key) => {
@@ -74,7 +64,6 @@ export default function Reports() {
     const setAllSensors = (group, keys) => setSelSensors(prev => ({ ...prev, [group]: new Set(keys) }));
     const clearSensors  = (group) => setSelSensors(prev => ({ ...prev, [group]: new Set() }));
 
-    // ---------- derived lists (cascading) ----------
     const systems = useMemo(
         () => Array.from(new Set(deviceRows.map((d) => d.systemId))).sort(),
         [deviceRows]
@@ -102,7 +91,6 @@ export default function Reports() {
         [filteredDeviceRows]
     );
 
-    // ---------- sync: S/L/D -> CIDs ----------
     useEffect(() => {
         const filtered = deviceRows.filter(
             (d) =>
@@ -118,43 +106,37 @@ export default function Reports() {
         Array.from(selDevices).join(","),
     ]);
 
-    // ---------- selected CIDs used for requests ----------
     const selectedCIDs = useMemo(() => {
         const arr = Array.from(selCIDs);
         return arr.length ? arr : Array.from(new Set(filteredDeviceRows.map(toCID)));
     }, [selCIDs, filteredDeviceRows]);
-
-    // ---------- REQUESTS (one per compositeId) ----------
-    const [, setLoading] = useState(false);
-    const [error, setError]     = useState("");
+    const [error, setError] = useState("");
     const abortRef = useRef(null);
 
-    // comment: datasets kept here (structure ساده — اگه API داره، نگه‌داری شکل واقعی رو جایگزین کن)
     const [chartData, setChartData] = useState({
-        tempRangeData: [],   // for HistoricalTemperatureChart
-        phRangeData:   [],   // for HistoricalPhChart (در صورت داشتن pH)
-        ecTdsRangeData:[],   // for HistoricalEcTdsChart
-        doRangeData:   [],   // for HistoricalDoChart
-        rangeData:     [],   // برای MultiBand / ClearLux (در صورت نیاز)
+        tempRangeData: [],
+        phRangeData:   [],
+        ecTdsRangeData:[],
+        doRangeData:   [],
+        rangeData:     [],
     });
 
     const fetchReportData = async () => {
         try {
             setError("");
-            setLoading(true);
             if (abortRef.current) abortRef.current.abort();
             abortRef.current = new AbortController();
-            const signal = abortRef.current.signal;
+            const { signal } = abortRef.current;
 
-            if (!selectedCIDs.length) { setLoading(false); return; }
+            if (!selectedCIDs.length) return;
 
-            // sensors union انتخاب‌شده — برای ارسال به API
             const sensorsSelected = [
-                ...selSensors.water, ...selSensors.light,
-                ...selSensors.blue,  ...selSensors.red,
+                ...selSensors.water,
+                ...selSensors.light,
+                ...selSensors.blue,
+                ...selSensors.red,
                 ...selSensors.airq,
             ];
-            // اگر هیچ سنسوری انتخاب نشده بود، می‌تونی اینو خالی بذاری تا API پیش‌فرض برگردونه
             const sensorsParam = sensorsSelected.join(',');
 
             const baseParams = {
@@ -166,7 +148,7 @@ export default function Reports() {
             const requests = selectedCIDs.map(async (cid) => {
                 const params = new URLSearchParams(baseParams);
                 params.set("compositeId", cid);
-                if (sensorsParam) params.set("sensors", sensorsParam); // comment: در صورت پشتیبانی بک‌اند
+                if (sensorsParam) params.set("sensors", sensorsParam);
 
                 const url = `/api/records/history/aggregate?${params.toString()}`;
                 const res = await fetch(url, { signal });
@@ -212,30 +194,29 @@ export default function Reports() {
                     do: d.do?.value ?? 0,
                 })),
             });
-            console.log("history results", results);
         } catch (e) {
             if (e.name !== "AbortError") {
                 console.error(e);
                 setError(String(e.message || e));
             }
-        } finally {
-            setLoading(false);
         }
     };
 
-    // ---------- auto refresh ----------
+    const sensorDeps = JSON.stringify([
+        ...selSensors.water,
+        ...selSensors.light,
+        ...selSensors.blue,
+        ...selSensors.red,
+        ...selSensors.airq,
+    ]);
+
     useEffect(() => {
-        if (autoRefreshValue === "Off") return;
-        const ms =
-            autoRefreshValue === "30s" ? 30_000 :
-                autoRefreshValue === "1m"  ? 60_000 :
-                    5 * 60_000;
+        const ms = AUTO_REFRESH_MS[autoRefreshValue];
+        if (!ms) return;
         const t = setInterval(fetchReportData, ms);
         return () => clearInterval(t);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [autoRefreshValue, fromDate, toDate, bucket, selectedCIDs.join(","), JSON.stringify([...selSensors.water, ...selSensors.light, ...selSensors.blue, ...selSensors.red, ...selSensors.airq])]);
+    }, [autoRefreshValue, fromDate, toDate, bucket, selectedCIDs.join(','), sensorDeps]);
 
-    // ---------- compare (همون قبلی) ----------
     const [compareItems, setCompareItems] = useState([]);
     const onAddCompare = () => {
         if (!selectedCIDs.length) return;
@@ -257,7 +238,6 @@ export default function Reports() {
     const onRemoveCompare = (id) => setCompareItems((p) => p.filter((x) => x.id !== id));
     const onClearCompare  = () => setCompareItems([]);
 
-    // ---------- actions ----------
     const onApply = () => fetchReportData();
     const onReset = () => {
         setSelSystems(new Set());
@@ -266,23 +246,20 @@ export default function Reports() {
         setSelCIDs(new Set());
         setSelSensors({ water:new Set(), light:new Set(), blue:new Set(), red:new Set(), airq:new Set() });
     };
-
-    // ---------- flags for charts (نمایش سکشن‌ها بر اساس انتخاب سنسور) ----------
+    
     const showTempHum  = selSensors.airq.has('temperature') || selSensors.airq.has('humidity');
     const showSpectrum = selSensors.blue.size > 0 || selSensors.red.size > 0;
-    const showClearLux = selSensors.light.size > 0; // VIS1/VIS2/NIR855/light
-    const showPh       = selSensors.water.has('ph') || selSensors.water.has('pH'); // اگر pH داری
+    const showClearLux = selSensors.light.size > 0;
+    const showPh       = selSensors.water.has('ph') || selSensors.water.has('pH');
     const showEcTds    = selSensors.water.has('dissolvedEC') || selSensors.water.has('dissolvedTDS');
     const showDo       = selSensors.water.has('dissolvedOxygen');
 
     const xDomain = [new Date(fromDate).getTime(), new Date(toDate).getTime()];
     const selectedDeviceLabel = selectedCIDs.length === 1 ? selectedCIDs[0] : "";
 
-    // ---------- render ----------
     return (
         <div style={{ padding: 16 }}>
             <ReportFiltersCompare
-                // timing
                 fromDate={fromDate}
                 toDate={toDate}
                 onFromDateChange={(e) => setFromDate(e.target.value)}
@@ -292,13 +269,9 @@ export default function Reports() {
                 onBucketChange={(e) => setBucket(e.target.value)}
                 autoRefreshValue={autoRefreshValue}
                 onAutoRefreshValueChange={(e) => setAutoRefreshValue(e.target.value)}
-
-                // location lists
                 systems={systems}
                 layers={layers}
                 devices={deviceIds}
-
-                // actions
                 onReset={onReset}
                 onAddCompare={onAddCompare}
                 onExportCsv={() => {}}
@@ -306,8 +279,6 @@ export default function Reports() {
                 compareItems={compareItems}
                 onClearCompare={onClearCompare}
                 onRemoveCompare={onRemoveCompare}
-
-                // sensors — فقط values و handlerها (خود کامپوننت optionها را از کاتالوگ می‌سازد)
                 water={{ values: Array.from(selSensors.water) }}
                 light={{ values: Array.from(selSensors.light) }}
                 blue={{  values: Array.from(selSensors.blue)  }}
@@ -330,12 +301,8 @@ export default function Reports() {
                 onNoneAirq={()=>clearSensors('airq')}
             />
 
-            {/* Location (چک‌لیست‌ها و Composite IDs) — اگر این سکشن را جای دیگری ساخته‌ای، همونو نگه دار */}
-
-            {/* Error / Loading */}
             {error && <div style={{ color: "#b91c1c", marginTop: 8, fontSize: 14 }}>{error}</div>}
 
-            {/* Charts */}
             <div style={{ marginTop: 16 }}>
                 <ReportCharts
                     showTempHum={showTempHum}
@@ -344,7 +311,6 @@ export default function Reports() {
                     showPh={showPh}
                     showEcTds={showEcTds}
                     showDo={showDo}
-                    // comment: datasets — الان خالی، بعداً با map نتایج API پر کن
                     tempRangeData={chartData.tempRangeData}
                     phRangeData={chartData.phRangeData}
                     ecTdsRangeData={chartData.ecTdsRangeData}
