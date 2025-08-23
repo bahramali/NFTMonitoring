@@ -110,6 +110,21 @@ export default function ReportFiltersCompare({
         selectedDevice ? [selectedDevice] : []
     );
 
+    const compositeIds = useMemo(() => {
+        if (!selectedSystems.length || !selectedLayers.length || !selectedDevices.length) return [];
+        const deviceIds = selectedDevices.map((d) => {
+            const parts = String(d).split('-');
+            return parts[parts.length - 1];
+        });
+        const ids = new Set();
+        selectedSystems.forEach((sys) => {
+            selectedLayers.forEach((lay) => {
+                deviceIds.forEach((dev) => ids.add(`${sys}-${lay}-${dev}`));
+            });
+        });
+        return Array.from(ids);
+    }, [selectedSystems, selectedLayers, selectedDevices]);
+
     useEffect(() => {
         if (typeof window === 'undefined') return;
         try {
@@ -223,7 +238,7 @@ export default function ReportFiltersCompare({
             {/* Location */}
             <div className={styles.block}>
                 <h4>Location</h4>
-                <div className={`${styles.row} ${styles.cols3}`}>
+                <div className={`${styles.row} ${styles.cols4}`}>
                     <div className={styles.group}>
                         <div className={styles.groupTitle}>Systems</div>
                         <AllNone name="sys-allnone" onAll={() => {
@@ -298,6 +313,15 @@ export default function ReportFiltersCompare({
                                     </label>
                                 );
                             })}
+                        </div>
+                    </div>
+
+                    <div className={styles.group}>
+                        <div className={styles.groupTitle}>Device Composite IDs</div>
+                        <div className={styles.checklist}>
+                            {compositeIds.map((id) => (
+                                <div key={id} className={styles.item}>{id}</div>
+                            ))}
                         </div>
                     </div>
                 </div>
