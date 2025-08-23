@@ -24,12 +24,21 @@ export function useHistory(compositeId, from, to, autoRefresh, interval, sensorT
         try {
             const fromIso = new Date(from).toISOString();
             const toIso = new Date(to).toISOString();
-            const sensorParam = sensorTypes.length ? `&sensorType=${sensorTypes.join(',')}` : '';
-            const url = `https://api.hydroleaf.se/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}${sensorParam}`;
-            const res = await fetch(url);
-            if (!res.ok) throw new Error("bad response");
-            const json = await res.json();
-            const entries = transformAggregatedData(json);
+            const sensors = sensorTypes.length ? sensorTypes : [null];
+            const requests = sensors.map(async (sensor) => {
+                const sensorParam = sensor ? `&sensorType=${sensor}` : '';
+                const url = `https://api.hydroleaf.se/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}${sensorParam}`;
+                console.log('Request:', url);
+                const res = await fetch(url);
+                if (!res.ok) throw new Error("bad response");
+                return res.json();
+            });
+            const responses = await Promise.all(requests);
+            const merged = { sensors: [] };
+            for (const json of responses) {
+                if (Array.isArray(json.sensors)) merged.sensors.push(...json.sensors);
+            }
+            const entries = transformAggregatedData(merged);
             const processed = entries.map(d => ({
                 time: d.timestamp,
                 ...d,
@@ -60,15 +69,24 @@ export function useHistory(compositeId, from, to, autoRefresh, interval, sensorT
             const fromIso = new Date(endTimeRef.current).toISOString();
             const nowDate = new Date();
             const toIso = nowDate.toISOString();
-            const sensorParam = sensorTypes.length ? `&sensorType=${sensorTypes.join(',')}` : '';
-            const url = `https://api.hydroleaf.se/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}${sensorParam}`;
-            const res = await fetch(url);
-            if (!res.ok) throw new Error("bad response");
-            const json = await res.json();
-            const entries = transformAggregatedData(json);
+            const sensors = sensorTypes.length ? sensorTypes : [null];
+            const requests = sensors.map(async (sensor) => {
+                const sensorParam = sensor ? `&sensorType=${sensor}` : '';
+                const url = `https://api.hydroleaf.se/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}${sensorParam}`;
+                console.log('Request:', url);
+                const res = await fetch(url);
+                if (!res.ok) throw new Error("bad response");
+                return res.json();
+            });
+            const responses = await Promise.all(requests);
+            const merged = { sensors: [] };
+            for (const json of responses) {
+                if (Array.isArray(json.sensors)) merged.sensors.push(...json.sensors);
+            }
+            const entries = transformAggregatedData(merged);
             const processed = entries
                 .map(d => ({time: d.timestamp, ...d, lux: d.lux?.value ?? 0}))
-            .filter(d => d.time > endTimeRef.current);
+                .filter(d => d.time > endTimeRef.current);
 
             if (processed.length) {
                 setRangeData(prev => [...prev, ...processed]);

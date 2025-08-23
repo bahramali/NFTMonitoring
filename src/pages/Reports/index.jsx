@@ -134,7 +134,7 @@ export default function Reports() {
             const { signal } = abortRef.current;
 
             if (!selectedCIDs.length) return;
-            // selected sensor union — to send to the API
+            // gather selected sensors in an array
             const sensorsSelected = [
                 ...selSensors.water,
                 ...selSensors.light,
@@ -142,34 +142,48 @@ export default function Reports() {
                 ...selSensors.red,
                 ...selSensors.airq,
             ];
-            // If no sensors are selected, you can leave this empty so the API returns its default
-            const sensorsParam = sensorsSelected.join(',');
 
             const baseParams = {
                 from: toISOSeconds(fromDate),
                 to:   toISOSeconds(toDate),
                 bucket,
             };
-
-            const requests = selectedCIDs.map(async (cid) => {
-                const params = new URLSearchParams(baseParams);
-                params.set("compositeId", cid);
-                if (sensorsParam) params.set("sensors", sensorsParam); // comment: if the backend supports it
-                const url = `/api/records/history/aggregate?${params.toString()}`;
-                const res = await fetch(url, { signal });
-                if (!res.ok) {
-                    const txt = await res.text().catch(() => "");
-                    throw new Error(`CID ${cid} -> ${res.status} ${txt}`);
+            const requests = [];
+            for (const cid of selectedCIDs) {
+                const base = new URLSearchParams(baseParams);
+                base.set("compositeId", cid);
+                const sensors = sensorsSelected.length ? sensorsSelected : [null];
+                for (const sensor of sensors) {
+                    const params = new URLSearchParams(base);
+                    if (sensor) params.set("sensors", sensor); // one request per sensor
+                    const url = `/api/records/history/aggregate?${params.toString()}`;
+                    console.log("Request:", url);
+                    const p = (async () => {
+                        const res = await fetch(url, { signal });
+                        if (!res.ok) {
+                            const txt = await res.text().catch(() => "");
+                            throw new Error(`CID ${cid} -> ${res.status} ${txt}`);
+                        }
+                        const data = await res.json();
+                        return { cid, data };
+                    })();
+                    requests.push(p);
                 }
-                const data = await res.json();
-                return { cid, data };
-            });
+            }
 
             const results = await Promise.all(requests);
 
+            const merged = new Map();
+            for (const { cid, data } of results) {
+                if (!merged.has(cid)) merged.set(cid, { sensors: [] });
+                if (Array.isArray(data.sensors)) {
+                    merged.get(cid).sensors.push(...data.sensors);
+                }
+            }
+
             let allProcessed = [];
-            for (const { data } of results) {
-                const entries = transformAggregatedData(data);
+            for (const { sensors } of merged.values()) {
+                const entries = transformAggregatedData({ sensors });
                 const processed = entries.map((d) => ({
                     time: d.timestamp,
                     ...d,
