@@ -10,12 +10,6 @@ vi.mock('../src/components/HistoryChart', () => ({ default: () => <div /> }));
 function setup() {
   render(
     <ReportCharts
-      showTempHum
-      showSpectrum={false}
-      showClearLux={false}
-      showPh={false}
-      showEcTds={false}
-      showDo={false}
       rangeData={[]}
       tempRangeData={[]}
       phRangeData={[]}
@@ -23,6 +17,7 @@ function setup() {
       doRangeData={[]}
       xDomain={[]}
       selectedDevice="L01G03"
+      selectedSensors={{ airq: ['temperature'] }}
     />
   );
 }
@@ -30,4 +25,5 @@ function setup() {
 test('adds selected device to chart titles', () => {
   setup();
   expect(screen.getByText('Temperature(L01G03)')).toBeInTheDocument();
+  expect(screen.queryByText('Humidity(L01G03)')).not.toBeInTheDocument();
 });
