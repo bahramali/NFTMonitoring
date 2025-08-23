@@ -26,8 +26,10 @@ test('shows sensors disabled before any device is selected', () => {
       onFromDateChange={() => {}}
       onToDateChange={() => {}}
       rangeLabel=""
+      water={{ options: [], values: [] }}
     />
   );
   expect(screen.getByLabelText('humidity')).toBeDisabled();
   expect(screen.getByLabelText('temperature')).toBeDisabled();
+  expect(screen.getByLabelText('dissolvedTemp')).toBeDisabled();
 });

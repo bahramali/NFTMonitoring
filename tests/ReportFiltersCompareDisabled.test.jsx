@@ -7,7 +7,7 @@ beforeEach(() => {
   const catalog = {
     systems: [{ id: 'S1' }],
     devices: [
-      { systemId: 'S1', layerId: 'L1', deviceId: 'D1', sensors: [{ sensorName: 'humidity' }] },
+      { systemId: 'S1', layerId: 'L1', deviceId: 'D1', sensors: [{ sensorName: 'dissolvedTemp' }] },
       { systemId: 'S1', layerId: 'L1', deviceId: 'D2', sensors: [{ sensorName: 'temperature' }] },
     ],
   };
@@ -26,21 +26,22 @@ test('enables only sensors for selected device', async () => {
       onFromDateChange={() => {}}
       onToDateChange={() => {}}
       rangeLabel=""
+      water={{ options: [], values: [] }}
     />
   );
   const d1 = await screen.findByLabelText('D1');
-  const humidity = screen.getByLabelText('humidity');
+  const dissolved = screen.getByLabelText('dissolvedTemp');
   const temperature = screen.getByLabelText('temperature');
 
   // initially both disabled
-  expect(humidity).toBeDisabled();
+  expect(dissolved).toBeDisabled();
   expect(temperature).toBeDisabled();
 
   // select first device
   d1.click();
 
   await waitFor(() => {
-    expect(humidity).not.toBeDisabled();
+    expect(dissolved).not.toBeDisabled();
   });
   expect(temperature).toBeDisabled();
 });

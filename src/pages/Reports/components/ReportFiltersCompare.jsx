@@ -210,11 +210,11 @@ export default function ReportFiltersCompare({
         return groups;
     }, [selectedCatalogDevices]);
 
-    const water = waterProp || {options: sensorGroups.water, values: []};
-    const light = lightProp || {options: sensorGroups.light, values: []};
-    const blue = blueProp || {options: sensorGroups.blue, values: []};
-    const red = redProp || {options: sensorGroups.red, values: []};
-    const airq = airqProp || {options: sensorGroups.airq, values: []};
+    const water = {options: sensorGroups.water, values: waterProp?.values || []};
+    const light = {options: sensorGroups.light, values: lightProp?.values || []};
+    const blue = {options: sensorGroups.blue, values: blueProp?.values || []};
+    const red = {options: sensorGroups.red, values: redProp?.values || []};
+    const airq = {options: sensorGroups.airq, values: airqProp?.values || []};
 
     return (
         <div className={styles.rf}>
