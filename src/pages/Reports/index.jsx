@@ -1,13 +1,10 @@
-// index.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import ReportCharts from "./components/ReportCharts";
 import ReportFiltersCompare from "./components/ReportFiltersCompare";
 import { transformAggregatedData } from "../../utils.js";
 
-// ---------- utils ----------
 const toCID = (d) => `${d.systemId}-${d.layerId}-${d.deviceId}`;
 const toLocalInputValue = (date) => {
-    // comment: yyyy-MM-ddTHH:mm for <input type="datetime-local">
     const pad = (n) => `${n}`.padStart(2, "0");
     const y = date.getFullYear();
     const m = pad(date.getMonth() + 1);
@@ -17,15 +14,15 @@ const toLocalInputValue = (date) => {
     return `${y}-${m}-${d}T${hh}:${mm}`;
 };
 const toISOSeconds = (v) => (v ? new Date(v).toISOString() : "");
+const AUTO_REFRESH_MS = { '30s': 30_000, '1m': 60_000, '5m': 300_000 };
 
-// ---------- meta loader (localStorage) ----------
 function useDevicesMeta() {
     const [meta, setMeta] = useState({ devices: [] });
 
     useEffect(() => {
         const cached = localStorage.getItem("reportsMeta:v1") || localStorage.getItem("deviceCatalog");
         if (cached) {
-            try { setMeta(JSON.parse(cached)); } catch { /* ignore bad cache */ }
+            try { setMeta(JSON.parse(cached)); } catch { /* ignore */ }
         }
         // comment: refresh here if you have an API
         // fetch("/api/meta/devices").then(r=>r.json()).then(d=>{ localStorage.setItem("reportsMeta:v1", JSON.stringify(d)); setMeta(d); });
@@ -35,10 +32,8 @@ function useDevicesMeta() {
 }
 
 export default function Reports() {
-    // ---------- meta ----------
-    const { devices: deviceRows } = useDevicesMeta(); // [{systemId,layerId,deviceId,sensors:[]}, ...]
+    const { devices: deviceRows } = useDevicesMeta();
 
-    // ---------- timing ----------
     const [fromDate, setFromDate] = useState(() => {
         const d = new Date();
         d.setHours(d.getHours() - 6);
@@ -48,7 +43,6 @@ export default function Reports() {
     const [bucket, setBucket] = useState("5m");
     const [autoRefreshValue, setAutoRefreshValue] = useState("Off");
 
-    // ---------- location selections ----------
     const [selSystems, setSelSystems]   = useState(new Set());
     const [selLayers, setSelLayers]     = useState(new Set());
     const [selDevices, setSelDevices]   = useState(new Set());
@@ -74,7 +68,6 @@ export default function Reports() {
     const setAllSensors = (group, keys) => setSelSensors(prev => ({ ...prev, [group]: new Set(keys) }));
     const clearSensors  = (group) => setSelSensors(prev => ({ ...prev, [group]: new Set() }));
 
-    // ---------- derived lists (cascading) ----------
     const systems = useMemo(
         () => Array.from(new Set(deviceRows.map((d) => d.systemId))).sort(),
         [deviceRows]
@@ -102,7 +95,6 @@ export default function Reports() {
         [filteredDeviceRows]
     );
 
-    // ---------- sync: S/L/D -> CIDs ----------
     useEffect(() => {
         const filtered = deviceRows.filter(
             (d) =>
@@ -118,15 +110,11 @@ export default function Reports() {
         Array.from(selDevices).join(","),
     ]);
 
-    // ---------- selected CIDs used for requests ----------
     const selectedCIDs = useMemo(() => {
         const arr = Array.from(selCIDs);
         return arr.length ? arr : Array.from(new Set(filteredDeviceRows.map(toCID)));
     }, [selCIDs, filteredDeviceRows]);
-
-    // ---------- REQUESTS (one per compositeId) ----------
-    const [, setLoading] = useState(false);
-    const [error, setError]     = useState("");
+    const [error, setError] = useState("");
     const abortRef = useRef(null);
 
     // comment: datasets kept here (simple structure — replace with real data structure if API exists)
@@ -141,17 +129,17 @@ export default function Reports() {
     const fetchReportData = async () => {
         try {
             setError("");
-            setLoading(true);
             if (abortRef.current) abortRef.current.abort();
             abortRef.current = new AbortController();
-            const signal = abortRef.current.signal;
+            const { signal } = abortRef.current;
 
-            if (!selectedCIDs.length) { setLoading(false); return; }
-
+            if (!selectedCIDs.length) return;
             // selected sensor union — to send to the API
             const sensorsSelected = [
-                ...selSensors.water, ...selSensors.light,
-                ...selSensors.blue,  ...selSensors.red,
+                ...selSensors.water,
+                ...selSensors.light,
+                ...selSensors.blue,
+                ...selSensors.red,
                 ...selSensors.airq,
             ];
             // If no sensors are selected, you can leave this empty so the API returns its default
@@ -167,7 +155,6 @@ export default function Reports() {
                 const params = new URLSearchParams(baseParams);
                 params.set("compositeId", cid);
                 if (sensorsParam) params.set("sensors", sensorsParam); // comment: if the backend supports it
-
                 const url = `/api/records/history/aggregate?${params.toString()}`;
                 const res = await fetch(url, { signal });
                 if (!res.ok) {
@@ -212,28 +199,28 @@ export default function Reports() {
                     do: d.do?.value ?? 0,
                 })),
             });
-            console.log("history results", results);
         } catch (e) {
             if (e.name !== "AbortError") {
                 console.error(e);
                 setError(String(e.message || e));
             }
-        } finally {
-            setLoading(false);
         }
     };
 
-    // ---------- auto refresh ----------
+    const sensorDeps = JSON.stringify([
+        ...selSensors.water,
+        ...selSensors.light,
+        ...selSensors.blue,
+        ...selSensors.red,
+        ...selSensors.airq,
+    ]);
+
     useEffect(() => {
-        if (autoRefreshValue === "Off") return;
-        const ms =
-            autoRefreshValue === "30s" ? 30_000 :
-                autoRefreshValue === "1m"  ? 60_000 :
-                    5 * 60_000;
+        const ms = AUTO_REFRESH_MS[autoRefreshValue];
+        if (!ms) return;
         const t = setInterval(fetchReportData, ms);
         return () => clearInterval(t);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [autoRefreshValue, fromDate, toDate, bucket, selectedCIDs.join(","), JSON.stringify([...selSensors.water, ...selSensors.light, ...selSensors.blue, ...selSensors.red, ...selSensors.airq])]);
+    }, [autoRefreshValue, fromDate, toDate, bucket, selectedCIDs.join(','), sensorDeps]);
 
     // ---------- compare (same as before) ----------
     const [compareItems, setCompareItems] = useState([]);
@@ -257,7 +244,6 @@ export default function Reports() {
     const onRemoveCompare = (id) => setCompareItems((p) => p.filter((x) => x.id !== id));
     const onClearCompare  = () => setCompareItems([]);
 
-    // ---------- actions ----------
     const onApply = () => fetchReportData();
     const onReset = () => {
         setSelSystems(new Set());
@@ -278,11 +264,9 @@ export default function Reports() {
     const xDomain = [new Date(fromDate).getTime(), new Date(toDate).getTime()];
     const selectedDeviceLabel = selectedCIDs.length === 1 ? selectedCIDs[0] : "";
 
-    // ---------- render ----------
     return (
         <div style={{ padding: 16 }}>
             <ReportFiltersCompare
-                // timing
                 fromDate={fromDate}
                 toDate={toDate}
                 onFromDateChange={(e) => setFromDate(e.target.value)}
@@ -292,13 +276,9 @@ export default function Reports() {
                 onBucketChange={(e) => setBucket(e.target.value)}
                 autoRefreshValue={autoRefreshValue}
                 onAutoRefreshValueChange={(e) => setAutoRefreshValue(e.target.value)}
-
-                // location lists
                 systems={systems}
                 layers={layers}
                 devices={deviceIds}
-
-                // actions
                 onReset={onReset}
                 onAddCompare={onAddCompare}
                 onExportCsv={() => {}}
@@ -330,12 +310,10 @@ export default function Reports() {
                 onNoneAirq={()=>clearSensors('airq')}
             />
 
-            {/* Location (checklists and Composite IDs) — if you've built this section elsewhere, keep it as is */}
-
+n           {/* Location (checklists and Composite IDs) — if you've built this section elsewhere, keep it as is */}
             {/* Error / Loading */}
             {error && <div style={{ color: "#b91c1c", marginTop: 8, fontSize: 14 }}>{error}</div>}
 
-            {/* Charts */}
             <div style={{ marginTop: 16 }}>
                 <ReportCharts
                     showTempHum={showTempHum}

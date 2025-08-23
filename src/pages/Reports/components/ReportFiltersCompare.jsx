@@ -8,8 +8,6 @@ const DEFAULT_SENSOR_GROUPS = {
     red:   ['550nm', '555nm', '600nm', '640nm', '690nm', '745nm'],
     airq:  ['humidity', 'temperature', 'CO2'],
 };
-
-// comment: tiny util to render radio pair
 function AllNone({name, onAll, onNone}) {
     return (
         <div className={styles.allnone}>
@@ -18,8 +16,6 @@ function AllNone({name, onAll, onNone}) {
         </div>
     );
 }
-
-// comment: checklist box
 function Checklist({options = [], values = [], onToggle}) {
     return (
         <div className={styles.checklist}>
@@ -43,8 +39,6 @@ function Checklist({options = [], values = [], onToggle}) {
         </div>
     );
 }
-
-// comment: group card with title + radios + checklist
 function Group({title, name, options = [], values = [], onAll, onNone, onToggle}) {
     return (
         <div className={styles.group}>
@@ -54,8 +48,6 @@ function Group({title, name, options = [], values = [], onAll, onNone, onToggle}
         </div>
     );
 }
-
-// comment: normalize sensor key from string/object
 const normKey = (s) =>
     (typeof s === 'string'
             ? s
@@ -64,38 +56,27 @@ const normKey = (s) =>
 
 export default function ReportFiltersCompare(props) {
     const {
-        // timing
         fromDate, toDate, onFromDateChange, onToDateChange, onApply,
         bucket = '5m', onBucketChange,
         autoRefreshValue = 'Off', onAutoRefreshValueChange,
-
-        // location (external lists optional)
         systems: systemsProp = [],
         layers: layersProp = [],
         devices: devicesProp = [],
         selectedSystem = '', onSystemChange,
         selectedLayer = '', onLayerChange,
         selectedDevice = '', onDeviceChange,
-
-        // sensor groups controlled values/handlers (unchanged)
         water: waterProp, light: lightProp, blue: blueProp, red: redProp, airq: airqProp,
         onToggleWater, onToggleLight, onToggleBlue, onToggleRed, onToggleAirq,
         onAllWater, onNoneWater, onAllLight, onNoneLight, onAllBlue, onNoneBlue, onAllRed, onNoneRed, onAllAirq, onNoneAirq,
-
-        // compare & actions
         onReset, onAddCompare, onExportCsv, rangeLabel,
         compareItems = [], onClearCompare, onRemoveCompare,
     } = props;
 
     const [catalog, setCatalog] = useState(null);
-
-    // local selection (multi-select)
     const [selectedSystems, setSelectedSystems] = useState(() => selectedSystem ? [selectedSystem] : []);
     const [selectedLayers, setSelectedLayers] = useState(() => selectedLayer ? [selectedLayer] : []);
     const [selectedDevices, setSelectedDevices] = useState(() => selectedDevice ? [selectedDevice] : []);
     const [selectedCompositeIds, setSelectedCompositeIds] = useState([]);
-
-    // comment: load catalog from cache (support both keys)
     useEffect(() => {
         if (typeof window === 'undefined') return;
         try {
@@ -105,8 +86,6 @@ export default function ReportFiltersCompare(props) {
             if (raw) setCatalog(JSON.parse(raw));
         } catch {/* ignore */}
     }, []);
-
-    // comment: build composite id list from catalog
     const compositeIds = useMemo(() => {
         const sys = catalog?.systems || [];
         const ids = sys.flatMap(s =>
@@ -114,11 +93,8 @@ export default function ReportFiltersCompare(props) {
                 .concat((s.layers || []).flatMap(l => (l.devices || []).map(d => d.compositeId).filter(Boolean)))
         );
         if (ids.length) return Array.from(new Set(ids));
-        // fallback: derive from catalog.devices
         return (catalog?.devices || []).map(d => `${d.systemId}-${d.layerId}-${d.deviceId}`);
     }, [catalog]);
-
-    // comment: systems/layers/devices derived (unless provided via props)
     const systemsFromCatalog = useMemo(
         () => Array.from(new Set((catalog?.systems || []).map(s => s.id))).sort(),
         [catalog]
@@ -146,8 +122,6 @@ export default function ReportFiltersCompare(props) {
         )).sort();
     }, [catalog, selectedSystems, selectedLayers]);
     const devices = devicesProp.length ? devicesProp : devicesFromCatalog;
-
-    // comment: cascade S/L/D -> composite ids (auto select visible)
     useEffect(() => {
         const matched = compositeIds.filter(id => {
             const [s, l, d] = id.split('-');
@@ -157,8 +131,6 @@ export default function ReportFiltersCompare(props) {
             (prev.length === matched.length && prev.every(x => matched.includes(x))) ? prev : matched
         );
     }, [selectedSystems, selectedLayers, selectedDevices, compositeIds]);
-
-    // comment: filter catalog rows by current S/L filters
     const filteredCatalogDevices = useMemo(() => {
         const all = catalog?.devices || [];
         return all.filter(d => {
@@ -167,26 +139,18 @@ export default function ReportFiltersCompare(props) {
             return sysOk && layOk;
         });
     }, [catalog, selectedSystems, selectedLayers]);
-
-    // comment: rows matched by selected device IDs
     const selectedByDevice = useMemo(() => {
         if (!selectedDevices.length) return [];
         return filteredCatalogDevices.filter(d =>
             selectedDevices.includes(d.deviceId) || selectedDevices.includes(`${d.layerId}${d.deviceId}`)
         );
     }, [filteredCatalogDevices, selectedDevices]);
-
-    // comment: rows matched explicitly by selected composite ids
     const selectedByCID = useMemo(() => {
         if (!selectedCompositeIds.length) return [];
         const byKey = new Map((catalog?.devices || []).map(d => [`${d.systemId}-${d.layerId}-${d.deviceId}`, d]));
         return selectedCompositeIds.map(id => byKey.get(id)).filter(Boolean);
     }, [catalog, selectedCompositeIds]);
-
-    // comment: choose base devices for UNION: prefer explicit CID selection, else device selection
     const baseDevicesForUnion = selectedByCID.length ? selectedByCID : selectedByDevice;
-
-    // comment: build sensor groups with disabled flags based on union
     const sensorGroups = useMemo(() => {
         const union = new Set(baseDevicesForUnion.flatMap(d => (d.sensors || []).map(normKey)));
         const groups = {};
@@ -198,8 +162,6 @@ export default function ReportFiltersCompare(props) {
         });
         return groups;
     }, [baseDevicesForUnion]);
-
-    // comment: values from props (controlled), options from computed groups
     const water = {options: sensorGroups.water, values: waterProp?.values || []};
     const light = {options: sensorGroups.light, values: lightProp?.values || []};
     const blue  = {options: sensorGroups.blue,  values: blueProp?.values  || []};

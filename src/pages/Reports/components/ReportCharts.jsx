@@ -2,6 +2,8 @@ import React from 'react';
 import HistoryChart from '../../../components/HistoryChart';
 import styles from '../../common/SensorDashboard.module.css';
 
+const SPECTRUM_KEYS = ['405nm','425nm','450nm','475nm','F4','550nm','555nm','600nm','640nm','690nm','745nm','VIS1','VIS2','NIR855'];
+
 function ReportCharts({
   showTempHum,
   showSpectrum,
@@ -49,7 +51,7 @@ function ReportCharts({
 
       {showSpectrum && (
         <div className={styles.historyChartsRow}>
-          {['405nm','425nm','450nm','475nm','F4','550nm','555nm','600nm','640nm','690nm','745nm','VIS1','VIS2','NIR855'].map((key) => (
+          {SPECTRUM_KEYS.map((key) => (
             <div key={key} className={styles.historyChartColumn}>
               <h3 className={styles.sectionTitle}>{withDevice(key)}</h3>
               <div className={styles.multiBandChartWrapper}>
