@@ -13,7 +13,7 @@ vi.mock('../src/components/useLiveDevices', () => ({
   useLiveDevices: (...args) => liveDevicesMock(...args),
 }));
 
-vi.mock('../src/components/useHistory', () => ({
+vi.mock('../src/pages/common/useHistory.js', () => ({
   useHistory: () => ({
     rangeData: [],
     tempRangeData: [],
