@@ -26,9 +26,9 @@ const pickBucket = (fromLocal, toLocal) => {
     if (hours <= 6) return "1m";
     if (hours <= 24) return "5m";
     if (hours <= 72) return "15m";
-    if (hours <= 168) return "1h";   // <= 7 days
-    if (hours <= 720) return "6h";   // <= 30 days
-    return "1d";
+    if (hours <= 168) return "30m";   // <= 7 days
+    if (hours <= 720) return "2h";   // <= 30 days
+    return "3d";
 };
 
 function useDevicesMeta() {
