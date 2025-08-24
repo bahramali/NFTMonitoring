@@ -24,6 +24,6 @@ function setup() {
 
 test('adds selected device to chart titles', () => {
   setup();
-  expect(screen.getByText('Temperature(L01G03)')).toBeInTheDocument();
-  expect(screen.queryByText('Humidity(L01G03)')).not.toBeInTheDocument();
+  expect(screen.getByText('Temperature (L01G03)')).toBeInTheDocument();
+  expect(screen.queryByText('Humidity (L01G03)')).not.toBeInTheDocument();
 });
