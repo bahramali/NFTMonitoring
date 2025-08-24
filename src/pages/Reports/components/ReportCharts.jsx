@@ -9,7 +9,8 @@ function ReportCharts({
   ecTdsRangeData,
   doRangeData,
   selectedDevice,
-  selectedSensors = {}
+  selectedSensors = {},
+  xDomain
 }) {
   const withDevice = (title) => (selectedDevice ? `${title}(${selectedDevice})` : title);
 
@@ -34,6 +35,7 @@ function ReportCharts({
                   xDataKey="time"
                   yDataKey="temperature"
                   yLabel="Temperature (°C)"
+                  xDomain={xDomain}
                 />
               </div>
             </div>
@@ -47,6 +49,7 @@ function ReportCharts({
                   xDataKey="time"
                   yDataKey="humidity"
                   yLabel="Humidity (%)"
+                  xDomain={xDomain}
                 />
               </div>
             </div>
@@ -65,6 +68,7 @@ function ReportCharts({
                   xDataKey="time"
                   yDataKey={key}
                   yLabel={key}
+                  xDomain={xDomain}
                 />
               </div>
             </div>
@@ -83,6 +87,7 @@ function ReportCharts({
                   xDataKey="time"
                   yDataKey="lux"
                   yLabel="Lux"
+                  xDomain={xDomain}
                 />
               </div>
             </div>
@@ -96,6 +101,7 @@ function ReportCharts({
                   xDataKey="time"
                   yDataKey={key}
                   yLabel={key}
+                  xDomain={xDomain}
                 />
               </div>
             </div>
@@ -114,6 +120,7 @@ function ReportCharts({
                   xDataKey="time"
                   yDataKey="ph"
                   yLabel="pH"
+                  xDomain={xDomain}
                 />
               </div>
             </div>
@@ -127,6 +134,7 @@ function ReportCharts({
                   xDataKey="time"
                   yDataKey="ec"
                   yLabel="EC (mS/cm)"
+                  xDomain={xDomain}
                 />
               </div>
             </div>
@@ -140,6 +148,7 @@ function ReportCharts({
                   xDataKey="time"
                   yDataKey="tds"
                   yLabel="TDS (ppm)"
+                  xDomain={xDomain}
                 />
               </div>
             </div>
@@ -153,6 +162,7 @@ function ReportCharts({
                   xDataKey="time"
                   yDataKey="do"
                   yLabel="Dissolved Oxygen (mg/L)"
+                  xDomain={xDomain}
                 />
               </div>
             </div>
