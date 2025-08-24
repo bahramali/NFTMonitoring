@@ -1,176 +1,154 @@
-import React from 'react';
-import HistoryChart from '../../../components/HistoryChart';
-import styles from '../../common/SensorDashboard.module.css';
+import React from "react";
+import HistoryChart from "../../../components/HistoryChart";
+import styles from "../../common/SensorDashboard.module.css";
 
-function ReportCharts({
-  rangeData,
-  tempRangeData,
-  phRangeData,
-  ecTdsRangeData,
-  doRangeData,
-  selectedDevice,
-  selectedSensors = {},
-  xDomain
-}) {
-  const withDevice = (title) => (selectedDevice ? `${title}(${selectedDevice})` : title);
+// English comments: helper to convert {cid: data[]} to multi-series spec
+const toSeries = (byCid, yKey) =>
+    Object.entries(byCid || {}).map(([cid, data]) => ({
+      name: cid,
+      data,
+      yDataKey: yKey,
+    }));
 
+export default function ReportCharts({
+                                       tempByCid,
+                                       rangeByCid,
+                                       phByCid,
+                                       ecTdsByCid,
+                                       doByCid,
+                                       selectedSensors = {},
+                                       xDomain,
+                                     }) {
   const airq  = new Set(selectedSensors.airq || []);
   const water = new Set(selectedSensors.water || []);
   const light = new Set(selectedSensors.light || []);
   const blue  = new Set(selectedSensors.blue || []);
   const red   = new Set(selectedSensors.red || []);
-
   const spectrumKeys = Array.from(new Set([...blue, ...red]));
 
   return (
-    <>
-      {(airq.has('temperature') || airq.has('humidity')) && (
-        <div className={styles.historyChartsRow}>
-          {airq.has('temperature') && (
-            <div className={styles.historyChartColumn}>
-              <h3 className={styles.sectionTitle}>{withDevice('Temperature')}</h3>
-              <div className={styles.dailyTempChartWrapper}>
-                <HistoryChart
-                  data={tempRangeData}
-                  xDataKey="time"
-                  yDataKey="temperature"
-                  yLabel="Temperature (°C)"
-                  xDomain={xDomain}
-                />
-              </div>
+      <>
+        {(airq.has("temperature") || airq.has("humidity")) && (
+            <div className={styles.historyChartsRow}>
+              {airq.has("temperature") && (
+                  <div className={styles.historyChartColumn}>
+                    <h3 className={styles.sectionTitle}>Temperature</h3>
+                    <div className={styles.dailyTempChartWrapper}>
+                      <HistoryChart
+                          xDataKey="time"
+                          series={toSeries(tempByCid, "temperature")}
+                          yLabel="Temperature (°C)"
+                          xDomain={xDomain}
+                      />
+                    </div>
+                  </div>
+              )}
+              {airq.has("humidity") && (
+                  <div className={styles.historyChartColumn}>
+                    <h3 className={styles.sectionTitle}>Humidity</h3>
+                    <div className={styles.dailyTempChartWrapper}>
+                      <HistoryChart
+                          xDataKey="time"
+                          series={toSeries(tempByCid, "humidity")}
+                          yLabel="Humidity (%)"
+                          xDomain={xDomain}
+                      />
+                    </div>
+                  </div>
+              )}
             </div>
-          )}
-          {airq.has('humidity') && (
-            <div className={styles.historyChartColumn}>
-              <h3 className={styles.sectionTitle}>{withDevice('Humidity')}</h3>
-              <div className={styles.dailyTempChartWrapper}>
-                <HistoryChart
-                  data={tempRangeData}
-                  xDataKey="time"
-                  yDataKey="humidity"
-                  yLabel="Humidity (%)"
-                  xDomain={xDomain}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+        )}
 
-      {spectrumKeys.length > 0 && (
-        <div className={styles.historyChartsRow}>
-          {spectrumKeys.map((key) => (
-            <div key={key} className={styles.historyChartColumn}>
-              <h3 className={styles.sectionTitle}>{withDevice(key)}</h3>
-              <div className={styles.multiBandChartWrapper}>
-                <HistoryChart
-                  data={rangeData}
-                  xDataKey="time"
-                  yDataKey={key}
-                  yLabel={key}
-                  xDomain={xDomain}
-                />
-              </div>
+        {spectrumKeys.length > 0 && (
+            <div className={styles.historyChartsRow}>
+              {spectrumKeys.map((key) => (
+                  <div key={key} className={styles.historyChartColumn}>
+                    <h3 className={styles.sectionTitle}>{key}</h3>
+                    <div className={styles.multiBandChartWrapper}>
+                      <HistoryChart
+                          xDataKey="time"
+                          series={toSeries(rangeByCid, key)}
+                          yLabel={key}
+                          xDomain={xDomain}
+                      />
+                    </div>
+                  </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+        )}
 
-      {light.size > 0 && (
-        <div className={styles.historyChartsRow}>
-          {light.has('light') && (
-            <div className={styles.historyChartColumn}>
-              <h3 className={styles.sectionTitle}>{withDevice('Lux')}</h3>
-              <div className={styles.clearLuxChartWrapper}>
-                <HistoryChart
-                  data={rangeData}
-                  xDataKey="time"
-                  yDataKey="lux"
-                  yLabel="Lux"
-                  xDomain={xDomain}
-                />
+        {light.size > 0 && light.has("light") && (
+            <div className={styles.historyChartsRow}>
+              <div className={styles.historyChartColumn}>
+                <h3 className={styles.sectionTitle}>Lux</h3>
+                <div className={styles.clearLuxChartWrapper}>
+                  <HistoryChart
+                      xDataKey="time"
+                      series={toSeries(rangeByCid, "lux")}
+                      yLabel="Lux"
+                      xDomain={xDomain}
+                  />
+                </div>
               </div>
             </div>
-          )}
-          {['VIS1','VIS2','NIR855'].filter((k)=>light.has(k)).map((key)=>(
-            <div key={key} className={styles.historyChartColumn}>
-              <h3 className={styles.sectionTitle}>{withDevice(key)}</h3>
-              <div className={styles.clearLuxChartWrapper}>
-                <HistoryChart
-                  data={rangeData}
-                  xDataKey="time"
-                  yDataKey={key}
-                  yLabel={key}
-                  xDomain={xDomain}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+        )}
 
-      {(water.has('ph') || water.has('dissolvedEC') || water.has('dissolvedTDS') || water.has('dissolvedOxygen')) && (
-        <div className={styles.historyChartsRow}>
-          {water.has('ph') && (
-            <div className={styles.historyChartColumn}>
-              <h3 className={styles.sectionTitle}>{withDevice('pH')}</h3>
-              <div className={styles.phChartWrapper}>
-                <HistoryChart
-                  data={phRangeData}
-                  xDataKey="time"
-                  yDataKey="ph"
-                  yLabel="pH"
-                  xDomain={xDomain}
-                />
-              </div>
+        {(water.has("ph") || water.has("dissolvedEC") || water.has("dissolvedTDS") || water.has("dissolvedOxygen")) && (
+            <div className={styles.historyChartsRow}>
+              {water.has("ph") && (
+                  <div className={styles.historyChartColumn}>
+                    <h3 className={styles.sectionTitle}>pH</h3>
+                    <div className={styles.phChartWrapper}>
+                      <HistoryChart
+                          xDataKey="time"
+                          series={toSeries(phByCid, "ph")}
+                          yLabel="pH"
+                          xDomain={xDomain}
+                      />
+                    </div>
+                  </div>
+              )}
+              {water.has("dissolvedEC") && (
+                  <div className={styles.historyChartColumn}>
+                    <h3 className={styles.sectionTitle}>EC</h3>
+                    <div className={styles.ecTdsChartWrapper}>
+                      <HistoryChart
+                          xDataKey="time"
+                          series={toSeries(ecTdsByCid, "ec")}
+                          yLabel="EC (mS/cm)"
+                          xDomain={xDomain}
+                      />
+                    </div>
+                  </div>
+              )}
+              {water.has("dissolvedTDS") && (
+                  <div className={styles.historyChartColumn}>
+                    <h3 className={styles.sectionTitle}>TDS</h3>
+                    <div className={styles.ecTdsChartWrapper}>
+                      <HistoryChart
+                          xDataKey="time"
+                          series={toSeries(ecTdsByCid, "tds")}
+                          yLabel="TDS (ppm)"
+                          xDomain={xDomain}
+                      />
+                    </div>
+                  </div>
+              )}
+              {water.has("dissolvedOxygen") && (
+                  <div className={styles.historyChartColumn}>
+                    <h3 className={styles.sectionTitle}>Dissolved Oxygen</h3>
+                    <div className={styles.doChartWrapper}>
+                      <HistoryChart
+                          xDataKey="time"
+                          series={toSeries(doByCid, "do")}
+                          yLabel="Dissolved Oxygen (mg/L)"
+                          xDomain={xDomain}
+                      />
+                    </div>
+                  </div>
+              )}
             </div>
-          )}
-          {water.has('dissolvedEC') && (
-            <div className={styles.historyChartColumn}>
-              <h3 className={styles.sectionTitle}>{withDevice('EC')}</h3>
-              <div className={styles.ecTdsChartWrapper}>
-                <HistoryChart
-                  data={ecTdsRangeData}
-                  xDataKey="time"
-                  yDataKey="ec"
-                  yLabel="EC (mS/cm)"
-                  xDomain={xDomain}
-                />
-              </div>
-            </div>
-          )}
-          {water.has('dissolvedTDS') && (
-            <div className={styles.historyChartColumn}>
-              <h3 className={styles.sectionTitle}>{withDevice('TDS')}</h3>
-              <div className={styles.ecTdsChartWrapper}>
-                <HistoryChart
-                  data={ecTdsRangeData}
-                  xDataKey="time"
-                  yDataKey="tds"
-                  yLabel="TDS (ppm)"
-                  xDomain={xDomain}
-                />
-              </div>
-            </div>
-          )}
-          {water.has('dissolvedOxygen') && (
-            <div className={styles.historyChartColumn}>
-              <h3 className={styles.sectionTitle}>{withDevice('Dissolved Oxygen')}</h3>
-              <div className={styles.doChartWrapper}>
-                <HistoryChart
-                  data={doRangeData}
-                  xDataKey="time"
-                  yDataKey="do"
-                  yLabel="Dissolved Oxygen (mg/L)"
-                  xDomain={xDomain}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </>
+        )}
+      </>
   );
 }
-
-export default ReportCharts;

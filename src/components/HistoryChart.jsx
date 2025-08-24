@@ -1,60 +1,71 @@
-import React from 'react';
+// English comments in code
+import React from "react";
 import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Label,
-    ResponsiveContainer,
-} from 'recharts';
-import palette from '../colorPalette';
+    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Label, ResponsiveContainer, Legend,
+} from "recharts";
+import palette from "../colorPalette";
 
+/**
+ * Props:
+ * - xDataKey: string (e.g., 'time')
+ * - series: Array<{ name: string, data: any[], yDataKey: string }>
+ * - yLabel: string
+ * - title?: string
+ * - height?: number
+ * - xDomain?: [number, number]
+ */
 const HistoryChart = ({
-                          data,
                           xDataKey,
-                          yDataKey,
+                          series = [],
                           yLabel,
                           title,
                           height = 300,
                           xDomain,
                       }) => (
     <ResponsiveContainer width="100%" height={height} debounce={200}>
-        <LineChart
-            data={data}
-            margin={{top: 20, right: 30, left: 0, bottom: 50}}
-            isAnimationActive={false}
-        >
-            <CartesianGrid strokeDasharray="3 3"/>
+        <LineChart margin={{ top: 20, right: 30, left: 0, bottom: 50 }} isAnimationActive={false}>
+            <CartesianGrid strokeDasharray="3 3" />
             <XAxis
                 dataKey={xDataKey}
                 type="number"
                 scale="time"
-                domain={xDomain ?? ['auto', 'auto']}   // <— use given domain
-                tick={{fontSize: 10}}
+                domain={xDomain ?? ["auto", "auto"]}
+                tick={{ fontSize: 10 }}
                 tickFormatter={(val) => {
                     const d = new Date(val);
-                    // show hh:mm if range is short (fallback simple)
+                    // simple formatter; you can improve based on range
                     return `${d.getMonth() + 1}/${d.getDate()}`;
                 }}
-                allowDataOverflow   // <— keep axis exactly on domain
+                allowDataOverflow
             />
             <YAxis>
-                {yLabel && <Label value={yLabel} angle={-90} position="insideLeft" style={{textAnchor: 'middle'}}/>}
+                {yLabel && (
+                    <Label value={yLabel} angle={-90} position="insideLeft" style={{ textAnchor: "middle" }} />
+                )}
             </YAxis>
-            <Tooltip/>
-            <Line
-                type="monotone"
-                dataKey={yDataKey}
-                stroke={palette[4]}
-                dot={false}
-                isAnimationActive={false}
-            />
-            {title && <text x="50%" y={0} textAnchor="middle" dominantBaseline="hanging">{title}</text>}
+            <Tooltip />
+            <Legend />
+            {/* one dataset per CID */}
+            {series.map((s, i) => (
+                <Line
+                    key={s.name}
+                    data={s.data}
+                    type="monotone"
+                    dataKey={s.yDataKey}
+                    name={s.name}
+                    stroke={palette[i % palette.length]}
+                    dot={false}
+                    isAnimationActive={false}
+                    connectNulls
+                />
+            ))}
+            {title && (
+                <text x="50%" y={0} textAnchor="middle" dominantBaseline="hanging">
+                    {title}
+                </text>
+            )}
         </LineChart>
     </ResponsiveContainer>
 );
 
 export default React.memo(HistoryChart);
-
