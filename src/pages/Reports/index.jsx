@@ -16,6 +16,9 @@ const toLocalInputValue = (date) => {
 const toISOSeconds = (v) => (v ? new Date(v).toISOString() : "");
 const AUTO_REFRESH_MS = { '30s': 30_000, '1m': 60_000, '5m': 300_000 };
 
+// backend API domain
+const API_BASE = "https://api.hydroleaf.se";
+
 function useDevicesMeta() {
     const [meta, setMeta] = useState({ devices: [] });
 
@@ -24,8 +27,7 @@ function useDevicesMeta() {
         if (cached) {
             try { setMeta(JSON.parse(cached)); } catch { /* ignore */ }
         }
-        // comment: refresh here if you have an API
-        // fetch("/api/meta/devices").then(r=>r.json()).then(d=>{ localStorage.setItem("reportsMeta:v1", JSON.stringify(d)); setMeta(d); });
+        // fetch("/api/meta/devices") ...
     }, []);
 
     return meta;
@@ -48,8 +50,7 @@ export default function Reports() {
     const [selDevices, setSelDevices]   = useState(new Set());
     const [selCIDs, setSelCIDs]         = useState(new Set());
 
-    // ---------- sensor selections (per group) ----------
-    // comment: values are EXACT keys e.g., dissolvedEC, 405nm, humidity, light, ...
+    // ---------- sensor selections ----------
     const [selSensors, setSelSensors] = useState({
         water: new Set(),   // dissolvedTemp, dissolvedEC, dissolvedTDS, dissolvedOxygen, (pH if available)
         light: new Set(),   // VIS1, VIS2, NIR855, light
@@ -156,8 +157,7 @@ export default function Reports() {
                 for (const sensor of sensors) {
                     const params = new URLSearchParams(base);
                     if (sensor) params.append("sensorType", sensor);
-                    // one request per sensor
-                    const url = `/api/records/history/aggregated?${params.toString()}`;
+                    const url = `${API_BASE}/api/records/history/aggregated?${params.toString()}`;
                     console.log("Request:", url);
                     const p = (async () => {
                         const res = await fetch(url, { signal });
@@ -317,8 +317,7 @@ export default function Reports() {
                 onNoneAirq={()=>clearSensors('airq')}
             />
 
-n           {/* Location (checklists and Composite IDs) — if you've built this section elsewhere, keep it as is */}
-            {/* Error / Loading */}
+            {/* Location (checklists and Composite IDs) */}
             {error && <div style={{ color: "#b91c1c", marginTop: 8, fontSize: 14 }}>{error}</div>}
 
             <div style={{ marginTop: 16 }}>
