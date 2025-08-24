@@ -239,6 +239,9 @@ export default function Reports() {
 
     const xDomain = [new Date(fromDate).getTime(), new Date(toDate).getTime()];
 
+    const selectedDeviceLabel = selectedCIDs.length === 1 ? selectedCIDs[0] : "";
+
+
     return (
         <div style={{ padding: 16 }}>
             {/* Filters header kept the same UI you already have */}
@@ -260,6 +263,7 @@ export default function Reports() {
                 phByCid={chartData.phByCid}
                 ecTdsByCid={chartData.ecTdsByCid}
                 doByCid={chartData.doByCid}
+                selectedDevice={selectedDeviceLabel}
                 // sensors selection (for which charts to show)
                 selectedSensors={{
                     water: Array.from(selSensors.water),
