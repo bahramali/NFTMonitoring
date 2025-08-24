@@ -155,7 +155,8 @@ export default function Reports() {
                 const sensors = sensorsSelected.length ? sensorsSelected : [null];
                 for (const sensor of sensors) {
                     const params = new URLSearchParams(base);
-                    if (sensor) params.set("sensors", sensor); // one request per sensor
+                    if (sensor) params.append("sensorType", sensor);
+                    // one request per sensor
                     const url = `/api/records/history/aggregated?${params.toString()}`;
                     console.log("Request:", url);
                     const p = (async () => {
