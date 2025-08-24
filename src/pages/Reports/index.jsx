@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {useEffect, useMemo, useRef, useState} from "react";
 import ReportCharts from "./components/ReportCharts";
 import ReportFiltersCompare from "./components/ReportFiltersCompare";
-import { transformAggregatedData } from "../../utils.js";
+import {transformAggregatedData} from "../../utils.js";
 
 const toCID = (d) => `${d.systemId}-${d.layerId}-${d.deviceId}`;
 const toLocalInputValue = (date) => {
@@ -14,12 +14,12 @@ const toLocalInputValue = (date) => {
     return `${y}-${m}-${d}T${hh}:${mm}`;
 };
 const toISOSeconds = (v) => (v ? new Date(v).toISOString() : "");
-const AUTO_REFRESH_MS = { "30s": 30_000, "1m": 60_000, "5m": 300_000 };
+const AUTO_REFRESH_MS = {"30s": 30_000, "1m": 60_000, "5m": 300_000};
 
 // backend API domain
 const API_BASE = "https://api.hydroleaf.se";
 
-// English comments: pick an appropriate bucket based on range length (min resolution is 1 minute per your data rate)
+// English comments: choose bucket by range; min resolution is 1 minute (your data rate)
 const pickBucket = (fromLocal, toLocal) => {
     const diffMs = new Date(toLocal) - new Date(fromLocal);
     const hours = diffMs / (1000 * 60 * 60);
@@ -28,31 +28,38 @@ const pickBucket = (fromLocal, toLocal) => {
     if (hours <= 72) return "15m";
     if (hours <= 168) return "30m";   // <= 7 days
     if (hours <= 720) return "2h";   // <= 30 days
-    return "3d";
+    return "6h";
 };
 
 function useDevicesMeta() {
-    const [meta, setMeta] = useState({ devices: [] });
+    const [meta, setMeta] = useState({devices: []});
     useEffect(() => {
         const cached = localStorage.getItem("reportsMeta:v1") || localStorage.getItem("deviceCatalog");
-        if (cached) { try { setMeta(JSON.parse(cached)); } catch {/* ignore */} }
+        if (cached) {
+            try {
+                setMeta(JSON.parse(cached));
+            } catch {/* ignore */
+            }
+        }
     }, []);
     return meta;
 }
 
 export default function Reports() {
-    const { devices: deviceRows } = useDevicesMeta();
+    const {devices: deviceRows} = useDevicesMeta();
 
     const [fromDate, setFromDate] = useState(() => {
-        const d = new Date(); d.setHours(d.getHours() - 6); return toLocalInputValue(d);
+        const d = new Date();
+        d.setHours(d.getHours() - 6);
+        return toLocalInputValue(d);
     });
     const [toDate, setToDate] = useState(() => toLocalInputValue(new Date()));
     const [autoRefreshValue, setAutoRefreshValue] = useState("Off");
 
     const [selSystems, setSelSystems] = useState(new Set());
-    const [selLayers,  setSelLayers]  = useState(new Set());
+    const [selLayers, setSelLayers] = useState(new Set());
     const [selDevices, setSelDevices] = useState(new Set());
-    const [selCIDs,    setSelCIDs]    = useState(new Set());
+    const [selCIDs, setSelCIDs] = useState(new Set());
 
     // ---------- sensor selections ----------
     const [selSensors, setSelSensors] = useState({
@@ -60,12 +67,13 @@ export default function Reports() {
     });
     const toggleSensor = (group, key) => {
         setSelSensors(prev => {
-            const n = new Set(prev[group]); n.has(key) ? n.delete(key) : n.add(key);
-            return { ...prev, [group]: n };
+            const n = new Set(prev[group]);
+            n.has(key) ? n.delete(key) : n.add(key);
+            return {...prev, [group]: n};
         });
     };
-    const setAllSensors = (group, keys) => setSelSensors(prev => ({ ...prev, [group]: new Set(keys) }));
-    const clearSensors = (group) => setSelSensors(prev => ({ ...prev, [group]: new Set() }));
+    const setAllSensors = (group, keys) => setSelSensors(prev => ({...prev, [group]: new Set(keys)}));
+    const clearSensors = (group) => setSelSensors(prev => ({...prev, [group]: new Set()}));
 
     const systems = useMemo(
         () => Array.from(new Set(deviceRows.map(d => d.systemId))).sort(), [deviceRows]
@@ -79,17 +87,18 @@ export default function Reports() {
     const filteredDeviceRows = useMemo(() =>
         deviceRows.filter(d =>
             (selSystems.size ? selSystems.has(d.systemId) : true) &&
-            (selLayers.size  ? selLayers.has(d.layerId)   : true)
+            (selLayers.size ? selLayers.has(d.layerId) : true)
         ), [deviceRows, selSystems, selLayers]);
 
     const deviceIds = useMemo(
         () => Array.from(new Set(filteredDeviceRows.map(d => d.deviceId))).sort(), [filteredDeviceRows]
     );
 
+    // recompute selected CIDs when filters change
     useEffect(() => {
         const filtered = deviceRows.filter(d =>
             (selSystems.size ? selSystems.has(d.systemId) : true) &&
-            (selLayers.size  ? selLayers.has(d.layerId)   : true) &&
+            (selLayers.size ? selLayers.has(d.layerId) : true) &&
             (selDevices.size ? selDevices.has(d.deviceId) : true)
         );
         setSelCIDs(new Set(filtered.map(toCID)));
@@ -100,6 +109,7 @@ export default function Reports() {
         Array.from(selDevices).join(","),
     ]);
 
+    // IMPORTANT: fallback to filtered devices if user hasn't ticked Composite IDs directly
     const selectedCIDs = useMemo(() => {
         const arr = Array.from(selCIDs);
         return arr.length ? arr : Array.from(new Set(filteredDeviceRows.map(toCID)));
@@ -112,24 +122,36 @@ export default function Reports() {
         tempRangeData: [], phRangeData: [], ecTdsRangeData: [], doRangeData: [], rangeData: [],
     });
 
-    // English comments: handlers to receive child selections (optional—connect if you want parent to track them)
+    // English comments: wire child filters to parent state
     const handleSystemChange = (e) => {
         const v = e.target.value;
         if (v === "ALL") setSelSystems(new Set(systems));
         else if (v === "") setSelSystems(new Set());
-        else setSelSystems(prev => { const n = new Set(prev); n.has(v) ? n.delete(v) : n.add(v); return n; });
+        else setSelSystems(prev => {
+                const n = new Set(prev);
+                n.has(v) ? n.delete(v) : n.add(v);
+                return n;
+            });
     };
     const handleLayerChange = (e) => {
         const v = e.target.value;
         if (v === "ALL") setSelLayers(new Set(layers));
         else if (v === "") setSelLayers(new Set());
-        else setSelLayers(prev => { const n = new Set(prev); n.has(v) ? n.delete(v) : n.add(v); return n; });
+        else setSelLayers(prev => {
+                const n = new Set(prev);
+                n.has(v) ? n.delete(v) : n.add(v);
+                return n;
+            });
     };
     const handleDeviceChange = (e) => {
         const v = e.target.value; // deviceId
         if (v === "ALL") setSelDevices(new Set(deviceIds));
         else if (v === "") setSelDevices(new Set());
-        else setSelDevices(prev => { const n = new Set(prev); n.has(v) ? n.delete(v) : n.add(v); return n; });
+        else setSelDevices(prev => {
+                const n = new Set(prev);
+                n.has(v) ? n.delete(v) : n.add(v);
+                return n;
+            });
     };
 
     const fetchReportData = async () => {
@@ -137,10 +159,11 @@ export default function Reports() {
             setError("");
             if (abortRef.current) abortRef.current.abort();
             abortRef.current = new AbortController();
-            const { signal } = abortRef.current;
+            const {signal} = abortRef.current;
 
             if (!selectedCIDs.length) return;
 
+            // gather selected sensors
             const sensorsSelected = [
                 ...selSensors.water, ...selSensors.light, ...selSensors.blue, ...selSensors.red, ...selSensors.airq,
             ];
@@ -149,54 +172,64 @@ export default function Reports() {
 
             const baseParams = {
                 from: toISOSeconds(fromDate),
-                to:   toISOSeconds(toDate),
+                to: toISOSeconds(toDate),
                 bucket: autoBucket,
             };
 
             const requests = [];
+            // === ONE request per CID: append all sensorType params ===
             for (const cid of selectedCIDs) {
-                const base = new URLSearchParams(baseParams);
-                base.set("compositeId", cid);
-                const sensors = sensorsSelected.length ? sensorsSelected : [null];
-                for (const sensor of sensors) {
-                    const params = new URLSearchParams(base);
-                    if (sensor) params.append("sensorType", sensor); // repeatable
-                    const url = `${API_BASE}/api/records/history/aggregated?${params.toString()}`;
-                    console.log("Request:", url);
-                    const p = (async () => {
-                        const res = await fetch(url, { signal });
-                        if (!res.ok) { const txt = await res.text().catch(() => ""); throw new Error(`CID ${cid} -> ${res.status} ${txt}`); }
-                        const data = await res.json();
-                        return { cid, data, autoBucket };
-                    })();
-                    requests.push(p);
+                const params = new URLSearchParams(baseParams);
+                params.set("compositeId", cid);
+                if (sensorsSelected.length) {
+                    for (const s of sensorsSelected) params.append("sensorType", s);
                 }
+                const url = `${API_BASE}/api/records/history/aggregated?${params.toString()}`;
+                console.log("Request:", url);
+                const p = (async () => {
+                    const res = await fetch(url, {signal});
+                    if (!res.ok) {
+                        const txt = await res.text().catch(() => "");
+                        throw new Error(`CID ${cid} -> ${res.status} ${txt}`);
+                    }
+                    const data = await res.json();
+                    return {cid, data};
+                })();
+                requests.push(p);
             }
 
             const results = await Promise.all(requests);
 
+            // merge by CID and flatten sensors for transform
             const merged = new Map();
-            for (const { cid, data } of results) {
-                if (!merged.has(cid)) merged.set(cid, { sensors: [] });
+            for (const {cid, data} of results) {
+                if (!merged.has(cid)) merged.set(cid, {sensors: []});
                 if (Array.isArray(data.sensors)) merged.get(cid).sensors.push(...data.sensors);
             }
 
             let allProcessed = [];
-            for (const { sensors } of merged.values()) {
-                const entries = transformAggregatedData({ sensors });
-                const processed = entries.map(d => ({ time: d.timestamp, ...d, lux: d.lux?.value ?? 0 }));
+            for (const {sensors} of merged.values()) {
+                const entries = transformAggregatedData({sensors});
+                const processed = entries.map(d => ({time: d.timestamp, ...d, lux: d.lux?.value ?? 0}));
                 allProcessed = allProcessed.concat(processed);
             }
 
             setChartData({
                 rangeData: allProcessed,
-                tempRangeData: allProcessed.map(d => ({ time: d.time, temperature: d.temperature?.value ?? 0, humidity: d.humidity?.value ?? 0 })),
-                phRangeData:   allProcessed.map(d => ({ time: d.time, ph: d.ph?.value ?? 0 })),
-                ecTdsRangeData:allProcessed.map(d => ({ time: d.time, ec: d.ec?.value ?? 0, tds: d.tds?.value ?? 0 })),
-                doRangeData:   allProcessed.map(d => ({ time: d.time, do: d.do?.value ?? 0 })),
+                tempRangeData: allProcessed.map(d => ({
+                    time: d.time,
+                    temperature: d.temperature?.value ?? 0,
+                    humidity: d.humidity?.value ?? 0
+                })),
+                phRangeData: allProcessed.map(d => ({time: d.time, ph: d.ph?.value ?? 0})),
+                ecTdsRangeData: allProcessed.map(d => ({time: d.time, ec: d.ec?.value ?? 0, tds: d.tds?.value ?? 0})),
+                doRangeData: allProcessed.map(d => ({time: d.time, do: d.do?.value ?? 0})),
             });
         } catch (e) {
-            if (e.name !== "AbortError") { console.error(e); setError(String(e.message || e)); }
+            if (e.name !== "AbortError") {
+                console.error(e);
+                setError(String(e.message || e));
+            }
         }
     };
 
@@ -220,24 +253,27 @@ export default function Reports() {
             id: String(Date.now()),
             title,
             from: toISOSeconds(fromDate),
-            to:   toISOSeconds(toDate),
+            to: toISOSeconds(toDate),
             sensors: [...selSensors.water, ...selSensors.light, ...selSensors.blue, ...selSensors.red, ...selSensors.airq],
         }]);
     };
     const onRemoveCompare = (id) => setCompareItems(p => p.filter(x => x.id !== id));
-    const onClearCompare  = () => setCompareItems([]);
+    const onClearCompare = () => setCompareItems([]);
 
     const onApply = () => fetchReportData();
     const onReset = () => {
-        setSelSystems(new Set()); setSelLayers(new Set()); setSelDevices(new Set()); setSelCIDs(new Set());
-        setSelSensors({ water:new Set(), light:new Set(), blue:new Set(), red:new Set(), airq:new Set() });
+        setSelSystems(new Set());
+        setSelLayers(new Set());
+        setSelDevices(new Set());
+        setSelCIDs(new Set());
+        setSelSensors({water: new Set(), light: new Set(), blue: new Set(), red: new Set(), airq: new Set()});
     };
 
     const xDomain = [new Date(fromDate).getTime(), new Date(toDate).getTime()];
     const selectedDeviceLabel = selectedCIDs.length === 1 ? selectedCIDs[0] : "";
 
     return (
-        <div style={{ padding: 16 }}>
+        <div style={{padding: 16}}>
             <ReportFiltersCompare
                 fromDate={fromDate}
                 toDate={toDate}
@@ -254,37 +290,38 @@ export default function Reports() {
                 onDeviceChange={handleDeviceChange}
                 onReset={onReset}
                 onAddCompare={onAddCompare}
-                onExportCsv={() => {}}
+                onExportCsv={() => {
+                }}
                 rangeLabel={`From: ${new Date(fromDate).toLocaleString()} until: ${new Date(toDate).toLocaleString()}`}
                 compareItems={compareItems}
                 onClearCompare={onClearCompare}
                 onRemoveCompare={onRemoveCompare}
-                water={{ values: Array.from(selSensors.water) }}
-                light={{ values: Array.from(selSensors.light) }}
-                blue={{  values: Array.from(selSensors.blue)  }}
-                red={{   values: Array.from(selSensors.red)   }}
-                airq={{  values: Array.from(selSensors.airq)  }}
-                onToggleWater={(k)=>toggleSensor("water", k)}
-                onToggleLight={(k)=>toggleSensor("light", k)}
-                onToggleBlue={(k)=>toggleSensor("blue",  k)}
-                onToggleRed={(k)=>toggleSensor("red",   k)}
-                onToggleAirq={(k)=>toggleSensor("airq",  k)}
-                onAllWater={(keys)=>setAllSensors("water", keys.map(x=>typeof x==="string"?x:x.label))}
-                onNoneWater={()=>clearSensors("water")}
-                onAllLight={(keys)=>setAllSensors("light", keys.map(x=>typeof x==="string"?x:x.label))}
-                onNoneLight={()=>clearSensors("light")}
-                onAllBlue={(keys)=>setAllSensors("blue", keys.map(x=>typeof x==="string"?x:x.label))}
-                onNoneBlue={()=>clearSensors("blue")}
-                onAllRed={(keys)=>setAllSensors("red", keys.map(x=>typeof x==="string"?x:x.label))}
-                onNoneRed={()=>clearSensors("red")}
-                onAllAirq={(keys)=>setAllSensors("airq", keys.map(x=>typeof x==="string"?x:x.label))}
-                onNoneAirq={()=>clearSensors("airq")}
+                water={{values: Array.from(selSensors.water)}}
+                light={{values: Array.from(selSensors.light)}}
+                blue={{values: Array.from(selSensors.blue)}}
+                red={{values: Array.from(selSensors.red)}}
+                airq={{values: Array.from(selSensors.airq)}}
+                onToggleWater={(k) => toggleSensor("water", k)}
+                onToggleLight={(k) => toggleSensor("light", k)}
+                onToggleBlue={(k) => toggleSensor("blue", k)}
+                onToggleRed={(k) => toggleSensor("red", k)}
+                onToggleAirq={(k) => toggleSensor("airq", k)}
+                onAllWater={(keys) => setAllSensors("water", keys.map(x => typeof x === "string" ? x : x.label))}
+                onNoneWater={() => clearSensors("water")}
+                onAllLight={(keys) => setAllSensors("light", keys.map(x => typeof x === "string" ? x : x.label))}
+                onNoneLight={() => clearSensors("light")}
+                onAllBlue={(keys) => setAllSensors("blue", keys.map(x => typeof x === "string" ? x : x.label))}
+                onNoneBlue={() => clearSensors("blue")}
+                onAllRed={(keys) => setAllSensors("red", keys.map(x => typeof x === "string" ? x : x.label))}
+                onNoneRed={() => clearSensors("red")}
+                onAllAirq={(keys) => setAllSensors("airq", keys.map(x => typeof x === "string" ? x : x.label))}
+                onNoneAirq={() => clearSensors("airq")}
             />
 
             {/* Error */}
-            {error && <div style={{ color: "#b91c1c", marginTop: 8, fontSize: 14 }}>{error}</div>}
+            {error && <div style={{color: "#b91c1c", marginTop: 8, fontSize: 14}}>{error}</div>}
 
-            <div style={{ marginTop: 16 }}>
+            <div style={{marginTop: 16}}>
                 <ReportCharts
                     tempRangeData={chartData.tempRangeData}
                     phRangeData={chartData.phRangeData}
@@ -296,9 +333,9 @@ export default function Reports() {
                     selectedSensors={{
                         water: Array.from(selSensors.water),
                         light: Array.from(selSensors.light),
-                        blue:  Array.from(selSensors.blue),
-                        red:   Array.from(selSensors.red),
-                        airq:  Array.from(selSensors.airq),
+                        blue: Array.from(selSensors.blue),
+                        red: Array.from(selSensors.red),
+                        airq: Array.from(selSensors.airq),
                     }}
                 />
             </div>
