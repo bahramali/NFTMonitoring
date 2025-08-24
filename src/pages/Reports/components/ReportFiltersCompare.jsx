@@ -57,7 +57,6 @@ const normKey = (s) =>
 export default function ReportFiltersCompare(props) {
     const {
         fromDate, toDate, onFromDateChange, onToDateChange, onApply,
-        bucket = '5m', onBucketChange,
         autoRefreshValue = 'Off', onAutoRefreshValueChange,
         systems: systemsProp = [],
         layers: layersProp = [],
@@ -184,12 +183,6 @@ export default function ReportFiltersCompare(props) {
                     <div className={styles.field}>
                         <span className={styles.label}>To</span>
                         <input type="datetime-local" value={toDate} onChange={onToDateChange}/>
-                    </div>
-                    <div className={styles.field}>
-                        <span className={styles.label}>Bucket</span>
-                        <select value={bucket} onChange={onBucketChange}>
-                            {['1m','5m','15m','1h','6h','1d'].map(v => <option key={v} value={v}>{v}</option>)}
-                        </select>
                     </div>
                     <div className={styles.field}>
                         <span className={styles.label}>Auto refresh</span>
