@@ -1,4 +1,3 @@
-// English comments in code
 import React from "react";
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Label, ResponsiveContainer, Legend,
@@ -33,7 +32,6 @@ const HistoryChart = ({
                 tick={{ fontSize: 10 }}
                 tickFormatter={(val) => {
                     const d = new Date(val);
-                    // simple formatter; you can improve based on range
                     return `${d.getMonth() + 1}/${d.getDate()}`;
                 }}
                 allowDataOverflow
@@ -45,7 +43,6 @@ const HistoryChart = ({
             </YAxis>
             <Tooltip />
             <Legend />
-            {/* one dataset per CID */}
             {series.map((s, i) => (
                 <Line
                     key={s.name}
