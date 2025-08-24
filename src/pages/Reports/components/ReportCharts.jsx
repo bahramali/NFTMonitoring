@@ -11,7 +11,7 @@ const toSeries = (byCid, yKey) =>
     }));
 
 const withDevice = (title, selectedDevice) =>
-    selectedDevice ? `${title}(${selectedDevice})` : title;
+    selectedDevice ? `${title} (${selectedDevice})` : title;
 
 
 export default function ReportCharts({

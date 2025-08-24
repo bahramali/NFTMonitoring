@@ -87,7 +87,9 @@ export default function ReportFiltersCompare(props) {
             const b = localStorage.getItem('deviceCatalog');
             const raw = a || b;
             if (raw) setCatalog(JSON.parse(raw));
-        } catch {}
+        } catch {
+            /* ignore parse errors */
+        }
     }, []);
 
     // composite IDs

@@ -30,7 +30,10 @@ function useDevicesMeta() {
     const [meta, setMeta] = useState({devices: []});
     useEffect(() => {
         const cached = localStorage.getItem("reportsMeta:v1") || localStorage.getItem("deviceCatalog");
-        if (cached) { try { setMeta(JSON.parse(cached)); } catch {} }
+        if (cached) {
+            try { setMeta(JSON.parse(cached)); }
+            catch { /* ignore parse errors */ }
+        }
     }, []);
     return meta;
 }
