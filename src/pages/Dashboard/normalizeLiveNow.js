@@ -1,14 +1,5 @@
-/*
-// src/pages/Dashboard/index.jsx
-/!* eslint-disable react-refresh/only-export-components *!/
-import React, {useEffect, useMemo, useState} from "react";
-import {useLiveNow} from "../../hooks/useLiveNow";
-import {SystemOverviewCard, LayerPanel} from "../SystemAndLayerCards";
-import FilterBar from "../common/FilterBar";
-import styles from "./Dashboard.module.css";
-
-// ---------- helpers ----------
 const toNum = (v) => (v == null ? null : Number(v));
+
 // Normalize "L01" / "layer1" → "L01"
 const normLayerId = (k) => {
     if (/^L\d+$/i.test(k)) return k.toUpperCase();
@@ -17,19 +8,12 @@ const normLayerId = (k) => {
     return k;
 };
 
-/!**
- * normalizeLiveNow
- * Input payload: object keyed by system IDs (S01, S02, ...), each containing
- *  {lastUpdate, environment, water, actuators, layers: []}
- * Output: array of systems shaped for SystemOverviewCard + _layerCards for LayerPanel
- *!/
 export function normalizeLiveNow(payload) {
     const root = payload?.systems ?? payload;
     if (!root || typeof root !== "object") return [];
 
     const systems = [];
 
-    // helper to pull metric averages + counts
     const getMetric = (obj, ...keys) => {
         if (!obj) return {avg: null, count: null};
         for (const k of keys) {
@@ -113,7 +97,6 @@ export function normalizeLiveNow(payload) {
             });
         }
 
-        // System-level metrics taken directly from system JSON
         const sysEnv = sys.environment ?? {};
         const {avg: lightAvg, count: lightCount} = getMetric(sysEnv, "light");
         const {avg: humidityAvg, count: humidityCount} = getMetric(sysEnv, "humidity");
@@ -188,85 +171,3 @@ export function normalizeLiveNow(payload) {
     return systems;
 }
 
-// ---------- Page (no system filter) ----------
-export default function Dashboard() {
-    const live = useLiveNow();
-    const systems = useMemo(() => normalizeLiveNow(live), [live]);
-
-    const [selected, setSelected] = useState({});
-
-    useEffect(() => {
-        setSelected((prev) => {
-            const next = {};
-            systems.forEach((sys) => {
-                next[sys.systemId] = {};
-                (sys._layerCards || []).forEach((l) => {
-                    next[sys.systemId][l.id] = prev?.[sys.systemId]?.[l.id] ?? true;
-                });
-            });
-            return next;
-        });
-    }, [systems]);
-
-    const handleToggle = (sysId, layerId) => {
-        setSelected((prev) => ({
-            ...prev,
-            [sysId]: {
-                ...prev[sysId],
-                [layerId]: !prev?.[sysId]?.[layerId],
-            },
-        }));
-    };
-
-    if (!live) return <div className={styles.page}>Connecting to live_now…</div>;
-    if (!systems.length) return <div className={styles.page}>No systems in live_now yet.</div>;
-
-    return (
-        <div className={styles.page} style={{padding: 16}}>
-            <FilterBar systems={systems} selected={selected} onToggle={handleToggle} />
-            {systems.map((sys) => {
-                const visibleLayerCards = (sys._layerCards || []).filter(
-                    (l) => selected[sys.systemId]?.[l.id]
-                );
-                if (visibleLayerCards.length === 0) return null;
-                const visibleLayers = visibleLayerCards.map((l) => ({
-                    id: l.id,
-                    health: l.health,
-                }));
-                return (
-                    <div key={sys.systemId} style={{marginBottom: 24}}>
-                        {/!* System overview *!/}
-                        <SystemOverviewCard {...sys} layers={visibleLayers} />
-
-                        {/!* Layer cards *!/}
-                        <div
-                            style={{
-                                display: "grid",
-                                gap: 12,
-                                gridTemplateColumns: "1fr",
-                                marginTop: 16,
-                                marginLeft: "1rem",
-                            }}
-                        >
-                            {visibleLayerCards.map((l) => (
-                                <LayerPanel
-                                    key={l.id}
-                                    id={l.id}
-                                    health={l.health}
-                                    metrics={{...l.metrics, _counts: l.metrics?._counts}}
-                                    water={{...l.water, _counts: l.water?._counts}}
-                                    actuators={{...l.actuators, _counts: l.actuators?._counts}}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                );
-            })}
-        </div>
-    );
-}
-*/
-import DashboardV2 from "./components/DashboardV2.jsx";
-export { normalizeLiveNow } from "./normalizeLiveNow.js";
-
-export default DashboardV2;
