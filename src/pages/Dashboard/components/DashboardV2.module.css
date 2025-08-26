@@ -1,0 +1,116 @@
+.page {
+    padding: 16px;
+}
+
+.tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.tab {
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+}
+.active {
+    background: #111827;
+    color: #fff;
+}
+
+.card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 16px;
+}
+.shadow {
+    box-shadow: 0 6px 18px rgba(17,24,39,.06);
+}
+
+.stats {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+.stat {
+    background: #f3f4f6;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: .92rem;
+}
+
+.muted {
+    color: #6b7280;
+    font-size: .9rem;
+}
+
+.row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.col6 {
+    flex: 1 1 45%;
+}
+
+.layers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+    gap: 12px;
+}
+.layer {
+    cursor: pointer;
+    transition: transform .15s ease;
+}
+.layer:hover {
+    transform: translateY(-2px);
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 99px;
+    display: inline-block;
+}
+.ok { background: #10b981; }
+.warn { background: #f59e0b; }
+.down { background: #ef4444; }
+
+.kv {
+    display: flex;
+    justify-content: space-between;
+    margin: 4px 0;
+    font-size: .92rem;
+    color: #111827;
+}
+.kv span { color: #6b7280; }
+
+.details {
+    margin-top: 8px;
+    font-size: .9rem;
+    color: #374151;
+    border-top: 1px dashed #e5e7eb;
+    padding-top: 8px;
+}
+
+.headerRow { display:flex; justify-content: space-between; align-items:center; cursor:pointer; }
+.pill { background:#eef2ff; border:1px solid #c7d2fe; color:#3730a3; padding:2px 8px; border-radius:9999px; font-size:.8rem; }
+
+.divider {
+    height: 1px;
+    background: #e5e7eb;
+    margin: 10px 0 12px;
+}
+
+.subcard {
+    border: 1px solid #f0f0f0;
+    border-radius: 10px;
+    padding: 12px;
+    background: #fff;
+}

@@ -1,5 +1,6 @@
+/*
 // src/pages/Dashboard/index.jsx
-/* eslint-disable react-refresh/only-export-components */
+/!* eslint-disable react-refresh/only-export-components *!/
 import React, {useEffect, useMemo, useState} from "react";
 import {useLiveNow} from "../../hooks/useLiveNow";
 import {SystemOverviewCard, LayerPanel} from "../SystemAndLayerCards";
@@ -16,12 +17,12 @@ const normLayerId = (k) => {
     return k;
 };
 
-/**
+/!**
  * normalizeLiveNow
  * Input payload: object keyed by system IDs (S01, S02, ...), each containing
  *  {lastUpdate, environment, water, actuators, layers: []}
  * Output: array of systems shaped for SystemOverviewCard + _layerCards for LayerPanel
- */
+ *!/
 export function normalizeLiveNow(payload) {
     const root = payload?.systems ?? payload;
     if (!root || typeof root !== "object") return [];
@@ -234,10 +235,10 @@ export default function Dashboard() {
                 }));
                 return (
                     <div key={sys.systemId} style={{marginBottom: 24}}>
-                        {/* System overview */}
+                        {/!* System overview *!/}
                         <SystemOverviewCard {...sys} layers={visibleLayers} />
 
-                        {/* Layer cards */}
+                        {/!* Layer cards *!/}
                         <div
                             style={{
                                 display: "grid",
@@ -264,3 +265,7 @@ export default function Dashboard() {
         </div>
     );
 }
+*/
+import DashboardV2 from "./components/DashboardV2.jsx";
+
+export default DashboardV2;
