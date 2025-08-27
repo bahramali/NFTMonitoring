@@ -10,86 +10,16 @@ const fmt = (v, d = 1) => (v == null || Number.isNaN(v) ? "--" : Number(v).toFix
 const localDateTime = (ms) => {
   try { return ms ? new Date(ms).toLocaleString() : "--"; } catch { return "--"; }
 };
-const normLayerId = (l) => {
-    const raw = l?.id ?? l?.layerId ?? "";
-    if (/^L\d+$/i.test(raw)) return raw.toUpperCase();
-    const m = /^layer(\d+)$/i.exec(raw || "");
-    return m ? `L${String(m[1]).padStart(2, "0")}` : (raw || "--");
-};
+const normLayerId = (l) => { const raw = l?.id ?? l?.layerId ?? ""; if (/^L\d+$/i.test(raw)) return raw.toUpperCase(); const m = /^layer(\d+)$/i.exec(raw || ""); return m ? `L${String(m[1]).padStart(2, "0")}` : (raw || "--"); };
 
-function getMetric(obj, key) {
-    if (!obj) return null;
-    const val = obj[key] ?? obj[key?.toLowerCase()] ?? obj[key?.toUpperCase()];
-    if (val == null) return null;
-  return typeof val === "object" ? toNum(val.average ?? val.avg ?? val.value) : toNum(val);
-}
+function getMetric(obj, key){ if(!obj) return null; const val = obj[key] ?? obj[key?.toLowerCase()] ?? obj[key?.toUpperCase()]; if (val == null) return null; return typeof val === "object" ? toNum(val.average ?? val.avg ?? val.value) : toNum(val); }
+function getCount(obj, key){ if(!obj) return 0; const v = obj[key] ?? obj[key?.toLowerCase()] ?? obj[key?.toUpperCase()]; if (v && typeof v === "object") { const n = v.deviceCount ?? v.count ?? v.sensorCount; return typeof n === "number" ? n : 0; } return v != null ? 1 : 0; }
+function deriveHealth(layer){ const e = layer.environment || {}; const present = ["light","temperature","humidity"].map(k=>getMetric(e,k)).filter(v=>v!=null).length; return present===0?"down":present<3?"warn":"ok"; }
 
-function getCount(obj, key) {
-    if (!obj) return 0;
-    const v = obj[key] ?? obj[key?.toLowerCase()] ?? obj[key?.toUpperCase()];
-    if (v && typeof v === "object") {
-        const n = v.deviceCount ?? v.count ?? v.sensorCount;
-        return typeof n === "number" ? n : 0;
-    }
-    return v != null ? 1 : 0;
-}
-
-function deriveHealth(layer) {
-    const e = layer.environment || {};
-  const present = ["light", "temperature", "humidity"].map((k) => getMetric(e, k)).filter((v) => v != null).length;
-  return present === 0 ? "down" : present < 3 ? "warn" : "ok";
-}
-
-// map raw keys coming from websocket to canonical keys
-function canonKey(raw){
-    const t = String(raw || "").toLowerCase();
-    if (!t) return null;
-    if (t === "light") return "light";
-    if (t === "temperature" || t === "temp") return "temperature";
-    if (t === "humidity" || t === "hum") return "humidity";
-    if (t === "ph") return "pH";
-    if (t === "do" || t === "dissolvedoxygen") return "dissolvedOxygen";
-    if (t === "ec" || t === "dissolvedec") return "dissolvedEC";
-    if (t === "tds" || t === "dissolvedtds") return "dissolvedTDS";
-    if (t === "watertemp" || t === "dissolvedtemp") return "dissolvedTemp";
-    return raw;
-}
-function normalizeSensors(src){
-    const out = {};
-    if (!src) return out;
-    if (Array.isArray(src)){
-        for (const s of src){
-            const k = canonKey(s?.sensorType ?? s?.type ?? s?.name);
-            const val = toNum(s?.value);
-            const unit = s?.unit || s?.units || s?.u;
-            if (k && val != null) out[k] = { value: val, unit };
-        }
-        return out;
-    }
-    if (typeof src === "object"){
-        for (const [k,v] of Object.entries(src)){
-            const key = canonKey(k);
-            if (v && typeof v === "object"){
-                const val = toNum(v.value ?? v.avg ?? v.average ?? v.v);
-                const unit = v.unit || v.u;
-                if (val != null) out[key] = { value: val, unit };
-            } else if (v != null){
-                out[key] = { value: toNum(v) };
-            }
-        }
-    }
-    return out;
-}
-const sensorLabel = (k) => ({
-    light: "Light",
-    temperature: "Temp",
-    humidity: "Humidity",
-    pH: "pH",
-    dissolvedTemp: "Water Temp",
-    dissolvedOxygen: "DO",
-    dissolvedEC: "EC",
-    dissolvedTDS: "TDS",
-}[k] || k);
+// websocket sensor key mapping
+const sensorLabel = (k) => ({ light:"Light", temperature:"Temp", humidity:"Humidity", pH:"pH", dissolvedTemp:"Water Temp", dissolvedOxygen:"DO", dissolvedEC:"EC", dissolvedTDS:"TDS" }[k] || k);
+function canonKey(raw){ const t=String(raw||"").toLowerCase(); if(!t) return null; if(t==="light")return"light"; if(t==="temperature"||t==="temp")return"temperature"; if(t==="humidity"||t==="hum")return"humidity"; if(t==="ph")return"pH"; if(t==="do"||t==="dissolvedoxygen")return"dissolvedOxygen"; if(t==="ec"||t==="dissolvedec")return"dissolvedEC"; if(t==="tds"||t==="dissolvedtds")return"dissolvedTDS"; if(t==="watertemp"||t==="dissolvedtemp")return"dissolvedTemp"; return raw; }
+function normalizeSensors(src){ const out={}; if(!src) return out; if(Array.isArray(src)){ for(const s of src){ const k=canonKey(s?.sensorType ?? s?.type ?? s?.name); const val=toNum(s?.value); const unit=s?.unit || s?.units || s?.u; if(k && val!=null) out[k]={ value:val, unit }; } return out; } if(typeof src==="object"){ for(const [k,v] of Object.entries(src)){ const key=canonKey(k); if(v && typeof v==="object"){ const val=toNum(v.value ?? v.avg ?? v.average ?? v.v); const unit=v.unit || v.u; if(val!=null) out[key]={ value:val, unit }; } else if(v!=null){ out[key]={ value:toNum(v) }; } } } return out; }
 
 // ---------- small UI pieces ----------
 function Stat({ label, value }) {
@@ -127,22 +57,10 @@ function useLayerCompositeCards(systemId, layerId) {
         return true;
     }, [sysKey, layerKey]);
 
-    const upsert = React.useCallback((compId, sensors, ts) => {
-        setCards((prev) => {
-            const next = { ...prev };
-            const cur = next[compId] || { sensors: {}, ts: 0 };
-            const normalized = normalizeSensors(sensors);
-            for (const [k, obj] of Object.entries(normalized)) {
-                cur.sensors[k] = { value: obj.value, unit: obj.unit };
-            }
-            cur.ts = Math.max(cur.ts || 0, ts || Date.now());
-            next[compId] = cur;
-            return next;
-        });
-    }, []);
+  const upsert = React.useCallback((compId, sensors, ts)=>{ setCards(prev=>{ const next={...prev}; const cur=next[compId]||{sensors:{},ts:0}; const normalized=normalizeSensors(sensors); for(const [k,obj] of Object.entries(normalized)){ cur.sensors[k]={ value:obj.value, unit:obj.unit }; } cur.ts=Math.max(cur.ts||0, ts||Date.now()); next[compId]=cur; return next; }); },[]);
 
-  // subscribe via useStomp hook (expects topics array and handler)
-  useStomp(["/topic/growSensors", "/topic/waterTank"], (topic, data) => {
+  const topics = React.useMemo(() => ["/topic/growSensors", "/topic/waterTank"], []); // stable reference
+  useStomp(topics, (topic, data) => {
         if (!data) return;
         let compId = data.compositeId || data.composite_id || data.cid;
         if (!compId) {
@@ -167,11 +85,7 @@ function useLayerCompositeCards(systemId, layerId) {
 
 function LayerCard({ layer, systemId }) {
     const [open, setOpen] = useState(false);
-    const e = layer.environment || {};
-
-    const lux = getMetric(e, "light");
-    const et = getMetric(e, "temperature");
-    const hum = getMetric(e, "humidity");
+  const e = layer.environment || {}; const lux=getMetric(e,"light"), et=getMetric(e,"temperature"), hum=getMetric(e,"humidity");
     const ph = getMetric(layer.water, "pH") ?? getMetric(layer.water, "ph");
   const deviceCards = useLayerCompositeCards(systemId, layer.id);
 
@@ -196,7 +110,7 @@ function LayerCard({ layer, systemId }) {
                 <div className={styles.details}>
                     <div className={styles.devCards}>
                         {deviceCards.length ? (
-                            deviceCards.map((card) => (
+              deviceCards.map(card=> (
                                 <div key={card.compId} className={styles.devCard}>
                                     <div className={styles.devTitle}>{card.compId}</div>
                                     <ul className={styles.devList}>
@@ -229,35 +143,20 @@ export default function DashboardV2() {
         return Object.entries(root).map(([id, sys]) => {
             const water = sys.water || {};
             const env = sys.environment || {};
-            const layers = (sys.layers || []).map((l) => {
-        const layer = { id: normLayerId(l), environment: l?.environment || {}, water: l?.water || {} };
-        return { ...layer, health: deriveHealth(layer) };
-            });
-
-            return {
-                id,
-                name: sys.systemId ?? id,
-                updatedAt: localDateTime(sys.lastUpdate),
-                healthy: typeof sys.sensorsHealthy === "number" ? sys.sensorsHealthy : null,
-                total: typeof sys.sensorsTotal === "number" ? sys.sensorsTotal : null,
-                water,
-                env,
-                layers,
-            };
+      const layers=(sys.layers||[]).map(l=>{ const layer={ id:normLayerId(l), environment:l?.environment||{}, water:l?.water||{} }; return { ...layer, health: deriveHealth(layer) }; });
+      return { id, name: sys.systemId ?? id, updatedAt: localDateTime(sys.lastUpdate), healthy: typeof sys.sensorsHealthy==="number"?sys.sensorsHealthy:null, total: typeof sys.sensorsTotal==="number"?sys.sensorsTotal:null, water, env, layers };
         });
     }, [live]);
 
     const [activeId, setActiveId] = useState(null);
     if (!live) return <div className={styles.page}>Connecting...</div>;
     if (!systems.length) return <div className={styles.page}>No systems</div>;
-
-    const active = systems.find((s) => s.id === activeId) || systems[0];
+  const active = systems.find(s=>s.id===activeId) || systems[0];
 
     return (
         <div className={styles.page}>
-            {/* tabs */}
             <div className={styles.tabs}>
-                {systems.map((sys) => (
+        {systems.map(sys=> (
                     <button
                         key={sys.id}
                         className={`${styles.tab} ${active.id === sys.id ? styles.active : ""}`}
@@ -268,7 +167,6 @@ export default function DashboardV2() {
                 ))}
             </div>
 
-            {/* System card (header + water + environment) */}
             <div className={`${styles.card} ${styles.shadow} ${styles.systemCard}`}>
                 <h2>{active.name}</h2>
                 <div className={styles.muted}>Last update: {active.updatedAt}</div>
@@ -309,13 +207,10 @@ export default function DashboardV2() {
                 </div>
             </div>
 
-      {/* Layers */}
             <div className={styles.section}>
                 <h3 className={styles.muted}>Layers</h3>
                 <div className={styles.layers}>
-                    {active.layers.map((l) => (
-                        <LayerCard key={l.id} layer={l} systemId={active.id} />
-                    ))}
+          {active.layers.map(l=> (<LayerCard key={l.id} layer={l} systemId={active.id} />))}
                 </div>
             </div>
 
