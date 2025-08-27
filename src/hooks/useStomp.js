@@ -40,16 +40,17 @@ export function useStomp(topics, onMessage, opts = {}) {
 
     client.onConnect = () => {
       setConnected(true);
-      subs = topicsArr.map((t) =>
-        client.subscribe(`/topic/${t}`, (message) => {
+      subs = topicsArr.map((t) => {
+        const destination = t.startsWith("/") ? t : `/topic/${t}`;
+        return client.subscribe(destination, (message) => {
           const body = message.body;
           let data = body;
           try { data = JSON.parse(body); } catch {
             // ignore parse errors
           }
           onMessageRef.current?.(t, data);
-        })
-      );
+        });
+      });
     };
 
     client.onWebSocketClose = () => setConnected(false);
