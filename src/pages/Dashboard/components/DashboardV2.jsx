@@ -1,14 +1,14 @@
 // src/pages/Dashboard/DashboardV2.jsx
 import React, { useState, useMemo } from "react";
 import { useLiveNow } from "../../../hooks/useLiveNow";
+import { useStomp } from "../../../hooks/useStomp";
 import styles from "./DashboardV2.module.css";
 
-// ---- helpers ----
+// ---------- utils ----------
 const toNum = (v) => (v == null || v === "" ? null : Number(v));
 const fmt = (v, d = 1) => (v == null || Number.isNaN(v) ? "--" : Number(v).toFixed(d));
 const localDateTime = (ms) => {
-    if (!ms) return "--";
-    try { return new Date(ms).toLocaleString(); } catch { return "--"; }
+  try { return ms ? new Date(ms).toLocaleString() : "--"; } catch { return "--"; }
 };
 const normLayerId = (l) => {
     const raw = l?.id ?? l?.layerId ?? "";
@@ -21,8 +21,7 @@ function getMetric(obj, key) {
     if (!obj) return null;
     const val = obj[key] ?? obj[key?.toLowerCase()] ?? obj[key?.toUpperCase()];
     if (val == null) return null;
-    if (typeof val === "object") return toNum(val.average ?? val.avg ?? val.value);
-    return toNum(val);
+  return typeof val === "object" ? toNum(val.average ?? val.avg ?? val.value) : toNum(val);
 }
 
 function getCount(obj, key) {
@@ -37,99 +36,133 @@ function getCount(obj, key) {
 
 function deriveHealth(layer) {
     const e = layer.environment || {};
-    const lux = getMetric(e, "light");
-    const temp = getMetric(e, "temperature");
-    const hum = getMetric(e, "humidity");
-    const present = [lux, temp, hum].filter((v) => v != null).length;
-    if (present === 0) return "down";
-    if (present < 3) return "warn";
-    return "ok";
+  const present = ["light", "temperature", "humidity"].map((k) => getMetric(e, k)).filter((v) => v != null).length;
+  return present === 0 ? "down" : present < 3 ? "warn" : "ok";
 }
+
+// map raw keys coming from websocket to canonical keys
+function canonKey(raw){
+    const t = String(raw || "").toLowerCase();
+    if (!t) return null;
+    if (t === "light") return "light";
+    if (t === "temperature" || t === "temp") return "temperature";
+    if (t === "humidity" || t === "hum") return "humidity";
+    if (t === "ph") return "pH";
+    if (t === "do" || t === "dissolvedoxygen") return "dissolvedOxygen";
+    if (t === "ec" || t === "dissolvedec") return "dissolvedEC";
+    if (t === "tds" || t === "dissolvedtds") return "dissolvedTDS";
+    if (t === "watertemp" || t === "dissolvedtemp") return "dissolvedTemp";
+    return raw;
+}
+function normalizeSensors(src){
+    const out = {};
+    if (!src) return out;
+    if (Array.isArray(src)){
+        for (const s of src){
+            const k = canonKey(s?.sensorType ?? s?.type ?? s?.name);
+            const val = toNum(s?.value);
+            const unit = s?.unit || s?.units || s?.u;
+            if (k && val != null) out[k] = { value: val, unit };
+        }
+        return out;
+    }
+    if (typeof src === "object"){
+        for (const [k,v] of Object.entries(src)){
+            const key = canonKey(k);
+            if (v && typeof v === "object"){
+                const val = toNum(v.value ?? v.avg ?? v.average ?? v.v);
+                const unit = v.unit || v.u;
+                if (val != null) out[key] = { value: val, unit };
+            } else if (v != null){
+                out[key] = { value: toNum(v) };
+            }
+        }
+    }
+    return out;
+}
+const sensorLabel = (k) => ({
+    light: "Light",
+    temperature: "Temp",
+    humidity: "Humidity",
+    pH: "pH",
+    dissolvedTemp: "Water Temp",
+    dissolvedOxygen: "DO",
+    dissolvedEC: "EC",
+    dissolvedTDS: "TDS",
+}[k] || k);
+
+// ---------- small UI pieces ----------
 function Stat({ label, value }) {
-    return (
-        <div className={styles.stat}>
-            <strong>{value}</strong>
-            <span className={styles.muted}>{label}</span>
-        </div>
-    );
+  return (
+    <div className={styles.stat}>
+      <strong>{value}</strong>
+      <span className={styles.muted}>{label}</span>
+    </div>
+  );
 }
-
 function MetricLine({ label, value, count, unit }) {
-    return (
-        <div className={styles.kv}>
-            <span>{label}</span>
-            <b>
-                {fmt(value)} {unit} {count > 0 ? `(${count} sensors)` : ""}
-            </b>
-        </div>
-    );
+  return (
+    <div className={styles.kv}>
+      <span>{label}</span>
+      <b>
+        {fmt(value)} {unit} {count > 0 ? `(${count} sensors)` : ""}
+      </b>
+    </div>
+  );
 }
 
-// ---- websocket layer devices (optional) ----
-function useWsLayerDevices(systemId, layerId) {
-    const [cards, setCards] = React.useState({}); // compositeId -> { sensors: {k:{value,unit}}, ts }
+// subscribe to websockets and build composite cards per layer
+function useLayerCompositeCards(systemId, layerId) {
+  const [cards, setCards] = React.useState({});
+    const layerKey = String(layerId || "").toUpperCase();
+    const sysKey = String(systemId || "");
 
-    React.useEffect(() => {
-        const client = window.hydroLeafStomp || window.__hlStomp || null;
-        if (!client || !systemId || !layerId) return;
+    const isMine = React.useCallback((compId, data) => {
+        if (!compId) return false;
+        if (sysKey && !String(compId).startsWith(sysKey)) return false;
+        if (layerKey && !String(compId).includes(`-${layerKey}-`)) {
+            const lay = (data?.layer || data?.layerId || "").toUpperCase();
+            if (lay && lay !== layerKey) return false;
+        }
+        return true;
+    }, [sysKey, layerKey]);
 
-        const isMine = (compId) => {
-            if (!compId) return false;
-            return String(compId).startsWith(String(systemId)) && String(compId).includes(`-${layerId}-`);
-        };
-
-        const upsert = (compId, sensorMap, ts) => {
-            setCards((prev) => {
-                const next = { ...prev };
-                const cur = next[compId] || { sensors: {}, ts: 0 };
-                for (const [k,v] of Object.entries(sensorMap)) {
-                    const val = v && typeof v === "object" ? v.value ?? v.avg ?? v.average : v;
-                    const unit = v && typeof v === "object" ? (v.unit || v.u) : undefined;
-                    if (val != null) cur.sensors[k] = { value: toNum(val), unit };
-                }
-                cur.ts = Math.max(cur.ts || 0, ts || Date.now());
-                next[compId] = cur;
-                return next;
-            });
-        };
-
-        const parseMsg = (body) => {
-            try { return JSON.parse(body); } catch { return null; }
-        };
-
-        const onGrow = client.subscribe && client.subscribe("/topic/growSensors", (m) => {
-            const data = parseMsg(m.body || m.message || m);
-            if (!data) return;
-            const compId = data.compositeId || data.composite_id || data.cid;
-            if (!isMine(compId)) return;
-            const sensors = data.sensors || data.values || data.env || {};
-            upsert(compId, sensors, data.timestamp || data.ts);
+    const upsert = React.useCallback((compId, sensors, ts) => {
+        setCards((prev) => {
+            const next = { ...prev };
+            const cur = next[compId] || { sensors: {}, ts: 0 };
+            const normalized = normalizeSensors(sensors);
+            for (const [k, obj] of Object.entries(normalized)) {
+                cur.sensors[k] = { value: obj.value, unit: obj.unit };
+            }
+            cur.ts = Math.max(cur.ts || 0, ts || Date.now());
+            next[compId] = cur;
+            return next;
         });
+    }, []);
 
-        const onWater = client.subscribe && client.subscribe("/topic/waterTank", (m) => {
-            const data = parseMsg(m.body || m.message || m);
-            if (!data) return;
-            const compId = data.compositeId || data.composite_id || data.cid;
-            if (!isMine(compId)) return;
-            const sensors = data.sensors || data.values || data.water || {};
-            upsert(compId, sensors, data.timestamp || data.ts);
-        });
+  // subscribe via useStomp hook (expects topics array and handler)
+  useStomp(["/topic/growSensors", "/topic/waterTank"], (topic, data) => {
+        if (!data) return;
+        let compId = data.compositeId || data.composite_id || data.cid;
+        if (!compId) {
+            const sys = data.system || data.systemId;
+            const lay = data.layer || data.layerId;
+            const dev = data.deviceId || data.device || data.devId;
+            if (sys && lay && dev) compId = `${sys}-${lay}-${dev}`;
+        }
+        if (!compId) return;
+        if (!isMine(compId, data)) return;
+        const sensors = data.sensors || data.values || data.env || data.water || data.payload || data.readings || [];
+        upsert(compId, sensors, data.timestamp || data.ts);
+    });
 
-        return () => {
-            // eslint-disable-next-line no-unused-vars
-            try { onGrow && onGrow.unsubscribe && onGrow.unsubscribe(); } catch(e){ /* empty */ }
-            // eslint-disable-next-line no-unused-vars
-            try { onWater && onWater.unsubscribe && onWater.unsubscribe(); } catch(e){ /* empty */ }
-        };
-    }, [systemId, layerId]);
-
-    const list = React.useMemo(() => {
-        return Object.entries(cards)
-            .map(([compId, payload]) => ({ compId, ...payload }))
-            .sort((a,b) => String(a.compId).localeCompare(String(b.compId)));
-    }, [cards]);
-
-    return list;
+    return React.useMemo(() =>
+            Object.entries(cards)
+                .map(([compId, payload]) => ({ compId, ...payload }))
+                .sort((a, b) => String(a.compId).localeCompare(String(b.compId))),
+        [cards]
+    );
 }
 
 function LayerCard({ layer, systemId }) {
@@ -140,8 +173,7 @@ function LayerCard({ layer, systemId }) {
     const et = getMetric(e, "temperature");
     const hum = getMetric(e, "humidity");
     const ph = getMetric(layer.water, "pH") ?? getMetric(layer.water, "ph");
-
-    const deviceCards = useWsLayerDevices(systemId, layer.id); // compositeId-scoped cards
+  const deviceCards = useLayerCompositeCards(systemId, layer.id);
 
     return (
         <div className={`${styles.card} ${styles.layer}`}>
@@ -151,7 +183,7 @@ function LayerCard({ layer, systemId }) {
                 </h4>
             </div>
 
-            {/* keep collapsed summary */ !open && (
+      {!open && (
                 <>
                     <MetricLine label="Light" value={lux} unit="lux" count={getCount(e,"light")} />
                     <MetricLine label="Temp" value={et} unit="°C" count={getCount(e,"temperature")} />
@@ -160,7 +192,7 @@ function LayerCard({ layer, systemId }) {
                 </>
             )}
 
-            {/* expanded: render composite cards */ open && (
+      {open && (
                 <div className={styles.details}>
                     <div className={styles.devCards}>
                         {deviceCards.length ? (
@@ -170,7 +202,7 @@ function LayerCard({ layer, systemId }) {
                                     <ul className={styles.devList}>
                                         {Object.entries(card.sensors).map(([k, v]) => (
                                             <li key={k}>
-                                                <span>{k}</span>
+                                                <span>{sensorLabel(k)}</span>
                                                 <b>{fmt(v?.value)} {v?.unit || ""}</b>
                                             </li>
                                         ))}
@@ -198,13 +230,8 @@ export default function DashboardV2() {
             const water = sys.water || {};
             const env = sys.environment || {};
             const layers = (sys.layers || []).map((l) => {
-                const layer = {
-                    id: normLayerId(l),
-                    environment: l?.environment || {},
-                    water: l?.water || {},
-                };
-                const health = deriveHealth(layer);
-                return { ...layer, health };
+        const layer = { id: normLayerId(l), environment: l?.environment || {}, water: l?.water || {} };
+        return { ...layer, health: deriveHealth(layer) };
             });
 
             return {
@@ -242,7 +269,7 @@ export default function DashboardV2() {
             </div>
 
             {/* System card (header + water + environment) */}
-            <div className={`${styles.card} ${styles.shadow}`}>
+            <div className={`${styles.card} ${styles.shadow} ${styles.systemCard}`}>
                 <h2>{active.name}</h2>
                 <div className={styles.muted}>Last update: {active.updatedAt}</div>
                 <div className={styles.stats} style={{ marginBottom: 8 }}>
@@ -256,7 +283,7 @@ export default function DashboardV2() {
 
                 <div className={styles.row}>
                     <div className={styles.col6}>
-                        <div className={styles.subcard}>
+            <div className={`${styles.subcard} ${styles.water}`}>
                             <h3>Water</h3>
                             <div className={styles.stats}>
                                 <Stat label={`pH (${getCount(active.water,"pH")+getCount(active.water,"ph")} sensors)`} value={fmt(getMetric(active.water,"pH")??getMetric(active.water,"ph"),1)} />
@@ -269,7 +296,7 @@ export default function DashboardV2() {
                     </div>
 
                     <div className={styles.col6}>
-                        <div className={styles.subcard}>
+            <div className={`${styles.subcard} ${styles.env}`}>
                             <h3>Environment</h3>
                             <div className={styles.stats}>
                                 <Stat label={`Light (${getCount(active.env,"light")} sensors)`} value={fmt(getMetric(active.env,"light"),1)} />
@@ -282,7 +309,7 @@ export default function DashboardV2() {
                 </div>
             </div>
 
-            {/* layers */}
+      {/* Layers */}
             <div className={styles.section}>
                 <h3 className={styles.muted}>Layers</h3>
                 <div className={styles.layers}>
@@ -291,6 +318,7 @@ export default function DashboardV2() {
                     ))}
                 </div>
             </div>
+
         </div>
     );
 }

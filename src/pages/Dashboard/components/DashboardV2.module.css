@@ -102,6 +102,14 @@
 .headerRow { display:flex; justify-content: space-between; align-items:center; cursor:pointer; }
 .pill { background:#eef2ff; border:1px solid #c7d2fe; color:#3730a3; padding:2px 8px; border-radius:9999px; font-size:.8rem; }
 
+/* device composite cards */
+.devCards { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px; }
+.devCard { border:1px solid #e5e7eb; border-radius:10px; padding:10px; background:#fff; }
+.devTitle { font-weight:700; margin-bottom:6px; font-size:.95rem; }
+.devList { list-style:none; margin:0; padding:0; }
+.devList li { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #f0f0f0; }
+.devList li:last-child { border-bottom:none; }
+
 .divider {
     height: 1px;
     background: #e5e7eb;
@@ -114,3 +122,50 @@
     padding: 12px;
     background: #fff;
 }
+
+/* scope visuals */
+.systemCard { position: relative; }
+
+.subcard {
+    position: relative;
+    padding-top: 28px; /* room for the tag */
+}
+
+/* system -> water/environment look */
+.subcard.water {
+    border-left: 3px solid #3b82f6;
+    background: linear-gradient(0deg, rgba(59,130,246,.04), rgba(59,130,246,.02));
+}
+.subcard.env {
+    border-left: 3px solid #22c55e;
+    background: linear-gradient(0deg, rgba(34,197,94,.04), rgba(34,197,94,.02));
+}
+
+/* tag chips */
+.subcard.water::before,
+.subcard.env::before,
+.layer::before {
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    background: #f3f4f6;
+    color: #374151;
+    content: "";
+}
+
+/* explicit labels */
+.subcard.water::before { content: "System · Water"; }
+.subcard.env::before   { content: "System · Environment"; }
+
+/* layer look */
+.layer {
+    position: relative;
+    border-left: 3px solid #0ea5e9; /* different accent for layers */
+    padding-top: 28px;              /* room for the tag */
+}
+.layer::before { content: "Layer"; left: 14px; }
