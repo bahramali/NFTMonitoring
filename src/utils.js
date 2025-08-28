@@ -146,10 +146,12 @@ export function transformAggregatedData(data) {
                     out.lux = {value: Number(val), unit};
                     break;
                 case 'tds':
-                    out.tds = {value: Number(val), unit};
+                case 'dissolvedTDS':
+                    out.tds = { value: Number(val), unit };
                     break;
                 case 'ec':
-                    out.ec = {value: Number(val), unit};
+                case 'dissolvedEC':
+                    out.ec = { value: Number(val), unit };
                     break;
                 case 'ph':
                     out.ph = {value: Number(val), unit};

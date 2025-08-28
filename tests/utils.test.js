@@ -185,3 +185,17 @@ test('transformAggregatedData handles valueType and DO sensor', () => {
     expect(result.length).toBe(1);
     expect(result[0].do.value).toBe(5.5);
 });
+
+test('transformAggregatedData maps dissolved EC/TDS to ec/tds', () => {
+    const raw = {
+        sensors: [
+            { sensorType: 'dissolvedEC', unit: 'mS/cm', data: [{ timestamp: '2025-07-25T09:00:04Z', value: 1.23 }] },
+            { sensorType: 'dissolvedTDS', unit: 'ppm', data: [{ timestamp: '2025-07-25T09:00:04Z', value: 456 }] },
+        ]
+    };
+    const result = transformAggregatedData(raw);
+    expect(result.length).toBe(1);
+    const entry = result[0];
+    expect(entry.ec.value).toBe(1.23);
+    expect(entry.tds.value).toBe(456);
+});
