@@ -32,7 +32,14 @@ const HistoryChart = ({
                 tick={{ fontSize: 10 }}
                 tickFormatter={(val) => {
                     const d = new Date(val);
-                    return `${d.getMonth() + 1}/${d.getDate()}`;
+                    const formatOptions = {
+                        month: "numeric",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                    };
+                    return new Intl.DateTimeFormat("en-US", formatOptions).format(d);
                 }}
                 allowDataOverflow
             />
