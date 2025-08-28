@@ -1,5 +1,6 @@
 import React from "react";
 import HistoryChart from "../../../components/HistoryChart";
+import spectralColors from "../../../spectralColors";
 import styles from "../../common/SensorDashboard.module.css";
 
 // English comments: helper to convert {cid: data[]} to multi-series spec
@@ -13,7 +14,7 @@ const toSeries = (byCid, yKey) =>
 // English comments: build series for multiple spectrum keys across CIDs
 const toSpectrumSeries = (byCid, keys = []) =>
     Object.entries(byCid || {}).flatMap(([cid, data]) =>
-        keys.map((k) => ({ name: `${cid} ${k}`, data, yDataKey: k }))
+        keys.map((k) => ({ name: `${cid} ${k}`, data, yDataKey: k, color: spectralColors[k] || undefined }))
     );
 
 const withDevice = (title, selectedDevice) =>
