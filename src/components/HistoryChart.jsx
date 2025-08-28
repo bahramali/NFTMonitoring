@@ -7,7 +7,7 @@ import palette from "../colorPalette";
 /**
  * Props:
  * - xDataKey: string (e.g., 'time')
- * - series: Array<{ name: string, data: any[], yDataKey: string }>
+ * - series: Array<{ name: string; data: any[]; yDataKey: string; color?: string }>
  * - yLabel: string
  * - title?: string
  * - height?: number
@@ -50,7 +50,7 @@ const HistoryChart = ({
                     type="monotone"
                     dataKey={s.yDataKey}
                     name={s.name}
-                    stroke={palette[i % palette.length]}
+                    stroke={s.color || palette[i % palette.length]}
                     dot={false}
                     isAnimationActive={false}
                     connectNulls
