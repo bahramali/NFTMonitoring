@@ -10,6 +10,12 @@ const toSeries = (byCid, yKey) =>
         yDataKey: yKey,
     }));
 
+// English comments: build series for multiple spectrum keys across CIDs
+const toSpectrumSeries = (byCid, keys = []) =>
+    Object.entries(byCid || {}).flatMap(([cid, data]) =>
+        keys.map((k) => ({ name: `${cid} ${k}`, data, yDataKey: k }))
+    );
+
 const withDevice = (title, selectedDevice) =>
     selectedDevice ? `${title} (${selectedDevice})` : title;
 
@@ -29,7 +35,6 @@ export default function ReportCharts({
     const light = new Set(selectedSensors.light || []);
     const blue = new Set(selectedSensors.blue || []);
     const red = new Set(selectedSensors.red || []);
-    const spectrumKeys = Array.from(new Set([...blue, ...red]));
 
     return (
         <>
@@ -68,23 +73,38 @@ export default function ReportCharts({
                 </div>
             )}
 
-            {spectrumKeys.length > 0 && (
+            {(blue.size > 0 || red.size > 0) && (
                 <div className={styles.historyChartsRow}>
-                    {spectrumKeys.map((key) => (
-                        <div key={key} className={styles.historyChartColumn}>
+                    {blue.size > 0 && (
+                        <div className={styles.historyChartColumn}>
                             <h3 className={styles.sectionTitle}>
-                                {withDevice(key, selectedDevice)}
+                                {withDevice("Blue Spectrum", selectedDevice)}
                             </h3>
                             <div className={styles.multiBandChartWrapper}>
                                 <HistoryChart
                                     xDataKey="time"
-                                    series={toSeries(rangeByCid, key)}
-                                    yLabel={key}
+                                    series={toSpectrumSeries(rangeByCid, Array.from(blue))}
+                                    yLabel="Intensity"
                                     xDomain={xDomain}
                                 />
                             </div>
                         </div>
-                    ))}
+                    )}
+                    {red.size > 0 && (
+                        <div className={styles.historyChartColumn}>
+                            <h3 className={styles.sectionTitle}>
+                                {withDevice("Red Spectrum", selectedDevice)}
+                            </h3>
+                            <div className={styles.multiBandChartWrapper}>
+                                <HistoryChart
+                                    xDataKey="time"
+                                    series={toSpectrumSeries(rangeByCid, Array.from(red))}
+                                    yLabel="Intensity"
+                                    xDomain={xDomain}
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
