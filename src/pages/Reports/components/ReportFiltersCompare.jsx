@@ -147,12 +147,65 @@ export default function ReportFiltersCompare(props) {
         });
     };
 
-    const handleAllSystems = () => setSelectedSystems([...systems]);
-    const handleNoneSystems = () => setSelectedSystems([]);
-    const handleAllLayers  = () => setSelectedLayers([...layers]);
-    const handleNoneLayers = () => setSelectedLayers([]);
-    const handleAllDevices = () => setSelectedDevices([...devices]);
-    const handleNoneDevices= () => setSelectedDevices([]);
+    const handleAllSystems = () => {
+        setSelectedSystems(prev => {
+            systems.forEach(id => {
+                if (!prev.includes(id)) {
+                    onSystemChange && onSystemChange({ target: { value: id } });
+                }
+            });
+            return [...systems];
+        });
+    };
+
+    const handleNoneSystems = () => {
+        setSelectedSystems(prev => {
+            prev.forEach(id => {
+                onSystemChange && onSystemChange({ target: { value: id } });
+            });
+            return [];
+        });
+    };
+
+    const handleAllLayers  = () => {
+        setSelectedLayers(prev => {
+            layers.forEach(id => {
+                if (!prev.includes(id)) {
+                    onLayerChange && onLayerChange({ target: { value: id } });
+                }
+            });
+            return [...layers];
+        });
+    };
+
+    const handleNoneLayers = () => {
+        setSelectedLayers(prev => {
+            prev.forEach(id => {
+                onLayerChange && onLayerChange({ target: { value: id } });
+            });
+            return [];
+        });
+    };
+
+    const handleAllDevices = () => {
+        setSelectedDevices(prev => {
+            devices.forEach(id => {
+                if (!prev.includes(id)) {
+                    onDeviceChange && onDeviceChange({ target: { value: id } });
+                }
+            });
+            return [...devices];
+        });
+    };
+
+    const handleNoneDevices= () => {
+        setSelectedDevices(prev => {
+            prev.forEach(id => {
+                onDeviceChange && onDeviceChange({ target: { value: id } });
+            });
+            return [];
+        });
+    };
 
     // filtered catalog devices according to location selection
     const filteredCatalogDevices = useMemo(() => {
