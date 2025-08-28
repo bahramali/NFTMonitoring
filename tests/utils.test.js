@@ -75,7 +75,7 @@ test('normalizes sensors array structure', () => {
             { sensorId: 'as7341-01', sensorType: '445nm', value: 4, unit: 'raw' },
             { sensorId: 'as7341-01', sensorType: '480nm', value: 7, unit: 'raw' },
             { sensorId: 'as7341-01', sensorType: '515nm', value: 9, unit: 'raw' },
-            { sensorId: 'as7341-01', sensorType: '555nm', value: 15, unit: 'raw' },
+            { sensorId: 'as7341-01', sensorType: '555 nm', value: 15, unit: 'raw' },
             { sensorId: 'as7341-01', sensorType: '590nm', value: 24, unit: 'raw' },
             { sensorId: 'as7341-01', sensorType: '630nm', value: 27, unit: 'raw' },
             { sensorId: 'as7341-01', sensorType: '680nm', value: 26, unit: 'raw' },
@@ -162,6 +162,17 @@ test('transformAggregatedData converts API response', () => {
     expect(entry.temperature.value).toBe(27.5);
     expect(entry.F3).toBe(3);
     expect(entry.nir).toBe(10);
+});
+
+test('transformAggregatedData handles spaced wavelength keys', () => {
+    const raw = {
+        sensors: [
+            { sensorType: '555 nm', data: [{ timestamp: '2025-07-25T09:00:04Z', value: 11 }] }
+        ]
+    };
+    const result = transformAggregatedData(raw);
+    expect(result.length).toBe(1);
+    expect(result[0].F5).toBe(11);
 });
 
 test('transformAggregatedData handles valueType and DO sensor', () => {
