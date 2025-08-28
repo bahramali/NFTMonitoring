@@ -65,7 +65,6 @@ test('Apply sends one request per compositeId', async () => {
   expect(called.some((u) => u.includes('compositeId=S02-L02-G01'))).toBe(true);
 });
 
-/*
 test('filters by Composite ID selection only fetches selected CIDs', async () => {
   setMeta({
     version: 'x',
@@ -97,5 +96,4 @@ test('filters by Composite ID selection only fetches selected CIDs', async () =>
   expect(url.includes('compositeId=S01-L01-G02')).toBe(true);
   expect(url.includes('compositeId=S01-L01-G01')).toBe(false);
 });
-*/
 
