@@ -14,6 +14,7 @@ export const spectralColors = {
   '425nm': '#4169e1',
   '450nm': '#0000ff',
   '475nm': '#00bfff',
+  '515nm': '#32cd32',
   '550nm': '#adff2f',
   '555nm': '#9acd32',
   '600nm': '#ffa500',

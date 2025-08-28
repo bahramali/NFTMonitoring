@@ -28,7 +28,8 @@ export function normalizeSensorData(data) {
 
     if (Array.isArray(data.sensors)) {
         for (const sensor of data.sensors) {
-            const type = sensor.sensorType || sensor.valueType;
+            const rawType = sensor.sensorType || sensor.valueType;
+            const type = typeof rawType === 'string' ? rawType.replace(/\s+/g, '') : rawType;
             const val = Number(sensor.value);
 
             switch (type) {
@@ -107,7 +108,8 @@ export function transformAggregatedData(data) {
     if (!data || !Array.isArray(data.sensors)) return [];
     const map = {};
     for (const sensor of data.sensors) {
-        const sensorType = sensor.sensorType || sensor.valueType;
+        const rawType = sensor.sensorType || sensor.valueType;
+        const sensorType = typeof rawType === 'string' ? rawType.replace(/\s+/g, '') : rawType;
         const unit = sensor.unit || '';
 
         for (const entry of sensor.data || []) {
