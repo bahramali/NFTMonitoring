@@ -13,7 +13,7 @@ const toLocalInputValue = (date) => {
 };
 const toISOSeconds = (v) => (v ? new Date(v).toISOString() : "");
 const AUTO_REFRESH_MS = {"30s": 30_000, "1m": 60_000, "5m": 300_000};
-const API_BASE = "https://api.hydroleaf.se";
+const API_BASE = import.meta.env.VITE_API_BASE ?? "https://api.hydroleaf.se";
 
 // English: choose bucket by range. Min resolution is 1m (your sampling rate)
 const pickBucket = (fromLocal, toLocal) => {
