@@ -8,8 +8,9 @@ export function useLiveNow() {
 
     const normalize = (payload) => {
         const out = {};
+        const fixSubs = (s) => String(s).replace(/[₀₁₂₃₄₅₆₇₈₉]/g, (d) => "0123456789"["₀₁₂₃₄₅₆₇₈₉".indexOf(d)]);
         for (const [k, v] of Object.entries(payload || {})) {
-            const key = k.replace(/[\s_-]/g, "").toLowerCase();
+            const key = fixSubs(k).replace(/[\s_-]/g, "").toLowerCase();
             out[key] = v;
         }
         return out;

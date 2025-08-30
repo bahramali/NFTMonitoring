@@ -21,6 +21,8 @@ const normLayerId = (l) => {
     return m ? `L${String(m[1]).padStart(2, "0")}` : (raw || "--");
 };
 
+const fixSubs = (s) => String(s).replace(/[₀₁₂₃₄₅₆₇₈₉]/g, (d) => "0123456789"["₀₁₂₃₄₅₆₇₈₉".indexOf(d)]);
+
 function getMetric(obj, key) {
     if (!obj) return null;
     const val = obj[key] ?? obj[key?.toLowerCase()] ?? obj[key?.toUpperCase()];
@@ -57,7 +59,7 @@ const sensorLabel = (k) => ({
 }[k] || k);
 
 function canonKey(raw) {
-    const t = String(raw || "").toLowerCase();
+    const t = fixSubs(String(raw || "")).toLowerCase();
     if (!t) return null;
     if (t === "light") return "light";
     if (t === "temperature" || t === "temp") return "temperature";
@@ -132,11 +134,6 @@ function useLayerCompositeCards(systemKeyInput, layerId) {
     const [cards, setCards] = React.useState({});
     const layerKey = String(layerId || "").toUpperCase();
     const sysKey = String(systemKeyInput || "").toUpperCase();
-
-    function parseIds(compId) {
-        const parts = String(compId || '').split('-');
-        return {system: (parts[0] || '').toUpperCase(), layer: (parts[1] || '').toUpperCase()};
-    }
 
     const isMine = React.useCallback((compId, data) => {
         const cid = String(compId || "").trim().toUpperCase();

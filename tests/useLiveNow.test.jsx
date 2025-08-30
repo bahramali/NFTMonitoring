@@ -13,9 +13,10 @@ test('captures live_now updates and normalizes keys', () => {
   const { result } = renderHook(() => useLiveNow());
 
   act(() => {
-    global.__liveNowHandler('live_now', { Systems: {}, 'Last Update': 123 });
+    global.__liveNowHandler('live_now', { Systems: {}, 'Last Update': 123, 'CO₂': 400 });
   });
 
   expect(result.current).toHaveProperty('systems');
   expect(result.current).toHaveProperty('lastupdate');
+  expect(result.current).toHaveProperty('co2');
 });
