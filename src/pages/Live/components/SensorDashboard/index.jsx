@@ -5,7 +5,7 @@ import { useLiveDevices } from "../../../../components/useLiveDevices.js";
 import { useLiveNow } from "../../../../hooks/useLiveNow";
 import styles from "../../../common/SensorDashboard.module.css";
 import Live from "../Live";
-import {SENSOR_TOPIC, topics} from "../../../Dashboard/components/dashboard.constants.js";
+import {SENSOR_TOPIC, topics} from "../../../common/dashboard.constants.js";
 import {useFilters, ALL} from "../../../../context/FiltersContext";
 import Overview from "../Overview";
 
