@@ -23,6 +23,7 @@ function attachReconnect(client) {
             try {
                 fn();
             } catch {
+                /* ignore */
             }
         });
         prevOnConnect?.(frame);
@@ -47,6 +48,7 @@ function ensureClient(opts = {}) {
                 try {
                     fn();
                 } catch {
+                    /* ignore */
                 }
             }), 0);
         }
@@ -62,6 +64,7 @@ function ensureClient(opts = {}) {
         heartbeatIncoming: opts.heartbeatIncoming ?? 10000,
         heartbeatOutgoing: opts.heartbeatOutgoing ?? 10000,
         debug: () => {
+            /* no-op */
         },
     });
     attachReconnect(sharedClient);
@@ -105,6 +108,7 @@ export function useStomp(topics, onMessage, opts = {}) {
                         try {
                             payload = typeof payload === "string" ? JSON.parse(payload) : payload;
                         } catch {
+                            /* ignore */
                         }
                         const topicName = dest.startsWith("/topic/") ? dest.slice(7) : dest;
                         handlerRef.current?.(topicName, payload);
@@ -118,6 +122,7 @@ export function useStomp(topics, onMessage, opts = {}) {
                     try {
                         subsRef.current[dest].unsubscribe?.();
                     } catch {
+                        /* ignore */
                     }
                     delete subsRef.current[dest];
                 }
@@ -132,6 +137,7 @@ export function useStomp(topics, onMessage, opts = {}) {
                 try {
                     s.unsubscribe?.();
                 } catch {
+                    /* ignore */
                 }
             });
             subsRef.current = {};
