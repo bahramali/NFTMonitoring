@@ -15,7 +15,8 @@ const samplePayload = {
       environment: {
         light: { average: 12, deviceCount: 1 },
         humidity: { average: 55, deviceCount: 1 },
-        temperature: { average: 25, deviceCount: 1 }
+        temperature: { average: 25, deviceCount: 1 },
+        co2: { average: 400, deviceCount: 1 }
       },
       water: {
         dissolvedTemp: { average: 20, deviceCount: 1 },
@@ -33,7 +34,8 @@ const samplePayload = {
           environment: {
             light: { average: 15, deviceCount: 1 },
             temperature: { average: 22, deviceCount: 1 },
-            humidity: { average: 60, deviceCount: 1 }
+            humidity: { average: 60, deviceCount: 1 },
+            co2: { average: 405, deviceCount: 1 }
           },
           water: {
             dissolvedTemp: { average: 21, deviceCount: 1 },
@@ -68,8 +70,10 @@ describe('normalizeLiveNow', () => {
     expect(sys.metrics.light).toBe(12);
     expect(sys.metrics.humidity).toBe(55);
     expect(sys.metrics.temperature).toBe(25);
+    expect(sys.metrics.co2).toBe(400);
     expect(sys.metrics.airPump).toBe(true);
     expect(sys.metrics._counts.light).toBe(1);
+    expect(sys.metrics._counts.co2).toBe(1);
     // layer summary counts
     expect(sys.layers).toHaveLength(2);
     expect(sys.layers.map(l => l.id)).toEqual(['L01', 'L02']);
@@ -79,10 +83,12 @@ describe('normalizeLiveNow', () => {
     const layer1 = sys._layerCards[0];
     expect(layer1.metrics.lux).toBe(15);
     expect(layer1.metrics.humidity).toBe(60);
+    expect(layer1.metrics.co2).toBe(405);
     expect(layer1.water.pH).toBe(7);
     expect(layer1.actuators.airPump).toBe(true);
     // counts propagate
     expect(layer1.metrics._counts.light).toBe(1);
+    expect(layer1.metrics._counts.co2).toBe(1);
     const layer2 = sys._layerCards[1];
     expect(layer2.id).toBe('L02');
     expect(layer2.metrics.lux).toBe(null);

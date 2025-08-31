@@ -117,10 +117,11 @@ export function SystemOverviewCard({
                     <MetricCard compact title="pH" value={fmt(metrics.pH, 1)} icon={<span>⚗️</span>} subtitle={metrics?._counts?.pH != null ? `Composite IDs: ${metrics._counts.pH}` : undefined} />
                     <MetricCard compact title="Air Pump" value={metrics.airPump ? "On" : "Off"} icon={<span>🫧</span>} subtitle={metrics?._counts?.airPump != null ? `Composite IDs: ${metrics._counts.airPump}` : undefined} />
                 </div>
-                <div className={cx("metrics-group")}> 
+                <div className={cx("metrics-group")}>
                     <MetricCard compact title="Light" value={fmt(metrics.light, 1)} unit="lux" icon={<span>☀️</span>} subtitle={metrics?._counts?.light != null ? `Composite IDs: ${metrics._counts.light}` : undefined} />
                     <MetricCard compact title="Humidity" value={fmt(metrics.humidity, 1)} unit="%" icon={<span>%</span>} subtitle={metrics?._counts?.humidity != null ? `Composite IDs: ${metrics._counts.humidity}` : undefined} />
                     <MetricCard compact title="Temperature" value={fmt(metrics.temperature, 1)} unit="°C" icon={<span>🌡️</span>} subtitle={metrics?._counts?.temperature != null ? `Composite IDs: ${metrics._counts.temperature}` : undefined} />
+                    <MetricCard compact title="CO₂" value={fmt(metrics.co2, 0)} unit="ppm" icon={<span>CO₂</span>} subtitle={metrics?._counts?.co2 != null ? `Composite IDs: ${metrics._counts.co2}` : undefined} />
                 </div>
             </div>
         </div>
@@ -145,10 +146,11 @@ export function LayerPanel({id, health, metrics, water = {}, actuators = {}, chi
                     <MetricCard compact title="TDS" value={fmt(water.dissolvedTDS, 0)} unit="ppm" icon={<span>💧</span>} subtitle={water?._counts?.dissolvedTDS != null ? `Composite IDs: ${water._counts.dissolvedTDS}` : undefined} />
                     <MetricCard compact title="Air Pump" value={actuators.airPump ? "On" : "Off"} icon={<span>🫧</span>} subtitle={actuators?._counts?.airPump != null ? `Composite IDs: ${actuators._counts.airPump}` : undefined} />
                 </div>
-                <div className={cx("metrics-group")}> 
+                <div className={cx("metrics-group")}>
                     <MetricCard compact title="Light" value={fmt(metrics.lux, 1)} unit="lx" icon={<span>☀️</span>} subtitle={metrics?._counts?.light != null ? `Composite IDs: ${metrics._counts.light}` : undefined} />
                     <MetricCard compact title="Temperature" value={fmt(metrics.temp, 1)} unit="°C" icon={<span>🌡️</span>} subtitle={metrics?._counts?.temperature != null ? `Composite IDs: ${metrics._counts.temperature}` : undefined} />
                     <MetricCard compact title="Humidity" value={fmt(metrics.humidity, 1)} unit="%" icon={<span>%</span>} subtitle={metrics?._counts?.humidity != null ? `Composite IDs: ${metrics._counts.humidity}` : undefined} />
+                    <MetricCard compact title="CO₂" value={fmt(metrics.co2, 0)} unit="ppm" icon={<span>CO₂</span>} subtitle={metrics?._counts?.co2 != null ? `Composite IDs: ${metrics._counts.co2}` : undefined} />
                 </div>
             </div>
 
