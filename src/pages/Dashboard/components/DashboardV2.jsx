@@ -129,6 +129,22 @@ function MetricLine({label, value, count, unit}) {
         <span>{label}</span><b>{fmt(value)} {unit} {count > 0 ? `(${count} sensors)` : ""}</b></div>);
 }
 
+// metric configs used to render sensor stats
+const WATER_STATS = [
+    {label: "pH", key: "pH", alt: "ph", precision: 1},
+    {label: "DO", key: "dissolvedOxygen", precision: 1},
+    {label: "EC", key: "dissolvedEC", precision: 2},
+    {label: "TDS", key: "dissolvedTDS", precision: 0},
+    {label: "Temp", key: "dissolvedTemp", precision: 1}
+];
+
+const ENV_STATS = [
+    {label: "Light", key: "light", precision: 1},
+    {label: "Temp", key: "temperature", precision: 1},
+    {label: "Humidity", key: "humidity", precision: 0},
+    {label: "CO₂", key: "co2", precision: 0}
+];
+
 // subscribe to websockets and build composite cards per layer
 function useLayerCompositeCards(systemKeyInput, layerId) {
     const [cards, setCards] = React.useState({});
@@ -298,17 +314,16 @@ export default function DashboardV2() {
                         <div className={`${styles.subcard} ${styles.water}`}>
                             <h3>Water</h3>
                             <div className={styles.stats}>
-                                <Stat
-                                    label={`pH (${getCount(active.water, "pH") + getCount(active.water, "ph")} sensors)`}
-                                    value={fmt(getMetric(active.water, "pH") ?? getMetric(active.water, "ph"), 1)}/>
-                                <Stat label={`DO (${getCount(active.water, "dissolvedOxygen")} sensors)`}
-                                      value={fmt(getMetric(active.water, "dissolvedOxygen"), 1)}/>
-                                <Stat label={`EC (${getCount(active.water, "dissolvedEC")} sensors)`}
-                                      value={fmt(getMetric(active.water, "dissolvedEC"), 2)}/>
-                                <Stat label={`TDS (${getCount(active.water, "dissolvedTDS")} sensors)`}
-                                      value={fmt(getMetric(active.water, "dissolvedTDS"), 0)}/>
-                                <Stat label={`Temp (${getCount(active.water, "dissolvedTemp")} sensors)`}
-                                      value={fmt(getMetric(active.water, "dissolvedTemp"), 1)}/>
+                                {WATER_STATS.map(({label, key, alt, precision}) => {
+                                    const count = getCount(active.water, key) + (alt ? getCount(active.water, alt) : 0);
+                                    const value = fmt(
+                                        getMetric(active.water, key) ?? (alt ? getMetric(active.water, alt) : null),
+                                        precision
+                                    );
+                                    return (
+                                        <Stat key={key} label={`${label} (${count} sensors)`} value={value}/>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
@@ -316,14 +331,13 @@ export default function DashboardV2() {
                         <div className={`${styles.subcard} ${styles.env}`}>
                             <h3>Environment</h3>
                             <div className={styles.stats}>
-                                <Stat label={`Light (${getCount(active.env, "light")} sensors)`}
-                                      value={fmt(getMetric(active.env, "light"), 1)}/>
-                                <Stat label={`Temp (${getCount(active.env, "temperature")} sensors)`}
-                                      value={fmt(getMetric(active.env, "temperature"), 1)}/>
-                                <Stat label={`Humidity (${getCount(active.env, "humidity")} sensors)`}
-                                      value={fmt(getMetric(active.env, "humidity"), 0)}/>
-                                <Stat label={`CO₂ (${getCount(active.env, "co2")} sensors)`}
-                                      value={fmt(getMetric(active.env, "co2"), 0)}/>
+                                {ENV_STATS.map(({label, key, precision}) => (
+                                    <Stat
+                                        key={key}
+                                        label={`${label} (${getCount(active.env, key)} sensors)`}
+                                        value={fmt(getMetric(active.env, key), precision)}
+                                    />
+                                ))}
                             </div>
                         </div>
                     </div>
