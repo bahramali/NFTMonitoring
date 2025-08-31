@@ -392,6 +392,7 @@ export default function DashboardV2() {
                                     );
                                 })}
                             </div>
+                            <div className={styles.divider}/>
                             <div className={styles.devCards}>
                                 {waterCards.length ? (
                                     waterCards.map(card => (
@@ -426,10 +427,12 @@ export default function DashboardV2() {
                                 />
                             ))}
                         </div>
+                        <div className={styles.divider}/>
+                        <div className={styles.layers}>
+                            {active.layers.map(l => (<LayerCard key={l.id} layer={l} systemId={active.id}/>))}
+                        </div>
                     </div>
-                    <div className={styles.layers}>
-                        {active.layers.map(l => (<LayerCard key={l.id} layer={l} systemId={active.id}/>))}
-                    </div>
+
                 </div>
             </div>
         </div>

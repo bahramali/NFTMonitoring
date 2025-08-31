@@ -167,7 +167,7 @@
 /* layer look */
 .layer {
     position: relative;
-    border-left: 3px solid #0ea5e9; /* different accent for layers */
+    border-left: 2px solid #90c398; /* different accent for layers */
     padding-top: 28px;              /* room for the tag */
 }
 .layer::before { content: "Layer"; left: 14px; }
