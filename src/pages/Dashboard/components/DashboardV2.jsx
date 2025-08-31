@@ -139,6 +139,8 @@ const WATER_STATS = [
     {label: "Temp", key: "dissolvedTemp", precision: 1}
 ];
 
+const WATER_KEYS = new Set(WATER_STATS.map(s => s.key));
+
 const ENV_STATS = [
     {label: "Light", key: "light", precision: 1},
     {label: "Temp", key: "temperature", precision: 1},
@@ -174,11 +176,16 @@ function useLayerCompositeCards(systemKeyInput, layerId) {
     }, [sysKey, layerKey]);
 
     const upsert = React.useCallback((compId, sensors, ts) => {
+        const normalized = normalizeSensors(sensors);
+        const entries = Object.entries(normalized).filter(([k]) => WATER_KEYS.has(k));
         setCards(prev => {
             const next = {...prev};
+            if (!entries.length) {
+                delete next[compId];
+                return next;
+            }
             const cur = next[compId] || {sensors: {}, ts: 0};
-            const normalized = normalizeSensors(sensors);
-            for (const [k, obj] of Object.entries(normalized)) {
+            for (const [k, obj] of entries) {
                 cur.sensors[k] = {value: obj.value, unit: obj.unit};
             }
             cur.ts = Math.max(cur.ts || 0, ts || Date.now());
