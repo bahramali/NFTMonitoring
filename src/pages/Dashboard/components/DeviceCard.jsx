@@ -1,39 +1,61 @@
+// src/pages/Dashboard/components/DeviceCard.jsx
 import React, { useMemo } from "react";
 import styles from "./DeviceCard.module.css";
 
-/* -------- Helpers (English comments) -------- */
+/* helpers */
 const nmToNumber = (key) => {
-  const m = /^(\d+)nm$/i.exec(key || "");
+  const m = /^(\d{3})nm$/i.exec(key || "");
   return m ? Number(m[1]) : null;
 };
+const fmt = (v) =>
+  v == null || Number.isNaN(v)
+    ? "--"
+    : Number(v) % 1 === 0
+    ? String(Number(v))
+    : Number(v).toFixed(1);
 
-const fmt = (v) => {
-  if (v == null || Number.isNaN(v)) return "--";
-  return Number.isInteger(v) ? String(v) : Number(v).toFixed(1);
-};
+/* normalize everything from sensors[] */
+function deriveFromSensors(arr = []) {
+  const map = {};             // temp, humidity, co2
+  const spectrum = {};        // '405nm': value, ...
+  const otherLight = {};      // lux, vis1, vis2, nir855
+  const water = {};           // tds_ppm, ec_mScm, tempC, do_mgL
 
-// normalize sensors array to object
-const normSensors = (arr = []) => {
-  const out = {};
   for (const s of arr) {
-    const key = String(s?.sensorType || s?.type || s?.name || "")
+    const raw = String(s?.sensorType || s?.type || s?.name || "")
       .toLowerCase()
-      .replace(/\s+/g, "");
-    if (!key) continue;
-    out[key] = { value: s?.value, unit: s?.unit || "" };
+      .replace(/[\s_]/g, "");
+    const value = s?.value;
+
+    if (/^\d{3}nm$/.test(raw)) { spectrum[raw] = value; continue; }
+
+    if (raw === "lux") { otherLight.lux = value; continue; }
+    if (raw === "vis1" || raw === "vis_1") { otherLight.vis1 = value; continue; }
+    if (raw === "vis2" || raw === "vis_2") { otherLight.vis2 = value; continue; }
+    if (raw === "nir855" || raw === "nir" || raw === "nir_855") { otherLight.nir855 = value; continue; }
+
+    if (raw === "tds" || raw === "tdsppm") { water.tds_ppm = value; continue; }
+    if (raw === "ec" || raw === "electricalconductivity") { water.ec_mScm = value; continue; }
+    if (raw === "do" || raw === "dissolvedoxygen") { water.do_mgL = value; continue; }
+    if (raw === "watertemp" || raw === "watertemperature" || raw === "water_temp") { water.tempC = value; continue; }
+
+    if (raw === "temperature" || raw === "temp" || raw === "airtemp" || raw === "airtemperature") { map.temp = value; continue; }
+    if (raw === "humidity" || raw === "rh" || raw === "relativehumidity") { map.humidity = value; continue; }
+    if (raw === "co2" || raw === "co₂" || raw === "co2ppm") { map.co2 = value; continue; }
   }
-  return out;
+
+  return {
+    map,
+    spectrum: Object.keys(spectrum).length ? spectrum : null,
+    otherLight: Object.keys(otherLight).length ? otherLight : null,
+    water: Object.keys(water).length ? water : null,
 };
+}
 
 /**
- * DeviceCard (Sketch style)
- *
  * Props:
- *  id?: string
- *  compositeId?: string
- *  sensors?: Array<{ sensorType: string, value: number|string, unit?: string }>
- *  tempC?, humidityPct?, co2ppm?
- *  spectrum?, otherLight?, water?
+ *  id?, compositeId?, sensors[]
+ *  tempC?, humidityPct?, co2ppm?, spectrum?, otherLight?, water?
  */
 export default function DeviceCard({
   id,
@@ -50,7 +72,6 @@ export default function DeviceCard({
 
   const name = id || compositeId || "—";
 
-  // prefer explicit props; fallback to sensors-derived
   const t = tempC ?? derived.map.temp;
   const h = humidityPct ?? derived.map.humidity;
   const co2 = co2ppm ?? derived.map.co2;
@@ -59,8 +80,8 @@ export default function DeviceCard({
   const otherFinal = Object.keys(otherLight).length ? otherLight : (derived.otherLight || {});
   const waterFinal = water || derived.water;
 
-  // group spectrum
   const { blueArr, redArr } = useMemo(() => {
+    if (!spectrumFinal) return { blueArr: [], redArr: [] };
     const entries = Object.entries(spectrumFinal)
       .map(([k, v]) => ({ nm: nmToNumber(k), val: v }))
       .filter((x) => x.nm != null)
