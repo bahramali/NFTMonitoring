@@ -26,8 +26,8 @@
 
 /* State colors */
 .ok { background: linear-gradient(180deg, #065f46 0%, #064e3b 100%); }      /* emerald */
-.warn { background: linear-gradient(180deg, #92400e 0%, #7c2d12 100%); }    /* amber */
-.danger { background: linear-gradient(180deg, #7f1d1d 0%, #450a0a 100%); }  /* red */
+.warn { background: #fff3cd; color: #000; }    /* light yellow */
+.danger { background: #f8d7da; color: #000; }  /* light red */
 .neutral { background: linear-gradient(180deg, #374151 0%, #1f2937 100%); } /* slate */
 
 @media (max-width: 480px) {
