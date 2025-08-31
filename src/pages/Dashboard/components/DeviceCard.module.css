@@ -42,6 +42,7 @@
 
 .vals {
   font-variant-numeric: tabular-nums; /* align numbers */
+  font-family: ui-monospace, monospace;
 }
 
 /* Optional container spacing if used in a grid */

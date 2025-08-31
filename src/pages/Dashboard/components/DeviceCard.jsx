@@ -12,20 +12,33 @@ const fmt = (v) => {
   return Number.isInteger(v) ? String(v) : Number(v).toFixed(1);
 };
 
+// normalize sensors array to object
+const normSensors = (arr = []) => {
+  const out = {};
+  for (const s of arr) {
+    const key = String(s?.sensorType || s?.type || s?.name || "")
+      .toLowerCase()
+      .replace(/\s+/g, "");
+    if (!key) continue;
+    out[key] = { value: s?.value, unit: s?.unit || "" };
+  }
+  return out;
+};
+
 /**
  * DeviceCard (Sketch style)
  *
  * Props:
- *  id: string
- *  tempC?: number
- *  humidityPct?: number
- *  co2ppm?: number
- *  spectrum?: Record<'405nm'|'425nm'|string, number>
- *  otherLight?: { lux?: number; vis1?: number; vis2?: number; nir855?: number }
- *  water?: { tds_ppm?: number; ec_mScm?: number; tempC?: number; do_mgL?: number }
+ *  id?: string
+ *  compositeId?: string
+ *  sensors?: Array<{ sensorType: string, value: number|string, unit?: string }>
+ *  tempC?, humidityPct?, co2ppm?
+ *  spectrum?, otherLight?, water?
  */
 export default function DeviceCard({
   id,
+  compositeId,
+  sensors = [],
   tempC,
   humidityPct,
   co2ppm,
@@ -33,25 +46,29 @@ export default function DeviceCard({
   otherLight = {},
   water = null,
 }) {
-  // Prepare spectrum groups
-  const { blue, red, allPairs } = useMemo(() => {
+  const sens = useMemo(() => normSensors(sensors), [sensors]);
+
+  const name = id || compositeId || "—";
+
+  const t = tempC ?? sens.temperature?.value ?? sens.temp?.value;
+  const h = humidityPct ?? sens.humidity?.value ?? sens.hum?.value;
+  const co2 = co2ppm ?? sens.co2?.value;
+
+  const { blue, red } = useMemo(() => {
     const arr = Object.entries(spectrum)
       .map(([k, v]) => ({ k, nm: nmToNumber(k), v }))
       .filter((x) => x.nm != null)
       .sort((a, b) => a.nm - b.nm);
 
-    // Blue 400–500nm, Red 550–750nm (covers 550/555nm lines)
     const b = arr.filter((e) => e.nm >= 400 && e.nm <= 500);
     const r = arr.filter((e) => e.nm >= 550 && e.nm <= 750);
 
     return {
       blue: b.map((e) => `${e.nm}nm: ${fmt(e.v)}`),
       red: r.map((e) => `${e.nm}nm: ${fmt(e.v)}`),
-      allPairs: arr.map((e) => [e.k, e.v]),
     };
   }, [spectrum]);
 
-  // Render helpers (compact bracket rows)
   const line = (label, value) => (
     <div className={styles.row}>
       <span className={styles.label}>{label}</span>
@@ -85,12 +102,12 @@ export default function DeviceCard({
     <div className={styles.wrapper}>
       <div className={styles.card}>
         <div className={styles.header}>
-          <div className={styles.badge}>{id}</div>
+          <div className={styles.badge}>{name}</div>
         </div>
 
-        {co2ppm != null && line("CO₂", `${fmt(co2ppm)} ppm`)}
+        {co2 != null && line("CO₂", `${fmt(co2)} ppm`)}
 
-        {line("[Temp, Humidity]", `[${fmt(tempC)} °C, ${fmt(humidityPct)} %]`)}
+        {line("[Temp, Humidity]", `[${fmt(t)} °C, ${fmt(h)} %]`)}
 
         {blue.length > 0 &&
           line("Blue light", `[${blue.join(", ")}]`)}
