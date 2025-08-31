@@ -130,7 +130,7 @@ export default function DeviceCard({
           <div className={styles.badge}>{name}</div>
         </div>
 
-        {co2 != null && line("CO₂", `${fmt(co2)} ppm`)}
+        {line("CO₂", `${fmt(co2)} ppm`)}
 
         {line("[Temp, Humidity]", `[${fmt(t)} °C, ${fmt(h)} %]`)}
 
