@@ -204,14 +204,13 @@ function useLayerCompositeCards(systemKeyInput, layerId) {
 }
 
 function LayerCard({layer, systemId}) {
-    const [open, setOpen] = useState(false);
     // build device cards for this system/layer
     const deviceCards = useLayerCompositeCards(systemId, layer.id);
     const agg = React.useMemo(() => aggregateFromCards(deviceCards), [deviceCards]);
 
     return (
         <div className={`${styles.card} ${styles.layer}`}>
-            <div className={styles.headerRow} onClick={() => setOpen(!open)}>
+            <div className={styles.headerRow}>
                 <h4>
                     {layer.id} <span className={`${styles.dot} ${styles[layer.health]}`}/>
                 </h4>
@@ -231,30 +230,26 @@ function LayerCard({layer, systemId}) {
                 <MetricLine label="pH" value={agg.avg.pH} unit="" count={agg.counts.pH}/>
             )}
 
-            {open && (
-                <>
-                    <div className={styles.divider}/>
-                    <div className={styles.details}>
-                        <div className={styles.devCards}>
-                            {deviceCards.length ? (
-                                deviceCards.map((card) => (
-                                    <DeviceCard
-                                        key={card.compId}
-                                        compositeId={card.compId}
-                                        sensors={Object.entries(card.sensors).map(([k, v]) => ({
-                                            sensorType: sensorLabel(k),
-                                            value: fmt(v?.value),
-                                            unit: v?.unit || "",
-                                        }))}
-                                    />
-                                ))
-                            ) : (
-                                <div className={styles.muted}>No device cards</div>
-                            )}
-                        </div>
-                    </div>
-                </>
-            )}
+            <div className={styles.divider}/>
+            <div className={styles.details}>
+                <div className={styles.devCards}>
+                    {deviceCards.length ? (
+                        deviceCards.map((card) => (
+                            <DeviceCard
+                                key={card.compId}
+                                compositeId={card.compId}
+                                sensors={Object.entries(card.sensors).map(([k, v]) => ({
+                                    sensorType: sensorLabel(k),
+                                    value: fmt(v?.value),
+                                    unit: v?.unit || "",
+                                }))}
+                            />
+                        ))
+                    ) : (
+                        <div className={styles.muted}>No device cards</div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }
