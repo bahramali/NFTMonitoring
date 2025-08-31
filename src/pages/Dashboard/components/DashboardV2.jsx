@@ -4,6 +4,8 @@ import {useLiveNow} from "../../../hooks/useLiveNow";
 import {useStomp} from "../../../hooks/useStomp";
 import DeviceCard from "./DeviceCard.jsx";
 import styles from "./DashboardV2.module.css";
+import idealRangeConfig from "../../../idealRangeConfig.js";
+import clsx from "clsx";
 
 // ---------- utils ----------
 const toNum = (v) => (v == null || v === "" ? null : Number(v));
@@ -121,8 +123,31 @@ function aggregateFromCards(cards) {
     return {avg, counts};
 }
 
-function Stat({label, value}) {
-    return (<div className={styles.stat}><strong>{value}</strong><span className={styles.muted}>{label}</span></div>);
+function Stat({label, value, range}) {
+    const numeric = typeof value === "number" ? value : parseFloat(String(value).replace(",", "."));
+    let state = null;
+    if (range && typeof numeric === "number" && !Number.isNaN(numeric)) {
+        const {min, max} = range;
+        if (typeof min === "number" && typeof max === "number") {
+            const threshold = (max - min) * 0.1;
+            if (numeric < min || numeric > max) state = "danger";
+            else if (numeric < min + threshold || numeric > max - threshold) state = "warn";
+            else state = "ok";
+        }
+    }
+    return (
+        <div
+            className={clsx(
+                styles.stat,
+                state === "ok" && styles.statOk,
+                state === "warn" && styles.statWarn,
+                state === "danger" && styles.statDanger
+            )}
+        >
+            <strong>{value}</strong>
+            <span className={styles.muted}>{label}</span>
+        </div>
+    );
 }
 
 function MetricLine({label, value, count, unit}) {
@@ -132,17 +157,17 @@ function MetricLine({label, value, count, unit}) {
 
 // metric configs used to render sensor stats
 const WATER_STATS = [
-    {label: "pH", key: "pH", alt: "ph", precision: 1},
-    {label: "DO", key: "dissolvedOxygen", precision: 1},
-    {label: "EC", key: "dissolvedEC", precision: 2},
-    {label: "TDS", key: "dissolvedTDS", precision: 0},
-    {label: "Temp", key: "dissolvedTemp", precision: 1}
+    {label: "pH", key: "pH", alt: "ph", precision: 1, rangeKey: "ph"},
+    {label: "DO", key: "dissolvedOxygen", precision: 1, rangeKey: "dissolvedOxygen"},
+    {label: "EC", key: "dissolvedEC", precision: 2, rangeKey: "ec"},
+    {label: "TDS", key: "dissolvedTDS", precision: 0, rangeKey: "tds"},
+    {label: "Temp", key: "dissolvedTemp", precision: 1, rangeKey: "temperature"}
 ];
 
 const ENV_STATS = [
-    {label: "Light", key: "light", precision: 1},
-    {label: "Temp", key: "temperature", precision: 1},
-    {label: "Humidity", key: "humidity", precision: 0},
+    {label: "Light", key: "light", precision: 1, rangeKey: "lux"},
+    {label: "Temp", key: "temperature", precision: 1, rangeKey: "temperature"},
+    {label: "Humidity", key: "humidity", precision: 0, rangeKey: "humidity"},
     {label: "CO₂", key: "co2", precision: 0}
 ];
 
@@ -282,24 +307,28 @@ function LayerCard({layer, systemId}) {
                     <Stat
                         label={`Light (${agg.counts.light} sensors)`}
                         value={`${fmt(agg.avg.light)} lux`}
+                        range={idealRangeConfig.lux?.idealRange}
                     />
                 )}
                 {agg.counts.temperature > 0 && (
                     <Stat
                         label={`Temp (${agg.counts.temperature} sensors)`}
                         value={`${fmt(agg.avg.temperature)} °C`}
+                        range={idealRangeConfig.temperature?.idealRange}
                     />
                 )}
                 {agg.counts.humidity > 0 && (
                     <Stat
                         label={`Humidity (${agg.counts.humidity} sensors)`}
                         value={`${fmt(agg.avg.humidity)} %`}
+                        range={idealRangeConfig.humidity?.idealRange}
                     />
                 )}
                 {agg.counts.pH > 0 && (
                     <Stat
                         label={`pH (${agg.counts.pH} sensors)`}
                         value={`${fmt(agg.avg.pH)}`}
+                        range={idealRangeConfig.ph?.idealRange}
                     />
                 )}
             </div>
@@ -381,14 +410,15 @@ export default function DashboardV2() {
                         <div className={`${styles.subcard} ${styles.water}`}>
                             <h3>Water</h3>
                             <div className={styles.stats}>
-                                {WATER_STATS.map(({label, key, alt, precision}) => {
+                                {WATER_STATS.map(({label, key, alt, precision, rangeKey}) => {
                                     const count = getCount(active.water, key) + (alt ? getCount(active.water, alt) : 0);
                                     const value = fmt(
                                         getMetric(active.water, key) ?? (alt ? getMetric(active.water, alt) : null),
                                         precision
                                     );
+                                    const range = idealRangeConfig[rangeKey]?.idealRange;
                                     return (
-                                        <Stat key={key} label={`${label} (${count} sensors)`} value={value}/>
+                                        <Stat key={key} label={`${label} (${count} sensors)`} value={value} range={range}/>
                                     );
                                 })}
                             </div>
@@ -419,11 +449,12 @@ export default function DashboardV2() {
                     <div className={`${styles.subcard} ${styles.env}`}>
                         <h3>Environment overview</h3>
                         <div className={styles.stats}>
-                            {ENV_STATS.map(({label, key, precision}) => (
+                            {ENV_STATS.map(({label, key, precision, rangeKey}) => (
                                 <Stat
                                     key={key}
                                     label={`${label} (${getCount(active.env, key)} sensors)`}
                                     value={fmt(getMetric(active.env, key), precision)}
+                                    range={idealRangeConfig[rangeKey]?.idealRange}
                                 />
                             ))}
                         </div>

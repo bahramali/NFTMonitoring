@@ -8,6 +8,7 @@ import Live from "../Live";
 import {SENSOR_TOPIC, topics} from "../../../common/dashboard.constants.js";
 import {useFilters, ALL} from "../../../../context/FiltersContext";
 import Overview from "../Overview";
+import idealRangeConfig from "../../../../idealRangeConfig.js";
 
 function SensorDashboard({ view, title = '' }) {
     const [activeSystem, setActiveSystem] = useState("S01");
@@ -126,6 +127,7 @@ function SensorDashboard({ view, title = '' }) {
                 unit: metric("light").average != null ? "lx" : "",
                 title: "Light",
                 subtitle: `Composite IDs: ${metric("light").deviceCount ?? 0}`,
+                range: idealRangeConfig.lux?.idealRange,
             },
             {
                 key: "temperature",
@@ -134,6 +136,7 @@ function SensorDashboard({ view, title = '' }) {
                 unit: metric("temperature").average != null ? "℃" : "",
                 title: "Temperature",
                 subtitle: `Composite IDs: ${metric("temperature").deviceCount ?? 0}`,
+                range: idealRangeConfig.temperature?.idealRange,
             },
             {
                 key: "humidity",
@@ -142,6 +145,7 @@ function SensorDashboard({ view, title = '' }) {
                 unit: metric("humidity").average != null ? "%" : "",
                 title: "Humidity",
                 subtitle: `Composite IDs: ${metric("humidity").deviceCount ?? 0}`,
+                range: idealRangeConfig.humidity?.idealRange,
             },
             {
                 key: "dissolvedOxygen",
@@ -150,6 +154,7 @@ function SensorDashboard({ view, title = '' }) {
                 unit: metric("dissolvedOxygen").average != null ? "mg/L" : "",
                 title: "DO",
                 subtitle: `Composite IDs: ${metric("dissolvedOxygen").deviceCount ?? 0}`,
+                range: idealRangeConfig.dissolvedOxygen?.idealRange,
             },
         ];
 
