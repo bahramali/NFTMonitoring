@@ -46,8 +46,8 @@
 }
 
 .statOk {
-    background: linear-gradient(180deg, #065f46 0%, #064e3b 100%);
-    color: #fff;
+    background: linear-gradient(180deg, #8deaa3 0%, #a7e6b2 100%);
+    color: #000;
 }
 
 .statWarn {
