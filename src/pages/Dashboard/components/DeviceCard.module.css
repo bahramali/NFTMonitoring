@@ -1,48 +1,111 @@
+/* DeviceCard.module.css */
+
+/* container wrapper */
+.wrapper {
+  width: 100%;
+}
+
 /* card */
 .card {
   background: #fff;
   border: 2px solid #0f172a;
   border-radius: 22px;
-  padding: 16px 16px 18px;   /* smaller padding */
+  padding: 16px;
   box-shadow: 0 3px 0 rgba(15, 23, 42, 0.12);
-  overflow: hidden;          /* keep content inside card */
+  overflow: hidden;
+  /* width: 100%;  <- اینو بردار یا بکن auto */
+  box-sizing: border-box;
+}
+/* header badge */
+.header {
+  display: flex;
+  justify-content: center;
+  margin: 2px 0 10px;
 }
 
-/* badge */
 .badge {
   display: inline-block;
   background: #a7f3d0;
   border: 2px solid #0f172a;
   border-radius: 16px;
-  padding: 6px 18px;         /* smaller */
+  padding: 6px 18px;
   font-weight: 800;
-  font-size: 16px;           /* smaller */
+  font-size: 16px;
   letter-spacing: .3px;
   box-shadow: inset 0 -2px 0 rgba(15, 23, 42, 0.08);
 }
 
-.header { display:flex; justify-content:center; margin: 2px 0 10px; }
-
-/* one-line rows – flex + ellipsis */
+/* one-line rows */
 .row {
-  display: flex;             /* important */
+  display: flex;
   align-items: baseline;
   gap: 8px;
-  font-size: 14px;           /* smaller */
-  line-height: 1.25;
+  font-size: 14px;
+  line-height: 1.3;
   margin: 6px 0;
-  white-space: nowrap;       /* keep one line */
+  white-space: normal;          /* allow wrapping */
+  overflow: visible;
 }
 
-.eq { flex: 0 0 auto; }      /* '=' token */
+.eq {
+  flex: 0 0 auto;
+}
 
 .label { flex: 0 0 auto; font-weight: 700; color: #111827; }
 
 .vals {
-  flex: 1 1 auto;            /* take remaining width */
-  min-width: 0;              /* allow shrinking */
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;   /* show … at the end */
+  text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
   font-family: ui-monospace, monospace;
+}
+
+/* grid of nm:value pairs */
+.kv {
+  margin: 8px 0 6px;
+}
+
+.kvTitle {
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.pairGrid {
+  display: grid;
+  grid-template-columns: 1fr;   /* one device card per row */
+  gap: 6px;
+}
+
+.pairChip {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* more/less toggle */
+.moreBtn {
+  margin-top: 6px;
+  font-size: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 3px 8px;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* لایه container برای device ها - یک کارت در هر ردیف */
+.devices-grid {
+  display: grid;
+  grid-template-columns: 1fr;   /* always one column */
+  gap: 16px;
+  justify-items: stretch;
 }

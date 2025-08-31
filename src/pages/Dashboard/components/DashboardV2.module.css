@@ -103,7 +103,14 @@
 .pill { background:#eef2ff; border:1px solid #c7d2fe; color:#3730a3; padding:2px 8px; border-radius:9999px; font-size:.8rem; }
 
 /* device composite cards */
-.devCards { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px; }
+.devCards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    justify-items: stretch;
+    padding: 0 8px;           /* فاصله افقی برای جلوگیری از برخورد */
+    box-sizing: border-box;
+}
 
 .divider {
     height: 1px;
