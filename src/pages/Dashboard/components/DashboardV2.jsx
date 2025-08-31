@@ -276,21 +276,35 @@ function LayerCard({layer, systemId}) {
                 </h4>
             </div>
 
-            {/* always-visible summary */}
-            {agg.counts.light > 0 && (
-                <MetricLine label="Light" value={agg.avg.light} unit="lux" count={agg.counts.light}/>
-            )}
-            {agg.counts.temperature > 0 && (
-                <MetricLine label="Temp" value={agg.avg.temperature} unit="°C" count={agg.counts.temperature}/>
-            )}
-            {agg.counts.humidity > 0 && (
-                <MetricLine label="Humidity" value={agg.avg.humidity} unit="%" count={agg.counts.humidity}/>
-            )}
-            {agg.counts.pH > 0 && (
-                <MetricLine label="pH" value={agg.avg.pH} unit="" count={agg.counts.pH}/>
-            )}
+            {/* always-visible summary as chips */}
+            <div className={styles.stats}>
+                {agg.counts.light > 0 && (
+                    <Stat
+                        label={`Light (${agg.counts.light} sensors)`}
+                        value={`${fmt(agg.avg.light)} lux`}
+                    />
+                )}
+                {agg.counts.temperature > 0 && (
+                    <Stat
+                        label={`Temp (${agg.counts.temperature} sensors)`}
+                        value={`${fmt(agg.avg.temperature)} °C`}
+                    />
+                )}
+                {agg.counts.humidity > 0 && (
+                    <Stat
+                        label={`Humidity (${agg.counts.humidity} sensors)`}
+                        value={`${fmt(agg.avg.humidity)} %`}
+                    />
+                )}
+                {agg.counts.pH > 0 && (
+                    <Stat
+                        label={`pH (${agg.counts.pH} sensors)`}
+                        value={`${fmt(agg.avg.pH)}`}
+                    />
+                )}
+            </div>
 
-            <div className={styles.divider}/>
+
             <div className={styles.details}>
                 <div className={styles.devCards}>
                     {deviceCards.length ? (
