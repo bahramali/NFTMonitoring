@@ -1,0 +1,48 @@
+/* Sketch-like device card */
+.card {
+  background: #fff;
+  border: 2px solid #0f172a;
+  border-radius: 22px;
+  padding: 18px 18px 20px;
+  box-shadow: 0 3px 0 rgba(15, 23, 42, 0.12);
+}
+
+/* Header badge */
+.badge {
+  display: inline-block;
+  background: #a7f3d0;            /* mint green */
+  border: 2px solid #0f172a;
+  border-radius: 16px;
+  padding: 8px 22px;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: .3px;
+  box-shadow: inset 0 -2px 0 rgba(15, 23, 42, 0.08);
+}
+
+/* Center header */
+.header {
+  display: flex;
+  justify-content: center;
+  margin: 2px 0 12px;
+}
+
+/* One-line rows */
+.row {
+  font-size: 15px;
+  margin: 8px 0;
+  white-space: nowrap;            /* keep each line on a single row */
+  color: #111827;
+}
+
+.label {
+  font-weight: 700;
+  color: #111827;
+}
+
+.vals {
+  font-variant-numeric: tabular-nums; /* align numbers */
+}
+
+/* Optional container spacing if used in a grid */
+.wrapper { width: 100%; }

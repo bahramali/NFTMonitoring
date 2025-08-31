@@ -2,7 +2,7 @@
 import React, {useState, useMemo} from "react";
 import {useLiveNow} from "../../../hooks/useLiveNow";
 import {useStomp} from "../../../hooks/useStomp";
-import DeviceCard from "../../../components/DeviceCard";
+import DeviceCard from "./DeviceCard.jsx";
 import styles from "./DashboardV2.module.css";
 
 // ---------- utils ----------
