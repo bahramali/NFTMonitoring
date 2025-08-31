@@ -2,6 +2,7 @@
 import React, {useState, useMemo} from "react";
 import {useLiveNow} from "../../../hooks/useLiveNow";
 import {useStomp} from "../../../hooks/useStomp";
+import DeviceCard from "../../../components/DeviceCard";
 import styles from "./DashboardV2.module.css";
 
 // ---------- utils ----------
@@ -237,19 +238,15 @@ function LayerCard({layer, systemId}) {
                         <div className={styles.devCards}>
                             {deviceCards.length ? (
                                 deviceCards.map((card) => (
-                                    <div key={card.compId} className={styles.devCard}>
-                                        <div className={styles.devTitle}>{card.compId}</div>
-                                        <ul className={styles.devList}>
-                                            {Object.entries(card.sensors).map(([k, v]) => (
-                                                <li key={k}>
-                                                    <span>{sensorLabel(k)}</span>
-                                                    <b>
-                                                        {fmt(v?.value)} {v?.unit || ""}
-                                                    </b>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
+                                    <DeviceCard
+                                        key={card.compId}
+                                        compositeId={card.compId}
+                                        sensors={Object.entries(card.sensors).map(([k, v]) => ({
+                                            sensorType: sensorLabel(k),
+                                            value: fmt(v?.value),
+                                            unit: v?.unit || "",
+                                        }))}
+                                    />
                                 ))
                             ) : (
                                 <div className={styles.muted}>No device cards</div>
