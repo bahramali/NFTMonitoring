@@ -11,11 +11,12 @@ import styles from "./Overview.module.css";
  *  - title: string (bottom caption)
  *  - subtitle: string (tiny caption under title, optional)
  *  - ranges: {
- *      // Define visual state based on value
+ *      // Define visual state based on value (deprecated)
  *      ok?: [number, number];
  *      warn?: [number, number];
  *      danger?: [number, number];
  *    }
+ *  - range: { min: number; max: number } (ideal range)
  *  - onClick: () => void (optional)
  */
 export default function OverviewBox({
@@ -25,20 +26,32 @@ export default function OverviewBox({
                                         title,
                                         subtitle,
                                         ranges,
+                                        range,
                                         onClick,
                                     }) {
-    // ---- derive state from ranges
+    // ---- derive state from ideal range or legacy ranges
     const numeric = typeof value === "number" ? value : parseFloat(String(value).replace(",", "."));
 
-    const inRange = (tuple) =>
-        Array.isArray(tuple) && tuple.length === 2 &&
-        typeof numeric === "number" && !Number.isNaN(numeric) &&
-        numeric >= tuple[0] && numeric <= tuple[1];
-
     let state = "neutral"; // fallback
-    if (inRange(ranges?.danger)) state = "danger";
-    else if (inRange(ranges?.warn)) state = "warn";
-    else if (inRange(ranges?.ok)) state = "ok";
+
+    if (range && typeof numeric === "number" && !Number.isNaN(numeric)) {
+        const {min, max} = range;
+        if (typeof min === "number" && typeof max === "number") {
+            const threshold = (max - min) * 0.1;
+            if (numeric < min || numeric > max) state = "danger";
+            else if (numeric < min + threshold || numeric > max - threshold) state = "warn";
+            else state = "ok";
+        }
+    } else {
+        const inRange = (tuple) =>
+            Array.isArray(tuple) && tuple.length === 2 &&
+            typeof numeric === "number" && !Number.isNaN(numeric) &&
+            numeric >= tuple[0] && numeric <= tuple[1];
+
+        if (inRange(ranges?.danger)) state = "danger";
+        else if (inRange(ranges?.warn)) state = "warn";
+        else if (inRange(ranges?.ok)) state = "ok";
+    }
 
     return (
         <div
