@@ -79,6 +79,7 @@ export default function DeviceCard({
   const spectrumFinal = Object.keys(spectrum).length ? spectrum : (derived.spectrum || {});
   const otherFinal = Object.keys(otherLight).length ? otherLight : (derived.otherLight || {});
   const waterFinal = water || derived.water;
+  const clampList = (arr, max = 8) => (arr.length > max ? [...arr.slice(0, max), "…"] : arr);
 
   const { blueArr, redArr } = useMemo(() => {
     if (!spectrumFinal) return { blueArr: [], redArr: [] };
@@ -98,7 +99,7 @@ export default function DeviceCard({
   const line = (label, value) => (
     <div className={styles.row}>
       <span className={styles.label}>{label}</span>
-      {" = "}
+      <span className={styles.eq}>=</span>
       <span className={styles.vals}>{value}</span>
     </div>
   );
@@ -133,8 +134,8 @@ export default function DeviceCard({
 
         {line("[Temp, Humidity]", `[${fmt(t)} °C, ${fmt(h)} %]`)}
 
-        {blueArr.length > 0 && line("Blue light", `[${blueArr.join(", ")}]`)}
-        {redArr.length > 0 && line("Red light", `[${redArr.join(", ")}]`)}
+        {blueArr.length > 0 && line("Blue light", `[${clampList(blueArr).join(", ")}]`)}
+        {redArr.length  > 0 && line("Red light",  `[${clampList(redArr).join(", ")}]`)}
 
         {renderOtherLight()}
         {renderWater()}
