@@ -146,6 +146,13 @@ const ENV_STATS = [
     {label: "CO₂", key: "co2", precision: 0}
 ];
 
+// identify water sensors by device id starting with 'T'
+// eslint-disable-next-line react-refresh/only-export-components
+export function isWaterDevice(compId) {
+    const parts = String(compId || "").trim().toUpperCase().split("-");
+    return parts[2]?.startsWith("T") || false;
+}
+
 // subscribe to websockets and build composite cards per layer
 function useLayerCompositeCards(systemKeyInput, layerId) {
     const [cards, setCards] = React.useState({});
@@ -203,9 +210,62 @@ function useLayerCompositeCards(systemKeyInput, layerId) {
     return React.useMemo(() => Object.entries(cards).map(([compId, payload]) => ({compId, ...payload})).sort((a, b) => String(a.compId).localeCompare(String(b.compId))), [cards]);
 }
 
+// collect water-sensor device cards for a system
+function useWaterCompositeCards(systemKeyInput) {
+    const [cards, setCards] = React.useState({});
+    const sysKey = String(systemKeyInput || "").toUpperCase();
+
+    const isMine = React.useCallback((compId, data) => {
+        const cid = String(compId || "").trim().toUpperCase();
+        if (cid) {
+            if (!cid.startsWith(`${sysKey}-`)) return false;
+            if (!isWaterDevice(cid)) return false;
+            return true;
+        }
+        const sys = String(data?.system || data?.systemId || "").trim().toUpperCase();
+        const dev = String(data?.deviceId || data?.device || data?.devId || "").trim().toUpperCase();
+        if (sysKey && sys && sys !== sysKey) return false;
+        return !!sys && dev.startsWith("T");
+    }, [sysKey]);
+
+    const upsert = React.useCallback((compId, sensors, ts) => {
+        setCards(prev => {
+            const next = {...prev};
+            const cur = next[compId] || {sensors: {}, ts: 0};
+            const normalized = normalizeSensors(sensors);
+            for (const [k, obj] of Object.entries(normalized)) {
+                cur.sensors[k] = {value: obj.value, unit: obj.unit};
+            }
+            cur.ts = Math.max(cur.ts || 0, ts || Date.now());
+            next[compId] = cur;
+            return next;
+        });
+    }, []);
+
+    const topics = React.useMemo(() => ["/topic/growSensors", "/topic/waterTank"], []);
+    useStomp(topics, (topic, data) => {
+        if (!data) return;
+        let compId = data.compositeId || data.composite_id || data.cid;
+        if (!compId) {
+            const sys = data.system || data.systemId;
+            const lay = data.layer || data.layerId;
+            const dev = data.deviceId || data.device || data.devId;
+            if (sys && lay && dev) compId = `${sys}-${lay}-${dev}`;
+        }
+        if (!compId) return;
+        if (!isMine(compId, data)) return;
+        const sensors = data.sensors || data.values || data.env || data.water || data.payload || data.readings || [];
+        upsert(compId, sensors, data.timestamp || data.ts);
+    });
+
+    React.useEffect(() => { setCards({}); }, [sysKey]);
+
+    return React.useMemo(() => Object.entries(cards).map(([compId, payload]) => ({compId, ...payload})).sort((a,b) => String(a.compId).localeCompare(String(b.compId))), [cards]);
+}
+
 function LayerCard({layer, systemId}) {
     // build device cards for this system/layer
-    const deviceCards = useLayerCompositeCards(systemId, layer.id);
+    const deviceCards = useLayerCompositeCards(systemId, layer.id).filter(card => !isWaterDevice(card.compId));
     const agg = React.useMemo(() => aggregateFromCards(deviceCards), [deviceCards]);
 
     return (
@@ -280,9 +340,10 @@ export default function DashboardV2() {
     }, [live]);
 
     const [activeId, setActiveId] = useState(null);
+    const active = systems.find(s => s.id === activeId) || systems[0];
+    const waterCards = useWaterCompositeCards(active?.id);
     if (!live) return <div className={styles.page}>Connecting...</div>;
     if (!systems.length) return <div className={styles.page}>No systems</div>;
-    const active = systems.find(s => s.id === activeId) || systems[0];
 
     return (
         <div className={styles.page}>
@@ -316,6 +377,23 @@ export default function DashboardV2() {
                                         <Stat key={key} label={`${label} (${count} sensors)`} value={value}/>
                                     );
                                 })}
+                            </div>
+                            <div className={styles.devCards}>
+                                {waterCards.length ? (
+                                    waterCards.map(card => (
+                                        <DeviceCard
+                                            key={card.compId}
+                                            compositeId={card.compId}
+                                            sensors={Object.entries(card.sensors).map(([k, v]) => ({
+                                                sensorType: sensorLabel(k),
+                                                value: fmt(v?.value),
+                                                unit: v?.unit || "",
+                                            }))}
+                                        />
+                                    ))
+                                ) : (
+                                    <div className={styles.muted}>No device cards</div>
+                                )}
                             </div>
                         </div>
                     </div>
