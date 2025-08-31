@@ -47,6 +47,7 @@ export function normalizeLiveNow(payload) {
             const {avg: lux, count: lightCount} = getMetric(env, "light");
             const {avg: temp, count: tempCount} = getMetric(env, "temperature");
             const {avg: humidity, count: humidityCount} = getMetric(env, "humidity");
+            const {avg: co2, count: co2Count} = getMetric(env, "co2", "co₂", "co2ppm");
 
             const {avg: dTemp, count: dTempCount} = getMetric(water, "dissolvedTemp");
             const {avg: DO, count: DOCount} = getMetric(water, "dissolvedOxygen");
@@ -57,10 +58,10 @@ export function normalizeLiveNow(payload) {
             const {avg: airPumpAvg, count: airPumpCount} = getMetric(acts, "airpump");
             const airPump = airPumpAvg == null ? null : airPumpAvg >= 0.5;
 
-            const hasAny = [lux, temp, humidity, dTemp, DO, pH, EC, TDS, airPumpAvg].some(
+            const hasAny = [lux, temp, humidity, co2, dTemp, DO, pH, EC, TDS, airPumpAvg].some(
                 (v) => v != null
             );
-            const missingEnv = [lux, temp, humidity].some((v) => v == null);
+            const missingEnv = [lux, temp, humidity, co2].some((v) => v == null);
             const health = !hasAny ? "down" : missingEnv ? "warn" : "ok";
 
             layerCards.push({
@@ -70,10 +71,12 @@ export function normalizeLiveNow(payload) {
                     lux: lux ?? null,
                     temp: temp ?? null,
                     humidity: humidity ?? null,
+                    co2: co2 ?? null,
                     _counts: {
                         light: lightCount,
                         temperature: tempCount,
                         humidity: humidityCount,
+                        co2: co2Count,
                     },
                 },
                 water: {
@@ -100,10 +103,8 @@ export function normalizeLiveNow(payload) {
         const sysEnv = sys.environment ?? {};
         const {avg: lightAvg, count: lightCount} = getMetric(sysEnv, "light");
         const {avg: humidityAvg, count: humidityCount} = getMetric(sysEnv, "humidity");
-        const {avg: tempAvg, count: tempCount} = getMetric(
-            sysEnv,
-            "temperature"
-        );
+        const {avg: tempAvg, count: tempCount} = getMetric(sysEnv, "temperature");
+        const {avg: co2Avg, count: co2Count} = getMetric(sysEnv, "co2", "co₂", "co2ppm");
 
         const sysWater = sys.water ?? {};
         const {avg: dTempAvg, count: dTempCount} = getMetric(
@@ -145,6 +146,7 @@ export function normalizeLiveNow(payload) {
                 light: lightAvg ?? null,
                 humidity: humidityAvg ?? null,
                 temperature: tempAvg ?? null,
+                co2: co2Avg ?? null,
                 dissolvedTemp: dTempAvg ?? null,
                 dissolvedOxygen: DOavg ?? null,
                 dissolvedEC: ECavg ?? null,
@@ -155,6 +157,7 @@ export function normalizeLiveNow(payload) {
                     light: lightCount,
                     humidity: humidityCount,
                     temperature: tempCount,
+                    co2: co2Count,
                     dissolvedTemp: dTempCount,
                     dissolvedOxygen: DOcount,
                     dissolvedEC: ECcount,
