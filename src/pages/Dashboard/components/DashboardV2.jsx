@@ -67,6 +67,7 @@ function canonKey(raw) {
     if (t === "light") return "light";
     if (t === "temperature" || t === "temp") return "temperature";
     if (t === "humidity" || t === "hum") return "humidity";
+    if (t === "co2" || t === "co₂" || t === "co2ppm") return "co2";   // ← اضافه شد
     if (t === "ph") return "pH";
     if (t === "do" || t === "dissolvedoxygen") return "dissolvedOxygen";
     if (t === "ec" || t === "dissolvedec") return "dissolvedEC";
@@ -104,9 +105,8 @@ function normalizeSensors(src) {
 
 // ---------- small UI pieces ----------
 function aggregateFromCards(cards) {
-    const keys = ["light", "temperature", "humidity", "pH"];
-    const sums = {};
-    const counts = {};
+  const keys = ["light", "temperature", "humidity", "pH", "co2"]; // ← co2 اضافه شد
+  const sums = {}, counts = {};
     for (const c of cards || []) {
         const s = c?.sensors || {};
         for (const k of keys) {
@@ -119,7 +119,7 @@ function aggregateFromCards(cards) {
         }
     }
     const avg = {};
-    Object.keys(sums).forEach(k => avg[k] = sums[k] / counts[k]);
+  Object.keys(sums).forEach(k => (avg[k] = sums[k] / counts[k]));
     return {avg, counts};
 }
 
@@ -329,6 +329,13 @@ function LayerCard({layer, systemId}) {
                         label={`pH (${agg.counts.pH} sensors)`}
                         value={`${fmt(agg.avg.pH)}`}
                         range={idealRangeConfig.ph?.idealRange}
+                    />
+                )}
+                {agg.counts.co2 > 0 && (
+                    <Stat
+                        label={`CO₂ (${agg.counts.co2} sensors)`}
+                        value={`${fmt(agg.avg.co2, 0)} ppm`}
+                        // range نداریم، می‌تونی اگر داشتی بدی
                     />
                 )}
             </div>
