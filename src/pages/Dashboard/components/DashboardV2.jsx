@@ -319,24 +319,22 @@ export default function DashboardV2() {
                             </div>
                         </div>
                     </div>
-                    <div className={styles.col6}>
-                        <div className={`${styles.subcard} ${styles.env}`}>
-                            <h3>Environment</h3>
-                            <div className={styles.stats}>
-                                {ENV_STATS.map(({label, key, precision}) => (
-                                    <Stat
-                                        key={key}
-                                        label={`${label} (${getCount(active.env, key)} sensors)`}
-                                        value={fmt(getMetric(active.env, key), precision)}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 <div className={styles.divider}/>
                 <div className={styles.section}>
                     <h3 className={styles.muted}>Layers</h3>
+                    <div className={`${styles.subcard} ${styles.env}`}>
+                        <h3>Environment overview</h3>
+                        <div className={styles.stats}>
+                            {ENV_STATS.map(({label, key, precision}) => (
+                                <Stat
+                                    key={key}
+                                    label={`${label} (${getCount(active.env, key)} sensors)`}
+                                    value={fmt(getMetric(active.env, key), precision)}
+                                />
+                            ))}
+                        </div>
+                    </div>
                     <div className={styles.layers}>
                         {active.layers.map(l => (<LayerCard key={l.id} layer={l} systemId={active.id}/>))}
                     </div>

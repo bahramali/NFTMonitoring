@@ -162,7 +162,7 @@
 
 /* explicit labels */
 .subcard.water::before { content: "System · Water"; }
-.subcard.env::before   { content: "System · Environment"; }
+.subcard.env::before   { content: "Environment overview"; }
 
 /* layer look */
 .layer {
