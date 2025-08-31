@@ -46,28 +46,33 @@ export default function DeviceCard({
   otherLight = {},
   water = null,
 }) {
-  const sens = useMemo(() => normSensors(sensors), [sensors]);
+  const derived = useMemo(() => deriveFromSensors(sensors), [sensors]);
 
   const name = id || compositeId || "—";
 
-  const t = tempC ?? sens.temperature?.value ?? sens.temp?.value;
-  const h = humidityPct ?? sens.humidity?.value ?? sens.hum?.value;
-  const co2 = co2ppm ?? sens.co2?.value;
+  // prefer explicit props; fallback to sensors-derived
+  const t = tempC ?? derived.map.temp;
+  const h = humidityPct ?? derived.map.humidity;
+  const co2 = co2ppm ?? derived.map.co2;
 
-  const { blue, red } = useMemo(() => {
-    const arr = Object.entries(spectrum)
-      .map(([k, v]) => ({ k, nm: nmToNumber(k), v }))
+  const spectrumFinal = Object.keys(spectrum).length ? spectrum : (derived.spectrum || {});
+  const otherFinal = Object.keys(otherLight).length ? otherLight : (derived.otherLight || {});
+  const waterFinal = water || derived.water;
+
+  // group spectrum
+  const { blueArr, redArr } = useMemo(() => {
+    const entries = Object.entries(spectrumFinal)
+      .map(([k, v]) => ({ nm: nmToNumber(k), val: v }))
       .filter((x) => x.nm != null)
       .sort((a, b) => a.nm - b.nm);
 
-    const b = arr.filter((e) => e.nm >= 400 && e.nm <= 500);
-    const r = arr.filter((e) => e.nm >= 550 && e.nm <= 750);
+    const blue = entries.filter((e) => e.nm >= 400 && e.nm <= 500)
+      .map((e) => `${e.nm}nm: ${fmt(e.val)}`);
+    const red = entries.filter((e) => e.nm >= 550 && e.nm <= 750)
+      .map((e) => `${e.nm}nm: ${fmt(e.val)}`);
 
-    return {
-      blue: b.map((e) => `${e.nm}nm: ${fmt(e.v)}`),
-      red: r.map((e) => `${e.nm}nm: ${fmt(e.v)}`),
-    };
-  }, [spectrum]);
+    return { blueArr: blue, redArr: red };
+  }, [spectrumFinal]);
 
   const line = (label, value) => (
     <div className={styles.row}>
@@ -79,23 +84,21 @@ export default function DeviceCard({
 
   const renderOtherLight = () => {
     const bits = [];
-    if (otherLight.lux != null) bits.push(`Lux: ${fmt(otherLight.lux)}`);
-    if (otherLight.vis1 != null) bits.push(`VIS1: ${fmt(otherLight.vis1)}`);
-    if (otherLight.vis2 != null) bits.push(`VIS2: ${fmt(otherLight.vis2)}`);
-    if (otherLight.nir855 != null) bits.push(`NIR855: ${fmt(otherLight.nir855)}`);
-    if (!bits.length) return null;
-    return line("Other light", `[${bits.join(", ")}]`);
+    if (otherFinal?.lux != null) bits.push(`Lux: ${fmt(otherFinal.lux)}`);
+    if (otherFinal?.vis1 != null) bits.push(`VIS1: ${fmt(otherFinal.vis1)}`);
+    if (otherFinal?.vis2 != null) bits.push(`VIS2: ${fmt(otherFinal.vis2)}`);
+    if (otherFinal?.nir855 != null) bits.push(`NIR855: ${fmt(otherFinal.nir855)}`);
+    return bits.length ? line("Other light", `[${bits.join(", ")}]`) : null;
   };
 
   const renderWater = () => {
-    if (!water) return null;
+    if (!waterFinal) return null;
     const bits = [];
-    if (water.tds_ppm != null) bits.push(`TDS: ${fmt(water.tds_ppm)} ppm`);
-    if (water.ec_mScm != null) bits.push(`EC: ${fmt(water.ec_mScm)} mS/cm`);
-    if (water.tempC != null) bits.push(`Temp: ${fmt(water.tempC)} °C`);
-    if (water.do_mgL != null) bits.push(`DO: ${fmt(water.do_mgL)} mg/L`);
-    if (!bits.length) return null;
-    return line("Water", `[${bits.join(", ")}]`);
+    if (waterFinal.tds_ppm != null) bits.push(`TDS: ${fmt(waterFinal.tds_ppm)} ppm`);
+    if (waterFinal.ec_mScm != null) bits.push(`EC: ${fmt(waterFinal.ec_mScm)} mS/cm`);
+    if (waterFinal.tempC != null) bits.push(`Temp: ${fmt(waterFinal.tempC)} °C`);
+    if (waterFinal.do_mgL != null) bits.push(`DO: ${fmt(waterFinal.do_mgL)} mg/L`);
+    return bits.length ? line("Water", `[${bits.join(", ")}]`) : null;
   };
 
   return (
@@ -109,11 +112,8 @@ export default function DeviceCard({
 
         {line("[Temp, Humidity]", `[${fmt(t)} °C, ${fmt(h)} %]`)}
 
-        {blue.length > 0 &&
-          line("Blue light", `[${blue.join(", ")}]`)}
-
-        {red.length > 0 &&
-          line("Red light", `[${red.join(", ")}]`)}
+        {blueArr.length > 0 && line("Blue light", `[${blueArr.join(", ")}]`)}
+        {redArr.length > 0 && line("Red light", `[${redArr.join(", ")}]`)}
 
         {renderOtherLight()}
         {renderWater()}
