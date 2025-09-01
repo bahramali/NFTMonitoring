@@ -6,6 +6,7 @@ import {
 import idealRanges from '../../../idealRangeConfig';
 import palette from '../../../colorPalette';
 import spectralColors from '../../../spectralColors';
+import styles from './SpectrumBarChart.module.css';
 
 const legacyBandMeta = [
     ['F1', 'F1 (400–430 nm)'],
@@ -80,7 +81,7 @@ function SpectrumBarChart({ sensorData }) {
 
 
     return (
-        <ResponsiveContainer width="100%" height={400} debounce={200}>
+        <ResponsiveContainer className={styles.chart} width="100%" height={400} debounce={200}>
             <BarChart
                 data={data}
                 margin={{ top: 20, right: 30, left: 0, bottom: 50 }}

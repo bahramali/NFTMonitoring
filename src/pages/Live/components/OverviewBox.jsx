@@ -1,6 +1,6 @@
 import React from "react";
 import clsx from "clsx";
-import styles from "./Overview.module.css";
+import styles from "./OverviewBox.module.css";
 
 /**
  * Generic, reusable KPI box.

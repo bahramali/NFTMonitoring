@@ -1,0 +1,9 @@
+.noteBlock {
+    margin-top: 1.25rem;
+    font-size: 0.8em;
+}
+
+.noteTitle {
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}

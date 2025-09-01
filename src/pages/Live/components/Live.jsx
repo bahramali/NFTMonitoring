@@ -2,7 +2,7 @@ import React from "react";
 import SpectrumBarChart from "./SpectrumBarChart";
 import TopicSection from "./TopicSection";
 import NotesBlock from "./NotesBlock";
-import styles from "../../common/SensorDashboard.module.css";
+import styles from "./Live.module.css";
 
 function Live({
     filteredSystemTopics = {},
