@@ -1,8 +1,8 @@
 .header {
     background-color: #4e79a7;
     color: white;
-    padding: 10px 20px;
-    margin-bottom: 20px;
+    padding: 0.625rem 1.25rem;
+    margin-bottom: 1.25rem;
     text-align: center;
     position: sticky;
     top: 0;
@@ -14,5 +14,5 @@
 }
 
 .time {
-    margin-top: 4px;
+    margin-top: 0.25rem;
 }
