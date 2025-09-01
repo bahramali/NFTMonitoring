@@ -1,11 +1,11 @@
 .bar {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 0.5rem;
 }
 
 .item {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.25rem;
 }

@@ -8,10 +8,10 @@
 /* card */
 .card {
   background: #fff;
-  border: 1px solid #74d389;
-  border-radius: 22px;
-  padding: 16px;
-  box-shadow: 0 3px 0 rgba(15, 23, 42, 0.12);
+  border: 0.0625rem solid #74d389;
+  border-radius: 1.375rem;
+  padding: 1rem;
+  box-shadow: 0 0.1875rem 0 rgba(15, 23, 42, 0.12);
   overflow: hidden;
   /* width: 100%;  <- اینو بردار یا بکن auto */
   box-sizing: border-box;
@@ -20,29 +20,29 @@
 .header {
   display: flex;
   justify-content: center;
-  margin: 2px 0 10px;
+  margin: 0.125rem 0 0.625rem;
 }
 
 .badge {
   display: inline-block;
   background: #a7f3d0;
-  border: 2px solid #0f172a;
-  border-radius: 16px;
-  padding: 6px 18px;
+  border: 0.125rem solid #0f172a;
+  border-radius: 1rem;
+  padding: 0.375rem 1.125rem;
   font-weight: 800;
-  font-size: 16px;
-  letter-spacing: .3px;
-  box-shadow: inset 0 -2px 0 rgba(15, 23, 42, 0.08);
+  font-size: 1rem;
+  letter-spacing: 0.0188rem;
+  box-shadow: inset 0 -0.125rem 0 rgba(15, 23, 42, 0.08);
 }
 
 /* one-line rows */
 .row {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  font-size: 14px;
+  gap: 0.5rem;
+  font-size: 0.875rem;
   line-height: 1.3;
-  margin: 6px 0;
+  margin: 0.375rem 0;
   white-space: normal;          /* allow wrapping */
   overflow: visible;
 }
@@ -64,40 +64,40 @@
 
 /* grid of nm:value pairs */
 .kv {
-  margin: 8px 0 6px;
+  margin: 0.5rem 0 0.375rem;
 }
 
 .kvTitle {
   font-weight: 700;
   color: #111827;
-  margin-bottom: 6px;
-  font-size: 14px;
+  margin-bottom: 0.375rem;
+  font-size: 0.875rem;
 }
 
 .pairGrid {
   display: grid;
   grid-template-columns: 1fr;   /* one device card per row */
-  gap: 6px;
+  gap: 0.375rem;
 }
 
 .pairChip {
   display: flex;
   justify-content: space-between;
-  padding: 6px 8px;
+  padding: 0.375rem 0.5rem;
   background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 12px;
+  border: 0.0625rem solid #e5e7eb;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
 }
 
 /* more/less toggle */
 .moreBtn {
-  margin-top: 6px;
-  font-size: 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 3px 8px;
+  margin-top: 0.375rem;
+  font-size: 0.75rem;
+  border: 0.0625rem solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.1875rem 0.5rem;
   background: #fff;
   cursor: pointer;
 }
@@ -106,6 +106,6 @@
 .devices-grid {
   display: grid;
   grid-template-columns: 1fr;   /* always one column */
-  gap: 16px;
+  gap: 1rem;
   justify-items: stretch;
 }
