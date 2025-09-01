@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isWaterDevice } from '../src/pages/Dashboard/components/DashboardV2.jsx';
+import { isWaterDevice } from '../src/pages/Dashboard/utils/index.js';
 
 describe('isWaterDevice', () => {
   it('detects water device IDs', () => {

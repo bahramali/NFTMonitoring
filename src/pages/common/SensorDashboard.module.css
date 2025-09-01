@@ -1,22 +1,3 @@
-.dashboard {
-    padding: 1.25rem;
-}
-
-.section {
-    margin-bottom: 2.5rem;
-}
-
-.deviceGroup {
-    margin-bottom: 2rem;
-}
-
-.topicTitle {
-    font-size: 1.2rem;
-    font-weight: bold;
-    margin-bottom: 0.75rem;
-    color: #333;
-}
-
 .sectionHeader {
     text-align: center;
     font-size: 1.5em;
@@ -34,13 +15,6 @@
     background-color: #1976d2;
 }
 
-.sectionBody {
-    border: 0.0625rem solid #ddd;
-    border-top: none;
-    padding: 1.25rem;
-    border-radius: 0 0 0.25rem 0.25rem;
-}
-
 .divider {
     border-bottom: 0.125rem solid #ccc;
     margin: 2.5rem 0;
@@ -50,6 +24,7 @@
     border-bottom: 0.0625rem solid #ccc;
     margin: 1.25rem 0;
 }
+
 .sensorGrid {
     display: flex;
     flex-wrap: wrap;
@@ -74,59 +49,38 @@
     background: #fff;
 }
 
-.noteBlock {
-    margin-top: 1.25rem;
-    font-size: 0.8em;
-}
-
-.noteTitle {
-    font-weight: bold;
-    margin-bottom: 0.25rem;
-}
 .sectionTitle {
     margin-top: 2.5rem;
     text-align: center;
 }
+
 .filterRow {
     margin-bottom: 0.625rem;
 }
 
-.chartFilterRow {
-    margin-bottom: 0.3125rem;
-}
 .historyControls {
     border: 0.0625rem solid #ccc;
     padding: 0.625rem;
     margin-bottom: 1.25rem;
     background-color: #f7f7f7;
 }
+
 .historyLegend {
     font-weight: bold;
     padding: 0 0.3125rem;
     background-color: #f7f7f7;
 }
-.filterLabel {
-    margin-left: 0.625rem;
-}
+
 .numberInput {
     width: 4.375rem;
 }
+
 .applyButton {
     margin-left: 0.625rem;
 }
 
 .nowButton {
     margin-left: 0.625rem;
-}
-
-.intervalSelect {
-    margin-left: 0.625rem;
-}
-
-.deviceLabel {
-    text-align: center;
-    font-weight: bold;
-    margin-bottom: 0.625rem;
 }
 
 .fieldSpacer {
@@ -145,11 +99,6 @@
 
 .clearLuxChartWrapper {
     width: 100%;
-}
-
-.spectrumBarChartWrapper {
-    width: 100%;
-    margin-top: 1.25rem;
 }
 
 .dailyTempChartWrapper {
@@ -178,7 +127,6 @@
     width: 100%;
 }
 
-
 @media (min-width: 48rem) {
     .historyChartsRow {
         flex-direction: column;
@@ -197,9 +145,5 @@
     .doChartWrapper {
         width: 100%;
         margin: 0;
-    }
-    .spectrumBarChartWrapper {
-        width: 80%;
-        margin: 1.25rem auto 0;
     }
 }
