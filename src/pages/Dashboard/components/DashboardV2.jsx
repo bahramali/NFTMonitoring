@@ -8,6 +8,7 @@ import Stat from "./Stat.jsx";
 import LayerCard from "./LayerCard.jsx";
 import useWaterCompositeCards from "./useWaterCompositeCards.js";
 import { fmt, localDateTime, normLayerId, getMetric, getCount, deriveHealth, sensorLabel } from "../utils";
+import { isWaterDevice } from "../utils/isWaterDevice.js";
 
 export default function DashboardV2() {
     const live = useLiveNow();
@@ -36,7 +37,7 @@ export default function DashboardV2() {
 
     const [activeId, setActiveId] = useState(null);
     const active = systems.find(s => s.id === activeId) || systems[0];
-    const waterCards = useWaterCompositeCards(active?.id);
+    const waterCards = useWaterCompositeCards(active?.id).filter(card => isWaterDevice(card.compId));
     if (!live) return <div className={styles.page}>Connecting...</div>;
     if (!systems.length) return <div className={styles.page}>No systems</div>;
 

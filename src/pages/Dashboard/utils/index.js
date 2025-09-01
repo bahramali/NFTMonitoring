@@ -1,3 +1,6 @@
+import { isWaterDevice } from "./isWaterDevice.js";
+export { isWaterDevice } from "./isWaterDevice.js";
+
 export const toNum = (v) => (v == null || v === "" ? null : Number(v));
 
 export const fmt = (v, d = 1) => (v == null || Number.isNaN(v) ? "--" : Number(v).toFixed(d));
@@ -113,11 +116,6 @@ export function aggregateFromCards(cards) {
   const avg = {};
   Object.keys(sums).forEach(k => (avg[k] = sums[k] / counts[k]));
   return {avg, counts};
-}
-
-export function isWaterDevice(compId) {
-  const parts = String(compId || "").trim().toUpperCase().split("-");
-  return parts[2]?.startsWith("T") || false;
 }
 
 export default {
