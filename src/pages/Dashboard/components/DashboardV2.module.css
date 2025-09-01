@@ -172,12 +172,8 @@
     border-radius: 9999px;
     background: #f3f4f6;
     color: #374151;
-    content: "";
+    content: none;
 }
-
-/* explicit labels */
-.subcard.water::before { content: "System · Water"; }
-.subcard.env::before   { content: "Environment overview"; }
 
 /* layer look */
 .layer {
@@ -185,4 +181,3 @@
     border-left: 2px solid #90c398; /* different accent for layers */
     padding-top: 28px;              /* room for the tag */
 }
-.layer::before { content: "Layer"; left: 14px; }

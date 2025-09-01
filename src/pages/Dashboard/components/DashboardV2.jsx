@@ -400,7 +400,7 @@ export default function DashboardV2() {
             <div className={styles.tabs}>
                 {systems.map(sys => (
                     <button key={sys.id} className={`${styles.tab} ${active.id === sys.id ? styles.active : ""}`}
-                            onClick={() => setActiveId(sys.id)}>{sys.name}</button>
+                            onClick={() => setActiveId(sys.id)}>System: {sys.name}</button>
                 ))}
             </div>
 
