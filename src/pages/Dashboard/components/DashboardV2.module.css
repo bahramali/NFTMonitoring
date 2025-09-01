@@ -145,7 +145,7 @@
 
 .subcard {
     position: relative;
-    padding-top: 1.75rem; /* room for the tag */
+    padding-top: 0rem; /* room for the tag */
 }
 
 /* system -> water/environment look */
@@ -179,5 +179,5 @@
 .layer {
     position: relative;
     border-left: 0.125rem solid #90c398; /* different accent for layers */
-    padding-top: 1.75rem;              /* room for the tag */
+    padding-top: 0rem;              /* room for the tag */
 }
