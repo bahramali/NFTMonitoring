@@ -1,6 +1,7 @@
 // src/pages/Dashboard/components/DeviceCard.jsx
 import React, { useMemo } from "react";
 import styles from "./DeviceCard.module.css";
+import { deriveFromSensors } from "../../../utils/normalizeSensors.js";
 
 /* helpers */
 const nmToNumber = (key) => {
@@ -14,43 +15,6 @@ const fmt = (v) =>
     ? String(Number(v))
     : Number(v).toFixed(1);
 
-/* normalize everything from sensors[] */
-function deriveFromSensors(arr = []) {
-  const map = {};             // temp, humidity, co2
-  const spectrum = {};        // '405nm': value, ...
-  const otherLight = {};      // lux, vis1, vis2, nir855
-  const water = {};           // tds_ppm, ec_mScm, tempC, do_mgL
-
-  for (const s of arr) {
-    const raw = String(s?.sensorType || s?.type || s?.name || "")
-      .toLowerCase()
-      .replace(/[\s_]/g, "");
-    const value = s?.value;
-
-    if (/^\d{3}nm$/.test(raw)) { spectrum[raw] = value; continue; }
-
-    if (raw === "lux") { otherLight.lux = value; continue; }
-    if (raw === "vis1" || raw === "vis_1") { otherLight.vis1 = value; continue; }
-    if (raw === "vis2" || raw === "vis_2") { otherLight.vis2 = value; continue; }
-    if (raw === "nir855" || raw === "nir" || raw === "nir_855") { otherLight.nir855 = value; continue; }
-
-    if (raw === "tds" || raw === "tdsppm") { water.tds_ppm = value; continue; }
-    if (raw === "ec" || raw === "electricalconductivity") { water.ec_mScm = value; continue; }
-    if (raw === "do" || raw === "dissolvedoxygen") { water.do_mgL = value; continue; }
-    if (raw === "watertemp" || raw === "watertemperature" || raw === "water_temp") { water.tempC = value; continue; }
-
-    if (raw === "temperature" || raw === "temp" || raw === "airtemp" || raw === "airtemperature") { map.temp = value; continue; }
-    if (raw === "humidity" || raw === "rh" || raw === "relativehumidity") { map.humidity = value; continue; }
-    if (raw === "co2" || raw === "co₂" || raw === "co2ppm") { map.co2 = value; continue; }
-  }
-
-  return {
-    map,
-    spectrum: Object.keys(spectrum).length ? spectrum : null,
-    otherLight: Object.keys(otherLight).length ? otherLight : null,
-    water: Object.keys(water).length ? water : null,
-};
-}
 
 /**
  * Props:

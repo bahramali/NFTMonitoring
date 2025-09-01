@@ -1,3 +1,5 @@
+import { normalizeSensors as baseNormalizeSensors } from './utils/normalizeSensors.js';
+
 // Removes old entries older than maxAgeMs from the dataset
 export function trimOldEntries(data, now, maxAgeMs = 24 * 60 * 60 * 1000) {
     return data.filter(d => d.timestamp >= now - maxAgeMs);
@@ -23,75 +25,14 @@ function normalizeHealth(health = {}) {
 }
 
 // Flattens sensor array into a single object keyed by sensorType (for charts)
-export function normalizeSensorData(data) {
-    const result = {health: {}};
-
-    if (Array.isArray(data.sensors)) {
-        for (const sensor of data.sensors) {
-            const rawType = sensor.sensorType || sensor.valueType;
-            const type = typeof rawType === 'string' ? rawType.replace(/\s+/g, '') : rawType;
-            const val = Number(sensor.value);
-
-            switch (type) {
-                case 'temperature':
-                case 'humidity':
-                    result[type] = {value: val, unit: sensor.unit || ''};
-                    break;
-                case 'light':
-                    result.lux = {value: val, unit: sensor.unit || ''};
-                    break;
-                case 'tds':
-                    result.tds = {value: val, unit: sensor.unit || ''};
-                    break;
-                case 'ec':
-                    result.ec = {value: val, unit: sensor.unit || ''};
-                    break;
-                case 'ph':
-                    result.ph = {value: val, unit: sensor.unit || ''};
-                    break;
-                case 'dissolvedOxygen':
-                case 'do':
-                    result.do = {value: val, unit: sensor.unit || ''};
-                    break;
-                case 'colorSpectrum': {
-                    // Map color spectrum object to F1..F8, clear, nir
-                    const bands = ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'clear', 'nir'];
-                    let i = 0;
-                    for (const key in sensor.value) {
-                        result[bands[i++]] = Number(sensor.value[key]);
-                    }
-                    break;
-                }
-
-                default: {
-                    // Map nm wavelengths or additional spectral keys
-                    const nmMatch = type?.match(/^(\d{3})nm$/);
-                    if (nmMatch) {
-                        const nmMap = {
-                            '415': 'F1', '445': 'F2', '480': 'F3', '515': 'F4',
-                            '555': 'F5', '590': 'F6', '630': 'F7', '680': 'F8',
-                        };
-                        const band = nmMap[nmMatch[1]];
-                        if (band) {
-                            result[band] = val;
-                        } else {
-                            // Keep the raw wavelength key if not mapped
-                            result[`${nmMatch[1]}nm`] = val;
-                        }
-                    } else if (type === 'clear' || type === 'nir' ||
-                        type === 'VIS1' || type === 'VIS2' || type === 'NIR855') {
-                        result[type] = val;
-                    }
-                    break;
-                }
-            }
-        }
-
-        result.health = normalizeHealth(data.health);
-    }
-
+export function normalizeSensorData(data = {}) {
+    const result = baseNormalizeSensors(data.sensors || []);
+    result.health = normalizeHealth(data.health);
     return result;
 }
+
+// expose shared normalizer
+export { baseNormalizeSensors as normalizeSensors };
 
 // Parses JSON string, fixes concatenated objects without commas
 export function parseSensorJson(str) {
