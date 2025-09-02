@@ -2,19 +2,14 @@
 import React, {useEffect, useMemo, useState} from "react";
 import Header from "../../../common/Header";
 import { useLiveDevices } from "../../../common/useLiveDevices.js";
-import { useLiveNow } from "../../../../hooks/useLiveNow";
 import styles from "./SensorDashboard.module.css";
 import Live from "../Live";
 import {SENSOR_TOPIC, topics} from "../../../common/dashboard.constants.js";
 import {useFilters, ALL} from "../../../../context/FiltersContext";
-import Overview from "../Overview";
-import idealRangeConfig from "../../../../idealRangeConfig.js";
 
 function SensorDashboard({ view, title = '' }) {
     const [activeSystem, setActiveSystem] = useState("S01");
     const {deviceData, sensorData, availableCompositeIds, mergedDevices} = useLiveDevices(topics, activeSystem);
-    // aggregated metrics from the `live_now` topic
-    const liveNow = useLiveNow() || {};
 
     const [selectedDevice, setSelectedDevice] = useState("");
 
@@ -113,80 +108,9 @@ function SensorDashboard({ view, title = '' }) {
         }
     }, [filteredCompositeIds, selectedDevice]);
 
-    // ──────────────────────────────
-    // Overview items sourced from the aggregated `live_now` topic
-    const overviewItems = useMemo(() => {
-        const norm = (name) => String(name).replace(/[\s_-]/g, "").toLowerCase();
-        const metric = (name) => liveNow[norm(name)] || {};
-
-        const items = [
-            {
-                key: "light",
-                icon: "☀️",
-                value: metric("light").average ?? "—",
-                unit: metric("light").average != null ? "lx" : "",
-                title: "Light",
-                subtitle: `Composite IDs: ${metric("light").deviceCount ?? 0}`,
-                range: idealRangeConfig.lux?.idealRange,
-            },
-            {
-                key: "temperature",
-                icon: "🌡️",
-                value: metric("temperature").average ?? "—",
-                unit: metric("temperature").average != null ? "℃" : "",
-                title: "Temperature",
-                subtitle: `Composite IDs: ${metric("temperature").deviceCount ?? 0}`,
-                range: idealRangeConfig.temperature?.idealRange,
-            },
-            {
-                key: "humidity",
-                icon: "%",
-                value: metric("humidity").average ?? "—",
-                unit: metric("humidity").average != null ? "%" : "",
-                title: "Humidity",
-                subtitle: `Composite IDs: ${metric("humidity").deviceCount ?? 0}`,
-                range: idealRangeConfig.humidity?.idealRange,
-            },
-            {
-                key: "dissolvedOxygen",
-                icon: <span style={{fontWeight: 700}}>O₂</span>,
-                value: metric("dissolvedOxygen").average ?? "—",
-                unit: metric("dissolvedOxygen").average != null ? "mg/L" : "",
-                title: "DO",
-                subtitle: `Composite IDs: ${metric("dissolvedOxygen").deviceCount ?? 0}`,
-                range: idealRangeConfig.dissolvedOxygen?.idealRange,
-            },
-        ];
-
-        const controllerMeta = {
-            airpump: { icon: "🫧", title: "Air Pump" },
-        };
-        const sensorKeys = ["light", "temperature", "humidity", "dissolvedoxygen"];
-
-        const controllers = Object.entries(liveNow || {})
-            .filter(([k]) => !sensorKeys.includes(norm(k)))
-            .map(([k, v]) => {
-                const key = norm(k);
-                const meta = controllerMeta[key] || {};
-                return {
-                    key,
-                    icon: meta.icon || "🔧",
-                    value: v?.average == null ? "—" : v.average == 1 ? "On" : "Off",
-                    unit: "",
-                    title: meta.title || k,
-                    subtitle: `Composite IDs: ${v?.deviceCount ?? 0}`,
-                };
-            });
-
-        return [...items, ...controllers];
-    }, [liveNow]);
-
     return (
         <div className={styles.dashboard}>
             <Header title={title}/>
-
-            {view !== 'live' && <Overview items={overviewItems}/>}
-
             {view !== 'overview' && (
                 <Live
                     filteredSystemTopics={filteredSystemTopics}
