@@ -1,6 +1,5 @@
 // src/pages/Dashboard/DashboardV2.jsx
 import React, {useState, useMemo} from "react";
-import {useLiveNow} from "../../../hooks/useLiveNow";
 import DeviceCard from "./DeviceCard.jsx";
 import styles from "./DashboardV2.module.css";
 import idealRangeConfig from "../../../idealRangeConfig.js";
@@ -11,7 +10,7 @@ import { fmt, localDateTime, normLayerId, getMetric, getCount, deriveHealth, sen
 import { isWaterDevice } from "../utils/isWaterDevice.js";
 
 export default function DashboardV2() {
-    const live = useLiveNow();
+    const live = null;
     const systems = useMemo(() => {
         const root = live?.systems;
         if (!root) return [];
