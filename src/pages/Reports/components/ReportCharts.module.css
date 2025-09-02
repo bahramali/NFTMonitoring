@@ -1,0 +1,57 @@
+.sectionTitle {
+    margin-top: 2.5rem;
+    text-align: center;
+}
+
+.historyChartsRow {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+}
+
+.historyChartColumn {
+    width: 100%;
+}
+
+.dailyTempChartWrapper {
+    width: 100%;
+}
+
+.multiBandChartWrapper {
+    width: 100%;
+}
+
+.clearLuxChartWrapper {
+    width: 100%;
+}
+
+.phChartWrapper {
+    width: 100%;
+}
+
+.ecTdsChartWrapper {
+    width: 100%;
+}
+
+.doChartWrapper {
+    width: 100%;
+}
+
+@media (min-width: 48rem) {
+    .historyChartsRow {
+        flex-direction: column;
+        align-items: center;
+    }
+    .historyChartColumn {
+        width: 90%;
+    }
+    .multiBandChartWrapper,
+    .clearLuxChartWrapper,
+    .dailyTempChartWrapper,
+    .phChartWrapper,
+    .ecTdsChartWrapper,
+    .doChartWrapper {
+        width: 100%;
+        margin: 0;
+    }
+}

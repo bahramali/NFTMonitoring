@@ -1,7 +1,7 @@
 import React from "react";
 import HistoryChart from "../../../components/HistoryChart";
 import spectralColors from "../../../spectralColors";
-import styles from "../../common/SensorDashboard.module.css";
+import styles from "./ReportCharts.module.css";
 
 // English comments: helper to convert {cid: data[]} to multi-series spec
 const toSeries = (byCid, yKey) =>
