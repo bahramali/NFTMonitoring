@@ -35,7 +35,7 @@ export default function useLayerCompositeCards(systemKeyInput, layerId) {
     });
   }, []);
 
-  const topics = React.useMemo(() => ["/topic/growSensors", "/topic/waterTank"], []);
+  const topics = React.useMemo(() => ["/topic/growSensors"], []);
   useStomp(topics, (topic, data) => {
     if (!data) return;
     let compId = data.compositeId || data.composite_id || data.cid;
