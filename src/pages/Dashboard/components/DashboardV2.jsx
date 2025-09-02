@@ -70,7 +70,7 @@ export default function DashboardV2() {
                                     );
                                     const range = idealRangeConfig[rangeKey]?.idealRange;
                                     return (
-                                        <Stat key={key} label={`${label} (${count} sensors)`} value={value} range={range}/>
+                                        <Stat key={key} label={`${label}=`} value={`${value} (${count} sensors)`} range={range}/>
                                     );
                                 })}
                             </div>
@@ -104,8 +104,8 @@ export default function DashboardV2() {
                             {ENV_STATS.map(({label, key, precision, rangeKey}) => (
                                 <Stat
                                     key={key}
-                                    label={`${label} (${getCount(active.env, key)} sensors)`}
-                                    value={fmt(getMetric(active.env, key), precision)}
+                                    label={`${label}=`}
+                                    value={`${fmt(getMetric(active.env, key), precision)} (${getCount(active.env, key)} sensors)`}
                                     range={idealRangeConfig[rangeKey]?.idealRange}
                                 />
                             ))}

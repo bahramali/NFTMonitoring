@@ -21,36 +21,36 @@ function LayerCard({layer, systemId}) {
       <div className={styles.stats}>
         {agg.counts.light > 0 && (
           <Stat
-            label={`Light (${agg.counts.light} sensors)`}
-            value={`${fmt(agg.avg.light)} lux`}
+            label="Light="
+            value={`${fmt(agg.avg.light)} lux (${agg.counts.light} sensors)`}
             range={idealRangeConfig.lux?.idealRange}
           />
         )}
         {agg.counts.temperature > 0 && (
           <Stat
-            label={`Temp (${agg.counts.temperature} sensors)`}
-            value={`${fmt(agg.avg.temperature)} °C`}
+            label="Temp="
+            value={`${fmt(agg.avg.temperature)} °C (${agg.counts.temperature} sensors)`}
             range={idealRangeConfig.temperature?.idealRange}
           />
         )}
         {agg.counts.humidity > 0 && (
           <Stat
-            label={`Humidity (${agg.counts.humidity} sensors)`}
-            value={`${fmt(agg.avg.humidity)} %`}
+            label="Humidity="
+            value={`${fmt(agg.avg.humidity)} % (${agg.counts.humidity} sensors)`}
             range={idealRangeConfig.humidity?.idealRange}
           />
         )}
         {agg.counts.pH > 0 && (
           <Stat
-            label={`pH (${agg.counts.pH} sensors)`}
-            value={`${fmt(agg.avg.pH)}`}
+            label="pH="
+            value={`${fmt(agg.avg.pH)} (${agg.counts.pH} sensors)`}
             range={idealRangeConfig.ph?.idealRange}
           />
         )}
         {agg.counts.co2 > 0 && (
           <Stat
-            label={`CO₂ (${agg.counts.co2} sensors)`}
-            value={`${fmt(agg.avg.co2, 0)} ppm`}
+            label="CO₂="
+            value={`${fmt(agg.avg.co2, 0)} ppm (${agg.counts.co2} sensors)`}
           />
         )}
       </div>
