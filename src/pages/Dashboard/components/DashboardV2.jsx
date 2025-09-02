@@ -43,6 +43,47 @@ const normLayerIdSafe = (raw) => {
 };
 
 /* ---------------------- build systems & layers ---------------------- */
+// بالای فایل DashboardV2.jsx، بعد از helpers اضافه کن:
+
+// Map of metrics -> known key aliases in card.sensors
+const WATER_ALIASES = {
+    pH: ["pH", "ph"],
+    dissolvedOxygen: ["dissolvedOxygen", "do", "do_mgL", "doMgL", "oxygen_mgL"],
+    dissolvedEC: ["dissolvedEC", "ec", "ec_mScm", "ec_mS", "ecmScm"],
+    dissolvedTDS: ["dissolvedTDS", "tds", "tds_ppm", "tdsPpm"],
+    dissolvedTemp: ["dissolvedTemp", "waterTemp", "temp", "tempC", "water_tempC"],
+};
+
+// Aggregate water metrics from cards.sensors using aliases above
+function aggregateWaterFromCards(cards = []) {
+    const sums = { pH: 0, dissolvedOxygen: 0, dissolvedEC: 0, dissolvedTDS: 0, dissolvedTemp: 0 };
+    const counts = { pH: 0, dissolvedOxygen: 0, dissolvedEC: 0, dissolvedTDS: 0, dissolvedTemp: 0 };
+
+    const pickVal = (sensors, aliases) => {
+        for (const k of aliases) {
+            const v = sensors?.[k]?.value;
+            if (v != null && !Number.isNaN(Number(v))) return Number(v);
+        }
+        return null;
+    };
+
+    for (const card of cards) {
+        const s = card.sensors || {};
+        for (const metric of Object.keys(WATER_ALIASES)) {
+            const v = pickVal(s, WATER_ALIASES[metric]);
+            if (v != null) {
+                sums[metric] += v;
+                counts[metric] += 1;
+            }
+        }
+    }
+
+    const avg = {};
+    for (const m of Object.keys(sums)) {
+        avg[m] = counts[m] > 0 ? (sums[m] / counts[m]) : null;
+    }
+    return { avg, counts };
+}
 
 // Build system list and layer ids purely from live sensor topics
 function useSystemsIndex() {
@@ -159,7 +200,7 @@ export default function DashboardV2() {
 
     // Water: always call hooks (even when data not ready)
     const waterCards = useWaterCompositeCards(activeIdSafe);
-    const waterAgg = useMemo(() => aggregateFromCards(waterCards), [waterCards]);
+    const waterAgg = useMemo(() => aggregateWaterFromCards(waterCards), [waterCards]);
 
     // Env overview from non-water cards
     const sysCards = useSystemCompositeCards(activeIdSafe);
