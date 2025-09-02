@@ -39,6 +39,9 @@ export default function DeviceCard({
   const t = tempC ?? derived.map.temp;
   const h = humidityPct ?? derived.map.humidity;
   const co2 = co2ppm ?? derived.map.co2;
+  const tValid = t != null && !Number.isNaN(t);
+  const hValid = h != null && !Number.isNaN(h);
+  const co2Valid = co2 != null && !Number.isNaN(co2);
 
   const spectrumFinal = Object.keys(spectrum).length ? spectrum : (derived.spectrum || {});
   const otherFinal = Object.keys(otherLight).length ? otherLight : (derived.otherLight || {});
@@ -94,9 +97,10 @@ export default function DeviceCard({
           <div className={styles.badge}>{name}</div>
         </div>
 
-        {line("CO₂", `${fmt(co2)} ppm`)}
+        {co2Valid && line("CO₂", `${fmt(co2)} ppm`)}
 
-        {line("[Temp, Humidity]", `[${fmt(t)} °C, ${fmt(h)} %]`)}
+        {(tValid || hValid) &&
+          line("[Temp, Humidity]", `[${fmt(t)} °C, ${fmt(h)} %]`)}
 
         {blueArr.length > 0 && line("Blue light", `[${clampList(blueArr).join(", ")}]`)}
         {redArr.length  > 0 && line("Red light",  `[${clampList(redArr).join(", ")}]`)}
