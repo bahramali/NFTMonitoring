@@ -33,7 +33,7 @@ export default function useWaterCompositeCards(systemKeyInput) {
     });
   }, []);
 
-  const topics = React.useMemo(() => ["/topic/growSensors", "/topic/waterTank"], []);
+  const topics = React.useMemo(() => ["/topic/waterTank"], []);
   useStomp(topics, (topic, data) => {
     if (!data) return;
     let compId = data.compositeId || data.composite_id || data.cid;
