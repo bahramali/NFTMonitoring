@@ -23,8 +23,8 @@ function Stat({label, value, range}) {
         state === "danger" && styles.statDanger
       )}
     >
+      <span className={styles.muted}>{label}</span>{" "}
       <strong>{value}</strong>
-      <span className={styles.muted}>{label}</span>
     </div>
   );
 }
