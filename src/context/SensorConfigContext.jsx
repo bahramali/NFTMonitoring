@@ -18,7 +18,7 @@ export function SensorConfigProvider({ children }) {
     const reload = async () => {
         try {
             setError(null);
-            const res = await fetch('/api/sensor-configs');
+            const res = await fetch('/api/sensor-config');
             if (!res.ok) throw new Error('Failed to load configs');
             const data = await res.json();
             setConfigs(data);
@@ -38,7 +38,7 @@ export function SensorConfigProvider({ children }) {
         }
         try {
             setError(null);
-            const res = await fetch('/api/sensor-configs', {
+            const res = await fetch('/api/sensor-config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key, ...cfg })
@@ -59,7 +59,7 @@ export function SensorConfigProvider({ children }) {
         }
         try {
             setError(null);
-            const res = await fetch(`/api/sensor-configs/${key}`, {
+            const res = await fetch(`/api/sensor-config/${key}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(cfg)
@@ -76,7 +76,7 @@ export function SensorConfigProvider({ children }) {
     const deleteConfig = async (key) => {
         try {
             setError(null);
-            const res = await fetch(`/api/sensor-configs/${key}`, { method: 'DELETE' });
+            const res = await fetch(`/api/sensor-config/${key}`, { method: 'DELETE' });
             if (!res.ok) throw new Error('Failed to delete config');
             setConfigs(prev => {
                 const next = { ...prev };
@@ -98,6 +98,7 @@ export function SensorConfigProvider({ children }) {
     );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSensorConfig() {
     return useContext(SensorConfigContext);
 }
