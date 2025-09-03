@@ -3,6 +3,7 @@ import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 import SpectrumBarChart from '../src/pages/Live/components/SpectrumBarChart';
+import { SensorConfigProvider } from '../src/context/SensorConfigContext.jsx';
 
 
 Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
@@ -31,9 +32,11 @@ test('renders spectrum bar chart', () => {
     };
 
     const { container } = render(
-        <div style={{ width: 800, height: 400 }}>
-            <SpectrumBarChart sensorData={data} />
-        </div>
+        <SensorConfigProvider initialConfigs={{}}>
+            <div style={{ width: 800, height: 400 }}>
+                <SpectrumBarChart sensorData={data} />
+            </div>
+        </SensorConfigProvider>
     );
 
   expect(container.firstChild).toBeInTheDocument();
@@ -48,9 +51,11 @@ test('renders spectrum bar chart for as7343 data', () => {
     };
 
     const { container } = render(
-        <div style={{ width: 800, height: 400 }}>
-            <SpectrumBarChart sensorData={data} />
-        </div>
+        <SensorConfigProvider initialConfigs={{}}>
+            <div style={{ width: 800, height: 400 }}>
+                <SpectrumBarChart sensorData={data} />
+            </div>
+        </SensorConfigProvider>
     );
 
     expect(container.firstChild).toBeInTheDocument();

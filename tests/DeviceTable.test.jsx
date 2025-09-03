@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import DeviceTable from '../src/pages/Live/components/DeviceTable';
 import styles from '../src/pages/Live/components/DeviceTable/DeviceTable.module.css';
+import { SensorConfigProvider } from '../src/context/SensorConfigContext.jsx';
 
 const devices = {
   dev1: {
@@ -26,35 +27,39 @@ const devices = {
   }
 };
 
+const renderWithProvider = (ui) => render(
+  <SensorConfigProvider initialConfigs={{}}>{ui}</SensorConfigProvider>
+);
+
 test('renders sensor model and measurement type headers', () => {
-  render(<DeviceTable devices={devices} />);
+  renderWithProvider(<DeviceTable devices={devices} />);
   expect(screen.getByText('S_Model')).toBeInTheDocument();
   expect(screen.getByText('M_Type')).toBeInTheDocument();
 });
 
 test('renders all sensor models at least once', () => {
-  const { getAllByText } = render(<DeviceTable devices={devices} />);
+  const { getAllByText } = renderWithProvider(<DeviceTable devices={devices} />);
   expect(getAllByText('SHT3x').length).toBeGreaterThan(0);
   expect(getAllByText('HailegeTDS').length).toBeGreaterThan(0);
   expect(getAllByText('AS7341').length).toBeGreaterThan(0);
 });
 
 test('displays measurement labels correctly', () => {
-  render(<DeviceTable devices={devices} />);
+  renderWithProvider(<DeviceTable devices={devices} />);
   expect(screen.getByText('Temp')).toBeInTheDocument();
   expect(screen.getByText('Hum')).toBeInTheDocument();
   expect(screen.getByText('ph')).toBeInTheDocument();
 });
 
 test('renders sensor values with correct units', () => {
-  render(<DeviceTable devices={devices} />);
+  renderWithProvider(<DeviceTable devices={devices} />);
   expect(screen.getByText('22.5 °C')).toBeInTheDocument();
   expect(screen.getByText('800.0 ppm')).toBeInTheDocument();
   expect(screen.getByText('6.2')).toBeInTheDocument(); // Ph has no unit
 });
 
 test('applies spectral background color to 415nm row', () => {
-  const { getByText } = render(<DeviceTable devices={devices} />);
+  const { getByText } = renderWithProvider(<DeviceTable devices={devices} />);
   const spectralCell = getByText('415nm');
   expect(spectralCell).toHaveStyle({ backgroundColor: '#8a2be222' });
 });
@@ -68,7 +73,7 @@ test('shows green indicator when health keys are lowercase', () => {
       health: { sht3x: true }
     }
   };
-  const { container } = render(<DeviceTable devices={devicesLower} />);
+  const { container } = renderWithProvider(<DeviceTable devices={devicesLower} />);
   const indicator = container.querySelector(`.${styles.indicator}`);
   expect(indicator).toHaveClass(styles.on);
 });
