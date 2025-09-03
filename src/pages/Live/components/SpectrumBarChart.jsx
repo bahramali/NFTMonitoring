@@ -3,7 +3,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     Label, ReferenceArea, Cell
 } from 'recharts';
-import idealRanges from '../../../idealRangeConfig';
+import { useSensorConfig } from '../../../context/SensorConfigContext.jsx';
 import palette from '../../../colorPalette';
 import spectralColors from '../../../spectralColors';
 import styles from './SpectrumBarChart.module.css';
@@ -63,11 +63,12 @@ function SpectrumBarChart({ sensorData }) {
             : { bandMeta: legacyBandMeta, bandMap: legacyBandMap };
     }, [sensorData]);
 
+    const { configs } = useSensorConfig();
     const data = useMemo(() => {
         if (!sensorData) return [];
         return bandMeta.map(([key, label], index) => {
             const rangeKey = bandMap[key] || key;
-            const range = idealRanges[rangeKey]?.idealRange;
+            const range = configs[rangeKey]?.idealRange;
             return {
                 key,
                 index,
@@ -77,7 +78,7 @@ function SpectrumBarChart({ sensorData }) {
                 max: range?.max,
             };
         });
-    }, [sensorData, bandMeta, bandMap]);
+    }, [sensorData, bandMeta, bandMap, configs]);
 
 
     return (
