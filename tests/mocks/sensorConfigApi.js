@@ -16,12 +16,13 @@ export function mockSensorConfigApi() {
 
   global.fetch = vi.fn(async (url, opts = {}) => {
     const method = (opts.method || 'GET').toUpperCase();
+    const { pathname } = typeof url === 'string' ? new URL(url, 'https://api.hydroleaf.se') : url;
 
-    if (url === '/api/sensor-config' && method === 'GET') {
+    if (pathname === '/api/sensor-config' && method === 'GET') {
       return makeRes(true, 200, Object.values(db));
     }
 
-    const m = url.match(/^\/api\/sensor-config\/([^/]+)$/);
+    const m = pathname.match(/^\/api\/sensor-config\/([^/]+)$/);
     if (m) {
       const key = decodeURIComponent(m[1]);
 
