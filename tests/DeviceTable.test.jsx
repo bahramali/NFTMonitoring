@@ -4,6 +4,8 @@ import '@testing-library/jest-dom';
 import DeviceTable from '../src/pages/Live/components/DeviceTable';
 import styles from '../src/pages/Live/components/DeviceTable/DeviceTable.module.css';
 import { SensorConfigProvider } from '../src/context/SensorConfigContext.jsx';
+import { mockSensorConfigApi } from './mocks/sensorConfigApi.js';
+import { vi } from 'vitest';
 
 const devices = {
   dev1: {
@@ -28,8 +30,16 @@ const devices = {
 };
 
 const renderWithProvider = (ui) => render(
-  <SensorConfigProvider initialConfigs={{}}>{ui}</SensorConfigProvider>
+  <SensorConfigProvider>{ui}</SensorConfigProvider>
 );
+
+beforeEach(() => {
+  mockSensorConfigApi();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 test('renders sensor model and measurement type headers', () => {
   renderWithProvider(<DeviceTable devices={devices} />);

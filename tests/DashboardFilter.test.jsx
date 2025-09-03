@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import FilterBar from '../src/pages/common/FilterBar';
+import { SensorConfigProvider } from '../src/context/SensorConfigContext.jsx';
+import { mockSensorConfigApi } from './mocks/sensorConfigApi.js';
+import { vi } from 'vitest';
 
 const systems = [
   {
@@ -46,8 +49,20 @@ function TestDashboard() {
   );
 }
 
+beforeEach(() => {
+  mockSensorConfigApi();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 test('filters layers and systems based on selections', () => {
-  render(<TestDashboard />);
+  render(
+    <SensorConfigProvider>
+      <TestDashboard />
+    </SensorConfigProvider>
+  );
   expect(screen.getByTestId('layer-S01-L01')).toBeInTheDocument();
   fireEvent.click(screen.getByLabelText('S01-L01'));
   expect(screen.queryByTestId('layer-S01-L01')).not.toBeInTheDocument();

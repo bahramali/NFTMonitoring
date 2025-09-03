@@ -3,6 +3,8 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import DeviceTable from '../src/pages/Live/components/DeviceTable';
 import { SensorConfigProvider } from '../src/context/SensorConfigContext.jsx';
+import { mockSensorConfigApi } from './mocks/sensorConfigApi.js';
+import { vi } from 'vitest';
 
 const devices = {
   tank1: {
@@ -17,8 +19,16 @@ const devices = {
 };
 
 const renderWithProvider = (ui) => render(
-  <SensorConfigProvider initialConfigs={{}}>{ui}</SensorConfigProvider>
+  <SensorConfigProvider>{ui}</SensorConfigProvider>
 );
+
+beforeEach(() => {
+  mockSensorConfigApi();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 test('renders sensor models from sensors array', () => {
   renderWithProvider(<DeviceTable devices={devices} />);

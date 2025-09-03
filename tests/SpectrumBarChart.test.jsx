@@ -4,6 +4,7 @@ import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 import SpectrumBarChart from '../src/pages/Live/components/SpectrumBarChart';
 import { SensorConfigProvider } from '../src/context/SensorConfigContext.jsx';
+import { mockSensorConfigApi } from './mocks/sensorConfigApi.js';
 
 
 Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
@@ -24,6 +25,14 @@ vi.mock('recharts', async () => {
     };
 });
 
+beforeEach(() => {
+    mockSensorConfigApi();
+});
+
+afterEach(() => {
+    vi.restoreAllMocks();
+});
+
 test('renders spectrum bar chart', () => {
     const data = {
         F1: 1, F2: 2, F3: 3, F4: 4,
@@ -32,7 +41,7 @@ test('renders spectrum bar chart', () => {
     };
 
     const { container } = render(
-        <SensorConfigProvider initialConfigs={{}}>
+        <SensorConfigProvider>
             <div style={{ width: 800, height: 400 }}>
                 <SpectrumBarChart sensorData={data} />
             </div>
@@ -51,7 +60,7 @@ test('renders spectrum bar chart for as7343 data', () => {
     };
 
     const { container } = render(
-        <SensorConfigProvider initialConfigs={{}}>
+        <SensorConfigProvider>
             <div style={{ width: 800, height: 400 }}>
                 <SpectrumBarChart sensorData={data} />
             </div>
