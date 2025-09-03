@@ -74,8 +74,8 @@ export function SystemOverviewCard({
                                        sensorsHealthy,
                                        sensorsTotal,
                                        lastUpdateMs,
-                                       layers,
-                                       metrics,
+                                       layers = [],
+                                       metrics = {},
                                        onClick,
                                    }) {
     return (
@@ -129,7 +129,7 @@ export function SystemOverviewCard({
 }
 
 /* ========== Layer Panel ========== */
-export function LayerPanel({id, health, metrics, water = {}, actuators = {}, children}) {
+export function LayerPanel({id, health, metrics = {}, water = {}, actuators = {}, children}) {
     return (
         <div className={cx("card", "layer-card")}> 
             <div className={cx("layer-head")}>
