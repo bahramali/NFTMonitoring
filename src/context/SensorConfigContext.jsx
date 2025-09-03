@@ -1,5 +1,10 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
+// Use the same base API configuration as other REST requests. The value can be
+// overridden through the `VITE_API_BASE` environment variable to support local
+// development while defaulting to the production API domain.
+const API_BASE = import.meta.env.VITE_API_BASE ?? 'https://api.hydroleaf.se';
+
 const noop = async () => {};
 
 const SensorConfigContext = createContext({
@@ -18,7 +23,7 @@ export function SensorConfigProvider({ children }) {
     const reload = async () => {
         try {
             setError(null);
-            const res = await fetch('/api/sensor-config');
+            const res = await fetch(`${API_BASE}/api/sensor-config`);
             if (!res.ok) throw new Error('Failed to load configs');
             const data = await res.json();
             setConfigs(data);
@@ -38,7 +43,7 @@ export function SensorConfigProvider({ children }) {
         }
         try {
             setError(null);
-            const res = await fetch('/api/sensor-config', {
+            const res = await fetch(`${API_BASE}/api/sensor-config`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key, ...cfg })
@@ -59,7 +64,7 @@ export function SensorConfigProvider({ children }) {
         }
         try {
             setError(null);
-            const res = await fetch(`/api/sensor-config/${key}`, {
+            const res = await fetch(`${API_BASE}/api/sensor-config/${key}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(cfg)
@@ -76,7 +81,7 @@ export function SensorConfigProvider({ children }) {
     const deleteConfig = async (key) => {
         try {
             setError(null);
-            const res = await fetch(`/api/sensor-config/${key}`, { method: 'DELETE' });
+            const res = await fetch(`${API_BASE}/api/sensor-config/${key}`, { method: 'DELETE' });
             if (!res.ok) throw new Error('Failed to delete config');
             setConfigs(prev => {
                 const next = { ...prev };
