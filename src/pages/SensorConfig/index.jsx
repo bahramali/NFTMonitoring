@@ -1,42 +1,52 @@
-import React, {useState} from 'react';
-import {useSensorConfig} from '../../context/SensorConfigContext.jsx';
+import React, { useState } from 'react';
+import { useSensorConfig } from '../../context/SensorConfigContext.jsx';
 
-function SensorConfig() {
-    const {configs, createConfig, updateConfig, deleteConfig, error} = useSensorConfig();
-    const [form, setForm] = useState({key: '', minValue: '', maxValue: '', description: ''});
-    const [editing, setEditing] = useState(null);
+export default function SensorConfigPage() {
+    const { configs, error, createConfig, updateConfig, deleteConfig } = useSensorConfig();
+
+    const [form, setForm] = useState({
+        key: '',
+        minValue: '',
+        maxValue: '',
+        description: '',
+    });
+    const [editing, setEditing] = useState(null); // key being edited or null
     const [message, setMessage] = useState('');
 
-    const handleChange = (e) => {
-        const {name, value} = e.target;
-        // keep inputs as string; convert on submit
-        setForm((f) => ({...f, [name]: value}));
+    // Handle input changes
+    const onChange = (e) => {
+        const { name, value } = e.target;
+        setForm((f) => ({ ...f, [name]: value }));
     };
 
     const resetForm = () => {
-        setForm({key: '', minValue: '', maxValue: '', description: ''});
         setEditing(null);
+        setForm({ key: '', minValue: '', maxValue: '', description: '' });
     };
 
+    // Validate and submit
     const handleSubmit = async (e) => {
         e.preventDefault();
-  setMessage('');
+        setMessage('');
 
-        const {key, minValue, maxValue, description} = form;
+        const key = form.key.trim();
+        const minNum = Number(form.minValue);
+        const maxNum = Number(form.maxValue);
+        const description = form.description?.trim() || '';
 
-  // validate
-  const minNum = Number(minValue);
-  const maxNum = Number(maxValue);
-  if (!key || minValue === '' || maxValue === '' || !Number.isFinite(minNum) || !Number.isFinite(maxNum)) {
-    setMessage('Invalid config');
-    return; // *** مهم: ادامه نده ***
+        // Frontend validation
+        if ((!editing && !key) || form.minValue === '' || form.maxValue === '' || !Number.isFinite(minNum) || !Number.isFinite(maxNum)) {
+            setMessage('Invalid config');
+            return; // important: stop here
         }
+
+        const payload = { minValue: minNum, maxValue: maxNum, description };
 
         try {
             if (editing) {
-      await updateConfig(editing, { minValue: minNum, maxValue: maxNum, description });
+                await updateConfig(editing, payload);
             } else {
-      await createConfig(key, { minValue: minNum, maxValue: maxNum, description });
+                await createConfig(key, payload);
             }
             setMessage('Saved');
             resetForm();
@@ -47,76 +57,97 @@ function SensorConfig() {
 
     const startEdit = (key) => {
         const cfg = configs[key] || {};
+        setEditing(key);
         setForm({
             key,
             minValue: cfg.minValue ?? '',
             maxValue: cfg.maxValue ?? '',
-            description: cfg.description || '',
+            description: cfg.description ?? '',
         });
-        setEditing(key);
     };
 
     const handleDelete = async (key) => {
+        setMessage('');
         try {
             await deleteConfig(key);
+            setMessage('Deleted');
+            if (editing === key) resetForm();
         } catch (err) {
-            setMessage(err.message);
+            setMessage(err.message || 'Failed to delete');
         }
     };
 
     return (
-        <div>
+        <div style={{ padding: 16 }}>
             <h1>Sensor Config</h1>
+
             {error && <div role="alert">{error}</div>}
             {message && <div role="status">{message}</div>}
+
             <form onSubmit={handleSubmit}>
-                {!editing && (
-                    <div>
-                        <label>
-                            Key:
-                            <input name="key" value={form.key} onChange={handleChange}/>
-                        </label>
-                    </div>
-                )}
-                {editing && (
-                    <div>
-                        <label>
-                            Key:
-                            <input name="key" value={form.key} disabled/>
-                        </label>
-                    </div>
-                )}
+                <div>
+                    <label>
+                        Key:
+                        <input
+                            name="key"
+                            value={form.key}
+                            onChange={onChange}
+                            disabled={Boolean(editing)}
+                        />
+                    </label>
+                </div>
 
                 <div>
                     <label>
                         Min:
-                        <input name="minValue" type="number" value={form.minValue} onChange={handleChange}/>
+                        <input
+                            name="minValue"
+                            type="number"
+                            value={form.minValue}
+                            onChange={onChange}
+                        />
                     </label>
                 </div>
+
                 <div>
                     <label>
                         Max:
-                        <input name="maxValue" type="number" value={form.maxValue} onChange={handleChange}/>
+                        <input
+                            name="maxValue"
+                            type="number"
+                            value={form.maxValue}
+                            onChange={onChange}
+                        />
                     </label>
                 </div>
+
                 <div>
                     <label>
                         Description:
-                        <input name="description" value={form.description} onChange={handleChange}/>
+                        <input
+                            name="description"
+                            value={form.description}
+                            onChange={onChange}
+                        />
                     </label>
                 </div>
+
                 <button type="submit">{editing ? 'Update' : 'Create'}</button>
-                {editing && <button type="button" onClick={resetForm}>Cancel</button>}
+                {editing && (
+                    <button type="button" onClick={resetForm} style={{ marginLeft: 8 }}>
+                        Cancel
+                    </button>
+                )}
             </form>
 
-            <table>
+            <table style={{ marginTop: 16, borderCollapse: 'collapse' }}>
                 <thead>
                 <tr>
-                    <th>Key</th>
-                    <th>Min</th>
-                    <th>Max</th>
-                    <th>Description</th>
-                    <th></th>
+                    <th style={{ textAlign: 'left', paddingRight: 8 }}>Key</th>
+                    <th style={{ textAlign: 'left', paddingRight: 8 }}>Min</th>
+                    <th style={{ textAlign: 'left', paddingRight: 8 }}>Max</th>
+                    <th style={{ textAlign: 'left', paddingRight: 8 }}>Description</th>
+                    <th />
                 </tr>
                 </thead>
                 <tbody>
@@ -128,14 +159,19 @@ function SensorConfig() {
                         <td>{cfg?.description}</td>
                         <td>
                             <button type="button" onClick={() => startEdit(key)}>Edit</button>
-                            <button type="button" onClick={() => handleDelete(key)}>Delete</button>
+                            <button type="button" onClick={() => handleDelete(key)} style={{ marginLeft: 8 }}>
+                                Delete
+                            </button>
                         </td>
                     </tr>
                 ))}
+                {Object.keys(configs).length === 0 && (
+                    <tr>
+                        <td colSpan={5} style={{ opacity: 0.7 }}>No configs</td>
+                    </tr>
+                )}
                 </tbody>
             </table>
         </div>
     );
 }
-
-export default SensorConfig;
