@@ -7,7 +7,6 @@ import { fmt, aggregateFromCards, sensorLabel, isWaterDevice } from "../utils";
 import styles from "./LayerCard.module.css";
 
 function LayerCard({layer, systemId}) {
-  const { sensorConfigs } = useSensorConfig();
   const deviceCards = useLayerCompositeCards(systemId, layer.id).filter(card => !isWaterDevice(card.compId));
   const agg = useMemo(() => aggregateFromCards(deviceCards), [deviceCards]);
   const { configs } = useSensorConfig();
@@ -53,7 +52,7 @@ function LayerCard({layer, systemId}) {
           <Stat
             label="CO₂="
             value={`${fmt(agg.avg.co2, 0)} ppm (${agg.counts.co2} sensors)`}
-            range={sensorConfigs.co2?.idealRange}
+            range={configs.co2?.idealRange}
           />
         )}
       </div>
