@@ -1,5 +1,6 @@
 import React from 'react';
 import styles from './NotesBlock.module.css';
+import { useSensorConfig } from '../../../context/SensorConfigContext.jsx';
 import {bandMap, knownFields} from '../../common/dashboard.constants.js';
 import { useSensorConfig } from '../../../context/SensorConfigContext.jsx';
 
@@ -22,10 +23,10 @@ function NotesBlock({ mergedDevices = {} }) {
     }
   }
 
-  const { sensorConfigs } = useSensorConfig();
+  const { configs } = useSensorConfig();
   const notes = [];
   for (const key of sensors) {
-    const cfg = sensorConfigs[key];
+    const cfg = configs[key];
     if (cfg?.description) notes.push(`${key}: ${cfg.description}`);
   }
 

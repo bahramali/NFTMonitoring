@@ -1,58 +1,95 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { getSensorConfigs, createSensorConfig, updateSensorConfig, deleteSensorConfig } from '../api/sensorConfig.js';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
-const SensorConfigContext = createContext(null);
-// eslint-disable-next-line react-refresh/only-export-components
-export const useSensorConfig = () => useContext(SensorConfigContext);
+const noop = async () => {};
 
-export function SensorConfigProvider({ children, initialConfigs }) {
-    const [configs, setConfigs] = useState(initialConfigs || {});
+const SensorConfigContext = createContext({
+    configs: {},
+    error: null,
+    reload: noop,
+    createConfig: noop,
+    updateConfig: noop,
+    deleteConfig: noop,
+});
 
-    const loadConfigs = useCallback(async () => {
+export function SensorConfigProvider({ children }) {
+    const [configs, setConfigs] = useState({});
+    const [error, setError] = useState(null);
+
+    const reload = async () => {
         try {
-            const data = await getSensorConfigs();
-            setConfigs(data || {});
+            setError(null);
+            const res = await fetch('/api/sensor-configs');
+            if (!res.ok) throw new Error('Failed to load configs');
+            const data = await res.json();
+            setConfigs(data);
         } catch (err) {
-            console.error(err);
+            setError(err.message);
         }
-    }, []);
+    };
 
     useEffect(() => {
-        if (initialConfigs) return;
-        loadConfigs();
-    }, [initialConfigs, loadConfigs]);
+        reload();
+    }, []);
 
-    const createConfig = useCallback(async (data) => {
-        const res = await createSensorConfig(data);
-        const key = res?.sensorType || data?.sensorType;
-        if (key) {
-            setConfigs(prev => ({ ...prev, [key]: res }));
+    const createConfig = async (key, cfg) => {
+        if (!key || !cfg?.idealRange) {
+            setError('Invalid config');
+            return;
         }
-        return res;
-    }, []);
-
-    const updateConfig = useCallback(async (sensorType, data) => {
-        const res = await updateSensorConfig(sensorType, data);
-        setConfigs(prev => ({ ...prev, [sensorType]: res }));
-        return res;
-    }, []);
-
-    const removeConfig = useCallback(async (sensorType) => {
-        await deleteSensorConfig(sensorType);
-        setConfigs(prev => {
-            const next = { ...prev };
-            delete next[sensorType];
-            return next;
-        });
-    }, []);
-
-    const value = {
-        sensorConfigs: configs,
-        reloadConfigs: loadConfigs,
-        createConfig,
-        updateConfig,
-        deleteConfig: removeConfig,
+        try {
+            setError(null);
+            const res = await fetch('/api/sensor-configs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key, ...cfg })
+            });
+            if (!res.ok) throw new Error('Failed to create config');
+            const saved = await res.json();
+            setConfigs(prev => ({ ...prev, [key]: saved }));
+        } catch (err) {
+            setError(err.message);
+            throw err;
+        }
     };
+
+    const updateConfig = async (key, cfg) => {
+        if (!key || !cfg) {
+            setError('Invalid config');
+            return;
+        }
+        try {
+            setError(null);
+            const res = await fetch(`/api/sensor-configs/${key}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(cfg)
+            });
+            if (!res.ok) throw new Error('Failed to update config');
+            const saved = await res.json();
+            setConfigs(prev => ({ ...prev, [key]: saved }));
+        } catch (err) {
+            setError(err.message);
+            throw err;
+        }
+    };
+
+    const deleteConfig = async (key) => {
+        try {
+            setError(null);
+            const res = await fetch(`/api/sensor-configs/${key}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Failed to delete config');
+            setConfigs(prev => {
+                const next = { ...prev };
+                delete next[key];
+                return next;
+            });
+        } catch (err) {
+            setError(err.message);
+            throw err;
+        }
+    };
+
+    const value = { configs, error, reload, createConfig, updateConfig, deleteConfig };
 
     return (
         <SensorConfigContext.Provider value={value}>
@@ -60,3 +97,8 @@ export function SensorConfigProvider({ children, initialConfigs }) {
         </SensorConfigContext.Provider>
     );
 }
+
+export function useSensorConfig() {
+    return useContext(SensorConfigContext);
+}
+

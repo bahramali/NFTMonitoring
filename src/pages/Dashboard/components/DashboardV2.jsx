@@ -206,6 +206,7 @@ export default function DashboardV2() {
     const sysCards = useSystemCompositeCards(activeIdSafe);
     const growCards = useMemo(() => sysCards.filter((c) => !isWaterDevice(c.compId)), [sysCards]);
     const envAgg = useMemo(() => aggregateFromCards(growCards), [growCards]);
+    const { configs } = useSensorConfig();
 
     return (
         <div className={styles.page}>
@@ -240,7 +241,7 @@ export default function DashboardV2() {
                                 {WATER_STATS.map(({ label, key, precision, rangeKey }) => {
                                     const count = waterAgg?.counts?.[key] || 0;
                                     const value = fmt(waterAgg?.avg?.[key], precision);
-                                    const range = sensorConfigs[rangeKey]?.idealRange;
+                                    const range = configs[rangeKey]?.idealRange;
                                     return (
                                         <Stat
                                             key={key}
@@ -288,21 +289,21 @@ export default function DashboardV2() {
                                 <Stat
                                     label="Light="
                                     value={`${fmt(envAgg.avg.light)} lux (${envAgg.counts.light} sensors)`}
-                                    range={sensorConfigs.lux?.idealRange}
+                                    range={configs.lux?.idealRange}
                                 />
                             )}
                             {envAgg?.counts?.temperature > 0 && (
                                 <Stat
                                     label="Temp="
                                     value={`${fmt(envAgg.avg.temperature)} °C (${envAgg.counts.temperature} sensors)`}
-                                    range={sensorConfigs.temperature?.idealRange}
+                                    range={configs.temperature?.idealRange}
                                 />
                             )}
                             {envAgg?.counts?.humidity > 0 && (
                                 <Stat
                                     label="Humidity="
                                     value={`${fmt(envAgg.avg.humidity)} % (${envAgg.counts.humidity} sensors)`}
-                                    range={sensorConfigs.humidity?.idealRange}
+                                    range={configs.humidity?.idealRange}
                                 />
                             )}
                             {envAgg?.counts?.co2 > 0 && (

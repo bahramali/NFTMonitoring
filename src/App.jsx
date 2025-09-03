@@ -4,7 +4,7 @@ import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Live from './pages/Live';
 import Reports from './pages/Reports';
-import Settings from './pages/Settings';
+import SensorConfig from './pages/SensorConfig';
 import UserInfo from './pages/UserInfo';
 import Documentation from './pages/Documentation';
 import Note from './pages/Note';
@@ -24,7 +24,7 @@ function App() {
                     <Route path="live" element={<Live />} />
                     <Route path="reports" element={<Reports />} />
                     <Route path="note" element={<Note />} />
-                    <Route path="settings" element={<Settings />} />
+                    <Route path="sensor-config" element={<SensorConfig />} />
                     <Route path="user" element={<UserInfo />} />
                     <Route path="docs" element={<Documentation />} />
                     <Route path="filters/device" element={<Device />} />

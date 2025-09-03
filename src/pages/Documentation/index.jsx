@@ -2,11 +2,11 @@ import React from 'react';
 import { useSensorConfig } from '../../context/SensorConfigContext.jsx';
 
 function Documentation() {
-    const { sensorConfigs } = useSensorConfig();
+    const { configs } = useSensorConfig();
     return (
         <div>
             <h1>Ideal Ranges</h1>
-            {Object.entries(sensorConfigs).map(([key, value]) => (
+            {Object.entries(configs).map(([key, value]) => (
                 <section key={key}>
                     <h2>{key}</h2>
                     <p>{value.description}</p>
