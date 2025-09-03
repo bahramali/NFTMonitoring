@@ -3,10 +3,12 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     Label, ReferenceArea, Cell
 } from 'recharts';
+
 import palette from '../../../colorPalette';
 import spectralColors from '../../../spectralColors';
 import { useSensorConfig } from '../../../context/SensorConfigContext.jsx';
 import styles from './SpectrumBarChart.module.css';
+import { useSensorConfig } from '../../../context/SensorConfigContext.jsx';
 
 const legacyBandMeta = [
     ['F1', 'F1 (400–430 nm)'],
@@ -51,6 +53,7 @@ const as7343BandMeta = [
 
 function SpectrumBarChart({ sensorData }) {
     console.log('3- SPECTRUM DATA', sensorData);
+    const { sensorConfigs } = useSensorConfig();
 
     const { bandMeta, bandMap } = useMemo(() => {
         if (!sensorData) {

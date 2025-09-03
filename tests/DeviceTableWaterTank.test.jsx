@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import DeviceTable from '../src/pages/Live/components/DeviceTable';
+import { SensorConfigProvider } from '../src/context/SensorConfigContext.jsx';
 
 const devices = {
   tank1: {
@@ -15,15 +16,19 @@ const devices = {
   }
 };
 
+const renderWithProvider = (ui) => render(
+  <SensorConfigProvider initialConfigs={{}}>{ui}</SensorConfigProvider>
+);
+
 test('renders sensor models from sensors array', () => {
-  render(<DeviceTable devices={devices} />);
+  renderWithProvider(<DeviceTable devices={devices} />);
   expect(screen.getAllByText('HailegeTDS').length).toBeGreaterThan(0);
   expect(screen.getByText('DS18B20')).toBeInTheDocument();
   expect(screen.getByText('DFROBOT')).toBeInTheDocument();
 });
 
 test('renders sensor values correctly', () => {
-  render(<DeviceTable devices={devices} />);
+  renderWithProvider(<DeviceTable devices={devices} />);
   expect(screen.getByText('500.0 ppm')).toBeInTheDocument();
   expect(screen.getByText('0.8 mS/cm')).toBeInTheDocument();
   expect(screen.getByText('24.3 °C')).toBeInTheDocument();
