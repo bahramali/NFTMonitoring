@@ -1,7 +1,7 @@
 import React from 'react';
 import styles from './DeviceTable.module.css';
-import idealRanges from '../../../../idealRangeConfig';
 import spectralColors from '../../../../spectralColors';
+import { useSensorConfig } from '../../../../context/SensorConfigContext.jsx';
 
 function getCellColor(value, range) {
     if (!range || typeof value !== 'number' || Number.isNaN(value)) return '';
@@ -12,6 +12,7 @@ function getCellColor(value, range) {
 }
 
 function DeviceTable({devices = {}}) {
+    const { sensorConfigs } = useSensorConfig();
     const compositeIds = Object.keys(devices);
     const allSensors = compositeIds.flatMap(id => devices[id].sensors || []);
     const measurementTypes = new Set();
@@ -57,7 +58,7 @@ function DeviceTable({devices = {}}) {
 
     const rows = [...measurementTypes].map(measurementType => {
         const sensorModel = measurementToSensorModel[measurementType] || '-';
-        const range = idealRanges[measurementType]?.idealRange;
+        const range = sensorConfigs[measurementType]?.idealRange;
         const bandKey = spectralKeyMapFromData[measurementType];
         const rowColor = bandKey ? `${spectralColors[bandKey]}22` : undefined;
 
