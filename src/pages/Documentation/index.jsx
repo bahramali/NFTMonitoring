@@ -2,7 +2,20 @@ import React from 'react';
 import { useSensorConfig } from '../../context/SensorConfigContext.jsx';
 
 function Documentation() {
-    const { configs } = useSensorConfig();
+    const { configs, error, loading } = useSensorConfig();
+
+    if (loading) {
+        return <div>Loading configurations...</div>;
+    }
+
+    if (error) {
+        return <div role="alert">{error}</div>;
+    }
+
+    if (!configs || Object.keys(configs).length === 0) {
+        return <div>No configurations found</div>;
+    }
+
     return (
         <div>
             <h1>Ideal Ranges</h1>
