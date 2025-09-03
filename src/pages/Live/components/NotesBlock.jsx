@@ -1,6 +1,6 @@
 import React from 'react';
 import styles from './NotesBlock.module.css';
-import idealRangeConfig from '../../../idealRangeConfig.js';
+import { useSensorConfig } from '../../../context/SensorConfigContext.jsx';
 import {bandMap, knownFields} from '../../common/dashboard.constants.js';
 
 function NotesBlock({ mergedDevices = {} }) {
@@ -22,9 +22,10 @@ function NotesBlock({ mergedDevices = {} }) {
     }
   }
 
+  const { configs } = useSensorConfig();
   const notes = [];
   for (const key of sensors) {
-    const cfg = idealRangeConfig[key];
+    const cfg = configs[key];
     if (cfg?.description) notes.push(`${key}: ${cfg.description}`);
   }
 

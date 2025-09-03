@@ -1,6 +1,6 @@
 import React from 'react';
 import styles from './DeviceTable.module.css';
-import idealRanges from '../../../../idealRangeConfig';
+import { useSensorConfig } from '../../../../context/SensorConfigContext.jsx';
 import spectralColors from '../../../../spectralColors';
 
 function getCellColor(value, range) {
@@ -55,9 +55,10 @@ function DeviceTable({devices = {}}) {
         );
     }
 
+    const { configs } = useSensorConfig();
     const rows = [...measurementTypes].map(measurementType => {
         const sensorModel = measurementToSensorModel[measurementType] || '-';
-        const range = idealRanges[measurementType]?.idealRange;
+        const range = configs[measurementType]?.idealRange;
         const bandKey = spectralKeyMapFromData[measurementType];
         const rowColor = bandKey ? `${spectralColors[bandKey]}22` : undefined;
 
