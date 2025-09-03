@@ -2,13 +2,14 @@ import React, {useMemo} from "react";
 import DeviceCard from "./DeviceCard.jsx";
 import Stat from "./Stat.jsx";
 import useLayerCompositeCards from "./useLayerCompositeCards.js";
-import idealRangeConfig from "../../../idealRangeConfig.js";
+import { useSensorConfig } from "../../../context/SensorConfigContext.jsx";
 import { fmt, aggregateFromCards, sensorLabel, isWaterDevice } from "../utils";
 import styles from "./LayerCard.module.css";
 
 function LayerCard({layer, systemId}) {
   const deviceCards = useLayerCompositeCards(systemId, layer.id).filter(card => !isWaterDevice(card.compId));
   const agg = useMemo(() => aggregateFromCards(deviceCards), [deviceCards]);
+  const { configs } = useSensorConfig();
 
   return (
     <div className={`${styles.card} ${styles.layer}`}>
@@ -23,28 +24,28 @@ function LayerCard({layer, systemId}) {
           <Stat
             label="Light="
             value={`${fmt(agg.avg.light)} lux (${agg.counts.light} sensors)`}
-            range={idealRangeConfig.lux?.idealRange}
+            range={configs.lux?.idealRange}
           />
         )}
         {agg.counts.temperature > 0 && (
           <Stat
             label="Temp="
             value={`${fmt(agg.avg.temperature)} °C (${agg.counts.temperature} sensors)`}
-            range={idealRangeConfig.temperature?.idealRange}
+            range={configs.temperature?.idealRange}
           />
         )}
         {agg.counts.humidity > 0 && (
           <Stat
             label="Humidity="
             value={`${fmt(agg.avg.humidity)} % (${agg.counts.humidity} sensors)`}
-            range={idealRangeConfig.humidity?.idealRange}
+            range={configs.humidity?.idealRange}
           />
         )}
         {agg.counts.pH > 0 && (
           <Stat
             label="pH="
             value={`${fmt(agg.avg.pH)} (${agg.counts.pH} sensors)`}
-            range={idealRangeConfig.ph?.idealRange}
+            range={configs.ph?.idealRange}
           />
         )}
         {agg.counts.co2 > 0 && (
