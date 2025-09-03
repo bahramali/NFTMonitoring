@@ -1,6 +1,7 @@
 import React from 'react';
 import styles from './NotesBlock.module.css';
 import {bandMap, knownFields} from '../../common/dashboard.constants.js';
+import { useSensorConfig } from "../../../context/SensorConfigContext.jsx";
 
 function NotesBlock({ mergedDevices = {} }) {
   const metaFields = new Set(['timestamp', 'deviceId', 'compositeId', 'layer']);
