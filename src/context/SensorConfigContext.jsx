@@ -2,6 +2,10 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 
 const Ctx = createContext(null);
 
+// Base URL for REST API requests. Falls back to the public API if the
+// environment variable is not provided.
+const API_BASE = import.meta.env.VITE_API_BASE ?? 'https://api.hydroleaf.se';
+
 export function SensorConfigProvider({ children }) {
     const [configs, setConfigs] = useState({});
     const [error, setError] = useState('');
@@ -15,7 +19,7 @@ export function SensorConfigProvider({ children }) {
     async function loadConfigs() {
         try {
             setError('');
-            const res = await fetch('/api/sensor-config');
+            const res = await fetch(`${API_BASE}/api/sensor-config`);
             if (!res.ok) throw new Error(await safeError(res));
             const data = await res.json();
             const map = (Array.isArray(data) ? data : []).reduce((m, x) => (m[x.key] = x, m), {});
@@ -24,7 +28,7 @@ export function SensorConfigProvider({ children }) {
     }
 
     async function createConfig(key, payload) {
-        const res = await fetch(`/api/sensor-config/${encodeURIComponent(key)}`, {
+        const res = await fetch(`${API_BASE}/api/sensor-config/${encodeURIComponent(key)}`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error(await safeError(res));
@@ -34,7 +38,7 @@ export function SensorConfigProvider({ children }) {
     }
 
     async function updateConfig(key, payload) {
-        const res = await fetch(`/api/sensor-config/${encodeURIComponent(key)}`, {
+        const res = await fetch(`${API_BASE}/api/sensor-config/${encodeURIComponent(key)}`, {
             method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error(await safeError(res));
@@ -44,7 +48,7 @@ export function SensorConfigProvider({ children }) {
     }
 
     async function deleteConfig(key) {
-        const res = await fetch(`/api/sensor-config/${encodeURIComponent(key)}`, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE}/api/sensor-config/${encodeURIComponent(key)}`, { method: 'DELETE' });
         if (!res.ok) throw new Error(await safeError(res));
         setConfigs(prev => { const c = { ...prev }; delete c[key]; return c; });
     }
