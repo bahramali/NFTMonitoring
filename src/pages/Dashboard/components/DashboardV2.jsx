@@ -43,7 +43,6 @@ const normLayerIdSafe = (raw) => {
 };
 
 /* ---------------------- build systems & layers ---------------------- */
-// بالای فایل DashboardV2.jsx، بعد از helpers اضافه کن:
 
 // Map of metrics -> known key aliases in card.sensors
 const WATER_ALIASES = {
@@ -310,6 +309,7 @@ export default function DashboardV2() {
                                 <Stat
                                     label="CO₂="
                                     value={`${fmt(envAgg.avg.co2, 0)} ppm (${envAgg.counts.co2} sensors)`}
+                                    range={sensorConfigs.co2?.idealRange}
                                 />
                             )}
                         </div>

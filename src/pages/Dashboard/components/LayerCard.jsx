@@ -52,6 +52,7 @@ function LayerCard({layer, systemId}) {
           <Stat
             label="CO₂="
             value={`${fmt(agg.avg.co2, 0)} ppm (${agg.counts.co2} sensors)`}
+            range={sensorConfigs.co2?.idealRange}
           />
         )}
       </div>
