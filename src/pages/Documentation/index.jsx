@@ -1,11 +1,12 @@
 import React from 'react';
-import idealRangeConfig from '../../idealRangeConfig';
+import { useSensorConfig } from '../../context/SensorConfigContext.jsx';
 
 function Documentation() {
+    const { configs } = useSensorConfig();
     return (
         <div>
             <h1>Ideal Ranges</h1>
-            {Object.entries(idealRangeConfig).map(([key, value]) => (
+            {Object.entries(configs).map(([key, value]) => (
                 <section key={key}>
                     <h2>{key}</h2>
                     <p>{value.description}</p>

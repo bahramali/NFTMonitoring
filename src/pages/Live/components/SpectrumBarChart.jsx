@@ -3,9 +3,9 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     Label, ReferenceArea, Cell
 } from 'recharts';
-import idealRanges from '../../../idealRangeConfig';
 import palette from '../../../colorPalette';
 import spectralColors from '../../../spectralColors';
+import { useSensorConfig } from '../../../context/SensorConfigContext.jsx';
 import styles from './SpectrumBarChart.module.css';
 
 const legacyBandMeta = [
@@ -50,8 +50,6 @@ const as7343BandMeta = [
 ];
 
 function SpectrumBarChart({ sensorData }) {
-    console.log('3- SPECTRUM DATA', sensorData);
-
     const { bandMeta, bandMap } = useMemo(() => {
         if (!sensorData) {
             return { bandMeta: legacyBandMeta, bandMap: legacyBandMap };
@@ -63,11 +61,12 @@ function SpectrumBarChart({ sensorData }) {
             : { bandMeta: legacyBandMeta, bandMap: legacyBandMap };
     }, [sensorData]);
 
+    const { configs } = useSensorConfig();
     const data = useMemo(() => {
         if (!sensorData) return [];
         return bandMeta.map(([key, label], index) => {
             const rangeKey = bandMap[key] || key;
-            const range = idealRanges[rangeKey]?.idealRange;
+            const range = configs[rangeKey]?.idealRange;
             return {
                 key,
                 index,
@@ -77,7 +76,7 @@ function SpectrumBarChart({ sensorData }) {
                 max: range?.max,
             };
         });
-    }, [sensorData, bandMeta, bandMap]);
+    }, [sensorData, bandMeta, bandMap, configs]);
 
 
     return (
