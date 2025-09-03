@@ -29,3 +29,17 @@ test('renders Live link', () => {
     expect(liveLink).toHaveAttribute('href', '/live');
 });
 
+test('renders Note link', () => {
+    render(
+        <FiltersProvider>
+            <MemoryRouter>
+                <Sidebar />
+            </MemoryRouter>
+        </FiltersProvider>
+    );
+
+    const noteLink = screen.getByRole('link', { name: /note/i });
+    expect(noteLink).toBeInTheDocument();
+    expect(noteLink).toHaveAttribute('href', '/note');
+});
+

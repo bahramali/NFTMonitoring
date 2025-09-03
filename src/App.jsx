@@ -7,6 +7,7 @@ import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import UserInfo from './pages/UserInfo';
 import Documentation from './pages/Documentation';
+import Note from './pages/Note';
 import Device from './pages/filters/Device';
 import Layer from './pages/filters/Layer';
 import System from './pages/filters/System';
@@ -22,6 +23,7 @@ function App() {
                     <Route index element={<Dashboard />} />
                     <Route path="live" element={<Live />} />
                     <Route path="reports" element={<Reports />} />
+                    <Route path="note" element={<Note />} />
                     <Route path="settings" element={<Settings />} />
                     <Route path="user" element={<UserInfo />} />
                     <Route path="docs" element={<Documentation />} />
