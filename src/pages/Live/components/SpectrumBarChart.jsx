@@ -4,7 +4,6 @@ import {
     Label, ReferenceArea, Cell
 } from 'recharts';
 
-import { useSensorConfig } from '../../../context/SensorConfigContext.jsx';
 import palette from '../../../colorPalette';
 import spectralColors from '../../../spectralColors';
 import styles from './SpectrumBarChart.module.css';
@@ -51,8 +50,6 @@ const as7343BandMeta = [
 ];
 
 function SpectrumBarChart({ sensorData }) {
-    console.log('3- SPECTRUM DATA', sensorData);
-    const { sensorConfigs } = useSensorConfig();
 
     const { bandMeta, bandMap } = useMemo(() => {
         if (!sensorData) {

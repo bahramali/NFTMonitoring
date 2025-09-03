@@ -1,6 +1,5 @@
 import React from 'react';
 import styles from './NotesBlock.module.css';
-import { useSensorConfig } from '../../../context/SensorConfigContext.jsx';
 import {bandMap, knownFields} from '../../common/dashboard.constants.js';
 
 function NotesBlock({ mergedDevices = {} }) {

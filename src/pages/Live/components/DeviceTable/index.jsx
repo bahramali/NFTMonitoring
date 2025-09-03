@@ -1,7 +1,7 @@
 import React from 'react';
-import styles from './DeviceTable.module.css';
 import { useSensorConfig } from '../../../../context/SensorConfigContext.jsx';
 import spectralColors from '../../../../spectralColors';
+import styles from './DeviceTable.module.css';
 
 function getCellColor(value, range) {
     if (!range || typeof value !== 'number' || Number.isNaN(value)) return '';
