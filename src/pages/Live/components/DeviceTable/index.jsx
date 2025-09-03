@@ -12,6 +12,7 @@ function getCellColor(value, range) {
 }
 
 function DeviceTable({devices = {}}) {
+    const { sensorConfigs } = useSensorConfig();
     const compositeIds = Object.keys(devices);
     const allSensors = compositeIds.flatMap(id => devices[id].sensors || []);
     const measurementTypes = new Set();

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
+const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080';
+
 function Note() {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
@@ -8,7 +10,7 @@ function Note() {
     useEffect(() => {
         (async () => {
             try {
-                const res = await fetch('/api/notes');
+                const res = await fetch(`${API_BASE}/api/notes`);
                 if (res.ok) {
                     const data = await res.json();
                     setNotes(Array.isArray(data) ? data : []);
@@ -23,7 +25,7 @@ function Note() {
         e.preventDefault();
         const newNote = { title, content, date: new Date().toISOString() };
         try {
-            const res = await fetch('/api/notes', {
+            const res = await fetch(`${API_BASE}/api/notes`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newNote)
