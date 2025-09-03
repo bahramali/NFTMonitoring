@@ -6,7 +6,6 @@ import {
 
 import palette from '../../../colorPalette';
 import spectralColors from '../../../spectralColors';
-import { useSensorConfig } from '../../../context/SensorConfigContext.jsx';
 import styles from './SpectrumBarChart.module.css';
 import { useSensorConfig } from '../../../context/SensorConfigContext.jsx';
 
