@@ -1,33 +1,51 @@
-import configsData from '../data/sensorConfigs.json';
+// tests/mocks/sensorConfigApi.js
 import { vi } from 'vitest';
 
 export function mockSensorConfigApi() {
-  let configs = { ...configsData };
-  global.fetch = vi.fn(async (url, options = {}) => {
-    const method = (options.method || 'GET').toUpperCase();
-    const { pathname } = new URL(url, 'http://localhost');
-    if (pathname === '/api/sensor-config' && method === 'GET') {
-      return { ok: true, json: async () => configs };
-    }
-    if (pathname === '/api/sensor-config' && method === 'POST') {
-      const body = JSON.parse(options.body);
-      const { key, ...cfg } = body;
-      configs[key] = cfg;
-      return { ok: true, json: async () => cfg };
-    }
-    const match = pathname.match(/^\/api\/sensor-config\/([^/]+)$/);
-    if (match && method === 'PUT') {
-      const key = decodeURIComponent(match[1]);
-      const cfg = JSON.parse(options.body);
-      configs[key] = cfg;
-      return { ok: true, json: async () => cfg };
-    }
-    if (match && method === 'DELETE') {
-      const key = decodeURIComponent(match[1]);
-      delete configs[key];
-      return { ok: true, json: async () => ({}) };
-    }
-    return { ok: false, json: async () => ({}) };
+  // حالت ساده: در حافظه نگه می‌داریم
+  const db = {
+    temperature: { key: 'temperature', minValue: 20, maxValue: 30, description: '' },
+  };
+
+  const makeRes = (ok, status, body) => ({
+    ok,
+    status,
+    json: async () => body,
+    text: async () => (typeof body === 'string' ? body : JSON.stringify(body)),
   });
-  return { getConfigs: () => configs };
+
+  global.fetch = vi.fn(async (url, opts = {}) => {
+    const method = (opts.method || 'GET').toUpperCase();
+
+    if (url === '/api/sensor-config' && method === 'GET') {
+      return makeRes(true, 200, Object.values(db));
+    }
+
+    const m = url.match(/^\/api\/sensor-config\/([^/]+)$/);
+    if (m) {
+      const key = decodeURIComponent(m[1]);
+
+      if (method === 'POST') {
+        if (db[key]) return makeRes(false, 409, 'Duplicate key');
+        const p = JSON.parse(opts.body || '{}');
+        db[key] = { key, ...p };
+        return makeRes(true, 201, db[key]);
+      }
+
+      if (method === 'PUT') {
+        if (!db[key]) return makeRes(false, 404, 'Not found');
+        const p = JSON.parse(opts.body || '{}');
+        db[key] = { key, ...p };
+        return makeRes(true, 200, db[key]);
+      }
+
+      if (method === 'DELETE') {
+        if (!db[key]) return makeRes(false, 404, 'Not found');
+        delete db[key];
+        return makeRes(true, 204, '');
+      }
+    }
+
+    return makeRes(false, 404, 'Not mocked');
+  });
 }

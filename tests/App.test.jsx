@@ -1,9 +1,11 @@
 import React from 'react';
-import { render} from '@testing-library/react';
-import '@testing-library/jest-dom';
 import App from '../src/App';
+import { renderWithProviders } from './utils/renderWithProviders';
+import { mockSensorConfigApi } from './mocks/sensorConfigApi';
+
+beforeEach(() => { mockSensorConfigApi(); });
 
 test('renders App component', () => {
-    const { container } = render(<App />);
+    const { container } = renderWithProviders(<App />);
     expect(container).toBeDefined();
 });
