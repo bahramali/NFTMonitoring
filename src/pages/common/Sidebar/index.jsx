@@ -87,10 +87,6 @@ export default function Sidebar() {
                     <span className={styles.icon}>⚙️</span>
                     {!collapsed && <span className={styles.text}>Sensor Config</span>}
                 </NavLink>
-                <NavLink to="/docs" className={linkClass}>
-                    <span className={styles.icon}>📚</span>
-                    {!collapsed && <span className={styles.text}>Documentation</span>}
-                </NavLink>
             </nav>
 
             <div className={styles.divider}/>
