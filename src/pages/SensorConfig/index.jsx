@@ -20,29 +20,23 @@ function SensorConfig() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+  setMessage('');
+
         const {key, minValue, maxValue, description} = form;
 
-        // basic validations (frontend)
-        if (!editing && !key) {
-            setMessage('Key is required');
-            return;
-        }
-        if (minValue === '' || maxValue === '') {
-            setMessage('Min and max are required');
-            return;
+  // validate
+  const minNum = Number(minValue);
+  const maxNum = Number(maxValue);
+  if (!key || minValue === '' || maxValue === '' || !Number.isFinite(minNum) || !Number.isFinite(maxNum)) {
+    setMessage('Invalid config');
+    return; // *** مهم: ادامه نده ***
         }
 
-        // backend expects root-level minValue/maxValue (Double, NotNull)
-        const payload = {
-            minValue: Number(minValue),
-            maxValue: Number(maxValue),
-            description,
-        };
         try {
             if (editing) {
-                await updateConfig(editing, payload); // PUT/PATCH
+      await updateConfig(editing, { minValue: minNum, maxValue: maxNum, description });
             } else {
-                await createConfig(key, payload);     // POST
+      await createConfig(key, { minValue: minNum, maxValue: maxNum, description });
             }
             setMessage('Saved');
             resetForm();
