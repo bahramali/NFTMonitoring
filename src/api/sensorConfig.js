@@ -1,4 +1,4 @@
-const BASE_URL = '/api/sensor-configs';
+const BASE_URL = '/api/sensor-config';
 
 export async function getSensorConfigs() {
     const res = await fetch(BASE_URL);
