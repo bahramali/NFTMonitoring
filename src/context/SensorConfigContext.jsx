@@ -101,3 +101,4 @@ export function SensorConfigProvider({ children }) {
 export function useSensorConfig() {
     return useContext(SensorConfigContext);
 }
+
