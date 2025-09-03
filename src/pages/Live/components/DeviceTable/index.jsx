@@ -3,7 +3,6 @@ import { useSensorConfig } from '../../../../context/SensorConfigContext.jsx';
 import spectralColors from '../../../../spectralColors';
 import styles from './DeviceTable.module.css';
 
-
 function getCellColor(value, range) {
     if (!range || typeof value !== 'number' || Number.isNaN(value)) return '';
     if (value < range.min || value > range.max) return '#f8d7da';

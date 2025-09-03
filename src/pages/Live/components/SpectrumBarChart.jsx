@@ -52,8 +52,6 @@ const as7343BandMeta = [
 ];
 
 function SpectrumBarChart({ sensorData }) {
-    console.log('3- SPECTRUM DATA', sensorData);
-    const { sensorConfigs } = useSensorConfig();
 
     const { bandMeta, bandMap } = useMemo(() => {
         if (!sensorData) {
