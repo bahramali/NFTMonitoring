@@ -1,9 +1,10 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import DeviceTable from '../src/pages/Live/components/DeviceTable';
 import styles from '../src/pages/Live/components/DeviceTable/DeviceTable.module.css';
 import { SensorConfigProvider } from '../src/context/SensorConfigContext.jsx';
+import * as SensorConfigContext from '../src/context/SensorConfigContext.jsx';
 import { mockSensorConfigApi } from './mocks/sensorConfigApi.js';
 import { vi } from 'vitest';
 
@@ -86,4 +87,12 @@ test('shows green indicator when health keys are lowercase', () => {
   const { container } = renderWithProvider(<DeviceTable devices={devicesLower} />);
   const indicator = container.querySelector(`.${styles.indicator}`);
   expect(indicator).toHaveClass(styles.on);
+});
+
+test('uses sensor config hook only once per render', async () => {
+  const spy = vi.spyOn(SensorConfigContext, 'useSensorConfig');
+  renderWithProvider(<DeviceTable devices={devices} />);
+  await waitFor(() => {
+    expect(spy).toHaveBeenCalledTimes(2);
+  });
 });
