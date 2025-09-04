@@ -12,7 +12,7 @@ function getCellColor(value, range) {
 }
 
 function DeviceTable({devices = {}}) {
-    const { sensorConfigs } = useSensorConfig();
+    const { configs } = useSensorConfig();
     const compositeIds = Object.keys(devices);
     const allSensors = compositeIds.flatMap(id => devices[id].sensors || []);
     const measurementTypes = new Set();
@@ -56,7 +56,6 @@ function DeviceTable({devices = {}}) {
         );
     }
 
-    const { configs } = useSensorConfig();
     const rows = [...measurementTypes].map(measurementType => {
         const sensorModel = measurementToSensorModel[measurementType] || '-';
         const range = configs[measurementType]?.idealRange;
