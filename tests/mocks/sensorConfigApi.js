@@ -23,11 +23,11 @@ export function mockSensorConfigApi() {
     }
 
     if ((pathname === '/api/sensor-config' || pathname === '/api/sensor-config/') && method === 'POST') {
-      const p = JSON.parse(opts.body || '{}');
-      const key = p.sensorType;
+      const { sensorType, ...rest } = JSON.parse(opts.body || '{}');
+      const key = sensorType;
       if (!key) return makeRes(false, 400, 'Missing sensorType');
       if (db[key]) return makeRes(false, 409, 'Duplicate key');
-      db[key] = { sensorType: key, ...p };
+      db[key] = { sensorType: key, ...rest };
       return makeRes(true, 201, db[key]);
     }
 
@@ -37,8 +37,8 @@ export function mockSensorConfigApi() {
 
       if (method === 'PUT') {
         if (!db[key]) return makeRes(false, 404, 'Not found');
-        const p = JSON.parse(opts.body || '{}');
-        db[key] = { sensorType: key, ...p };
+        const { sensorType, ...rest } = JSON.parse(opts.body || '{}');
+        db[key] = { sensorType: key, ...rest };
         return makeRes(true, 200, db[key]);
       }
 
