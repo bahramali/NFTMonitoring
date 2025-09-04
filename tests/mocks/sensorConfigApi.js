@@ -4,7 +4,7 @@ import { vi } from 'vitest';
 export function mockSensorConfigApi() {
   // حالت ساده: در حافظه نگه می‌داریم
   const db = {
-    temperature: { sensor_type: 'temperature', minValue: 20, maxValue: 30, description: '' },
+    temperature: { sensorType: 'temperature', minValue: 20, maxValue: 30, description: '' },
   };
 
   const makeRes = (ok, status, body) => ({
@@ -24,10 +24,10 @@ export function mockSensorConfigApi() {
 
     if ((pathname === '/api/sensor-config' || pathname === '/api/sensor-config/') && method === 'POST') {
       const p = JSON.parse(opts.body || '{}');
-      const key = p.sensor_type;
-      if (!key) return makeRes(false, 400, 'Missing sensor_type');
+      const key = p.sensorType;
+      if (!key) return makeRes(false, 400, 'Missing sensorType');
       if (db[key]) return makeRes(false, 409, 'Duplicate key');
-      db[key] = { sensor_type: key, ...p };
+      db[key] = { sensorType: key, ...p };
       return makeRes(true, 201, db[key]);
     }
 
@@ -38,7 +38,7 @@ export function mockSensorConfigApi() {
       if (method === 'PUT') {
         if (!db[key]) return makeRes(false, 404, 'Not found');
         const p = JSON.parse(opts.body || '{}');
-        db[key] = { sensor_type: key, ...p };
+        db[key] = { sensorType: key, ...p };
         return makeRes(true, 200, db[key]);
       }
 
