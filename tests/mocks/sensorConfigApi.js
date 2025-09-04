@@ -4,7 +4,7 @@ import { vi } from 'vitest';
 export function mockSensorConfigApi() {
   // حالت ساده: در حافظه نگه می‌داریم
   const db = {
-    temperature: { key: 'temperature', minValue: 20, maxValue: 30, description: '' },
+    temperature: { sensor_type: 'temperature', minValue: 20, maxValue: 30, description: '' },
   };
 
   const makeRes = (ok, status, body) => ({
@@ -18,25 +18,27 @@ export function mockSensorConfigApi() {
     const method = (opts.method || 'GET').toUpperCase();
     const { pathname } = typeof url === 'string' ? new URL(url, 'https://api.hydroleaf.se') : url;
 
-    if (pathname === '/api/sensor-config' && method === 'GET') {
+    if ((pathname === '/api/sensor-config' || pathname === '/api/sensor-config/') && method === 'GET') {
       return makeRes(true, 200, Object.values(db));
+    }
+
+    if ((pathname === '/api/sensor-config' || pathname === '/api/sensor-config/') && method === 'POST') {
+      const p = JSON.parse(opts.body || '{}');
+      const key = p.sensor_type;
+      if (!key) return makeRes(false, 400, 'Missing sensor_type');
+      if (db[key]) return makeRes(false, 409, 'Duplicate key');
+      db[key] = { sensor_type: key, ...p };
+      return makeRes(true, 201, db[key]);
     }
 
     const m = pathname.match(/^\/api\/sensor-config\/([^/]+)$/);
     if (m) {
       const key = decodeURIComponent(m[1]);
 
-      if (method === 'POST') {
-        if (db[key]) return makeRes(false, 409, 'Duplicate key');
-        const p = JSON.parse(opts.body || '{}');
-        db[key] = { key, ...p };
-        return makeRes(true, 201, db[key]);
-      }
-
       if (method === 'PUT') {
         if (!db[key]) return makeRes(false, 404, 'Not found');
         const p = JSON.parse(opts.body || '{}');
-        db[key] = { key, ...p };
+        db[key] = { sensor_type: key, ...p };
         return makeRes(true, 200, db[key]);
       }
 

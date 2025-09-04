@@ -10,7 +10,7 @@ beforeEach(() => { mockSensorConfigApi(); });
 test('create a config (assert Saved)', async () => {
   renderWithProviders(<SensorConfig />);
 
-  fireEvent.change(screen.getByLabelText(/Key:/i), { target: { value: 'humidity' } });
+  fireEvent.change(screen.getByLabelText(/Sensor Type:/i), { target: { value: 'humidity' } });
   fireEvent.change(screen.getByLabelText(/Min:/i), { target: { value: '40' } });
   fireEvent.change(screen.getByLabelText(/Max:/i), { target: { value: '60' } });
   fireEvent.click(screen.getByRole('button', { name: /create/i }));
