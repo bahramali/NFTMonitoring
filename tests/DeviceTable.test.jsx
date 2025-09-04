@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import DeviceTable from '../src/pages/Live/components/DeviceTable';
 import styles from '../src/pages/Live/components/DeviceTable/DeviceTable.module.css';
@@ -67,6 +67,18 @@ test('renders sensor values with correct units', () => {
   expect(screen.getByText('22.5 °C')).toBeInTheDocument();
   expect(screen.getByText('800.0 ppm')).toBeInTheDocument();
   expect(screen.getByText('6.2')).toBeInTheDocument(); // Ph has no unit
+});
+
+test('displays configured min and max values', async () => {
+  renderWithProvider(<DeviceTable devices={devices} />);
+  const tempRow = screen.getByText('Temp').closest('tr');
+  const spectralRow = screen.getByText('415nm').closest('tr');
+  await waitFor(() => {
+    expect(within(tempRow).getByText('20')).toBeInTheDocument();
+    expect(within(tempRow).getByText('30')).toBeInTheDocument();
+    expect(within(spectralRow).getByText('0')).toBeInTheDocument();
+    expect(within(spectralRow).getByText('100')).toBeInTheDocument();
+  });
 });
 
 test('applies spectral background color to 415nm row', () => {

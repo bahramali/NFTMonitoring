@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 import SpectrumBarChart from '../src/pages/Live/components/SpectrumBarChart';
@@ -49,6 +49,22 @@ test('renders spectrum bar chart', () => {
     );
 
   expect(container.firstChild).toBeInTheDocument();
+});
+
+test('renders reference area when ideal range is provided', async () => {
+    const data = { F1: 50 };
+
+    const { container } = render(
+        <SensorConfigProvider>
+            <div style={{ width: 800, height: 400 }}>
+                <SpectrumBarChart sensorData={data} />
+            </div>
+        </SensorConfigProvider>
+    );
+
+    await waitFor(() => {
+        expect(container.querySelectorAll('.recharts-reference-area').length).toBe(1);
+    });
 });
 
 test('renders spectrum bar chart for as7343 data', () => {
