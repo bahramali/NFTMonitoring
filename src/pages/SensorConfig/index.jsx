@@ -5,12 +5,12 @@ export default function SensorConfigPage() {
     const { configs, error, createConfig, updateConfig, deleteConfig } = useSensorConfig();
 
     const [form, setForm] = useState({
-        key: '',
+        sensor_type: '',
         minValue: '',
         maxValue: '',
         description: '',
     });
-    const [editing, setEditing] = useState(null); // key being edited or null
+    const [editing, setEditing] = useState(null); // sensor_type being edited or null
     const [message, setMessage] = useState('');
 
     // Handle input changes
@@ -21,7 +21,7 @@ export default function SensorConfigPage() {
 
     const resetForm = () => {
         setEditing(null);
-        setForm({ key: '', minValue: '', maxValue: '', description: '' });
+        setForm({ sensor_type: '', minValue: '', maxValue: '', description: '' });
     };
 
     // Validate and submit
@@ -29,13 +29,13 @@ export default function SensorConfigPage() {
         e.preventDefault();
         setMessage('');
 
-        const key = form.key.trim();
+        const sensorType = form.sensor_type.trim();
         const minNum = Number(form.minValue);
         const maxNum = Number(form.maxValue);
         const description = form.description?.trim() || '';
 
         // Frontend validation
-        if ((!editing && !key) || form.minValue === '' || form.maxValue === '' || !Number.isFinite(minNum) || !Number.isFinite(maxNum)) {
+        if ((!editing && !sensorType) || form.minValue === '' || form.maxValue === '' || !Number.isFinite(minNum) || !Number.isFinite(maxNum)) {
             setMessage('Invalid config');
             return; // important: stop here
         }
@@ -46,7 +46,7 @@ export default function SensorConfigPage() {
             if (editing) {
                 await updateConfig(editing, payload);
             } else {
-                await createConfig(key, payload);
+                await createConfig(sensorType, payload);
             }
             setMessage('Saved');
             resetForm();
@@ -55,23 +55,23 @@ export default function SensorConfigPage() {
         }
     };
 
-    const startEdit = (key) => {
-        const cfg = configs[key] || {};
-        setEditing(key);
+    const startEdit = (sensorType) => {
+        const cfg = configs[sensorType] || {};
+        setEditing(sensorType);
         setForm({
-            key,
+            sensor_type: sensorType,
             minValue: cfg.minValue ?? '',
             maxValue: cfg.maxValue ?? '',
             description: cfg.description ?? '',
         });
     };
 
-    const handleDelete = async (key) => {
+    const handleDelete = async (sensorType) => {
         setMessage('');
         try {
-            await deleteConfig(key);
+            await deleteConfig(sensorType);
             setMessage('Deleted');
-            if (editing === key) resetForm();
+            if (editing === sensorType) resetForm();
         } catch (err) {
             setMessage(err.message || 'Failed to delete');
         }
@@ -87,10 +87,10 @@ export default function SensorConfigPage() {
             <form onSubmit={handleSubmit}>
                 <div>
                     <label>
-                        Key:
+                        Sensor Type:
                         <input
-                            name="key"
-                            value={form.key}
+                            name="sensor_type"
+                            value={form.sensor_type}
                             onChange={onChange}
                             disabled={Boolean(editing)}
                         />
@@ -143,7 +143,7 @@ export default function SensorConfigPage() {
             <table style={{ marginTop: 16, borderCollapse: 'collapse' }}>
                 <thead>
                 <tr>
-                    <th style={{ textAlign: 'left', paddingRight: 8 }}>Key</th>
+                    <th style={{ textAlign: 'left', paddingRight: 8 }}>Sensor Type</th>
                     <th style={{ textAlign: 'left', paddingRight: 8 }}>Min</th>
                     <th style={{ textAlign: 'left', paddingRight: 8 }}>Max</th>
                     <th style={{ textAlign: 'left', paddingRight: 8 }}>Description</th>
@@ -151,15 +151,15 @@ export default function SensorConfigPage() {
                 </tr>
                 </thead>
                 <tbody>
-                {Object.entries(configs).map(([key, cfg]) => (
-                    <tr key={key}>
-                        <td>{key}</td>
+                {Object.entries(configs).map(([sensorType, cfg]) => (
+                    <tr key={sensorType}>
+                        <td>{sensorType}</td>
                         <td>{cfg?.minValue}</td>
                         <td>{cfg?.maxValue}</td>
                         <td>{cfg?.description}</td>
                         <td>
-                            <button type="button" onClick={() => startEdit(key)}>Edit</button>
-                            <button type="button" onClick={() => handleDelete(key)} style={{ marginLeft: 8 }}>
+                            <button type="button" onClick={() => startEdit(sensorType)}>Edit</button>
+                            <button type="button" onClick={() => handleDelete(sensorType)} style={{ marginLeft: 8 }}>
                                 Delete
                             </button>
                         </td>

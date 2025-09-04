@@ -22,35 +22,37 @@ export function SensorConfigProvider({ children }) {
             const res = await fetch(`${API_BASE}/api/sensor-config`);
             if (!res.ok) throw new Error(await safeError(res));
             const data = await res.json();
-            const map = (Array.isArray(data) ? data : []).reduce((m, x) => (m[x.key] = x, m), {});
+            const map = (Array.isArray(data) ? data : []).reduce((m, x) => (m[x.sensor_type] = x, m), {});
             setConfigs(map);
         } catch (e) { setError(e.message || 'Failed to load sensor configs'); }
     }
 
-    async function createConfig(key, payload) {
-        const res = await fetch(`${API_BASE}/api/sensor-config/${encodeURIComponent(key)}`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+    async function createConfig(sensor_type, payload) {
+        const res = await fetch(`${API_BASE}/api/sensor-config/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sensor_type, ...payload }),
         });
         if (!res.ok) throw new Error(await safeError(res));
         const saved = await res.json();
-        setConfigs(prev => ({ ...prev, [saved.key]: saved }));
+        setConfigs(prev => ({ ...prev, [saved.sensor_type]: saved }));
         return saved;
     }
 
-    async function updateConfig(key, payload) {
-        const res = await fetch(`${API_BASE}/api/sensor-config/${encodeURIComponent(key)}`, {
+    async function updateConfig(sensor_type, payload) {
+        const res = await fetch(`${API_BASE}/api/sensor-config/${encodeURIComponent(sensor_type)}`, {
             method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error(await safeError(res));
         const saved = await res.json();
-        setConfigs(prev => ({ ...prev, [key]: saved }));
+        setConfigs(prev => ({ ...prev, [sensor_type]: saved }));
         return saved;
     }
 
-    async function deleteConfig(key) {
-        const res = await fetch(`${API_BASE}/api/sensor-config/${encodeURIComponent(key)}`, { method: 'DELETE' });
+    async function deleteConfig(sensor_type) {
+        const res = await fetch(`${API_BASE}/api/sensor-config/${encodeURIComponent(sensor_type)}`, { method: 'DELETE' });
         if (!res.ok) throw new Error(await safeError(res));
-        setConfigs(prev => { const c = { ...prev }; delete c[key]; return c; });
+        setConfigs(prev => { const c = { ...prev }; delete c[sensor_type]; return c; });
     }
 
     return (
