@@ -2,7 +2,7 @@ import React from 'react';
 import SensorConfig from '../src/pages/SensorConfig';
 import { renderWithProviders } from './utils/renderWithProviders';
 import { mockSensorConfigApi } from './mocks/sensorConfigApi';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 beforeEach(() => { mockSensorConfigApi(); });
@@ -39,7 +39,8 @@ test('create a config (assert Saved)', async () => {
 test('update a config (assert Saved)', async () => {
   renderWithProviders(<SensorConfig />);
 
-  const edit = await screen.findByRole('button', { name: /edit/i });
+  const row = (await screen.findByText('temperature', { selector: 'td' })).closest('tr');
+  const edit = within(row).getByRole('button', { name: /edit/i });
   fireEvent.click(edit);
   fireEvent.change(screen.getByLabelText(/Min:/i), {
     target: { name: 'minValue', value: '15' },
