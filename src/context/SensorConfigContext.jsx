@@ -8,6 +8,17 @@ import {
 
 const Ctx = createContext(null);
 
+function normalizeConfig(raw) {
+    const key = raw?.sensorType ?? raw?.sensor_type;
+    if (!key) return null;
+    const min = raw?.idealRange?.min ?? raw?.min ?? raw?.minValue ?? raw?.min_value;
+    const max = raw?.idealRange?.max ?? raw?.max ?? raw?.maxValue ?? raw?.max_value;
+    const idealRange =
+        raw?.idealRange ||
+        (min !== undefined || max !== undefined ? { min, max } : undefined);
+    return { ...raw, sensorType: key, idealRange };
+}
+
 export function SensorConfigProvider({ children }) {
     const [configs, setConfigs] = useState({});
     const [error, setError] = useState('');
@@ -19,8 +30,8 @@ export function SensorConfigProvider({ children }) {
             setError('');
             const data = await getSensorConfigs();
             const map = (Array.isArray(data) ? data : []).reduce((m, x) => {
-                const key = x.sensorType ?? x.sensor_type;
-                if (key) m[key] = { ...x, sensorType: key };
+                const cfg = normalizeConfig(x);
+                if (cfg) m[cfg.sensorType] = cfg;
                 return m;
             }, {});
             setConfigs(map);
@@ -30,9 +41,11 @@ export function SensorConfigProvider({ children }) {
     async function createConfig(sensorType, payload) {
         try {
             setError('');
-            const saved = await createSensorConfig({ sensorType, ...payload });
-            const key = saved.sensorType ?? saved.sensor_type ?? sensorType;
-            setConfigs(prev => ({ ...prev, [key]: { ...saved, sensorType: key } }));
+            const saved = normalizeConfig(
+                await createSensorConfig({ sensorType, ...payload })
+            );
+            const key = saved?.sensorType ?? sensorType;
+            setConfigs(prev => ({ ...prev, [key]: saved }));
             return saved;
         } catch (e) {
             setError(e.message || 'Failed to create sensor config');
@@ -43,9 +56,11 @@ export function SensorConfigProvider({ children }) {
     async function updateConfig(sensorType, payload) {
         try {
             setError('');
-            const saved = await updateSensorConfig(sensorType, payload);
-            const key = saved.sensorType ?? saved.sensor_type ?? sensorType;
-            setConfigs(prev => ({ ...prev, [key]: { ...saved, sensorType: key } }));
+            const saved = normalizeConfig(
+                await updateSensorConfig(sensorType, payload)
+            );
+            const key = saved?.sensorType ?? sensorType;
+            setConfigs(prev => ({ ...prev, [key]: saved }));
             return saved;
         } catch (e) {
             setError(e.message || 'Failed to update sensor config');
