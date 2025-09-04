@@ -5,12 +5,12 @@ export default function SensorConfigPage() {
     const { configs, error, createConfig, updateConfig, deleteConfig } = useSensorConfig();
 
     const [form, setForm] = useState({
-        sensor_type: '',
+        sensorType: '',
         minValue: '',
         maxValue: '',
         description: '',
     });
-    const [editing, setEditing] = useState(null); // sensor_type being edited or null
+    const [editing, setEditing] = useState(null); // sensorType being edited or null
     const [message, setMessage] = useState('');
 
     // Handle input changes
@@ -21,7 +21,7 @@ export default function SensorConfigPage() {
 
     const resetForm = () => {
         setEditing(null);
-        setForm({ sensor_type: '', minValue: '', maxValue: '', description: '' });
+        setForm({ sensorType: '', minValue: '', maxValue: '', description: '' });
     };
 
     // Validate and submit
@@ -29,7 +29,7 @@ export default function SensorConfigPage() {
         e.preventDefault();
         setMessage('');
 
-        const sensorType = form.sensor_type.trim();
+        const sensorType = form.sensorType.trim();
         const minNum = Number(form.minValue);
         const maxNum = Number(form.maxValue);
         const description = form.description?.trim() || '';
@@ -59,7 +59,7 @@ export default function SensorConfigPage() {
         const cfg = configs[sensorType] || {};
         setEditing(sensorType);
         setForm({
-            sensor_type: sensorType,
+            sensorType,
             minValue: cfg.minValue ?? '',
             maxValue: cfg.maxValue ?? '',
             description: cfg.description ?? '',
@@ -89,8 +89,8 @@ export default function SensorConfigPage() {
                     <label>
                         Sensor Type:
                         <input
-                            name="sensor_type"
-                            value={form.sensor_type}
+                            name="sensorType"
+                            value={form.sensorType}
                             onChange={onChange}
                             disabled={Boolean(editing)}
                         />
@@ -151,21 +151,21 @@ export default function SensorConfigPage() {
                 </tr>
                 </thead>
                 <tbody>
-                {Object.entries(configs).map(([sensorType, cfg]) => (
-                    <tr key={sensorType}>
-                        <td>{sensorType}</td>
+                {Object.values(configs).map((cfg) => (
+                    <tr key={cfg.sensorType}>
+                        <td>{cfg.sensorType}</td>
                         <td>{cfg?.minValue}</td>
                         <td>{cfg?.maxValue}</td>
                         <td>{cfg?.description}</td>
                         <td>
-                            <button type="button" onClick={() => startEdit(sensorType)}>Edit</button>
-                            <button type="button" onClick={() => handleDelete(sensorType)} style={{ marginLeft: 8 }}>
+                            <button type="button" onClick={() => startEdit(cfg.sensorType)}>Edit</button>
+                            <button type="button" onClick={() => handleDelete(cfg.sensorType)} style={{ marginLeft: 8 }}>
                                 Delete
                             </button>
                         </td>
                     </tr>
                 ))}
-                {Object.keys(configs).length === 0 && (
+                {Object.values(configs).length === 0 && (
                     <tr>
                         <td colSpan={5} style={{ opacity: 0.7 }}>No configs</td>
                     </tr>
