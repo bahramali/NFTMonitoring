@@ -10,12 +10,30 @@ beforeEach(() => { mockSensorConfigApi(); });
 test('create a config (assert Saved)', async () => {
   renderWithProviders(<SensorConfig />);
 
-  fireEvent.change(screen.getByLabelText(/Sensor Type:/i), { target: { value: 'humidity' } });
-  fireEvent.change(screen.getByLabelText(/Min:/i), { target: { value: '40' } });
-  fireEvent.change(screen.getByLabelText(/Max:/i), { target: { value: '60' } });
+  fireEvent.change(screen.getByLabelText(/Sensor Type:/i), {
+    target: { value: 'humidity' },
+  });
+  fireEvent.change(screen.getByLabelText(/Min:/i), {
+    target: { name: 'minValue', value: '40' },
+  });
+  fireEvent.change(screen.getByLabelText(/Max:/i), {
+    target: { name: 'maxValue', value: '60' },
+  });
   fireEvent.click(screen.getByRole('button', { name: /create/i }));
 
   expect(await screen.findByText(/saved/i)).toBeInTheDocument();
+  expect(global.fetch).toHaveBeenCalledWith(
+    expect.stringContaining('/api/sensor-config'),
+    expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({
+        sensorType: 'humidity',
+        minValue: 40,
+        maxValue: 60,
+        description: '',
+      }),
+    }),
+  );
 });
 
 test('update a config (assert Saved)', async () => {
@@ -23,9 +41,20 @@ test('update a config (assert Saved)', async () => {
 
   const edit = await screen.findByRole('button', { name: /edit/i });
   fireEvent.click(edit);
-  fireEvent.change(screen.getByLabelText(/Min:/i), { target: { value: '15' } });
-  fireEvent.change(screen.getByLabelText(/Max:/i), { target: { value: '30' } });
+  fireEvent.change(screen.getByLabelText(/Min:/i), {
+    target: { name: 'minValue', value: '15' },
+  });
+  fireEvent.change(screen.getByLabelText(/Max:/i), {
+    target: { name: 'maxValue', value: '30' },
+  });
   fireEvent.click(screen.getByRole('button', { name: /update/i }));
 
   expect(await screen.findByText(/saved/i)).toBeInTheDocument();
+  expect(global.fetch).toHaveBeenCalledWith(
+    expect.stringContaining('/api/sensor-config/temperature'),
+    expect.objectContaining({
+      method: 'PUT',
+      body: JSON.stringify({ minValue: 15, maxValue: 30, description: '' }),
+    }),
+  );
 });
