@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import styles from "./Sidebar.module.css";
-import { useFilters, ALL } from "../../../context/FiltersContext.jsx";
 
 export default function Sidebar() {
     const [collapsed, setCollapsed] = useState(() => window.innerWidth < 768);
-    const { device, layer, system, topic, setDevice, setLayer, setSystem, setTopic, lists } = useFilters();
 
     useEffect(() => {
         const handleResize = () => {
@@ -19,39 +17,6 @@ export default function Sidebar() {
 
     const linkClass = ({ isActive }) =>
         `${styles.menuItem} ${isActive ? styles.active : ""}`;
-
-    const CheckboxGroup = ({ title, list, value, onChange }) => (
-        <div className={styles.filterGroup}>
-            {!collapsed && <div className={styles.filterLabel}>{title}</div>}
-
-            {!collapsed && (
-                <div className={styles.dropdown}>
-                    <label className={`${styles.option} ${value === ALL ? styles.selected : ""}`}>
-                        <input
-                            type="checkbox"
-                            checked={value === ALL}
-                            onChange={() => onChange(ALL)}
-                        />
-                        All
-                    </label>
-
-                    {list.map((item) => (
-                        <label
-                            key={item}
-                            className={`${styles.option} ${value === item ? styles.selected : ""}`}
-                        >
-                            <input
-                                type="checkbox"
-                                checked={value === item}
-                                onChange={() => onChange(value === item ? ALL : item)}
-                            />
-                            {item}
-                        </label>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
 
     return (
         <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ""}`}>
@@ -89,17 +54,6 @@ export default function Sidebar() {
                 </NavLink>
             </nav>
 
-            <div className={styles.divider}/>
-
-            {/* Application filters */}
-            <section className={styles.filters}>
-                {!collapsed && <div className={styles.filtersTitle}>Application filters</div>}
-
-                <CheckboxGroup title="Topic" list={lists.topics} value={topic} onChange={setTopic} />
-                <CheckboxGroup title="Composite ID" list={lists.devices} value={device} onChange={setDevice} />
-                <CheckboxGroup title="Layer" list={lists.layers} value={layer} onChange={setLayer} />
-                <CheckboxGroup title="System" list={lists.systems} value={system} onChange={setSystem} />
-            </section>
         </aside>
     );
 }

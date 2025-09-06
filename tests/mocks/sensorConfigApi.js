@@ -46,7 +46,7 @@ export function mockSensorConfigApi() {
 
       if (method === 'PUT') {
         if (!db[key]) return makeRes(false, 404, 'Not found');
-        const { sensorType, ...rest } = JSON.parse(opts.body || '{}');
+        const { sensorType: _sensorType, ...rest } = JSON.parse(opts.body || '{}');
         db[key] = { sensorType: key, ...rest };
         return makeRes(true, 200, withIdealRange(db[key]));
       }
