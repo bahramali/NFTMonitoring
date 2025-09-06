@@ -4,19 +4,6 @@ import { vi } from 'vitest';
 import '@testing-library/jest-dom';
 vi.mock('../src/pages/Reports', () => ({ default: () => <div>Reports Page</div> }));
 
-vi.mock('../src/context/FiltersContext', () => ({
-  FiltersProvider: ({ children }) => <div>{children}</div>,
-  useFilters: () => ({
-    device: 'ALL',
-    layer: 'ALL',
-    system: 'ALL',
-    topic: 'ALL',
-    setLists: () => {},
-    lists: { topics: [], devices: [], layers: [], systems: [] },
-  }),
-  ALL: 'ALL',
-}));
-
 vi.stubEnv('BASE_URL', '/NFTMonitoring/');
 
 import App from '../src/App';
