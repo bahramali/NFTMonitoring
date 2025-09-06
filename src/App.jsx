@@ -7,9 +7,6 @@ import Reports from './pages/Reports';
 import UserInfo from './pages/UserInfo';
 import SensorConfig from './pages/SensorConfig';
 import Note from './pages/Note';
-import Device from './pages/filters/Device';
-import Layer from './pages/filters/Layer';
-import System from './pages/filters/System';
 
 function App() {
     const rawBase = import.meta?.env?.BASE_URL || '/';
@@ -25,9 +22,6 @@ function App() {
                     <Route path="note" element={<Note />} />
                     <Route path="user" element={<UserInfo />} />
                     <Route path="sensor-config" element={<SensorConfig />} />
-                    <Route path="filters/device" element={<Device />} />
-                    <Route path="filters/layer" element={<Layer />} />
-                    <Route path="filters/system" element={<System />} />
                 </Route>
             </Routes>
         </BrowserRouter>
