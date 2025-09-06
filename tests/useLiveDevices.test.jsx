@@ -15,7 +15,7 @@ vi.mock('../src/hooks/useStomp', () => ({
 
 test('stores sensor data and actuator controllers per composite device', () => {
   const { result } = renderHook(() =>
-    useLiveDevices([SENSOR_TOPIC, 'actuator/oxygenPump'], 'S01')
+    useLiveDevices([SENSOR_TOPIC, 'actuator/oxygenPump'])
   );
 
   act(() => {
@@ -39,8 +39,38 @@ test('stores sensor data and actuator controllers per composite device', () => {
   ).toEqual(oxyPayload.controllers[0]);
 });
 
+test('aggregates devices across multiple systems', () => {
+  const { result } = renderHook(() => useLiveDevices([SENSOR_TOPIC]));
+
+  act(() => {
+    global.__stompHandler(SENSOR_TOPIC, {
+      deviceId: 'G01',
+      layer: 'L01',
+      system: 'S01',
+      sensors: [{ sensorType: 'temperature', value: 20 }]
+    });
+  });
+
+  act(() => {
+    global.__stompHandler(SENSOR_TOPIC, {
+      deviceId: 'G02',
+      layer: 'L02',
+      system: 'S02',
+      sensors: [
+        { sensorType: 'temperature', value: 25 },
+        { sensorType: 'humidity', value: 50 }
+      ]
+    });
+  });
+
+  expect(result.current.availableCompositeIds).toEqual(
+    expect.arrayContaining(['L01G01', 'L02G02'])
+  );
+  expect(result.current.sensorData['L02G02'].temperature.value).toBe(25);
+});
+
 test('merges controllers from multiple topics', () => {
-  const { result } = renderHook(() => useLiveDevices([SENSOR_TOPIC, 'waterOutput'], 'S01'));
+  const { result } = renderHook(() => useLiveDevices([SENSOR_TOPIC, 'waterOutput']));
 
   act(() => {
     global.__stompHandler(SENSOR_TOPIC, {
@@ -79,7 +109,7 @@ test('merges controllers from multiple topics', () => {
 
 test('handles actuator payloads with JSON payload and merges controllers', () => {
   const { result } = renderHook(() =>
-    useLiveDevices([SENSOR_TOPIC, 'actuator/oxygenPump'], 'S01')
+    useLiveDevices([SENSOR_TOPIC, 'actuator/oxygenPump'])
   );
 
   act(() => {
@@ -122,7 +152,7 @@ test('handles actuator payloads with JSON payload and merges controllers', () =>
 });
 
 test('uses provided compositeId when present', () => {
-  const { result } = renderHook(() => useLiveDevices([SENSOR_TOPIC], 'S01'));
+  const { result } = renderHook(() => useLiveDevices([SENSOR_TOPIC]));
 
   act(() => {
     global.__stompHandler(SENSOR_TOPIC, {
@@ -142,7 +172,7 @@ test('uses provided compositeId when present', () => {
 });
 
 test('constructs compositeId from object layer field', () => {
-  const { result } = renderHook(() => useLiveDevices([SENSOR_TOPIC], 'S01'));
+  const { result } = renderHook(() => useLiveDevices([SENSOR_TOPIC]));
 
   act(() => {
     global.__stompHandler(SENSOR_TOPIC, {
