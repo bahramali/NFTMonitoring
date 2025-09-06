@@ -86,6 +86,7 @@ export function SensorConfigProvider({ children }) {
     );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSensorConfig() {
     const v = useContext(Ctx);
     if (!v) throw new Error('useSensorConfig must be used inside SensorConfigProvider');
