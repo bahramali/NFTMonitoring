@@ -7,6 +7,7 @@ import styles from "./DashboardV2.module.css";
 import { useSensorConfig } from "../../../context/SensorConfigContext.jsx";
 import useWaterCompositeCards from "./useWaterCompositeCards.js";
 import { useStomp } from "../../../hooks/useStomp";
+import Header from "../../common/Header";
 
 // utils
 import {
@@ -209,6 +210,7 @@ export default function DashboardV2() {
 
     return (
         <div className={styles.page}>
+            <Header title="Dashboard" />
             {(!systems.length || !active) ? (
                 <div>Waiting for data…</div>
                 ) : (

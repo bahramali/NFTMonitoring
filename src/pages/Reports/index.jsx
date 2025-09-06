@@ -2,6 +2,7 @@ import React, {useEffect, useMemo, useRef, useState} from "react";
 import ReportCharts from "./components/ReportCharts";
 import ReportFiltersCompare from "./components/ReportFiltersCompare";
 import {transformAggregatedData} from "../../utils.js";
+import Header from "../common/Header";
 
 // helpers
 const toCID = (d) => `${d.systemId}-${d.layerId}-${d.deviceId}`;
@@ -226,7 +227,9 @@ export default function Reports() {
     const selectedDeviceLabel = selectedCIDs.length === 1 ? selectedCIDs[0] : "";
 
     return (
-        <div style={{padding: 16}}>
+        <div>
+            <Header title="Reports" />
+            <div style={{padding: 16}}>
             <ReportFiltersCompare
                 fromDate={fromDate}
                 toDate={toDate}
@@ -289,6 +292,7 @@ export default function Reports() {
                     }}
                     xDomain={xDomain}
                 />
+            </div>
             </div>
         </div>
     );

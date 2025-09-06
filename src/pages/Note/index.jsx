@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Header from "../common/Header";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080';
 
@@ -42,34 +43,36 @@ function Note() {
     };
 
     return (
-        <div style={{ padding: '1rem' }}>
-            <h2>Daily Notes</h2>
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxWidth: '400px' }}>
-                <input
-                    type="text"
-                    placeholder="Title"
-                    value={title}
-                    onChange={e => setTitle(e.target.value)}
-                    required
-                />
-                <textarea
-                    placeholder="Write your note..."
-                    value={content}
-                    onChange={e => setContent(e.target.value)}
-                    rows={4}
-                    required
-                />
-                <button type="submit">Save</button>
-            </form>
+        <div>
+            <Header title="Daily Notes" />
+            <div style={{ padding: '1rem' }}>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxWidth: '400px' }}>
+                    <input
+                        type="text"
+                        placeholder="Title"
+                        value={title}
+                        onChange={e => setTitle(e.target.value)}
+                        required
+                    />
+                    <textarea
+                        placeholder="Write your note..."
+                        value={content}
+                        onChange={e => setContent(e.target.value)}
+                        rows={4}
+                        required
+                    />
+                    <button type="submit">Save</button>
+                </form>
 
-            <div style={{ marginTop: '1rem' }}>
-                {notes.map((note, idx) => (
-                    <div key={note.id ?? idx} style={{ border: '1px solid #ccc', padding: '0.5rem', marginBottom: '0.5rem' }}>
-                        <strong>{note.title}</strong>
-                        <p>{note.content}</p>
-                        <small>{new Date(note.date).toLocaleString()}</small>
-                    </div>
-                ))}
+                <div style={{ marginTop: '1rem' }}>
+                    {notes.map((note, idx) => (
+                        <div key={note.id ?? idx} style={{ border: '1px solid #ccc', padding: '0.5rem', marginBottom: '0.5rem' }}>
+                            <strong>{note.title}</strong>
+                            <p>{note.content}</p>
+                            <small>{new Date(note.date).toLocaleString()}</small>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     );

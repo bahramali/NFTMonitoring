@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from "react";
 import { useSensorConfig } from "../../context/SensorConfigContext.jsx";
 import styles from "./SensorConfigPage.module.css";
+import Header from "../common/Header";
 
 export default function SensorConfigPage() {
     const { configs, error, createConfig, updateConfig, deleteConfig } = useSensorConfig();
@@ -170,7 +171,7 @@ export default function SensorConfigPage() {
 
     return (
         <div className={styles.page}>
-            <h1 className={styles.title}>Sensor Config</h1>
+            <Header title="Sensor Config" />
 
             {error && <div role="alert" className={styles.alert}>{error}</div>}
             {message && <div role="status" className={styles.status}>{message}</div>}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSensorConfig } from '../../context/SensorConfigContext.jsx';
+import Header from "../common/Header";
 
 function Documentation() {
     const { configs, error, loading } = useSensorConfig();
@@ -18,10 +19,11 @@ function Documentation() {
 
     return (
         <div>
-            <h1>Ideal Ranges</h1>
+            <Header title="Documentation" />
+            <h2>Ideal Ranges</h2>
             {Object.entries(configs).map(([key, value]) => (
                 <section key={key}>
-                    <h2>{key}</h2>
+                    <h3>{key}</h3>
                     <p>{value.description}</p>
                     {value.idealRange && (
                         <p>
