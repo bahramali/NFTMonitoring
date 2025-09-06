@@ -5,7 +5,8 @@ import { useLiveDevices } from "../../../common/useLiveDevices.js";
 import styles from "./SensorDashboard.module.css";
 import Live from "../Live";
 import {SENSOR_TOPIC, topics} from "../../../common/dashboard.constants.js";
-import {useFilters, ALL} from "../../../../context/FiltersContext";
+
+const ALL = "ALL";
 
 function SensorDashboard({ view, title = '' }) {
     const [activeSystem, setActiveSystem] = useState("S01");
@@ -13,14 +14,10 @@ function SensorDashboard({ view, title = '' }) {
 
     const [selectedDevice, setSelectedDevice] = useState("");
 
-    // Filters from the sidebar
-    const {
-        device: devFilter,
-        layer: layerFilter,
-        system: sysFilter,
-        topic: topicFilter,
-        setLists,
-    } = useFilters();
+    const devFilter = ALL;
+    const layerFilter = ALL;
+    const sysFilter = ALL;
+    const topicFilter = ALL;
 
     // Topics for the currently active system across all topic streams
     const activeSystemTopics = deviceData[activeSystem] || {};
@@ -53,29 +50,7 @@ function SensorDashboard({ view, title = '' }) {
         );
     }, [deviceData]);
 
-    // 2) Populate sidebar lists (Device / Layer / System)
-    useEffect(() => {
-        const devices = Object.keys(deviceMeta);
-        const layers = Array.from(
-            new Set(Object.values(deviceMeta).map((m) => m.layer).filter(Boolean))
-        );
-        const systems = Object.keys(deviceData || {});
-        const topicsList = Array.from(
-            new Set(
-                Object.values(deviceData || {}).flatMap((sys) => Object.keys(sys || {}))
-            )
-        );
-        setLists({devices, layers, systems, topics: topicsList});
-    }, [deviceMeta, deviceData, setLists]);
-
-    // 3) Keep activeSystem in sync with the System filter
-    useEffect(() => {
-        if (sysFilter !== ALL && sysFilter !== activeSystem) {
-            setActiveSystem(sysFilter);
-        }
-    }, [sysFilter, activeSystem]);
-
-    // 4) Filter available device IDs based on all active filters
+    // 2) Filter available device IDs based on all active filters
     const filteredCompositeIds = useMemo(() => {
         return availableCompositeIds.filter((compositeId) => {
             const meta = deviceMeta[compositeId] || {};
@@ -87,7 +62,7 @@ function SensorDashboard({ view, title = '' }) {
         });
     }, [availableCompositeIds, deviceMeta, devFilter, layerFilter, sysFilter, topicFilter]);
 
-    // 5) Filter topics for live tables based on filtered devices
+    // 3) Filter topics for live tables based on filtered devices
     const filteredSystemTopics = useMemo(() => {
         const out = {};
         for (const [topic, devs] of Object.entries(activeSystemTopics || {})) {
@@ -101,7 +76,7 @@ function SensorDashboard({ view, title = '' }) {
         return out;
     }, [activeSystemTopics, filteredCompositeIds, topicFilter]);
 
-    // 6) Ensure selectedDevice remains valid after filters change
+    // 4) Ensure selectedDevice remains valid after filters change
     useEffect(() => {
         if (filteredCompositeIds.length && !filteredCompositeIds.includes(selectedDevice)) {
             setSelectedDevice(filteredCompositeIds[0]);

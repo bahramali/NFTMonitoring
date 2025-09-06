@@ -13,15 +13,12 @@ vi.mock('react-router-dom', () => ({
 
 import { MemoryRouter } from 'react-router-dom';
 import Sidebar from '../src/pages/common/Sidebar';
-import { FiltersProvider } from '../src/context/FiltersContext';
 
 test('renders Live link', () => {
     render(
-        <FiltersProvider>
-            <MemoryRouter>
-                <Sidebar />
-            </MemoryRouter>
-        </FiltersProvider>
+        <MemoryRouter>
+            <Sidebar />
+        </MemoryRouter>
     );
 
     const liveLink = screen.getByRole('link', { name: /live/i });
@@ -31,11 +28,9 @@ test('renders Live link', () => {
 
 test('renders Note link', () => {
     render(
-        <FiltersProvider>
-            <MemoryRouter>
-                <Sidebar />
-            </MemoryRouter>
-        </FiltersProvider>
+        <MemoryRouter>
+            <Sidebar />
+        </MemoryRouter>
     );
 
     const noteLink = screen.getByRole('link', { name: /note/i });
