@@ -1,5 +1,5 @@
 // SensorDashboard.jsx
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import Header from "../../../common/Header";
 import { useLiveDevices } from "../../../common/useLiveDevices.js";
 import styles from "./SensorDashboard.module.css";
@@ -7,18 +7,25 @@ import Live from "../Live";
 import {SENSOR_TOPIC, topics} from "../../../common/dashboard.constants.js";
 
 function SensorDashboard({ view, title = '' }) {
-    const activeSystem = "S01";
-    const {deviceData, sensorData, availableCompositeIds, mergedDevices} = useLiveDevices(topics, activeSystem);
+    const {deviceData, sensorData, availableCompositeIds, mergedDevices} = useLiveDevices(topics);
 
     const [selectedDevice, setSelectedDevice] = useState("");
 
-    // Topics for the currently active system across all topic streams
-    const activeSystemTopics = deviceData[activeSystem] || {};
-    const sensorTopicDevices = activeSystemTopics[SENSOR_TOPIC] || {};
+    // Merge topics from all systems
+    const aggregatedTopics = useMemo(() => {
+        const allTopics = {};
+        for (const sysTopics of Object.values(deviceData)) {
+            for (const [topic, devices] of Object.entries(sysTopics)) {
+                allTopics[topic] = { ...(allTopics[topic] || {}), ...devices };
+            }
+        }
+        return allTopics;
+    }, [deviceData]);
+    const sensorTopicDevices = aggregatedTopics[SENSOR_TOPIC] || {};
 
     // Show all available device IDs and topics
     const filteredCompositeIds = availableCompositeIds;
-    const filteredSystemTopics = activeSystemTopics;
+    const filteredSystemTopics = aggregatedTopics;
 
     // Ensure selectedDevice remains valid after device list changes
     useEffect(() => {

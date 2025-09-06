@@ -17,7 +17,7 @@ function mergeControllers(a = [], b = []) {
     return Array.from(map.values());
 }
 
-export function useLiveDevices(topics, activeSystem) {
+export function useLiveDevices(topics) {
     const [deviceData, setDeviceData] = useState({});
     const [sensorData, setSensorData] = useState({});
 
@@ -63,31 +63,33 @@ export function useLiveDevices(topics, activeSystem) {
     useStomp(topics, handleStompMessage);
 
     const availableCompositeIds = useMemo(() => {
-        const sysData = deviceData[activeSystem] || {};
         const ids = new Set();
-        for (const topicDevices of Object.values(sysData)) {
-            for (const cid of Object.keys(topicDevices)) {
-                ids.add(cid);
+        for (const sysData of Object.values(deviceData)) {
+            for (const topicDevices of Object.values(sysData)) {
+                for (const cid of Object.keys(topicDevices)) {
+                    ids.add(cid);
+                }
             }
         }
         return Array.from(ids);
-    }, [deviceData, activeSystem]);
+    }, [deviceData]);
 
     const mergedDevices = useMemo(() => {
-        const sysData = deviceData[activeSystem] || {};
         const combined = {};
-        for (const topicKey of Object.keys(sysData)) {
-            for (const [cid, data] of Object.entries(sysData[topicKey])) {
-                const existing = combined[cid] || {};
-                combined[cid] = {
-                    ...existing,
-                    ...data,
-                    controllers: mergeControllers(existing.controllers, data.controllers)
-                };
+        for (const sysData of Object.values(deviceData)) {
+            for (const topicKey of Object.keys(sysData)) {
+                for (const [cid, data] of Object.entries(sysData[topicKey])) {
+                    const existing = combined[cid] || {};
+                    combined[cid] = {
+                        ...existing,
+                        ...data,
+                        controllers: mergeControllers(existing.controllers, data.controllers)
+                    };
+                }
             }
         }
         return combined;
-    }, [deviceData, activeSystem]);
+    }, [deviceData]);
 
     return {deviceData, sensorData, availableCompositeIds, mergedDevices};
 }
