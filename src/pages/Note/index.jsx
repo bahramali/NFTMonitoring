@@ -7,17 +7,19 @@ function Note() {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [notes, setNotes] = useState([]);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         (async () => {
             try {
                 const res = await fetch(`${API_BASE}/api/notes`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setNotes(Array.isArray(data) ? data : []);
-                }
+                if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+                const data = await res.json();
+                setNotes(Array.isArray(data) ? data : []);
+                setError('');
             } catch (e) {
                 console.error(e);
+                setError('Failed to load notes. Please try again later.');
             }
         })();
     }, []);
@@ -31,14 +33,15 @@ function Note() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newNote)
             });
-            if (res.ok) {
-                const saved = await res.json().catch(() => newNote);
-                setNotes(prev => [saved, ...prev]);
-                setTitle('');
-                setContent('');
-            }
+            if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+            const saved = await res.json().catch(() => newNote);
+            setNotes(prev => [saved, ...prev]);
+            setTitle('');
+            setContent('');
+            setError('');
         } catch (err) {
             console.error(err);
+            setError('Failed to save note. Please try again.');
         }
     };
 
@@ -46,6 +49,7 @@ function Note() {
         <div>
             <Header title="Daily Notes" />
             <div style={{ padding: '1rem' }}>
+                {error && <div style={{ color: 'red', marginBottom: '0.5rem' }}>{error}</div>}
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxWidth: '400px' }}>
                     <input
                         type="text"
