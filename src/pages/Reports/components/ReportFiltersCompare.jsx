@@ -2,7 +2,7 @@ import React, {useEffect, useMemo, useState} from 'react';
 import styles from './ReportFiltersCompare.module.css';
 
 const DEFAULT_SENSOR_GROUPS = {
-    water: ['dissolvedTemp', 'dissolvedEC', 'dissolvedTDS', 'DO'],
+    water: ['dissolvedTemp', 'dissolvedEC', 'dissolvedTDS', 'dissolvedOxygen'],
     light: ['VIS1', 'VIS2', 'NIR855', 'light'],
     blue:  ['405nm', '425nm', '450nm', '475nm', '515nm'],
     red:   ['550nm', '555nm', '600nm', '640nm', '690nm', '745nm'],

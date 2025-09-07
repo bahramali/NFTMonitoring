@@ -38,7 +38,7 @@ test('parses water tank readings', () => {
     expect(result.tds.value).toBeCloseTo(1006.389);
     expect(result.ec.value).toBeCloseTo(1.572483);
     expect(result.temperature.value).toBe(23.625);
-    expect(result.DO.value).toBeCloseTo(2.809549);
+    expect(result.do.value).toBeCloseTo(2.809549);
 });
 
 test('includes health statuses', () => {
@@ -178,12 +178,12 @@ test('transformAggregatedData handles spaced wavelength keys', () => {
 test('transformAggregatedData handles valueType and DO sensor', () => {
     const raw = {
         sensors: [
-            { valueType: 'DO', unit: 'mg/L', data: [{ timestamp: '2025-07-25T09:00:04Z', value: 5.5 }] }
+            { valueType: 'dissolvedOxygen', unit: 'mg/L', data: [{ timestamp: '2025-07-25T09:00:04Z', value: 5.5 }] }
         ]
     };
     const result = transformAggregatedData(raw);
     expect(result.length).toBe(1);
-    expect(result[0].DO.value).toBe(5.5);
+    expect(result[0].do.value).toBe(5.5);
 });
 
 test('transformAggregatedData maps dissolved EC/TDS to ec/tds', () => {

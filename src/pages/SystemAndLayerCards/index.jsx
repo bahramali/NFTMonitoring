@@ -111,7 +111,7 @@ export function SystemOverviewCard({
             <div className={cx("metrics-row")}> 
                 <div className={cx("metrics-group")}> 
                     <MetricCard compact title="Water Temp" value={fmt(metrics.dissolvedTemp, 1)} unit="°C" icon={<span>🌡️</span>} subtitle={metrics?._counts?.dissolvedTemp != null ? `Composite IDs: ${metrics._counts.dissolvedTemp}` : undefined} />
-                    <MetricCard compact title="DO" value={fmt(metrics.DO, 1)} unit="mg/L" icon={<span>O₂</span>} subtitle={metrics?._counts?.DO != null ? `Composite IDs: ${metrics._counts.DO}` : undefined} />
+                    <MetricCard compact title="DO" value={fmt(metrics.dissolvedOxygen, 1)} unit="mg/L" icon={<span>O₂</span>} subtitle={metrics?._counts?.dissolvedOxygen != null ? `Composite IDs: ${metrics._counts.dissolvedOxygen}` : undefined} />
                     <MetricCard compact title="EC" value={fmt(metrics.dissolvedEC, 2)} unit="mS/cm" icon={<span>📈</span>} subtitle={metrics?._counts?.dissolvedEC != null ? `Composite IDs: ${metrics._counts.dissolvedEC}` : undefined} />
                     <MetricCard compact title="TDS" value={fmt(metrics.dissolvedTDS, 0)} unit="ppm" icon={<span>💧</span>} subtitle={metrics?._counts?.dissolvedTDS != null ? `Composite IDs: ${metrics._counts.dissolvedTDS}` : undefined} />
                     <MetricCard compact title="pH" value={fmt(metrics.pH, 1)} icon={<span>⚗️</span>} subtitle={metrics?._counts?.pH != null ? `Composite IDs: ${metrics._counts.pH}` : undefined} />
@@ -140,7 +140,7 @@ export function LayerPanel({id, health, metrics = {}, water = {}, actuators = {}
             <div className={cx("metrics-row")}> 
                 <div className={cx("metrics-group")}> 
                     <MetricCard compact title="Water Temp" value={fmt(water.dissolvedTemp, 1)} unit="°C" icon={<span>🌡️</span>} subtitle={water?._counts?.dissolvedTemp != null ? `Composite IDs: ${water._counts.dissolvedTemp}` : undefined} />
-                    <MetricCard compact title="DO" value={fmt(water.DO, 1)} unit="mg/L" icon={<span>O₂</span>} subtitle={water?._counts?.DO != null ? `Composite IDs: ${water._counts.DO}` : undefined} />
+                    <MetricCard compact title="DO" value={fmt(water.dissolvedOxygen, 1)} unit="mg/L" icon={<span>O₂</span>} subtitle={water?._counts?.dissolvedOxygen != null ? `Composite IDs: ${water._counts.dissolvedOxygen}` : undefined} />
                     <MetricCard compact title="pH" value={fmt(water.pH, 1)} icon={<span>⚗️</span>} subtitle={water?._counts?.pH != null ? `Composite IDs: ${water._counts.pH}` : undefined} />
                     <MetricCard compact title="EC" value={fmt(water.dissolvedEC, 2)} unit="mS/cm" icon={<span>📈</span>} subtitle={water?._counts?.dissolvedEC != null ? `Composite IDs: ${water._counts.dissolvedEC}` : undefined} />
                     <MetricCard compact title="TDS" value={fmt(water.dissolvedTDS, 0)} unit="ppm" icon={<span>💧</span>} subtitle={water?._counts?.dissolvedTDS != null ? `Composite IDs: ${water._counts.dissolvedTDS}` : undefined} />

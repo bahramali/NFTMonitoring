@@ -12,7 +12,7 @@ const devices = {
       { sensorName: 'HailegeTDS', sensorType: 'tds', value: 500, unit: 'ppm' },
       { sensorName: '', sensorType: 'ec', value: 0.8, unit: 'mS/cm', source: 'HailegeTDS' },
       { sensorName: 'DS18B20', sensorType: 'temperature', value: 24.3, unit: '°C' },
-      { sensorName: 'DFROBOT', sensorType: 'DO', value: 3.1, unit: 'mg/L' }
+      { sensorName: 'DFROBOT', sensorType: 'dissolvedOxygen', value: 3.1, unit: 'mg/L' }
     ],
     health: { HailegeTDS: true, DS18B20: true, DFROBOT: true }
   }

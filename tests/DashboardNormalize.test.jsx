@@ -20,7 +20,7 @@ const samplePayload = {
       },
       water: {
         dissolvedTemp: { average: 20, deviceCount: 1 },
-        DO: { average: 5, deviceCount: 1 },
+        dissolvedOxygen: { average: 5, deviceCount: 1 },
         dissolvedEC: { average: 1.23, deviceCount: 1 },
         dissolvedTDS: { average: 200, deviceCount: 1 },
         pH: { average: 7.5, deviceCount: 1 }
@@ -39,7 +39,7 @@ const samplePayload = {
           },
           water: {
             dissolvedTemp: { average: 21, deviceCount: 1 },
-            DO: { average: 6, deviceCount: 1 },
+            dissolvedOxygen: { average: 6, deviceCount: 1 },
             dissolvedEC: { average: 1.1, deviceCount: 1 },
             dissolvedTDS: { average: 150, deviceCount: 1 },
             pH: { average: 7, deviceCount: 1 }

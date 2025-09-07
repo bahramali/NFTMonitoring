@@ -51,7 +51,7 @@ export const sensorLabel = (k) => ({
   humidity: "Humidity",
   pH: "pH",
   dissolvedTemp: "Water Temp",
-  DO: "DO",
+  dissolvedOxygen: "DO",
   dissolvedEC: "EC",
   dissolvedTDS: "TDS",
   co2: "CO₂",
@@ -65,7 +65,7 @@ export function canonKey(raw) {
   if (t === "humidity" || t === "hum") return "humidity";
   if (t === "co2" || t === "co₂" || t === "co2ppm") return "co2";
   if (t === "ph") return "pH";
-  if (t === "do") return "DO";
+  if (t === "do" || t === "dissolvedoxygen") return "dissolvedOxygen";
   if (t === "ec" || t === "dissolvedec") return "dissolvedEC";
   if (t === "tds" || t === "dissolvedtds") return "dissolvedTDS";
   if (t === "watertemp" || t === "dissolvedtemp") return "dissolvedTemp";

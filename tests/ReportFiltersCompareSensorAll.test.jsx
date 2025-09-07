@@ -24,5 +24,5 @@ test('All selects all sensors and notifies parent', () => {
 
   fireEvent.click(screen.getByLabelText('All', { selector: 'input[name="water"]' }));
   const labels = onAllWater.mock.calls[0][0].map((o) => (typeof o === 'string' ? o : o.label));
-  expect(labels).toEqual(['dissolvedTemp', 'dissolvedEC', 'dissolvedTDS', 'DO']);
+  expect(labels).toEqual(['dissolvedTemp', 'dissolvedEC', 'dissolvedTDS', 'dissolvedOxygen']);
 });

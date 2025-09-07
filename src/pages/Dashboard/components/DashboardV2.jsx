@@ -48,7 +48,7 @@ const normLayerIdSafe = (raw) => {
 // Map of metrics -> known key aliases in card.sensors
 const WATER_ALIASES = {
     pH: ["pH", "ph"],
-    DO: ["DO", "do", "do_mgL", "doMgL", "oxygen_mgL"],
+    dissolvedOxygen: ["dissolvedOxygen", "do", "do_mgL", "doMgL", "oxygen_mgL"],
     dissolvedEC: ["dissolvedEC", "ec", "ec_mScm", "ec_mS", "ecmScm"],
     dissolvedTDS: ["dissolvedTDS", "tds", "tds_ppm", "tdsPpm"],
     dissolvedTemp: ["dissolvedTemp", "waterTemp", "temp", "tempC", "water_tempC"],
@@ -56,8 +56,8 @@ const WATER_ALIASES = {
 
 // Aggregate water metrics from cards.sensors using aliases above
 function aggregateWaterFromCards(cards = []) {
-    const sums = { pH: 0, DO: 0, dissolvedEC: 0, dissolvedTDS: 0, dissolvedTemp: 0 };
-    const counts = { pH: 0, DO: 0, dissolvedEC: 0, dissolvedTDS: 0, dissolvedTemp: 0 };
+    const sums = { pH: 0, dissolvedOxygen: 0, dissolvedEC: 0, dissolvedTDS: 0, dissolvedTemp: 0 };
+    const counts = { pH: 0, dissolvedOxygen: 0, dissolvedEC: 0, dissolvedTDS: 0, dissolvedTemp: 0 };
 
     const pickVal = (sensors, aliases) => {
         for (const k of aliases) {
@@ -336,7 +336,7 @@ export default function DashboardV2() {
 // Keys must match normalized sensor keys from utils/normalizeSensors
 const WATER_STATS = [
     { label: "pH", key: "pH", precision: 1, rangeKey: "ph" },
-    { label: "DO", key: "DO", precision: 1, rangeKey: "do" },
+    { label: "DO", key: "dissolvedOxygen", precision: 1, rangeKey: "dissolvedOxygen" },
     { label: "EC", key: "dissolvedEC", precision: 2, rangeKey: "ec" },
     { label: "TDS", key: "dissolvedTDS", precision: 0, rangeKey: "tds" },
     { label: "Temp", key: "dissolvedTemp", precision: 1, rangeKey: "temperature" },
