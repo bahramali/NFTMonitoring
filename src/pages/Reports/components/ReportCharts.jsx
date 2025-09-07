@@ -127,7 +127,7 @@ export default function ReportCharts({
                 </div>
             )}
 
-            {(water.has("ph") || water.has("dissolvedEC") || water.has("dissolvedTDS") || water.has("dissolvedOxygen")) && (
+            {(water.has("ph") || water.has("dissolvedEC") || water.has("dissolvedTDS") || water.has("DO")) && (
                 <div className={styles.historyChartsRow}>
                     {water.has("ph") && (
                         <div className={styles.historyChartColumn}>
@@ -174,15 +174,15 @@ export default function ReportCharts({
                             </div>
                         </div>
                     )}
-                    {water.has("dissolvedOxygen") && (
-                        <div className={styles.historyChartColumn}>
+                    {water.has("DO") && (
+                            <div className={styles.historyChartColumn}>
                             <h3 className={styles.sectionTitle}>
                                 {withDevice("Dissolved Oxygen", selectedDevice)}
                             </h3>
                             <div className={styles.doChartWrapper}>
                                 <HistoryChart
                                     xDataKey="time"
-                                    series={toSeries(doByCid, "do")}
+                                    series={toSeries(doByCid, "DO")}
                                     yLabel="Dissolved Oxygen (mg/L)"
                                     xDomain={xDomain}
                                 />
