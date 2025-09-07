@@ -72,7 +72,7 @@ export function transformAggregatedData(data) {
                     tds: {value: 0, unit: 'ppm'},
                     ec: {value: 0, unit: 'mS/cm'},
                     ph: {value: 0, unit: ''},
-                    do: {value: 0, unit: 'mg/L'},
+                    DO: {value: 0, unit: 'mg/L'},
                 };
             }
             const out = map[ts];
@@ -97,9 +97,9 @@ export function transformAggregatedData(data) {
                 case 'ph':
                     out.ph = {value: Number(val), unit};
                     break;
-                case 'dissolvedOxygen':
+                case 'DO':
                 case 'do':
-                    out.do = {value: Number(val), unit};
+                    out.DO = {value: Number(val), unit};
                     break;
                 case 'colorSpectrum':
                     if (val && typeof val === 'object') {

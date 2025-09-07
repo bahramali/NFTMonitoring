@@ -50,7 +50,7 @@ export function normalizeLiveNow(payload) {
             const {avg: co2, count: co2Count} = getMetric(env, "co2", "co₂", "co2ppm");
 
             const {avg: dTemp, count: dTempCount} = getMetric(water, "dissolvedTemp");
-            const {avg: DO, count: DOCount} = getMetric(water, "dissolvedOxygen");
+            const {avg: DO, count: DOCount} = getMetric(water, "DO");
             const {avg: pH, count: pHCount} = getMetric(water, "pH", "ph");
             const {avg: EC, count: ECCount} = getMetric(water, "dissolvedEC");
             const {avg: TDS, count: TDSCount} = getMetric(water, "dissolvedTDS");
@@ -81,13 +81,13 @@ export function normalizeLiveNow(payload) {
                 },
                 water: {
                     dissolvedTemp: dTemp ?? null,
-                    dissolvedOxygen: DO ?? null,
+                    DO: DO ?? null,
                     pH: pH ?? null,
                     dissolvedEC: EC ?? null,
                     dissolvedTDS: TDS ?? null,
                     _counts: {
                         dissolvedTemp: dTempCount,
-                        dissolvedOxygen: DOCount,
+                        DO: DOCount,
                         pH: pHCount,
                         dissolvedEC: ECCount,
                         dissolvedTDS: TDSCount,
@@ -113,7 +113,7 @@ export function normalizeLiveNow(payload) {
         );
         const {avg: DOavg, count: DOcount} = getMetric(
             sysWater,
-            "dissolvedOxygen"
+            "DO"
         );
         const {avg: ECavg, count: ECcount} = getMetric(
             sysWater,
@@ -148,7 +148,7 @@ export function normalizeLiveNow(payload) {
                 temperature: tempAvg ?? null,
                 co2: co2Avg ?? null,
                 dissolvedTemp: dTempAvg ?? null,
-                dissolvedOxygen: DOavg ?? null,
+                DO: DOavg ?? null,
                 dissolvedEC: ECavg ?? null,
                 dissolvedTDS: TDSavg ?? null,
                 pH: pHavg ?? null,
@@ -159,7 +159,7 @@ export function normalizeLiveNow(payload) {
                     temperature: tempCount,
                     co2: co2Count,
                     dissolvedTemp: dTempCount,
-                    dissolvedOxygen: DOcount,
+                    DO: DOcount,
                     dissolvedEC: ECcount,
                     dissolvedTDS: TDScount,
                     pH: pHcount,

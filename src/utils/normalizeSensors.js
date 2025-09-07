@@ -20,7 +20,7 @@ function canonKey(raw) {
   if (['tds','tdsppm','dissolvedtds'].includes(t)) return 'tds';
   if (['ec','electricalconductivity','dissolvedec'].includes(t)) return 'ec';
   if (t === 'ph') return 'ph';
-  if (['do','dissolvedoxygen'].includes(t)) return 'do';
+  if (['do'].includes(t)) return 'DO';
   if (['co2','co₂','co2ppm'].includes(t)) return 'co2';
   if (['watertemp','watertemperature','water_temp','dissolvedtemp'].includes(t)) return 'waterTemp';
   if (['vis1','vis_1'].includes(t)) return 'vis1';
@@ -51,7 +51,7 @@ export function normalizeSensors(src = []) {
       case 'tds':
       case 'ec':
       case 'ph':
-      case 'do':
+      case 'DO':
       case 'waterTemp':
       case 'lux':
         out[key] = { value: val, unit };
@@ -100,7 +100,7 @@ export function deriveFromSensors(arr = []) {
     }
     if (k === 'tds') { water.tds_ppm = v.value ?? v; continue; }
     if (k === 'ec') { water.ec_mScm = v.value ?? v; continue; }
-    if (k === 'do') { water.do_mgL = v.value ?? v; continue; }
+    if (k === 'DO') { water.do_mgL = v.value ?? v; continue; }
     if (k === 'waterTemp') { water.tempC = v.value ?? v; continue; }
     if (k === 'temperature') { map.temp = v.value ?? v; continue; }
     if (k === 'humidity') { map.humidity = v.value ?? v; continue; }
