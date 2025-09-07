@@ -28,7 +28,9 @@ VITE_API_BASE=
 Additionally, set `VITE_WS_URL` to the WebSocket endpoint that provides the live
 STOMP feed. If not defined, it defaults to `wss://api.hydroleaf.se/ws`.
 Set `VITE_API_BASE` to the base URL for REST API requests. When omitted,
-requests default to `https://api.hydroleaf.se`.
+requests default to `https://api.hydroleaf.se`. For pages that communicate with
+the backend (such as the Notes page), this should point to a running API
+instance that exposes the expected endpoints.
 
 These variables are used to establish the MQTT connection.
 Make sure the file is named `.env` and each variable starts with the `VITE_` prefix so that Vite exposes them to the frontend.
