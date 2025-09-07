@@ -43,10 +43,11 @@ function Checklist({options = [], values = [], onToggle}) {
 }
 
 function Group({title, name, options = [], values = [], onAll, onNone, onToggle}) {
+    const handleAll = () => onAll && onAll(options);
     return (
         <div className={styles.group}>
             <div className={styles.groupTitle}>{title}</div>
-            <AllNone name={name} onAll={onAll} onNone={onNone}/>
+            <AllNone name={name} onAll={handleAll} onNone={onNone}/>
             <Checklist options={options} values={values} onToggle={onToggle}/>
         </div>
     );
