@@ -8,6 +8,7 @@ import Reports from './pages/Reports';
 import UserInfo from './pages/UserInfo';
 import SensorConfig from './pages/SensorConfig';
 import Note from './pages/Note';
+import Camera from "./pages/Camera/index.jsx";
 
 function App() {
     const rawBase = import.meta?.env?.BASE_URL || '/';
@@ -23,6 +24,7 @@ function App() {
                     <Route path="reports" element={<Reports />} />
                     <Route path="note" element={<Note />} />
                     <Route path="user" element={<UserInfo />} />
+                    <Route path="camera" element={Camera}/>
                     <Route path="sensor-config" element={<SensorConfig />} />
                 </Route>
             </Routes>

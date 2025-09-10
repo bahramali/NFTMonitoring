@@ -157,7 +157,7 @@
     color: #6b7280;
 }
 
-.n.noteBody {
+.noteBody {
     font-size: 14px;
     line-height: 1.6;
     white-space: pre-wrap; /* preserve line breaks */
