@@ -26,7 +26,7 @@ function Note() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const newNote = { title, content, date: new Date().toISOString() };
+        const newNote = { title, content, date: new Date().toISOString().split('.')[0] };
         try {
             const res = await fetch(`${API_BASE}/api/notes`, {
                 method: 'POST',
