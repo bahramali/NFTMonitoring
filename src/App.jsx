@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Live from './pages/Live';
+import Cameras from './pages/Cameras';
 import Reports from './pages/Reports';
 import UserInfo from './pages/UserInfo';
 import SensorConfig from './pages/SensorConfig';
@@ -18,6 +19,7 @@ function App() {
                 <Route path="/" element={<MainLayout />}>
                     <Route index element={<Dashboard />} />
                     <Route path="live" element={<Live />} />
+                    <Route path="cameras" element={<Cameras />} />
                     <Route path="reports" element={<Reports />} />
                     <Route path="note" element={<Note />} />
                     <Route path="user" element={<UserInfo />} />

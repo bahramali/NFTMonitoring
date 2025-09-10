@@ -40,6 +40,10 @@ export default function Sidebar() {
                     <span className={styles.icon}>📡</span>
                     {!collapsed && <span className={styles.text}>Live</span>}
                 </NavLink>
+                <NavLink to="/cameras" className={linkClass}>
+                    <span className={styles.icon}>📷</span>
+                    {!collapsed && <span className={styles.text}>Cameras</span>}
+                </NavLink>
                 <NavLink to="/reports" className={linkClass}>
                     <span className={styles.icon}>📈</span>
                     {!collapsed && <span className={styles.text}>Reports</span>}
