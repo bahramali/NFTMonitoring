@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import DeviceCard from '../src/pages/Dashboard/components/DeviceCard.jsx';
+import DeviceCard from '../src/pages/Overview/components/DeviceCard.jsx';
 
 test('renders device id and compact metrics', () => {
   const deviceData = {

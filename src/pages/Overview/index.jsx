@@ -1,9 +1,9 @@
-// src/pages/Dashboard/index.jsx
+// src/pages/Overview/index.jsx
 /* eslint-disable react-refresh/only-export-components */
 
-import DashboardV2 from "./components/DashboardV2.jsx";
+import Overview from "./components/Overview.jsx";
 export { normalizeLiveNow } from "./normalizeLiveNow.js";
 
-export default DashboardV2;
+export default Overview;
 
 

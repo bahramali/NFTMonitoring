@@ -32,9 +32,9 @@ export default function Sidebar() {
 
             {/* Main menu */}
             <nav className={styles.menu}>
-                <NavLink to="/" className={linkClass}>
+                <NavLink to="/overview" className={linkClass}>
                     <span className={styles.icon}>🏠</span>
-                    {!collapsed && <span className={styles.text}>Dashboard</span>}
+                    {!collapsed && <span className={styles.text}>Overview</span>}
                 </NavLink>
                 <NavLink to="/live" className={linkClass}>
                     <span className={styles.icon}>📡</span>

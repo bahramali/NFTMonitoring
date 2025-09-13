@@ -1,4 +1,4 @@
-// src/pages/Dashboard/components/DeviceCard.jsx
+// src/pages/Overview/components/DeviceCard.jsx
 import React, { useMemo } from "react";
 import styles from "./DeviceCard.module.css";
 import { deriveFromSensors } from "../../../utils/normalizeSensors.js";
