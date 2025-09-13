@@ -1,9 +1,9 @@
-// src/pages/Dashboard/components/DashboardV2.jsx
+// src/pages/Overview/components/Overview.jsx
 import React, { useMemo, useState } from "react";
 import DeviceCard from "./DeviceCard.jsx";
 import LayerCard from "./LayerCard.jsx";
 import Stat from "./Stat.jsx";
-import styles from "./DashboardV2.module.css";
+import styles from "./Overview.module.css";
 import { useSensorConfig } from "../../../context/SensorConfigContext.jsx";
 import useWaterCompositeCards from "./useWaterCompositeCards.js";
 import { useStomp } from "../../../hooks/useStomp";
@@ -191,7 +191,7 @@ function useSystemCompositeCards(systemKeyInput) {
 
 /* ------------------------------- page ------------------------------- */
 
-export default function DashboardV2() {
+export default function Overview() {
     const systems = useSystemsIndex();
 
     const [activeId, setActiveId] = useState(null);
@@ -210,7 +210,7 @@ export default function DashboardV2() {
 
     return (
         <div className={styles.page}>
-            <Header title="Dashboard" />
+            <Header title="Overview" />
             {(!systems.length || !active) ? (
                 <div>Waiting for data…</div>
                 ) : (

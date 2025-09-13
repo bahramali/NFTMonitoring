@@ -1,7 +1,7 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
-import Dashboard from './pages/Dashboard';
+import Overview from './pages/Overview';
 import Live from './pages/Live';
 import Cameras from './pages/Cameras';
 import Reports from './pages/Reports';
@@ -17,8 +17,9 @@ function App() {
     return (
         <BrowserRouter basename={base}>
             <Routes>
-                <Route path="/" element={<MainLayout />}>
-                    <Route index element={<Dashboard />} />
+                <Route path="/" element={<MainLayout />}> 
+                    <Route index element={<Navigate to="/overview" replace />} />
+                    <Route path="overview" element={<Overview />} />
                     <Route path="live" element={<Live />} />
                     <Route path="cameras" element={<Cameras />} />
                     <Route path="reports" element={<Reports />} />
