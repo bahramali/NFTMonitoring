@@ -1,66 +1,68 @@
-import React, { useEffect, useRef, useState } from 'react';
-import styles from './Cameras.module.css';
+import React, { useEffect, useRef, useState } from "react";
+import styles from "./Cameras.module.css";
 
-function Cameras() {
-    const [devices, setDevices] = useState([]);
-    const videoRefs = useRef([]);
-    const streams = useRef([]);
+const DEFAULT_SRC =
+  import.meta.env.VITE_TAPO_HLS || "https://cam.hydroleaf.se/tapo/index.m3u8";
 
-    useEffect(() => {
-        async function init() {
-            try {
-                await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                const deviceInfos = await navigator.mediaDevices.enumerateDevices();
-                const cams = deviceInfos.filter(d => d.kind === 'videoinput');
-                setDevices(cams);
-            } catch (err) {
-                console.error('Could not access cameras', err);
-            }
+export default function Cameras() {
+  const videoRef = useRef(null);
+  const [src, setSrc] = useState(DEFAULT_SRC);
+
+  useEffect(() => {
+    let hls;
+    async function setup() {
+      if (!videoRef.current) return;
+
+      if (videoRef.current.canPlayType("application/vnd.apple.mpegurl")) {
+        videoRef.current.src = src;
+        return;
+      }
+
+      try {
+        const Hls = (await import("hls.js")).default;
+        if (Hls.isSupported()) {
+          hls = new Hls();
+          hls.loadSource(src);
+          hls.attachMedia(videoRef.current);
+          hls.on(Hls.Events.ERROR, (_, data) => {
+            console.error("HLS error:", data);
+          });
         }
-        init();
+      } catch (err) {
+        console.error("Failed to load hls.js", err);
+        videoRef.current.src = src;
+      }
+    }
 
-        const currentStreams = streams.current;
-        return () => {
-            currentStreams.forEach(stream => {
-                stream.getTracks().forEach(t => t.stop());
-            });
-        };
-    }, []);
+    setup();
 
-    useEffect(() => {
-        devices.forEach((device, idx) => {
-            if (!videoRefs.current[idx] || streams.current[idx]) return;
-            navigator.mediaDevices
-                .getUserMedia({ video: { deviceId: { exact: device.deviceId } }, audio: false })
-                .then(stream => {
-                    streams.current[idx] = stream;
-                    if (videoRefs.current[idx]) {
-                        videoRefs.current[idx].srcObject = stream;
-                    }
-                })
-                .catch(err => {
-                    console.error('Could not start stream', device.label, err);
-                });
-        });
-    }, [devices]);
+    return () => {
+      if (hls) hls.destroy();
+    };
+  }, [src]);
 
-    return (
-        <div className={styles.grid}>
-            {devices.map((device, idx) => (
-                <div key={device.deviceId} className={styles.camera}>
-                    <video
-                        ref={el => (videoRefs.current[idx] = el)}
-                        className={styles.cameraVideo}
-                        autoPlay
-                        playsInline
-                        muted
-                    />
-                    <div className={styles.label}>{device.label || `Camera ${idx + 1}`}</div>
-                </div>
-            ))}
-            {devices.length === 0 && <p>No cameras found.</p>}
-        </div>
-    );
+  return (
+    <div className={styles.container}>
+      <h2 className={styles.title}>Tapo Camera Stream</h2>
+      <video
+        ref={videoRef}
+        className={styles.video}
+        controls
+        autoPlay
+        muted
+        playsInline
+      />
+      <div className={styles.controls}>
+        <input
+          type="text"
+          value={src}
+          onChange={(e) => setSrc(e.target.value)}
+          className={styles.input}
+        />
+        <button onClick={() => setSrc(src)} className={styles.button}>
+          Reload
+        </button>
+      </div>
+    </div>
+  );
 }
-
-export default Cameras;
