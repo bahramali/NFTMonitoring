@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import styles from "./Cameras.module.css";
+import { getCameraErrorMessage, DEFAULT_CAMERA_ERROR_MESSAGE } from "./errorMessages";
 
 // pick URL from env or fallback
 const SRC =
@@ -12,7 +13,7 @@ const STATUS_MESSAGES = {
     loading: "Loading stream…",
     playing: "Live stream",
     interaction: "Autoplay was blocked. Press play on the player controls.",
-    error: "Unable to load the camera stream.",
+    error: DEFAULT_CAMERA_ERROR_MESSAGE,
 };
 
 export default function Cameras() {
@@ -70,7 +71,15 @@ export default function Cameras() {
         };
 
         const onVideoPlaying = () => setState("playing");
-        const onVideoError = () => setState("error");
+        const onVideoError = () => {
+            const errorMessage = getCameraErrorMessage({
+                errorCode: video?.error?.code,
+                errorMessage: video?.error?.message,
+                streamUrl: SRC,
+                pageProtocol: typeof window !== "undefined" ? window.location?.protocol : undefined,
+            });
+            setState("error", errorMessage);
+        };
 
         video.addEventListener("playing", onVideoPlaying);
         video.addEventListener("error", onVideoError);
