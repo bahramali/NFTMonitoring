@@ -5,19 +5,70 @@
   align-items: center;
   padding: 1rem;
 }
-.title { margin-bottom: 1rem; }
+
+.title {
+  margin-bottom: 1rem;
+}
+
 .video {
   width: 100%;
   max-width: 720px;
+  aspect-ratio: 16 / 9;
   background: #000;
   border-radius: 8px;
+  display: block;
+  object-fit: cover;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
 }
-.controls {
+
+.statusRow {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.75rem;
   margin-top: 1rem;
   width: 100%;
   max-width: 720px;
 }
-.input { flex: 1; padding: 0.5rem; }
-.button { padding: 0.5rem 0.75rem; cursor: pointer; }
+
+.statusMessage {
+  flex: 1;
+  margin: 0;
+  font-size: 0.95rem;
+  color: #475569;
+}
+
+.statusLoading {
+  color: #475569;
+}
+
+.statusPlaying {
+  color: #15803d;
+}
+
+.statusInteraction,
+.statusError {
+  color: #b91c1c;
+}
+
+.button {
+  padding: 0.5rem 0.9rem;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.button:hover:not(:disabled) {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+}
