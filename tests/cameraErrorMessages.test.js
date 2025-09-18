@@ -15,6 +15,15 @@ describe("getCameraErrorMessage", () => {
         expect(message).toBe(MIXED_CONTENT_MESSAGE);
     });
 
+    it("normalizes the stream URL before checking for mixed content", () => {
+        const message = getCameraErrorMessage({
+            streamUrl: "  HTTP://camera.local/stream.m3u8  ",
+            pageProtocol: "https:",
+        });
+
+        expect(message).toBe(MIXED_CONTENT_MESSAGE);
+    });
+
     it("uses provided error message when available", () => {
         const message = getCameraErrorMessage({
             errorMessage: "Custom error",

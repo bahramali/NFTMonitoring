@@ -23,7 +23,10 @@ export function getCameraErrorMessage({
     streamUrl,
     pageProtocol,
 } = {}) {
-    if (pageProtocol === "https:" && typeof streamUrl === "string" && streamUrl.startsWith("http:")) {
+    const normalizedStreamUrl =
+        typeof streamUrl === "string" ? streamUrl.trim().toLowerCase() : undefined;
+
+    if (pageProtocol === "https:" && normalizedStreamUrl && normalizedStreamUrl.startsWith("http:")) {
         return MIXED_CONTENT_MESSAGE;
     }
 
