@@ -12,6 +12,11 @@ const MEDIA_ERROR_MESSAGES = {
 export const MIXED_CONTENT_MESSAGE =
     "The dashboard is served over HTTPS but the camera stream uses HTTP. Browsers block this mixed content. Update the stream to HTTPS or open the dashboard over HTTP.";
 
+const TECHNICAL_ERROR_MESSAGE_MAP = {
+    DEMUXER_ERROR_DETECTED: MEDIA_ERROR_MESSAGES[3],
+    DEMUXER_ERROR_DETECTED_HLS: MEDIA_ERROR_MESSAGES[3],
+};
+
 export function getCameraErrorMessage({
     errorCode,
     errorMessage,
@@ -23,6 +28,10 @@ export function getCameraErrorMessage({
     }
 
     if (errorMessage) {
+        const normalizedMessage = typeof errorMessage === "string" ? errorMessage.trim() : errorMessage;
+        if (typeof normalizedMessage === "string" && TECHNICAL_ERROR_MESSAGE_MAP[normalizedMessage]) {
+            return TECHNICAL_ERROR_MESSAGE_MAP[normalizedMessage];
+        }
         return errorMessage;
     }
 

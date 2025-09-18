@@ -24,6 +24,14 @@ describe("getCameraErrorMessage", () => {
         expect(message).toBe("Custom error");
     });
 
+    it("maps technical demuxer error messages to a friendly explanation", () => {
+        const message = getCameraErrorMessage({
+            errorMessage: "DEMUXER_ERROR_DETECTED_HLS",
+        });
+
+        expect(message).toBe("The browser could not decode the camera stream.");
+    });
+
     it("maps media error codes to descriptive text", () => {
         const message = getCameraErrorMessage({ errorCode: 3 });
 
