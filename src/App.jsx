@@ -8,6 +8,7 @@ import Reports from './pages/Reports';
 import UserInfo from './pages/UserInfo';
 import SensorConfig from './pages/SensorConfig';
 import Note from './pages/Note';
+import ControlPanel from './pages/ControlPanel';
 
 function App() {
     const rawBase = import.meta?.env?.BASE_URL || '/';
@@ -25,6 +26,7 @@ function App() {
                     <Route path="note" element={<Note />} />
                     <Route path="user" element={<UserInfo />} />
                     <Route path="sensor-config" element={<SensorConfig />} />
+                    <Route path="control-panel" element={<ControlPanel />} />
                 </Route>
             </Routes>
         </BrowserRouter>
