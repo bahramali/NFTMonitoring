@@ -1,0 +1,362 @@
+.page {
+    padding: 24px;
+    min-height: 100%;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.summaryCard {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 18px 20px;
+    display: grid;
+    gap: 4px;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+.summaryLabel {
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.summaryValue {
+    font-size: 28px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.summaryTotal {
+    font-size: 16px;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.summaryMeta {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.quickActions {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 20px;
+    display: grid;
+    gap: 20px;
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+}
+
+.actionButtons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.actionButton {
+    border: none;
+    border-radius: 9999px;
+    padding: 12px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.actionButton:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.35);
+}
+
+.actionButton:active {
+    transform: translateY(1px);
+}
+
+.actionPrimary {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #ffffff;
+    box-shadow: 0 10px 18px rgba(34, 197, 94, 0.25);
+}
+
+.actionDanger {
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    color: #ffffff;
+    box-shadow: 0 10px 18px rgba(234, 88, 12, 0.25);
+}
+
+.sceneList {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.sceneButton {
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    background: #f8fafc;
+    padding: 14px 16px;
+    text-align: left;
+    display: grid;
+    gap: 6px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.sceneButton:hover {
+    border-color: #6366f1;
+}
+
+.sceneButton:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.sceneButtonActive {
+    border-color: #6366f1;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(129, 140, 248, 0.2));
+    box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2);
+}
+
+.sceneName {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.sceneMeta {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.grid {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.card {
+    background: #ffffff;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    padding: 22px;
+    display: grid;
+    gap: 18px;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: center;
+}
+
+.cardTitle {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.cardSubtitle {
+    margin-top: 4px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.status {
+    padding: 6px 12px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.statusOn {
+    background: rgba(34, 197, 94, 0.15);
+    color: #166534;
+}
+
+.statusOff {
+    background: rgba(100, 116, 139, 0.16);
+    color: #1e293b;
+}
+
+.metrics {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+}
+
+.metricRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    color: #0f172a;
+}
+
+.metricRow dt {
+    font-weight: 600;
+    color: #475569;
+}
+
+.metricRow dd {
+    margin: 0;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.meter {
+    position: relative;
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.meterFill {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #38bdf8, #6366f1);
+    transition: width 0.25s ease;
+}
+
+.cardActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.pillButton {
+    border-radius: 9999px;
+    border: 1px solid transparent;
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.pillButton:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.pillButton:active {
+    transform: translateY(1px);
+}
+
+.pillPrimary {
+    background: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 10px 16px rgba(37, 99, 235, 0.25);
+}
+
+.pillSecondary {
+    background: #ffffff;
+    color: #1e293b;
+    border-color: #cbd5f5;
+}
+
+.activity {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 20px 24px;
+    display: grid;
+    gap: 16px;
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+}
+
+.activityTitle {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.activityList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+}
+
+.activityItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 14px;
+    color: #0f172a;
+}
+
+.activityTime {
+    font-size: 12px;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+.empty {
+    padding: 16px;
+    text-align: center;
+    font-size: 14px;
+    color: #94a3b8;
+    border: 1px dashed #cbd5f5;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+@media (max-width: 1024px) {
+    .quickActions {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .page {
+        padding: 16px;
+    }
+
+    .card {
+        padding: 18px;
+    }
+
+    .summaryValue {
+        font-size: 24px;
+    }
+
+    .actionButtons {
+        flex-direction: column;
+    }
+
+    .actionButton {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .sceneList {
+        grid-template-columns: 1fr;
+    }
+
+    .activityItem {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
