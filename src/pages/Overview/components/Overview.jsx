@@ -89,7 +89,7 @@ function aggregateWaterFromCards(cards = []) {
 function useSystemsIndex() {
     const [index, setIndex] = React.useState({}); // { S01: { id, layers: ["L01","L02"], lastTs } }
 
-    const topics = React.useMemo(() => ["/topic/growSensors", "/topic/waterTank"], []);
+    const topics = React.useMemo(() => ["/topic/growSensors", "/topic/waterTank", "/topic/germinationTopic"], []);
     useStomp(topics, (_topic, data) => {
         if (!data) return;
 
@@ -149,7 +149,7 @@ function useSystemCompositeCards(systemKeyInput) {
         });
     }, []);
 
-    const topics = React.useMemo(() => ["/topic/growSensors", "/topic/waterTank"], []);
+    const topics = React.useMemo(() => ["/topic/growSensors", "/topic/waterTank", "/topic/germinationTopic"], []);
     useStomp(topics, (_topic, data) => {
         if (!data) return;
 
