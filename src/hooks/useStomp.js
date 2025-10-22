@@ -111,6 +111,7 @@ export function useStomp(topics, onMessage, opts = {}) {
                             /* ignore */
                         }
                         const topicName = dest.startsWith("/topic/") ? dest.slice(7) : dest;
+                        console.log("topic name is: "+ topicName)
                         handlerRef.current?.(topicName, payload);
                     });
                 }
