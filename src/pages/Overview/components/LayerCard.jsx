@@ -65,7 +65,7 @@ function LayerCard({layer, systemId}) {
                 key={card.compId}
                 compositeId={card.compId}
                 sensors={Object.entries(card.sensors).map(([k, v]) => ({
-                  sensorType: sensorLabel(k),
+                  sensorType: sensorLabel(k, { topic: '/topic/growSensors' }),
                   value: fmt(v?.value),
                   unit: v?.unit || "",
                 }))}

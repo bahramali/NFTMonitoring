@@ -32,7 +32,7 @@ function getCellColor(value, range) {
     return '';
 }
 
-function DeviceTable({devices = {}}) {
+function DeviceTable({devices = {}, topic}) {
     const { configs } = useSensorConfig();
     const compositeIds = Object.keys(devices);
     const allSensors = compositeIds.flatMap(id => devices[id].sensors || []);
@@ -125,7 +125,7 @@ function DeviceTable({devices = {}}) {
                     <tr key={`${row.measurementType}-${row.sensorModel}`}>
                         <td className={styles.modelCell}>{row.sensorModel}</td>
                         <td className={styles.sensorCell} style={{backgroundColor: row.rowColor}}>
-                            {getMetricLiveLabel(row.measurementType, row.sensorModel)}
+                            {getMetricLiveLabel(row.measurementType, { sensorModel: row.sensorModel, topic })}
                         </td>
                         <td style={{backgroundColor: row.rowColor}}>{row.range?.min ?? '-'}</td>
                         <td style={{backgroundColor: row.rowColor}}>{row.range?.max ?? '-'}</td>

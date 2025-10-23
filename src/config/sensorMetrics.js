@@ -11,6 +11,11 @@ const RAW_DEFINITIONS = [
     overviewLabel: "Temp",
     liveLabel: "Temp",
     typeAliases: ["temperature", "temp", "airtemp", "airtemperature"],
+    topicOverrides: [
+      { match: ["/topic/growSensors", "growSensors"], label: "A_Temp" },
+      { match: ["/topic/germinationTopic", "germinationTopic"], label: "G_Temp" },
+      { match: ["/topic/waterTank", "waterTank"], label: "D_Temp" },
+    ],
     modelOverrides: [
       { match: "ds18b20", label: "D_Temp" },
       { match: "sht3x", label: "A_Temp" },
@@ -19,9 +24,13 @@ const RAW_DEFINITIONS = [
   },
   {
     id: "humidity",
-    overviewLabel: "Humidity",
-    liveLabel: "Hum",
+    overviewLabel: "RH",
+    liveLabel: "RH",
     typeAliases: ["humidity", "rh", "relativehumidity"],
+    topicOverrides: [
+      { match: ["/topic/growSensors", "growSensors"], label: "A_RH" },
+      { match: ["/topic/germinationTopic", "germinationTopic"], label: "G_RH" },
+    ],
     modelOverrides: [
       { match: "sht3x", label: "A_RH" },
       { match: "hdc302x", label: "G_RH" },
@@ -68,23 +77,18 @@ const RAW_DEFINITIONS = [
     overviewLabel: "Water Temp",
     liveLabel: "Water Temp",
     typeAliases: ["dissolvedtemp", "watertemp", "water_temp", "watertemperature"],
+    topicOverrides: [
+      { match: ["/topic/waterTank", "waterTank"], label: "D_Temp" },
+    ],
   },
 ];
 
 const definitionsById = new Map();
 const aliasToId = new Map();
 
-for (const raw of RAW_DEFINITIONS) {
-  const id = sanitize(raw.id);
-  if (!id) continue;
-
-  const typeAliases = new Set([id]);
-  for (const alias of raw.typeAliases || []) {
-    const sanitizedAlias = sanitize(alias);
-    if (sanitizedAlias) typeAliases.add(sanitizedAlias);
-  }
-
-  const modelOverrides = (raw.modelOverrides || [])
+function prepareOverrides(overrides) {
+  if (!Array.isArray(overrides)) return [];
+  return overrides
     .map((override) => {
       const candidates = Array.isArray(override.match)
         ? override.match
@@ -96,6 +100,20 @@ for (const raw of RAW_DEFINITIONS) {
       return { label: override.label, matchers };
     })
     .filter(Boolean);
+}
+
+for (const raw of RAW_DEFINITIONS) {
+  const id = sanitize(raw.id);
+  if (!id) continue;
+
+  const typeAliases = new Set([id]);
+  for (const alias of raw.typeAliases || []) {
+    const sanitizedAlias = sanitize(alias);
+    if (sanitizedAlias) typeAliases.add(sanitizedAlias);
+  }
+
+  const modelOverrides = prepareOverrides(raw.modelOverrides);
+  const topicOverrides = prepareOverrides(raw.topicOverrides);
 
   const prepared = {
     id,
@@ -103,6 +121,7 @@ for (const raw of RAW_DEFINITIONS) {
     liveLabel: raw.liveLabel ?? raw.overviewLabel ?? raw.id,
     typeAliases: [...typeAliases],
     modelOverrides,
+    topicOverrides,
   };
 
   definitionsById.set(id, prepared);
@@ -122,14 +141,14 @@ export function getMetricDefinition(input) {
   return id ? definitionsById.get(id) ?? null : null;
 }
 
-function resolveModelOverride(definition, sensorModel) {
-  if (!definition?.modelOverrides?.length) return null;
-  const sanitizedModel = sanitize(sensorModel);
-  if (!sanitizedModel) return null;
+function resolveOverride(definition, value, overrides) {
+  if (!definition || !Array.isArray(overrides) || !overrides.length) return null;
+  const sanitizedValue = sanitize(value);
+  if (!sanitizedValue) return null;
 
-  for (const override of definition.modelOverrides) {
+  for (const override of overrides) {
     for (const matcher of override.matchers) {
-      if (sanitizedModel === matcher || sanitizedModel.includes(matcher)) {
+      if (sanitizedValue === matcher || sanitizedValue.endsWith(matcher) || sanitizedValue.includes(matcher)) {
         return override.label;
       }
     }
@@ -137,19 +156,58 @@ function resolveModelOverride(definition, sensorModel) {
   return null;
 }
 
-export function getMetricLiveLabel(measurementType, sensorModel) {
+function resolveModelOverride(definition, sensorModel) {
+  return resolveOverride(definition, sensorModel, definition?.modelOverrides);
+}
+
+function resolveTopicOverride(definition, topic) {
+  return resolveOverride(definition, topic, definition?.topicOverrides);
+}
+
+function parseLiveLabelArgs(sensorModelOrOptions, topicMaybe) {
+  if (sensorModelOrOptions && typeof sensorModelOrOptions === "object" && !Array.isArray(sensorModelOrOptions)) {
+    return {
+      sensorModel: sensorModelOrOptions.sensorModel ?? null,
+      topic: sensorModelOrOptions.topic ?? null,
+    };
+  }
+  return {
+    sensorModel: sensorModelOrOptions ?? null,
+    topic: topicMaybe ?? null,
+  };
+}
+
+export function getMetricLiveLabel(measurementType, sensorModelOrOptions, topicMaybe) {
   const definition = getMetricDefinition(measurementType);
   if (!definition) return measurementType;
 
-  const override = resolveModelOverride(definition, sensorModel);
-  if (override) return override;
+  const { sensorModel, topic } = parseLiveLabelArgs(sensorModelOrOptions, topicMaybe);
+
+  const topicOverride = resolveTopicOverride(definition, topic);
+  if (topicOverride) return topicOverride;
+
+  const modelOverride = resolveModelOverride(definition, sensorModel);
+  if (modelOverride) return modelOverride;
 
   return definition.liveLabel ?? measurementType;
 }
 
-export function getMetricOverviewLabel(metricKey) {
+function parseOverviewArgs(optionsOrTopic) {
+  if (!optionsOrTopic) return { topic: null };
+  if (typeof optionsOrTopic === "object" && !Array.isArray(optionsOrTopic)) {
+    return { topic: optionsOrTopic.topic ?? null };
+  }
+  return { topic: optionsOrTopic };
+}
+
+export function getMetricOverviewLabel(metricKey, optionsOrTopic) {
   const definition = getMetricDefinition(metricKey);
   if (!definition) return metricKey;
+
+  const { topic } = parseOverviewArgs(optionsOrTopic);
+  const topicOverride = resolveTopicOverride(definition, topic);
+  if (topicOverride) return topicOverride;
+
   return definition.overviewLabel;
 }
 

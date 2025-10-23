@@ -46,7 +46,7 @@ export function deriveHealth(layer) {
   return present === 0 ? "down" : present < 3 ? "warn" : "ok";
 }
 
-export const sensorLabel = (k) => getMetricOverviewLabel(k);
+export const sensorLabel = (k, context) => getMetricOverviewLabel(k, context);
 
 export function canonKey(raw) {
   const t = fixSubs(String(raw || "")).toLowerCase();

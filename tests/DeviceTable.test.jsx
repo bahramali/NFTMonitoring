@@ -43,23 +43,37 @@ afterEach(() => {
 });
 
 test('renders sensor model and measurement type headers', () => {
-  renderWithProvider(<DeviceTable devices={devices} />);
+  renderWithProvider(<DeviceTable devices={devices} topic="/topic/growSensors" />);
   expect(screen.getByText('S_Model')).toBeInTheDocument();
   expect(screen.getByText('M_Type')).toBeInTheDocument();
 });
 
 test('renders all sensor models at least once', () => {
-  const { getAllByText } = renderWithProvider(<DeviceTable devices={devices} />);
+  const { getAllByText } = renderWithProvider(<DeviceTable devices={devices} topic="/topic/growSensors" />);
   expect(getAllByText('SHT3x').length).toBeGreaterThan(0);
   expect(getAllByText('HailegeTDS').length).toBeGreaterThan(0);
   expect(getAllByText('AS7341').length).toBeGreaterThan(0);
 });
 
 test('displays measurement labels correctly', () => {
-  renderWithProvider(<DeviceTable devices={devices} />);
+  renderWithProvider(<DeviceTable devices={devices} topic="/topic/growSensors" />);
   expect(screen.getByText('A_Temp')).toBeInTheDocument();
   expect(screen.getByText('A_RH')).toBeInTheDocument();
   expect(screen.getByText('ph')).toBeInTheDocument();
+});
+
+test('uses grow topic label when model is unknown', () => {
+  const growDevices = {
+    dev1: {
+      sensors: [
+        { sensorName: 'GenericGrowSensor', sensorType: 'humidity', value: 51.2, unit: '%' }
+      ],
+      health: {}
+    }
+  };
+
+  renderWithProvider(<DeviceTable devices={growDevices} topic="/topic/growSensors" />);
+  expect(screen.getByText('A_RH')).toBeInTheDocument();
 });
 
 test('shows D_Temp label for DS18B20 temperature sensor', () => {
@@ -72,7 +86,21 @@ test('shows D_Temp label for DS18B20 temperature sensor', () => {
     }
   };
 
-  renderWithProvider(<DeviceTable devices={dsDevices} />);
+  renderWithProvider(<DeviceTable devices={dsDevices} topic="/topic/waterTank" />);
+  expect(screen.getByText('D_Temp')).toBeInTheDocument();
+});
+
+test('uses water tank topic label when model is unknown', () => {
+  const waterDevices = {
+    dev1: {
+      sensors: [
+        { sensorName: 'UnknownProbe', sensorType: 'temperature', value: 23.7, unit: '°C' }
+      ],
+      health: {}
+    }
+  };
+
+  renderWithProvider(<DeviceTable devices={waterDevices} topic="/topic/waterTank" />);
   expect(screen.getByText('D_Temp')).toBeInTheDocument();
 });
 
@@ -86,7 +114,21 @@ test('shows G_Temp label for HDC302x temperature sensor', () => {
     }
   };
 
-  renderWithProvider(<DeviceTable devices={hdcDevices} />);
+  renderWithProvider(<DeviceTable devices={hdcDevices} topic="/topic/germinationTopic" />);
+  expect(screen.getByText('G_Temp')).toBeInTheDocument();
+});
+
+test('uses germination topic label when model is unknown', () => {
+  const genericDevices = {
+    dev1: {
+      sensors: [
+        { sensorName: 'GenericSensor', sensorType: 'temperature', value: 25.2, unit: '°C' }
+      ],
+      health: {}
+    }
+  };
+
+  renderWithProvider(<DeviceTable devices={genericDevices} topic="/topic/germinationTopic" />);
   expect(screen.getByText('G_Temp')).toBeInTheDocument();
 });
 
@@ -100,7 +142,7 @@ test('normalizes model names when mapping HDC302x temperature labels', () => {
     }
   };
 
-  renderWithProvider(<DeviceTable devices={hdcDevices} />);
+  renderWithProvider(<DeviceTable devices={hdcDevices} topic="/topic/germinationTopic" />);
   expect(screen.getByText('G_Temp')).toBeInTheDocument();
 });
 
@@ -114,7 +156,7 @@ test('shows G_RH label for HDC302x humidity sensor', () => {
     }
   };
 
-  renderWithProvider(<DeviceTable devices={hdcDevices} />);
+  renderWithProvider(<DeviceTable devices={hdcDevices} topic="/topic/germinationTopic" />);
   expect(screen.getByText('G_RH')).toBeInTheDocument();
 });
 
@@ -128,19 +170,19 @@ test('normalizes model names when mapping HDC302x humidity labels', () => {
     }
   };
 
-  renderWithProvider(<DeviceTable devices={hdcDevices} />);
+  renderWithProvider(<DeviceTable devices={hdcDevices} topic="/topic/germinationTopic" />);
   expect(screen.getByText('G_RH')).toBeInTheDocument();
 });
 
 test('renders sensor values with correct units', () => {
-  renderWithProvider(<DeviceTable devices={devices} />);
+  renderWithProvider(<DeviceTable devices={devices} topic="/topic/growSensors" />);
   expect(screen.getByText('22.5 °C')).toBeInTheDocument();
   expect(screen.getByText('800.0 ppm')).toBeInTheDocument();
   expect(screen.getByText('6.2')).toBeInTheDocument(); // Ph has no unit
 });
 
 test('displays configured min and max values', async () => {
-  renderWithProvider(<DeviceTable devices={devices} />);
+  renderWithProvider(<DeviceTable devices={devices} topic="/topic/growSensors" />);
   const tempRow = screen.getByText('A_Temp').closest('tr');
   const spectralRow = screen.getByText('415nm').closest('tr');
   await waitFor(() => {
@@ -152,7 +194,7 @@ test('displays configured min and max values', async () => {
 });
 
 test('applies spectral background color to 415nm row', () => {
-  const { getByText } = renderWithProvider(<DeviceTable devices={devices} />);
+  const { getByText } = renderWithProvider(<DeviceTable devices={devices} topic="/topic/growSensors" />);
   const spectralCell = getByText('415nm');
   expect(spectralCell).toHaveStyle({ backgroundColor: '#8a2be222' });
 });
@@ -166,14 +208,14 @@ test('shows green indicator when health keys are lowercase', () => {
       health: { sht3x: true }
     }
   };
-  const { container } = renderWithProvider(<DeviceTable devices={devicesLower} />);
+  const { container } = renderWithProvider(<DeviceTable devices={devicesLower} topic="/topic/growSensors" />);
   const indicator = container.querySelector(`.${styles.indicator}`);
   expect(indicator).toHaveClass(styles.on);
 });
 
 test('uses sensor config hook only once per render', async () => {
   const spy = vi.spyOn(SensorConfigContext, 'useSensorConfig');
-  renderWithProvider(<DeviceTable devices={devices} />);
+  renderWithProvider(<DeviceTable devices={devices} topic="/topic/growSensors" />);
   await waitFor(() => {
     expect(spy).toHaveBeenCalledTimes(2);
   });
