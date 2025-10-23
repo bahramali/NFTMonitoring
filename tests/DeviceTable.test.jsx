@@ -225,6 +225,24 @@ test('uses topic-specific ranges when available', async () => {
   });
 });
 
+test('matches ranges by configured metric label when sensor type differs', async () => {
+  const germDevices = {
+    dev1: {
+      sensors: [
+        { sensorName: 'DS18B20', sensorType: 'temperature', value: 25.2, unit: '°C' }
+      ],
+      health: {}
+    }
+  };
+
+  renderWithProvider(<DeviceTable devices={germDevices} topic="/topic/germinationTopic" />);
+  const tempRow = screen.getByText('D_Temp').closest('tr');
+  await waitFor(() => {
+    expect(within(tempRow).getByText('15')).toBeInTheDocument();
+    expect(within(tempRow).getByText('25')).toBeInTheDocument();
+  });
+});
+
 test('applies spectral background color to 415nm row', () => {
   const { getByText } = renderWithProvider(<DeviceTable devices={devices} topic="/topic/growSensors" />);
   const spectralCell = getByText('415nm');
