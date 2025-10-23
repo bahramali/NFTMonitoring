@@ -206,7 +206,7 @@ export default function Overview() {
     const sysCards = useSystemCompositeCards(activeIdSafe);
     const growCards = useMemo(() => sysCards.filter((c) => !isWaterDevice(c.compId)), [sysCards]);
     const envAgg = useMemo(() => aggregateFromCards(growCards), [growCards]);
-    const { configs } = useSensorConfig();
+    const { findRange } = useSensorConfig();
 
     return (
         <div className={styles.page}>
@@ -242,7 +242,7 @@ export default function Overview() {
                                 {WATER_STATS.map(({ label, key, precision, rangeKey }) => {
                                     const count = waterAgg?.counts?.[key] || 0;
                                     const value = fmt(waterAgg?.avg?.[key], precision);
-                                    const range = configs[rangeKey]?.idealRange;
+                                    const range = findRange(rangeKey, { topic: '/topic/waterTank' });
                                     return (
                                         <Stat
                                             key={key}
@@ -290,28 +290,28 @@ export default function Overview() {
                                 <Stat
                                     label="Light="
                                     value={`${fmt(envAgg.avg.light)} lux (${envAgg.counts.light} sensors)`}
-                                    range={configs.lux?.idealRange}
+                                    range={findRange('lux', { topic: '/topic/growSensors' })}
                                 />
                             )}
                             {envAgg?.counts?.temperature > 0 && (
                                 <Stat
                                     label="Temp="
                                     value={`${fmt(envAgg.avg.temperature)} °C (${envAgg.counts.temperature} sensors)`}
-                                    range={configs.temperature?.idealRange}
+                                    range={findRange('temperature', { topic: '/topic/growSensors' })}
                                 />
                             )}
                             {envAgg?.counts?.humidity > 0 && (
                                 <Stat
                                     label="Humidity="
                                     value={`${fmt(envAgg.avg.humidity)} % (${envAgg.counts.humidity} sensors)`}
-                                    range={configs.humidity?.idealRange}
+                                    range={findRange('humidity', { topic: '/topic/growSensors' })}
                                 />
                             )}
                             {envAgg?.counts?.co2 > 0 && (
                                 <Stat
                                     label="CO₂="
                                     value={`${fmt(envAgg.avg.co2, 0)} ppm (${envAgg.counts.co2} sensors)`}
-                                    range={configs.co2?.idealRange}
+                                    range={findRange('co2', { topic: '/topic/growSensors' })}
                                 />
                             )}
                         </div>

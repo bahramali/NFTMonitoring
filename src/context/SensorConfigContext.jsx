@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
     getSensorConfigs,
     createSensorConfig,
@@ -8,15 +8,68 @@ import {
 
 const Ctx = createContext(null);
 
+const TOPIC_DELIM = '@@';
+
+const sanitize = (value) => (value == null ? '' : String(value).trim());
+const canon = (value) => sanitize(value).toLowerCase();
+
+const encodeKey = (sensorType, topic) => {
+    const base = sanitize(sensorType);
+    const topicPart = sanitize(topic);
+    return topicPart ? `${base}${TOPIC_DELIM}${topicPart}` : base;
+};
+
+const decodeKey = (key) => {
+    const safeKey = sanitize(key);
+    if (!safeKey) return { sensorType: '', topic: '' };
+    const idx = safeKey.indexOf(TOPIC_DELIM);
+    if (idx === -1) return { sensorType: safeKey, topic: '' };
+    return {
+        sensorType: safeKey.slice(0, idx),
+        topic: safeKey.slice(idx + TOPIC_DELIM.length),
+    };
+};
+
+const toNumber = (value) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    const num = Number(value);
+    return Number.isFinite(num) ? num : undefined;
+};
+
 function normalizeConfig(raw) {
-    const key = raw?.sensorType ?? raw?.sensor_type;
-    if (!key) return null;
-    const min = raw?.idealRange?.min ?? raw?.min ?? raw?.minValue ?? raw?.min_value;
-    const max = raw?.idealRange?.max ?? raw?.max ?? raw?.maxValue ?? raw?.max_value;
+    const rawKey = raw?.sensorType ?? raw?.sensor_type;
+    if (!rawKey) return null;
+
+    const decoded = decodeKey(rawKey);
+    const sensorType = sanitize(
+        raw?.baseSensorType ?? raw?.metric ?? raw?.type ?? decoded.sensorType ?? rawKey,
+    );
+    const topic = sanitize(raw?.topic ?? raw?.topicName ?? raw?.topic_key ?? decoded.topic ?? '');
+
+    const min = toNumber(raw?.idealRange?.min ?? raw?.min ?? raw?.minValue ?? raw?.min_value);
+    const max = toNumber(raw?.idealRange?.max ?? raw?.max ?? raw?.maxValue ?? raw?.max_value);
+
     const idealRange =
-        raw?.idealRange ||
-        (min !== undefined || max !== undefined ? { min, max } : undefined);
-    return { ...raw, sensorType: key, idealRange };
+        min !== undefined || max !== undefined
+            ? { min, max }
+            : raw?.idealRange;
+
+    const id = encodeKey(sensorType, topic);
+
+    return {
+        ...raw,
+        id,
+        key: id,
+        rawKey,
+        sensorType,
+        topic,
+        canonicalType: canon(sensorType || rawKey),
+        canonicalTopic: canon(topic),
+        minValue: min,
+        maxValue: max,
+        description: raw?.description ?? '',
+        idealRange,
+    };
 }
 
 export function SensorConfigProvider({ children }) {
@@ -31,20 +84,27 @@ export function SensorConfigProvider({ children }) {
             const data = await getSensorConfigs();
             const map = (Array.isArray(data) ? data : []).reduce((m, x) => {
                 const cfg = normalizeConfig(x);
-                if (cfg) m[cfg.sensorType] = cfg;
+                if (cfg) m[cfg.id] = cfg;
                 return m;
             }, {});
             setConfigs(map);
         } catch (e) { setError(e.message || 'Failed to load sensor configs'); }
     }
 
-    async function createConfig(sensorType, payload) {
+    async function createConfig({ sensorType, topic, minValue, maxValue, description }) {
         try {
             setError('');
+            const encodedKey = encodeKey(sensorType, topic);
             const saved = normalizeConfig(
-                await createSensorConfig({ sensorType, ...payload })
+                await createSensorConfig({
+                    sensorType: encodedKey,
+                    topic: sanitize(topic) || undefined,
+                    minValue: toNumber(minValue),
+                    maxValue: toNumber(maxValue),
+                    description: description ?? '',
+                })
             );
-            const key = saved?.sensorType ?? sensorType;
+            const key = saved?.id ?? encodedKey;
             setConfigs(prev => ({ ...prev, [key]: saved }));
             return saved;
         } catch (e) {
@@ -53,13 +113,23 @@ export function SensorConfigProvider({ children }) {
         }
     }
 
-    async function updateConfig(sensorType, payload) {
+    async function updateConfig(id, payload) {
         try {
             setError('');
+            const current = configs[id];
+            const body = {
+                ...payload,
+                minValue: toNumber(payload?.minValue),
+                maxValue: toNumber(payload?.maxValue),
+                description: payload?.description ?? '',
+            };
+            if (current?.topic) {
+                body.topic = current.topic;
+            }
             const saved = normalizeConfig(
-                await updateSensorConfig(sensorType, payload)
+                await updateSensorConfig(id, body)
             );
-            const key = saved?.sensorType ?? sensorType;
+            const key = saved?.id ?? id;
             setConfigs(prev => ({ ...prev, [key]: saved }));
             return saved;
         } catch (e) {
@@ -68,19 +138,62 @@ export function SensorConfigProvider({ children }) {
         }
     }
 
-    async function deleteConfig(sensorType) {
+    async function deleteConfig(id) {
         try {
             setError('');
-            await deleteSensorConfig(sensorType);
-            setConfigs(prev => { const c = { ...prev }; delete c[sensorType]; return c; });
+            await deleteSensorConfig(id);
+            setConfigs(prev => { const c = { ...prev }; delete c[id]; return c; });
         } catch (e) {
             setError(e.message || 'Failed to delete sensor config');
             throw e;
         }
     }
 
+    const lookup = useMemo(() => {
+        const byType = {};
+        Object.values(configs).forEach((cfg) => {
+            if (!cfg?.canonicalType) return;
+            const entry = byType[cfg.canonicalType] ?? { default: null, byTopic: {} };
+            if (cfg.canonicalTopic) {
+                entry.byTopic[cfg.canonicalTopic] = cfg;
+            } else {
+                entry.default = cfg;
+            }
+            byType[cfg.canonicalType] = entry;
+        });
+        return byType;
+    }, [configs]);
+
+    const findConfig = useCallback((sensorType, options = {}) => {
+        const typeKey = canon(sensorType);
+        if (!typeKey) return null;
+        const entry = lookup[typeKey];
+        if (!entry) return null;
+        const topicKey = canon(options.topic);
+        if (topicKey && entry.byTopic[topicKey]) {
+            return entry.byTopic[topicKey];
+        }
+        return entry.default ?? null;
+    }, [lookup]);
+
+    const findRange = useCallback((sensorType, options = {}) => {
+        const cfg = findConfig(sensorType, options);
+        return cfg?.idealRange ?? null;
+    }, [findConfig]);
+
     return (
-        <Ctx.Provider value={{ configs, error, reload: loadConfigs, createConfig, updateConfig, deleteConfig }}>
+        <Ctx.Provider
+            value={{
+                configs,
+                error,
+                reload: loadConfigs,
+                createConfig,
+                updateConfig,
+                deleteConfig,
+                findConfig,
+                findRange,
+            }}
+        >
             {children}
         </Ctx.Provider>
     );

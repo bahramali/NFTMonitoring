@@ -5,6 +5,8 @@ import Header from "../common/Header";
 function Documentation() {
     const { configs, error, loading } = useSensorConfig();
 
+    const entries = Object.values(configs || {});
+
     if (loading) {
         return <div>Loading configurations...</div>;
     }
@@ -13,7 +15,7 @@ function Documentation() {
         return <div role="alert">{error}</div>;
     }
 
-    if (!configs || Object.keys(configs).length === 0) {
+    if (!entries || entries.length === 0) {
         return <div>No configurations found</div>;
     }
 
@@ -21,19 +23,24 @@ function Documentation() {
         <div>
             <Header title="Documentation" />
             <h2>Ideal Ranges</h2>
-            {Object.entries(configs).map(([key, value]) => (
-                <section key={key}>
-                    <h3>{key}</h3>
-                    <p>{value.description}</p>
-                    {value.idealRange && (
+            {entries.map((cfg) => (
+                <section key={cfg.id}>
+                    <h3>
+                        {cfg.sensorType}
+                        <span style={{ fontWeight: 400, fontSize: "0.9em" }}>
+                            {cfg.topic ? ` — ${cfg.topic}` : " — All topics"}
+                        </span>
+                    </h3>
+                    <p>{cfg.description}</p>
+                    {cfg.idealRange && (
                         <p>
-                            Ideal range: {value.idealRange.min}–{value.idealRange.max}
+                            Ideal range: {cfg.idealRange.min}–{cfg.idealRange.max}
                         </p>
                     )}
-                    {value.spectralRange && (
-                        <p>Spectral range: {value.spectralRange}</p>
+                    {cfg.spectralRange && (
+                        <p>Spectral range: {cfg.spectralRange}</p>
                     )}
-                    {value.color && <p>Color: {value.color}</p>}
+                    {cfg.color && <p>Color: {cfg.color}</p>}
                 </section>
             ))}
         </div>

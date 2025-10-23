@@ -9,7 +9,7 @@ import styles from "./LayerCard.module.css";
 function LayerCard({layer, systemId}) {
   const deviceCards = useLayerCompositeCards(systemId, layer.id).filter(card => !isWaterDevice(card.compId));
   const agg = useMemo(() => aggregateFromCards(deviceCards), [deviceCards]);
-  const { configs } = useSensorConfig();
+  const { findRange } = useSensorConfig();
 
   return (
     <div className={`${styles.card} ${styles.layer}`}>
@@ -24,35 +24,35 @@ function LayerCard({layer, systemId}) {
           <Stat
             label="Light="
             value={`${fmt(agg.avg.light)} lux (${agg.counts.light} sensors)`}
-            range={configs.lux?.idealRange}
+            range={findRange('lux', { topic: '/topic/growSensors' })}
           />
         )}
         {agg.counts.temperature > 0 && (
           <Stat
             label="Temp="
             value={`${fmt(agg.avg.temperature)} °C (${agg.counts.temperature} sensors)`}
-            range={configs.temperature?.idealRange}
+            range={findRange('temperature', { topic: '/topic/growSensors' })}
           />
         )}
         {agg.counts.humidity > 0 && (
           <Stat
             label="Humidity="
             value={`${fmt(agg.avg.humidity)} % (${agg.counts.humidity} sensors)`}
-            range={configs.humidity?.idealRange}
+            range={findRange('humidity', { topic: '/topic/growSensors' })}
           />
         )}
         {agg.counts.pH > 0 && (
           <Stat
             label="pH="
             value={`${fmt(agg.avg.pH)} (${agg.counts.pH} sensors)`}
-            range={configs.ph?.idealRange}
+            range={findRange('ph', { topic: '/topic/growSensors' })}
           />
         )}
         {agg.counts.co2 > 0 && (
           <Stat
             label="CO₂="
             value={`${fmt(agg.avg.co2, 0)} ppm (${agg.counts.co2} sensors)`}
-            range={configs.co2?.idealRange}
+            range={findRange('co2', { topic: '/topic/growSensors' })}
           />
         )}
       </div>

@@ -63,12 +63,12 @@ function SpectrumBarChart({ sensorData }) {
             : { bandMeta: legacyBandMeta, bandMap: legacyBandMap };
     }, [sensorData]);
 
-    const { configs } = useSensorConfig();
+    const { findRange } = useSensorConfig();
     const data = useMemo(() => {
         if (!sensorData) return [];
         return bandMeta.map(([key, label], index) => {
             const rangeKey = bandMap[key] || key;
-            const range = configs[rangeKey]?.idealRange;
+            const range = findRange(rangeKey);
             return {
                 key,
                 index,
@@ -78,7 +78,7 @@ function SpectrumBarChart({ sensorData }) {
                 max: range?.max,
             };
         });
-    }, [sensorData, bandMeta, bandMap, configs]);
+    }, [sensorData, bandMeta, bandMap, findRange]);
 
 
     return (

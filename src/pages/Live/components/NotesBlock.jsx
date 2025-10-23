@@ -22,10 +22,10 @@ function NotesBlock({ mergedDevices = {} }) {
     }
   }
 
-  const { configs } = useSensorConfig();
+  const { findConfig } = useSensorConfig();
   const notes = [];
   for (const key of sensors) {
-    const cfg = configs[key];
+    const cfg = findConfig(key);
     if (cfg?.description) notes.push(`${key}: ${cfg.description}`);
   }
 
