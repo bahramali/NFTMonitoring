@@ -14,17 +14,24 @@ function getCellColor(value, range) {
 function getMeasurementLabel(measurementType, sensorModel) {
     const normalizedType = measurementType?.toLowerCase?.();
     const normalizedModel = sensorModel?.toLowerCase?.();
+    const sanitizedModel = normalizedModel?.replace(/[^a-z0-9]/g, '');
+
+    const matchesModel = target => {
+        if (!sanitizedModel) return false;
+        const sanitizedTarget = target.replace(/[^a-z0-9]/g, '');
+        return sanitizedModel === sanitizedTarget || sanitizedModel.includes(sanitizedTarget);
+    };
 
     if (normalizedType === 'temperature') {
-        if (normalizedModel === 'ds18b20') return 'D_Temp';
-        if (normalizedModel === 'sht3x') return 'A_Temp';
-        if (normalizedModel === 'hdc302x') return 'G_Temp';
+        if (matchesModel('ds18b20')) return 'D_Temp';
+        if (matchesModel('sht3x')) return 'A_Temp';
+        if (matchesModel('hdc302x')) return 'G_Temp';
         return 'Temp';
     }
 
     if (normalizedType === 'humidity') {
-        if (normalizedModel === 'sht3x') return 'A_RH';
-        if (normalizedModel === 'hdc302x') return 'G_RH';
+        if (matchesModel('sht3x')) return 'A_RH';
+        if (matchesModel('hdc302x')) return 'G_RH';
         return 'Hum';
     }
     if (normalizedType?.includes('oxygen')) return 'DO';
