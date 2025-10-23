@@ -27,15 +27,19 @@ vi.mock('recharts', async () => {
     };
 });
 
-vi.mock('../src/context/SensorConfigContext.jsx', () => ({
-    useSensorConfig: () => ({
-        configs: {
-            temperature: { idealRange: { min: 20, max: 30 } },
-            '415nm': { idealRange: { min: 0, max: 100 } },
-        },
-    }),
-    SensorConfigProvider: ({ children }) => <div>{children}</div>,
-}));
+vi.mock('../src/context/SensorConfigContext.jsx', () => {
+    const ranges = {
+        temperature: { idealRange: { min: 20, max: 30 } },
+        '415nm': { idealRange: { min: 0, max: 100 } },
+    };
+    return {
+        useSensorConfig: () => ({
+            configs: ranges,
+            findRange: (key) => ranges[key]?.idealRange ?? null,
+        }),
+        SensorConfigProvider: ({ children }) => <div>{children}</div>,
+    };
+});
 
 import { render, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';

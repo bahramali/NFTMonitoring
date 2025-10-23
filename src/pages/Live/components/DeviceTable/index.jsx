@@ -33,7 +33,7 @@ function getCellColor(value, range) {
 }
 
 function DeviceTable({devices = {}, topic}) {
-    const { configs } = useSensorConfig();
+    const { findRange } = useSensorConfig();
     const compositeIds = Object.keys(devices);
     const allSensors = compositeIds.flatMap(id => devices[id].sensors || []);
     const measurementEntries = new Map();
@@ -67,12 +67,7 @@ function DeviceTable({devices = {}, topic}) {
     }
 
     const rows = [...measurementEntries.values()].map(entry => {
-        let range = configs[entry.measurementType]?.idealRange
-            ?? configs[entry.measurementType?.toLowerCase?.()]?.idealRange;
-        if (!range) {
-            const matchedConfigKey = Object.keys(configs).find(key => sanitize(key) === entry.normalizedType);
-            if (matchedConfigKey) range = configs[matchedConfigKey]?.idealRange;
-        }
+        const range = findRange(entry.measurementType, { topic });
         const rowColor = entry.bandKey ? `${spectralColors[entry.bandKey]}22` : undefined;
 
         const cells = compositeIds.map(id => {

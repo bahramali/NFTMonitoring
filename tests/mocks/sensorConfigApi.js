@@ -4,7 +4,20 @@ import { vi } from 'vitest';
 export function mockSensorConfigApi() {
   // حالت ساده: در حافظه نگه می‌داریم
   const db = {
-    temperature: { sensorType: 'temperature', minValue: 20, maxValue: 30, description: '' },
+    'temperature@@/topic/growSensors': {
+      sensorType: 'temperature@@/topic/growSensors',
+      topic: '/topic/growSensors',
+      minValue: 20,
+      maxValue: 30,
+      description: '',
+    },
+    'temperature@@/topic/waterTank': {
+      sensorType: 'temperature@@/topic/waterTank',
+      topic: '/topic/waterTank',
+      minValue: 18,
+      maxValue: 26,
+      description: '',
+    },
     '415nm': { sensorType: '415nm', minValue: 0, maxValue: 100, description: '' },
   };
 

@@ -8,31 +8,44 @@ export default function SensorConfigPage() {
     const { configs, error, createConfig, updateConfig, deleteConfig } = useSensorConfig();
 
     // --- form state for create/update (top card)
-    const [form, setForm] = useState({ sensorType: "", minValue: "", maxValue: "", description: "" });
-    const [editing, setEditing] = useState(null); // sensorType of row being edited in the top form
+    const [form, setForm] = useState({ sensorType: "", topic: "", minValue: "", maxValue: "", description: "" });
+    const [editing, setEditing] = useState(null); // config id of row being edited in the top form
     const [message, setMessage] = useState("");
     const [search, setSearch] = useState("");
     const [sort, setSort] = useState({ key: "sensorType", dir: "asc" }); // asc | desc
 
     // --- inline row edit state
-    const [rowEdit, setRowEdit] = useState(null); // sensorType
+    const [rowEdit, setRowEdit] = useState(null); // config id
     const [rowDraft, setRowDraft] = useState({ minValue: "", maxValue: "", description: "" });
 
     // Build array from map-like configs
     const rows = useMemo(() => {
         const list = Object.values(configs || {});
-        const filtered = search.trim()
-            ? list.filter((r) => r.sensorType.toLowerCase().includes(search.trim().toLowerCase()))
+        const term = search.trim().toLowerCase();
+        const filtered = term
+            ? list.filter((r) => {
+                const topic = r.topic || "";
+                return (
+                    r.sensorType?.toLowerCase().includes(term) ||
+                    topic.toLowerCase().includes(term) ||
+                    r.description?.toLowerCase().includes(term)
+                );
+            })
             : list;
 
         const dir = sort.dir === "asc" ? 1 : -1;
         return [...filtered].sort((a, b) => {
             const k = sort.key;
-            const av = (a?.[k] ?? "").toString();
-            const bv = (b?.[k] ?? "").toString();
             if (k === "minValue" || k === "maxValue") {
-                return (Number(a[k]) - Number(b[k])) * dir;
+                return ((Number(a[k]) || 0) - (Number(b[k]) || 0)) * dir;
             }
+            if (k === "topic") {
+                const av = (a.topic || "").toString().toLowerCase();
+                const bv = (b.topic || "").toString().toLowerCase();
+                return av.localeCompare(bv) * dir;
+            }
+            const av = (a?.[k] ?? "").toString().toLowerCase();
+            const bv = (b?.[k] ?? "").toString().toLowerCase();
             return av.localeCompare(bv) * dir;
         });
     }, [configs, search, sort]);
@@ -45,7 +58,7 @@ export default function SensorConfigPage() {
 
     const resetForm = () => {
         setEditing(null);
-        setForm({ sensorType: "", minValue: "", maxValue: "", description: "" });
+        setForm({ sensorType: "", topic: "", minValue: "", maxValue: "", description: "" });
     };
 
     const validate = (minStr, maxStr) => {
@@ -73,9 +86,11 @@ export default function SensorConfigPage() {
             return;
         }
 
+        const minValue = Number(form.minValue);
+        const maxValue = Number(form.maxValue);
         const payload = {
-            minValue: Number(form.minValue),
-            maxValue: Number(form.maxValue),
+            minValue,
+            maxValue,
             description: form.description?.trim() || "",
         };
 
@@ -83,7 +98,11 @@ export default function SensorConfigPage() {
             if (editing) {
                 await updateConfig(editing, payload);
             } else {
-                await createConfig(sensorType, payload);
+                await createConfig({
+                    sensorType,
+                    topic: form.topic,
+                    ...payload,
+                });
             }
             setMessage("Saved");
             resetForm();
@@ -93,11 +112,12 @@ export default function SensorConfigPage() {
     };
 
     // --- start edit in top form
-    const startTopEdit = (sensorType) => {
-        const cfg = configs[sensorType] || {};
-        setEditing(sensorType);
+    const startTopEdit = (id) => {
+        const cfg = configs[id] || {};
+        setEditing(id);
         setForm({
-            sensorType,
+            sensorType: cfg.sensorType ?? "",
+            topic: cfg.topic ?? "",
             minValue: cfg.minValue ?? "",
             maxValue: cfg.maxValue ?? "",
             description: cfg.description ?? "",
@@ -106,12 +126,12 @@ export default function SensorConfigPage() {
     };
 
     // --- delete
-    const handleDelete = async (sensorType) => {
+    const handleDelete = async (id) => {
         setMessage("");
         try {
-            await deleteConfig(sensorType);
+            await deleteConfig(id);
             setMessage("Deleted");
-            if (editing === sensorType) resetForm();
+            if (editing === id) resetForm();
         } catch (ex) {
             setMessage(ex?.message || "Failed to delete");
         }
@@ -119,7 +139,7 @@ export default function SensorConfigPage() {
 
     // --- inline row edit handlers
     const startRowEdit = (cfg) => {
-        setRowEdit(cfg.sensorType);
+        setRowEdit(cfg.id);
         setRowDraft({
             minValue: cfg.minValue ?? "",
             maxValue: cfg.maxValue ?? "",
@@ -132,14 +152,14 @@ export default function SensorConfigPage() {
         setRowDraft({ minValue: "", maxValue: "", description: "" });
     };
 
-    const saveRowEdit = async (sensorType) => {
+    const saveRowEdit = async (id) => {
         const err = validate(rowDraft.minValue, rowDraft.maxValue);
         if (err) {
             setMessage(err);
             return;
         }
         try {
-            await updateConfig(sensorType, {
+            await updateConfig(id, {
                 minValue: Number(rowDraft.minValue),
                 maxValue: Number(rowDraft.maxValue),
                 description: rowDraft.description?.trim() || "",
@@ -194,6 +214,24 @@ export default function SensorConfigPage() {
                                 className={styles.input}
                                 required={!editing}
                             />
+                        </label>
+
+                        <label className={styles.label}>
+                            <span>Topic</span>
+                            <input
+                                name="topic"
+                                value={form.topic}
+                                onChange={setFormField}
+                                placeholder="e.g. /topic/growSensors (leave blank for all)"
+                                className={styles.input}
+                                disabled={Boolean(editing)}
+                                list="topic-options"
+                            />
+                            <datalist id="topic-options">
+                                <option value="/topic/growSensors" />
+                                <option value="/topic/waterTank" />
+                                <option value="/topic/germinationTopic" />
+                            </datalist>
                         </label>
 
                         <label className={styles.label}>
@@ -265,6 +303,7 @@ export default function SensorConfigPage() {
                         <thead>
                         <tr>
                             <th><SortBtn id="sensorType">Sensor Type</SortBtn></th>
+                            <th><SortBtn id="topic">Topic</SortBtn></th>
                             <th className={styles.num}><SortBtn id="minValue">Min</SortBtn></th>
                             <th className={styles.num}><SortBtn id="maxValue">Max</SortBtn></th>
                             <th>Range</th>
@@ -274,10 +313,14 @@ export default function SensorConfigPage() {
                         </thead>
                         <tbody>
                         {rows.map((cfg) => {
-                            const editingThis = rowEdit === cfg.sensorType;
+                            const editingThis = rowEdit === cfg.id;
+                            const topicLabel = cfg.topic ? cfg.topic : "All topics";
+                            const minDisplay = cfg.minValue ?? "—";
+                            const maxDisplay = cfg.maxValue ?? "—";
                             return (
-                                <tr key={cfg.sensorType}>
+                                <tr key={cfg.id}>
                                     <td className={styles.typeCell}>{cfg.sensorType}</td>
+                                    <td>{topicLabel}</td>
 
                                     {/* Min */}
                                     <td className={styles.num}>
@@ -289,7 +332,7 @@ export default function SensorConfigPage() {
                                                 onChange={(e) => setRowDraft((d) => ({ ...d, minValue: e.target.value }))}
                                             />
                                         ) : (
-                                            cfg.minValue
+                                            minDisplay
                                         )}
                                     </td>
 
@@ -303,17 +346,17 @@ export default function SensorConfigPage() {
                                                 onChange={(e) => setRowDraft((d) => ({ ...d, maxValue: e.target.value }))}
                                             />
                                         ) : (
-                                            cfg.maxValue
+                                            maxDisplay
                                         )}
                                     </td>
 
                                     {/* Range Bar */}
                                     <td>
-                                        <div className={styles.rangeBar} title={`${cfg.minValue} – ${cfg.maxValue}`}>
+                                        <div className={styles.rangeBar} title={`${minDisplay} – ${maxDisplay}`}>
                                             <div className={styles.rangeFill} />
                                             <div className={styles.rangeMarks}>
-                                                <span>{cfg.minValue}</span>
-                                                <span>{cfg.maxValue}</span>
+                                                <span>{minDisplay}</span>
+                                                <span>{maxDisplay}</span>
                                             </div>
                                         </div>
                                     </td>
@@ -342,7 +385,7 @@ export default function SensorConfigPage() {
                                                 <button
                                                     className={styles.primarySm}
                                                     type="button"
-                                                    onClick={() => saveRowEdit(cfg.sensorType)}
+                                                    onClick={() => saveRowEdit(cfg.id)}
                                                 >
                                                     Save
                                                 </button>
@@ -364,7 +407,7 @@ export default function SensorConfigPage() {
                                                     className={styles.iconBtnDanger}
                                                     type="button"
                                                     title="Delete"
-                                                    onClick={() => handleDelete(cfg.sensorType)}
+                                                    onClick={() => handleDelete(cfg.id)}
                                                 >
                                                     🗑
                                                 </button>
@@ -372,7 +415,7 @@ export default function SensorConfigPage() {
                                                     className={styles.iconBtn}
                                                     type="button"
                                                     title="Edit in form"
-                                                    onClick={() => startTopEdit(cfg.sensorType)}
+                                                    onClick={() => startTopEdit(cfg.id)}
                                                 >
                                                     ⤴
                                                 </button>

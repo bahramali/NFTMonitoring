@@ -13,6 +13,19 @@ beforeEach(() => { mockSensorConfigApi(); vi.clearAllMocks(); });
 
 const savedOrUpdated = /saved|updated/i;
 
+async function findRow(sensorType, topicLabel) {
+  const cells = await screen.findAllByRole('cell', { name: sensorType });
+  for (const cell of cells) {
+    const row = cell.closest('tr');
+    if (!row) continue;
+    const topicCell = topicLabel
+      ? within(row).queryByText(topicLabel)
+      : within(row).queryByText(/All topics/i);
+    if (topicCell) return row;
+  }
+  throw new Error(`Row not found for ${sensorType} (${topicLabel || 'all topics'})`);
+}
+
 test('create a config (assert Saved)', async () => {
   renderWithProviders(<SensorConfig />);
 
@@ -47,7 +60,7 @@ test('create a config (assert Saved)', async () => {
 test('update a config via top form (assert Saved)', async () => {
   renderWithProviders(<SensorConfig />);
 
-  const row = (await screen.findByText('temperature', { selector: 'td' })).closest('tr');
+  const row = await findRow('temperature', '/topic/growSensors');
 
   // pick the exact top-form edit button to avoid ambiguity
   const editTopBtn = within(row).getByTitle('Edit in form');
@@ -64,10 +77,11 @@ test('update a config via top form (assert Saved)', async () => {
   expect(await screen.findByText(savedOrUpdated)).toBeInTheDocument();
 
   expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/sensor-config/temperature'),
+      expect.stringContaining('/api/sensor-config/temperature%40%40%2Ftopic%2FgrowSensors'),
       expect.objectContaining({
         method: 'PUT',
-        body: JSON.stringify({ minValue: 15, maxValue: 30, description: '' }),
+        headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ minValue: 15, maxValue: 30, description: '', topic: '/topic/growSensors' }),
       }),
   );
 });
@@ -75,7 +89,7 @@ test('update a config via top form (assert Saved)', async () => {
 test('update a config via inline edit (assert Saved)', async () => {
   renderWithProviders(<SensorConfig />);
 
-  const row = (await screen.findByText('temperature', { selector: 'td' })).closest('tr');
+  const row = await findRow('temperature', '/topic/growSensors');
 
   // pick the exact inline edit button (✎)
   const inlineBtn = within(row).getByTitle('Inline edit');
@@ -93,10 +107,11 @@ test('update a config via inline edit (assert Saved)', async () => {
   expect(await screen.findByText(savedOrUpdated)).toBeInTheDocument();
 
   expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/sensor-config/temperature'),
+      expect.stringContaining('/api/sensor-config/temperature%40%40%2Ftopic%2FgrowSensors'),
       expect.objectContaining({
         method: 'PUT',
-        body: JSON.stringify({ minValue: 15, maxValue: 30, description: '' }),
+        headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ minValue: 15, maxValue: 30, description: '', topic: '/topic/growSensors' }),
       }),
   );
 });

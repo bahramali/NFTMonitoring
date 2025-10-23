@@ -207,6 +207,24 @@ test('displays configured min and max values', async () => {
   });
 });
 
+test('uses topic-specific ranges when available', async () => {
+  const waterDevices = {
+    dev1: {
+      sensors: [
+        { sensorName: 'DS18B20', sensorType: 'temperature', value: 24.3, unit: '°C' }
+      ],
+      health: {}
+    }
+  };
+
+  renderWithProvider(<DeviceTable devices={waterDevices} topic="/topic/waterTank" />);
+  const tempRow = screen.getByText('D_Temp').closest('tr');
+  await waitFor(() => {
+    expect(within(tempRow).getByText('18')).toBeInTheDocument();
+    expect(within(tempRow).getByText('26')).toBeInTheDocument();
+  });
+});
+
 test('applies spectral background color to 415nm row', () => {
   const { getByText } = renderWithProvider(<DeviceTable devices={devices} topic="/topic/growSensors" />);
   const spectralCell = getByText('415nm');
