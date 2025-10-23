@@ -90,11 +90,39 @@ test('shows G_Temp label for HDC302x temperature sensor', () => {
   expect(screen.getByText('G_Temp')).toBeInTheDocument();
 });
 
+test('normalizes model names when mapping HDC302x temperature labels', () => {
+  const hdcDevices = {
+    dev1: {
+      sensors: [
+        { sensorName: 'HDC302x Temperature', sensorType: 'temperature', value: 25.4, unit: '°C' }
+      ],
+      health: {}
+    }
+  };
+
+  renderWithProvider(<DeviceTable devices={hdcDevices} />);
+  expect(screen.getByText('G_Temp')).toBeInTheDocument();
+});
+
 test('shows G_RH label for HDC302x humidity sensor', () => {
   const hdcDevices = {
     dev1: {
       sensors: [
         { sensorName: 'HDC302x', sensorType: 'humidity', value: 48.3, unit: '%' }
+      ],
+      health: {}
+    }
+  };
+
+  renderWithProvider(<DeviceTable devices={hdcDevices} />);
+  expect(screen.getByText('G_RH')).toBeInTheDocument();
+});
+
+test('normalizes model names when mapping HDC302x humidity labels', () => {
+  const hdcDevices = {
+    dev1: {
+      sensors: [
+        { sensorName: 'HDC302x-Humidity', sensorType: 'humidity', value: 49.1, unit: '%' }
       ],
       health: {}
     }
