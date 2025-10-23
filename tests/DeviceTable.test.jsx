@@ -118,6 +118,20 @@ test('shows G_Temp label for HDC302x temperature sensor', () => {
   expect(screen.getByText('G_Temp')).toBeInTheDocument();
 });
 
+test('shows distinct label for DS18B20 temperature sensor on germination topic', () => {
+  const dsDevices = {
+    dev1: {
+      sensors: [
+        { sensorName: 'DS18B20', sensorType: 'temperature', value: 25.7, unit: '°C' }
+      ],
+      health: {}
+    }
+  };
+
+  renderWithProvider(<DeviceTable devices={dsDevices} topic="/topic/germinationTopic" />);
+  expect(screen.getByText('D_Temp')).toBeInTheDocument();
+});
+
 test('uses germination topic label when model is unknown', () => {
   const genericDevices = {
     dev1: {
