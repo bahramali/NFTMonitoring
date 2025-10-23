@@ -22,7 +22,11 @@ function getMeasurementLabel(measurementType, sensorModel) {
         return 'Temp';
     }
 
-    if (normalizedType === 'humidity') return 'Hum';
+    if (normalizedType === 'humidity') {
+        if (normalizedModel === 'sht3x') return 'A_RH';
+        if (normalizedModel === 'hdc302x') return 'G_RH';
+        return 'Hum';
+    }
     if (normalizedType?.includes('oxygen')) return 'DO';
 
     return measurementType;

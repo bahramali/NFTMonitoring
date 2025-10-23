@@ -58,7 +58,7 @@ test('renders all sensor models at least once', () => {
 test('displays measurement labels correctly', () => {
   renderWithProvider(<DeviceTable devices={devices} />);
   expect(screen.getByText('A_Temp')).toBeInTheDocument();
-  expect(screen.getByText('Hum')).toBeInTheDocument();
+  expect(screen.getByText('A_RH')).toBeInTheDocument();
   expect(screen.getByText('ph')).toBeInTheDocument();
 });
 
@@ -88,6 +88,20 @@ test('shows G_Temp label for HDC302x temperature sensor', () => {
 
   renderWithProvider(<DeviceTable devices={hdcDevices} />);
   expect(screen.getByText('G_Temp')).toBeInTheDocument();
+});
+
+test('shows G_RH label for HDC302x humidity sensor', () => {
+  const hdcDevices = {
+    dev1: {
+      sensors: [
+        { sensorName: 'HDC302x', sensorType: 'humidity', value: 48.3, unit: '%' }
+      ],
+      health: {}
+    }
+  };
+
+  renderWithProvider(<DeviceTable devices={hdcDevices} />);
+  expect(screen.getByText('G_RH')).toBeInTheDocument();
 });
 
 test('renders sensor values with correct units', () => {
