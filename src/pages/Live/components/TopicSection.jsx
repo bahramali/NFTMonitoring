@@ -8,7 +8,7 @@ function TopicSection({systemTopics = {}}) {
             {Object.entries(systemTopics).map(([topic, devices]) => (
                 <div key={topic} className={styles.deviceGroup}>
                     <h3 className={styles.topicTitle}>{topic}</h3>
-                    <DeviceTable devices={devices}/>
+                    <DeviceTable devices={devices} topic={topic}/>
                 </div>
             ))}
         </>
