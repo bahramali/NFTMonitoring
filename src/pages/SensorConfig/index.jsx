@@ -1,6 +1,7 @@
 // src/pages/sensor-config/SensorConfigPage.jsx
 import React, { useMemo, useState } from "react";
 import { useSensorConfig } from "../../context/SensorConfigContext.jsx";
+import { getMetricOverviewLabel } from "../../config/sensorMetrics.js";
 import styles from "./SensorConfigPage.module.css";
 import Header from "../common/Header";
 
@@ -10,11 +11,19 @@ const KNOWN_TOPICS = [
     "/topic/germinationTopic",
 ];
 
+const KNOWN_METRICS_BY_TOPIC = {
+    "/topic/growSensors": ["lux", "temperature", "humidity", "co2", "ph"],
+    "/topic/waterTank": ["temperature", "dissolvedTemp", "dissolvedOxygen", "dissolvedEC", "dissolvedTDS", "ph"],
+    "/topic/germinationTopic": ["temperature", "humidity", "lux", "co2", "ph"],
+};
+
+const EMPTY_FORM = { topic: "", metric: "", minValue: "", maxValue: "", description: "" };
+
 export default function SensorConfigPage() {
     const { configs, error, createConfig, updateConfig, deleteConfig } = useSensorConfig();
 
     // --- form state for create/update (top card)
-    const [form, setForm] = useState({ sensorType: "", topic: "", minValue: "", maxValue: "", description: "" });
+    const [form, setForm] = useState(EMPTY_FORM);
     const [editing, setEditing] = useState(null); // config id of row being edited in the top form
     const [message, setMessage] = useState("");
     const [search, setSearch] = useState("");
@@ -35,6 +44,27 @@ export default function SensorConfigPage() {
         add(form.topic);
 
         return ordered;
+    }, [configs, form.topic]);
+
+    const metricOptions = useMemo(() => {
+        const topicKey = form.topic?.trim();
+        if (!topicKey) return [];
+
+        const defaults = KNOWN_METRICS_BY_TOPIC[topicKey] || [];
+        const seen = new Set(defaults);
+
+        Object.values(configs || {}).forEach((cfg) => {
+            if ((cfg.topic || "").trim() === topicKey && cfg.sensorType) {
+                seen.add(cfg.sensorType);
+            }
+        });
+
+        return [...seen]
+            .map((metric) => ({
+                value: metric,
+                label: getMetricOverviewLabel(metric, { topic: topicKey }) || metric,
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
     }, [configs, form.topic]);
 
     // --- inline row edit state
@@ -76,12 +106,17 @@ export default function SensorConfigPage() {
     // --- helpers
     const setFormField = (e) => {
         const { name, value } = e.target;
-        setForm((f) => ({ ...f, [name]: value }));
+        setForm((f) => {
+            if (name === "topic") {
+                return { ...f, topic: value, metric: "" };
+            }
+            return { ...f, [name]: value };
+        });
     };
 
     const resetForm = () => {
         setEditing(null);
-        setForm({ sensorType: "", topic: "", minValue: "", maxValue: "", description: "" });
+        setForm(EMPTY_FORM);
     };
 
     const validate = (minStr, maxStr) => {
@@ -97,9 +132,10 @@ export default function SensorConfigPage() {
         e.preventDefault();
         setMessage("");
 
-        const sensorType = form.sensorType.trim();
+        const topic = form.topic.trim();
+        const metric = form.metric.trim();
         const err =
-            (!editing && !sensorType) ||
+            (!editing && (!topic || !metric)) ||
             form.minValue === "" ||
             form.maxValue === "" ||
             validate(form.minValue, form.maxValue);
@@ -122,8 +158,8 @@ export default function SensorConfigPage() {
                 await updateConfig(editing, payload);
             } else {
                 await createConfig({
-                    sensorType,
-                    topic: form.topic,
+                    sensorType: metric,
+                    topic,
                     ...payload,
                 });
             }
@@ -139,8 +175,8 @@ export default function SensorConfigPage() {
         const cfg = configs[id] || {};
         setEditing(id);
         setForm({
-            sensorType: cfg.sensorType ?? "",
             topic: cfg.topic ?? "",
+            metric: cfg.sensorType ?? "",
             minValue: cfg.minValue ?? "",
             maxValue: cfg.maxValue ?? "",
             description: cfg.description ?? "",
@@ -227,19 +263,6 @@ export default function SensorConfigPage() {
                 <form className={styles.form} onSubmit={handleSubmit}>
                     <div className={styles.row}>
                         <label className={styles.label}>
-                            <span>Sensor Type</span>
-                            <input
-                                name="sensorType"
-                                value={form.sensorType}
-                                onChange={setFormField}
-                                disabled={Boolean(editing)}
-                                placeholder="e.g. ph, temperature, lux"
-                                className={styles.input}
-                                required={!editing}
-                            />
-                        </label>
-
-                        <label className={styles.label}>
                             <span>Topic</span>
                             <select
                                 name="topic"
@@ -247,11 +270,37 @@ export default function SensorConfigPage() {
                                 onChange={setFormField}
                                 className={styles.input}
                                 disabled={Boolean(editing)}
+                                required={!editing}
                             >
-                                <option value="">All topics</option>
+                                <option value="">{topicOptions.length ? "Select topic" : "No topics available"}</option>
                                 {topicOptions.map((topic) => (
                                     <option key={topic} value={topic}>
                                         {topic}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+
+                        <label className={styles.label}>
+                            <span>Metric</span>
+                            <select
+                                name="metric"
+                                value={form.metric}
+                                onChange={setFormField}
+                                className={styles.input}
+                                required={!editing}
+                                disabled={!form.topic || Boolean(editing)}
+                            >
+                                <option value="">
+                                    {!form.topic
+                                        ? "Select topic first"
+                                        : metricOptions.length
+                                            ? "Select metric"
+                                            : "No metrics available"}
+                                </option>
+                                {metricOptions.map((metric) => (
+                                    <option key={metric.value} value={metric.value}>
+                                        {metric.label}
                                     </option>
                                 ))}
                             </select>
@@ -315,7 +364,7 @@ export default function SensorConfigPage() {
                     <div className={styles.cardTitle}>Configured Sensors</div>
                     <input
                         className={styles.search}
-                        placeholder="Search sensor type..."
+                        placeholder="Search metric..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
@@ -325,7 +374,7 @@ export default function SensorConfigPage() {
                     <table className={styles.table}>
                         <thead>
                         <tr>
-                            <th><SortBtn id="sensorType">Sensor Type</SortBtn></th>
+                            <th><SortBtn id="sensorType">Metric</SortBtn></th>
                             <th><SortBtn id="topic">Topic</SortBtn></th>
                             <th className={styles.num}><SortBtn id="minValue">Min</SortBtn></th>
                             <th className={styles.num}><SortBtn id="maxValue">Max</SortBtn></th>
@@ -337,7 +386,7 @@ export default function SensorConfigPage() {
                         <tbody>
                         {rows.map((cfg) => {
                             const editingThis = rowEdit === cfg.id;
-                            const topicLabel = cfg.topic ? cfg.topic : "All topics";
+                            const topicLabel = cfg.topic ? cfg.topic : "—";
                             const minDisplay = cfg.minValue ?? "—";
                             const maxDisplay = cfg.maxValue ?? "—";
                             return (

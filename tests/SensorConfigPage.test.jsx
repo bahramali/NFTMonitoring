@@ -20,17 +20,19 @@ async function findRow(sensorType, topicLabel) {
     if (!row) continue;
     const topicCell = topicLabel
       ? within(row).queryByText(topicLabel)
-      : within(row).queryByText(/All topics/i);
+      : within(row).queryByText('—');
     if (topicCell) return row;
   }
-  throw new Error(`Row not found for ${sensorType} (${topicLabel || 'all topics'})`);
+  throw new Error(`Row not found for ${sensorType} (${topicLabel || 'no topic'})`);
 }
 
 test('create a config (assert Saved)', async () => {
   renderWithProviders(<SensorConfig />);
 
-  // be strict on labels to avoid matching sort buttons
-  fireEvent.change(screen.getByLabelText(/^Sensor Type:?$/i), {
+  fireEvent.change(screen.getByLabelText(/^Topic:?$/i), {
+    target: { value: '/topic/growSensors' },
+  });
+  fireEvent.change(screen.getByLabelText(/^Metric:?$/i), {
     target: { value: 'humidity' },
   });
   fireEvent.change(screen.getByLabelText(/^Min:?$/i), {
@@ -48,7 +50,8 @@ test('create a config (assert Saved)', async () => {
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({
-          sensorType: 'humidity',
+          sensorType: 'humidity@@/topic/growSensors',
+          topic: '/topic/growSensors',
           minValue: 40,
           maxValue: 60,
           description: '',
