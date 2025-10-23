@@ -15,6 +15,26 @@ const toLocalInputValue = (date) => {
 const toISOSeconds = (v) => (v ? new Date(v).toISOString() : "");
 const AUTO_REFRESH_MS = {"30s": 30_000, "1m": 60_000, "5m": 300_000};
 const API_BASE = import.meta.env.VITE_API_BASE ?? "https://api.hydroleaf.se";
+const CATALOG_ENDPOINTS = [
+    `${API_BASE}/api/reports/meta`,
+    `${API_BASE}/api/device-catalog`,
+    `${API_BASE}/api/deviceCatalog`,
+];
+
+const normaliseCatalog = (raw) => {
+    if (!raw) return null;
+    if (Array.isArray(raw)) return { devices: raw };
+    if (Array.isArray(raw.devices)) return raw;
+    if (raw.data) {
+        if (Array.isArray(raw.data)) return { ...raw, devices: raw.data };
+        if (Array.isArray(raw.data.devices)) return { ...raw, ...raw.data };
+    }
+    if (raw.catalog) {
+        if (Array.isArray(raw.catalog)) return { ...raw, devices: raw.catalog };
+        if (Array.isArray(raw.catalog.devices)) return { ...raw, ...raw.catalog };
+    }
+    return null;
+};
 
 // English: choose bucket by range. Min resolution is 1m (your sampling rate)
 const pickBucket = (fromLocal, toLocal) => {
@@ -30,17 +50,67 @@ const pickBucket = (fromLocal, toLocal) => {
 function useDevicesMeta() {
     const [meta, setMeta] = useState({devices: []});
     useEffect(() => {
-        const cached = localStorage.getItem("reportsMeta:v1") || localStorage.getItem("deviceCatalog");
-        if (cached) {
-            try { setMeta(JSON.parse(cached)); }
-            catch { /* ignore parse errors */ }
-        }
+        let cancelled = false;
+        const loadMeta = async () => {
+            let cachedMeta = null;
+            if (typeof window !== "undefined") {
+                const cached = localStorage.getItem("reportsMeta:v1") || localStorage.getItem("deviceCatalog");
+                if (cached) {
+                    try {
+                        cachedMeta = JSON.parse(cached);
+                        if (!cancelled) setMeta(cachedMeta);
+                    } catch {
+                        cachedMeta = null;
+                    }
+                }
+            }
+
+            if (cachedMeta?.devices?.length) return;
+
+            let fetched = false;
+            let lastError = null;
+            for (const url of CATALOG_ENDPOINTS) {
+                try {
+                    const res = await fetch(url);
+                    if (!res.ok) {
+                        lastError = new Error(`HTTP ${res.status}`);
+                        continue;
+                    }
+                    const data = await res.json();
+                    const parsed = normaliseCatalog(data);
+                    if (parsed?.devices?.length) {
+                        fetched = true;
+                        if (typeof window !== "undefined") {
+                            const serialised = JSON.stringify(parsed);
+                            try {
+                                localStorage.setItem("reportsMeta:v1", serialised);
+                                localStorage.setItem("deviceCatalog", serialised);
+                            } catch {
+                                /* ignore storage errors */
+                            }
+                        }
+                        if (!cancelled) setMeta(parsed);
+                        break;
+                    }
+                } catch (err) {
+                    lastError = err;
+                }
+            }
+
+            if (!fetched && !cachedMeta?.devices?.length && lastError) {
+                console.error("Unable to load device catalog for reports", lastError);
+            }
+        };
+
+        loadMeta();
+        return () => { cancelled = true; };
     }, []);
     return meta;
 }
 
 export default function Reports() {
-    const {devices: deviceRows} = useDevicesMeta();
+    const deviceMeta = useDevicesMeta();
+    const deviceRows = deviceMeta?.devices || [];
 
     // timing
     const [fromDate, setFromDate] = useState(() => {
@@ -231,6 +301,7 @@ export default function Reports() {
             <Header title="Reports" />
             <div style={{padding: 16}}>
             <ReportFiltersCompare
+                catalog={deviceMeta}
                 fromDate={fromDate}
                 toDate={toDate}
                 onFromDateChange={(e) => setFromDate(e.target.value)}

@@ -77,21 +77,27 @@ export default function ReportFiltersCompare(props) {
 
         onReset, onAddCompare, onExportCsv, rangeLabel,
         compareItems = [], onClearCompare, onRemoveCompare,
+        catalog: catalogProp,
     } = props;
 
     // catalog
-    const [catalog, setCatalog] = useState(null);
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
+    const [catalog, setCatalog] = useState(() => {
+        if (catalogProp != null) return catalogProp;
+        if (typeof window === 'undefined') return null;
         try {
             const a = localStorage.getItem('reportsMeta:v1');
             const b = localStorage.getItem('deviceCatalog');
             const raw = a || b;
-            if (raw) setCatalog(JSON.parse(raw));
+            return raw ? JSON.parse(raw) : null;
         } catch {
-            /* ignore parse errors */
+            return null;
         }
-    }, []);
+    });
+    useEffect(() => {
+        if (catalogProp !== undefined) {
+            setCatalog(catalogProp || null);
+        }
+    }, [catalogProp]);
 
     // composite IDs
     const compositeIds = useMemo(() => {

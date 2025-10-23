@@ -42,6 +42,34 @@ test('renders Reports and shows charts', async () => {
   expect(ReportCharts).toHaveBeenCalled();
 });
 
+test('fetches device catalog when cache is empty', async () => {
+  localStorage.clear();
+  const payload = {
+    devices: [
+      { systemId: 'S10', layerId: 'L20', deviceId: 'D01', sensors: ['ph'] },
+    ],
+    systems: [{ id: 'S10', deviceCompositeIds: ['S10-L20-D01'] }],
+  };
+
+  global.fetch = vi.fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => payload,
+    })
+    .mockResolvedValue({
+      ok: true,
+      json: async () => ({ sensors: [] }),
+    });
+
+  render(<Reports />);
+
+  expect(await screen.findByLabelText('S10-L20-D01')).toBeInTheDocument();
+  expect(global.fetch).toHaveBeenCalledTimes(1);
+  expect(global.fetch.mock.calls[0][0].toString()).toContain('/api/reports/meta');
+  expect(localStorage.getItem('reportsMeta:v1')).toBe(JSON.stringify(payload));
+  expect(localStorage.getItem('deviceCatalog')).toBe(JSON.stringify(payload));
+});
+
 test('Apply sends one request per compositeId', async () => {
   setMeta({
     version: 'x',
