@@ -57,9 +57,37 @@ test('renders all sensor models at least once', () => {
 
 test('displays measurement labels correctly', () => {
   renderWithProvider(<DeviceTable devices={devices} />);
-  expect(screen.getByText('Temp')).toBeInTheDocument();
+  expect(screen.getByText('A_Temp')).toBeInTheDocument();
   expect(screen.getByText('Hum')).toBeInTheDocument();
   expect(screen.getByText('ph')).toBeInTheDocument();
+});
+
+test('shows D_Temp label for DS18B20 temperature sensor', () => {
+  const dsDevices = {
+    dev1: {
+      sensors: [
+        { sensorName: 'DS18B20', sensorType: 'temperature', value: 24.3, unit: '°C' }
+      ],
+      health: {}
+    }
+  };
+
+  renderWithProvider(<DeviceTable devices={dsDevices} />);
+  expect(screen.getByText('D_Temp')).toBeInTheDocument();
+});
+
+test('shows G_Temp label for HDC302x temperature sensor', () => {
+  const hdcDevices = {
+    dev1: {
+      sensors: [
+        { sensorName: 'HDC302x', sensorType: 'temperature', value: 26.1, unit: '°C' }
+      ],
+      health: {}
+    }
+  };
+
+  renderWithProvider(<DeviceTable devices={hdcDevices} />);
+  expect(screen.getByText('G_Temp')).toBeInTheDocument();
 });
 
 test('renders sensor values with correct units', () => {
@@ -71,7 +99,7 @@ test('renders sensor values with correct units', () => {
 
 test('displays configured min and max values', async () => {
   renderWithProvider(<DeviceTable devices={devices} />);
-  const tempRow = screen.getByText('Temp').closest('tr');
+  const tempRow = screen.getByText('A_Temp').closest('tr');
   const spectralRow = screen.getByText('415nm').closest('tr');
   await waitFor(() => {
     expect(within(tempRow).getByText('20')).toBeInTheDocument();

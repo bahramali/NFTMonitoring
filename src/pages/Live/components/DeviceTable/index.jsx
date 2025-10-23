@@ -11,13 +11,29 @@ function getCellColor(value, range) {
     return '';
 }
 
+function getMeasurementLabel(measurementType, sensorModel) {
+    const normalizedType = measurementType?.toLowerCase?.();
+    const normalizedModel = sensorModel?.toLowerCase?.();
+
+    if (normalizedType === 'temperature') {
+        if (normalizedModel === 'ds18b20') return 'D_Temp';
+        if (normalizedModel === 'sht3x') return 'A_Temp';
+        if (normalizedModel === 'hdc302x') return 'G_Temp';
+        return 'Temp';
+    }
+
+    if (normalizedType === 'humidity') return 'Hum';
+    if (normalizedType?.includes('oxygen')) return 'DO';
+
+    return measurementType;
+}
+
 function DeviceTable({devices = {}}) {
     const { configs } = useSensorConfig();
     const compositeIds = Object.keys(devices);
     const allSensors = compositeIds.flatMap(id => devices[id].sensors || []);
     const measurementTypes = new Set();
     const measurementToSensorModel = {};
-    const labelMapFromData = {};
     const spectralKeyMapFromData = {};
 
     allSensors.forEach(s => {
@@ -25,15 +41,6 @@ function DeviceTable({devices = {}}) {
         if (type) {
             measurementTypes.add(type);
             measurementToSensorModel[type] = s.sensorName || s.source || '-';
-
-            // Label map (first letter uppercase if common)
-            if (!labelMapFromData[type]) {
-                const key = type;
-                if (key === 'temperature') labelMapFromData[key] = 'Temp';
-                else if (key === 'humidity') labelMapFromData[key] = 'Hum';
-                else if (key.toLowerCase().includes('oxygen')) labelMapFromData[key] = 'DO';
-                else labelMapFromData[key] = key;
-            }
 
             // Spectral mapping if type is wavelength
             if (/^\d+nm$/.test(type)) {
@@ -98,7 +105,7 @@ function DeviceTable({devices = {}}) {
                     <tr key={row.measurementType}>
                         <td className={styles.modelCell}>{row.sensorModel}</td>
                         <td className={styles.sensorCell} style={{backgroundColor: row.rowColor}}>
-                            {labelMapFromData[row.measurementType] || row.measurementType}
+                            {getMeasurementLabel(row.measurementType, row.sensorModel)}
                         </td>
                         <td style={{backgroundColor: row.rowColor}}>{row.range?.min ?? '-'}</td>
                         <td style={{backgroundColor: row.rowColor}}>{row.range?.max ?? '-'}</td>
