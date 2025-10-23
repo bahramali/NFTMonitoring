@@ -86,6 +86,7 @@ const RAW_DEFINITIONS = [
     typeAliases: ["dissolvedtemp", "watertemp", "water_temp", "watertemperature"],
     topicOverrides: [
       { match: ["/topic/waterTank", "waterTank"], label: "D_Temp" },
+      { match: ["/topic/germinationTopic", "germinationTopic"], label: "D_Temp" },
     ],
   },
 ];
