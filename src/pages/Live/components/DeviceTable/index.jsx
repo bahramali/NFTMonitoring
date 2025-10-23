@@ -67,7 +67,7 @@ function DeviceTable({devices = {}, topic}) {
     }
 
     const rows = [...measurementEntries.values()].map(entry => {
-        const range = findRange(entry.measurementType, { topic });
+        const range = findRange(entry.measurementType, { topic, sensorModel: entry.sensorModel });
         const rowColor = entry.bandKey ? `${spectralColors[entry.bandKey]}22` : undefined;
 
         const cells = compositeIds.map(id => {

@@ -18,6 +18,13 @@ export function mockSensorConfigApi() {
       maxValue: 26,
       description: '',
     },
+    'dissolvedTemp@@/topic/germinationTopic': {
+      sensorType: 'dissolvedTemp@@/topic/germinationTopic',
+      topic: '/topic/germinationTopic',
+      minValue: 15,
+      maxValue: 25,
+      description: '',
+    },
     '415nm': { sensorType: '415nm', minValue: 0, maxValue: 100, description: '' },
   };
 

@@ -339,5 +339,5 @@ const WATER_STATS = [
     { label: "DO", key: "dissolvedOxygen", precision: 1, rangeKey: "dissolvedOxygen" },
     { label: "EC", key: "dissolvedEC", precision: 2, rangeKey: "ec" },
     { label: "TDS", key: "dissolvedTDS", precision: 0, rangeKey: "tds" },
-    { label: "Temp", key: "dissolvedTemp", precision: 1, rangeKey: "temperature" },
+    { label: "Temp", key: "dissolvedTemp", precision: 1, rangeKey: "dissolvedTemp" },
 ];

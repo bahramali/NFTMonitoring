@@ -5,6 +5,7 @@ import {
     updateSensorConfig,
     deleteSensorConfig,
 } from '../api/sensorConfig.js';
+import { getMetricLiveLabel } from '../config/sensorMetrics.js';
 
 const Ctx = createContext(null);
 
@@ -12,6 +13,7 @@ const TOPIC_DELIM = '@@';
 
 const sanitize = (value) => (value == null ? '' : String(value).trim());
 const canon = (value) => sanitize(value).toLowerCase();
+const canonLabel = (value) => (value == null ? '' : String(value).toLowerCase().replace(/[^a-z0-9]/g, ''));
 
 const encodeKey = (sensorType, topic) => {
     const base = sanitize(sensorType);
@@ -164,17 +166,79 @@ export function SensorConfigProvider({ children }) {
         return byType;
     }, [configs]);
 
+    const labelLookup = useMemo(() => {
+        const byTopic = {};
+        const global = {};
+
+        Object.values(configs).forEach((cfg) => {
+            if (!cfg?.sensorType) return;
+            const topicKey = cfg.canonicalTopic;
+            const label = getMetricLiveLabel(cfg.sensorType, { topic: cfg.topic }) || cfg.sensorType;
+            const labelKey = canonLabel(label);
+            if (!labelKey) return;
+
+            if (topicKey) {
+                const entry = byTopic[topicKey] ?? {};
+                if (!entry[labelKey]) entry[labelKey] = cfg;
+                byTopic[topicKey] = entry;
+            } else if (!global[labelKey]) {
+                global[labelKey] = cfg;
+            }
+        });
+
+        return { byTopic, global };
+    }, [configs]);
+
     const findConfig = useCallback((sensorType, options = {}) => {
-        const typeKey = canon(sensorType);
-        if (!typeKey) return null;
-        const entry = lookup[typeKey];
-        if (!entry) return null;
         const topicKey = canon(options.topic);
-        if (topicKey && entry.byTopic[topicKey]) {
-            return entry.byTopic[topicKey];
+        const metricKey = canon(options.metric);
+
+        if (metricKey) {
+            const metricEntry = lookup[metricKey];
+            if (metricEntry) {
+                if (topicKey && metricEntry.byTopic[topicKey]) {
+                    return metricEntry.byTopic[topicKey];
+                }
+                if (metricEntry.default) {
+                    return metricEntry.default;
+                }
+            }
         }
-        return entry.default ?? null;
-    }, [lookup]);
+
+        const typeKey = canon(sensorType);
+        if (typeKey) {
+            const entry = lookup[typeKey];
+            if (entry) {
+                if (topicKey && entry.byTopic[topicKey]) {
+                    return entry.byTopic[topicKey];
+                }
+                if (entry.default) {
+                    return entry.default;
+                }
+            }
+        }
+
+        const labels = new Set();
+        if (options.label) {
+            labels.add(canonLabel(options.label));
+        }
+        if (options.metric) {
+            labels.add(canonLabel(getMetricLiveLabel(options.metric, { topic: options.topic })));
+        }
+        labels.add(canonLabel(getMetricLiveLabel(sensorType, { sensorModel: options.sensorModel, topic: options.topic })));
+
+        for (const labelKey of labels) {
+            if (!labelKey) continue;
+            if (topicKey && labelLookup.byTopic[topicKey]?.[labelKey]) {
+                return labelLookup.byTopic[topicKey][labelKey];
+            }
+            if (labelLookup.global[labelKey]) {
+                return labelLookup.global[labelKey];
+            }
+        }
+
+        return null;
+    }, [labelLookup, lookup]);
 
     const findRange = useCallback((sensorType, options = {}) => {
         const cfg = findConfig(sensorType, options);
