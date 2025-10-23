@@ -4,6 +4,12 @@ import { useSensorConfig } from "../../context/SensorConfigContext.jsx";
 import styles from "./SensorConfigPage.module.css";
 import Header from "../common/Header";
 
+const KNOWN_TOPICS = [
+    "/topic/growSensors",
+    "/topic/waterTank",
+    "/topic/germinationTopic",
+];
+
 export default function SensorConfigPage() {
     const { configs, error, createConfig, updateConfig, deleteConfig } = useSensorConfig();
 
@@ -13,6 +19,23 @@ export default function SensorConfigPage() {
     const [message, setMessage] = useState("");
     const [search, setSearch] = useState("");
     const [sort, setSort] = useState({ key: "sensorType", dir: "asc" }); // asc | desc
+
+    const topicOptions = useMemo(() => {
+        const seen = new Set();
+        const ordered = [];
+        const add = (value) => {
+            const topic = (value || "").trim();
+            if (!topic || seen.has(topic)) return;
+            seen.add(topic);
+            ordered.push(topic);
+        };
+
+        KNOWN_TOPICS.forEach(add);
+        Object.values(configs || {}).forEach((cfg) => add(cfg.topic));
+        add(form.topic);
+
+        return ordered;
+    }, [configs, form.topic]);
 
     // --- inline row edit state
     const [rowEdit, setRowEdit] = useState(null); // config id
@@ -218,20 +241,20 @@ export default function SensorConfigPage() {
 
                         <label className={styles.label}>
                             <span>Topic</span>
-                            <input
+                            <select
                                 name="topic"
                                 value={form.topic}
                                 onChange={setFormField}
-                                placeholder="e.g. /topic/growSensors (leave blank for all)"
                                 className={styles.input}
                                 disabled={Boolean(editing)}
-                                list="topic-options"
-                            />
-                            <datalist id="topic-options">
-                                <option value="/topic/growSensors" />
-                                <option value="/topic/waterTank" />
-                                <option value="/topic/germinationTopic" />
-                            </datalist>
+                            >
+                                <option value="">All topics</option>
+                                {topicOptions.map((topic) => (
+                                    <option key={topic} value={topic}>
+                                        {topic}
+                                    </option>
+                                ))}
+                            </select>
                         </label>
 
                         <label className={styles.label}>
