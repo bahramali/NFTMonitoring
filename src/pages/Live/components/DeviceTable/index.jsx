@@ -16,9 +16,9 @@ function getMeasurementLabel(measurementType, sensorModel) {
     const normalizedModel = sensorModel?.toLowerCase?.();
 
     if (normalizedType === 'temperature') {
-        if (normalizedModel === 'ds18b20') return 'DO_temp';
-        if (normalizedModel === 'sht3x') return 'AI_Temp';
-        if (normalizedModel === 'hdc302x') return 'GE_Type';
+        if (normalizedModel === 'ds18b20') return 'D_Temp';
+        if (normalizedModel === 'sht3x') return 'A_Temp';
+        if (normalizedModel === 'hdc302x') return 'G_Temp';
         return 'Temp';
     }
 
