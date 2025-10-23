@@ -12,9 +12,39 @@ const KNOWN_TOPICS = [
 ];
 
 const KNOWN_METRICS_BY_TOPIC = {
-    "/topic/growSensors": ["lux", "temperature", "humidity", "co2", "ph"],
-    "/topic/waterTank": ["temperature", "dissolvedTemp", "dissolvedOxygen", "dissolvedEC", "dissolvedTDS", "ph"],
-    "/topic/germinationTopic": ["temperature", "humidity", "lux", "co2", "ph"],
+    "/topic/growSensors": [
+        "co2",
+        "lux",
+        "405nm",
+        "425nm",
+        "450nm",
+        "475nm",
+        "515nm",
+        "550nm",
+        "555nm",
+        "600nm",
+        "640nm",
+        "690nm",
+        "745nm",
+        "VIS1",
+        "VIS2",
+        "NIR855",
+        "temperature",
+        "humidity",
+    ],
+    "/topic/waterTank": [
+        "dissolvedOxygen",
+        "dissolvedEC",
+        "dissolvedTDS",
+        "temperature",
+        "ph",
+    ],
+    "/topic/germinationTopic": [
+        "temperature",
+        "humidity",
+        "dissolvedTemp",
+        "lux",
+    ],
 };
 
 const EMPTY_FORM = { topic: "", metric: "", minValue: "", maxValue: "", description: "" };
