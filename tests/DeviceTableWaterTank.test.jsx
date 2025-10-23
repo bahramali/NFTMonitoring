@@ -31,14 +31,14 @@ afterEach(() => {
 });
 
 test('renders sensor models from sensors array', () => {
-  renderWithProvider(<DeviceTable devices={devices} />);
+  renderWithProvider(<DeviceTable devices={devices} topic="/topic/waterTank" />);
   expect(screen.getAllByText('HailegeTDS').length).toBeGreaterThan(0);
   expect(screen.getByText('DS18B20')).toBeInTheDocument();
   expect(screen.getByText('DFROBOT')).toBeInTheDocument();
 });
 
 test('renders sensor values correctly', () => {
-  renderWithProvider(<DeviceTable devices={devices} />);
+  renderWithProvider(<DeviceTable devices={devices} topic="/topic/waterTank" />);
   expect(screen.getByText('500.0 ppm')).toBeInTheDocument();
   expect(screen.getByText('0.8 mS/cm')).toBeInTheDocument();
   expect(screen.getByText('24.3 °C')).toBeInTheDocument();
