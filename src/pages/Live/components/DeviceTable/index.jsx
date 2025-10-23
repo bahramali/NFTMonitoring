@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSensorConfig } from '../../../../context/SensorConfigContext.jsx';
+import { getMetricLiveLabel } from '../../../../config/sensorMetrics.js';
 import spectralColors from '../../../../spectralColors';
 import styles from './DeviceTable.module.css';
 
@@ -29,34 +30,6 @@ function getCellColor(value, range) {
     const threshold = (range.max - range.min) * 0.1;
     if (value < range.min + threshold || value > range.max - threshold) return '#fff3cd';
     return '';
-}
-
-function getMeasurementLabel(measurementType, sensorModel) {
-    const normalizedType = measurementType?.toLowerCase?.();
-    const normalizedModel = sensorModel?.toLowerCase?.();
-    const sanitizedModel = normalizedModel?.replace(/[^a-z0-9]/g, '');
-
-    const matchesModel = target => {
-        if (!sanitizedModel) return false;
-        const sanitizedTarget = target.replace(/[^a-z0-9]/g, '');
-        return sanitizedModel === sanitizedTarget || sanitizedModel.includes(sanitizedTarget);
-    };
-
-    if (normalizedType === 'temperature') {
-        if (matchesModel('ds18b20')) return 'D_Temp';
-        if (matchesModel('sht3x')) return 'A_Temp';
-        if (matchesModel('hdc302x')) return 'G_Temp';
-        return 'Temp';
-    }
-
-    if (normalizedType === 'humidity') {
-        if (matchesModel('sht3x')) return 'A_RH';
-        if (matchesModel('hdc302x')) return 'G_RH';
-        return 'Hum';
-    }
-    if (normalizedType?.includes('oxygen')) return 'DO';
-
-    return measurementType;
 }
 
 function DeviceTable({devices = {}}) {
@@ -152,7 +125,7 @@ function DeviceTable({devices = {}}) {
                     <tr key={`${row.measurementType}-${row.sensorModel}`}>
                         <td className={styles.modelCell}>{row.sensorModel}</td>
                         <td className={styles.sensorCell} style={{backgroundColor: row.rowColor}}>
-                            {getMeasurementLabel(row.measurementType, row.sensorModel)}
+                            {getMetricLiveLabel(row.measurementType, row.sensorModel)}
                         </td>
                         <td style={{backgroundColor: row.rowColor}}>{row.range?.min ?? '-'}</td>
                         <td style={{backgroundColor: row.rowColor}}>{row.range?.max ?? '-'}</td>

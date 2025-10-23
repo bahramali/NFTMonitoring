@@ -1,3 +1,4 @@
+import { getMetricOverviewLabel } from "../../../config/sensorMetrics.js";
 import { isWaterDevice } from "./isWaterDevice.js";
 export { isWaterDevice } from "./isWaterDevice.js";
 
@@ -45,17 +46,7 @@ export function deriveHealth(layer) {
   return present === 0 ? "down" : present < 3 ? "warn" : "ok";
 }
 
-export const sensorLabel = (k) => ({
-  light: "Light",
-  temperature: "Temp",
-  humidity: "Humidity",
-  pH: "pH",
-  dissolvedTemp: "Water Temp",
-  dissolvedOxygen: "DO",
-  dissolvedEC: "EC",
-  dissolvedTDS: "TDS",
-  co2: "CO₂",
-}[k] || k);
+export const sensorLabel = (k) => getMetricOverviewLabel(k);
 
 export function canonKey(raw) {
   const t = fixSubs(String(raw || "")).toLowerCase();
