@@ -3,6 +3,26 @@ import { useSensorConfig } from '../../../../context/SensorConfigContext.jsx';
 import spectralColors from '../../../../spectralColors';
 import styles from './DeviceTable.module.css';
 
+function sanitize(value) {
+    if (value === undefined || value === null) return '';
+    return String(value).toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function getSpectralBandKey(measurementType) {
+    const normalized = sanitize(measurementType);
+    if (!normalized) return undefined;
+
+    const nmMatch = normalized.match(/^(\d+)nm$/);
+    if (nmMatch) {
+        const index = ['415', '445', '480', '515', '555', '590', '630', '680'].indexOf(nmMatch[1]);
+        if (index !== -1) return `F${index + 1}`;
+    }
+
+    if (normalized === 'clear') return 'clear';
+    if (normalized === 'nir') return 'nir';
+    return undefined;
+}
+
 function getCellColor(value, range) {
     if (!range || typeof value !== 'number' || Number.isNaN(value)) return '';
     if (value < range.min || value > range.max) return '#f8d7da';
@@ -43,30 +63,29 @@ function DeviceTable({devices = {}}) {
     const { configs } = useSensorConfig();
     const compositeIds = Object.keys(devices);
     const allSensors = compositeIds.flatMap(id => devices[id].sensors || []);
-    const measurementTypes = new Set();
-    const measurementToSensorModel = {};
-    const spectralKeyMapFromData = {};
+    const measurementEntries = new Map();
 
-    allSensors.forEach(s => {
-        const type = s?.sensorType || s?.valueType;
-        if (type) {
-            measurementTypes.add(type);
-            measurementToSensorModel[type] = s.sensorName || s.source || '-';
+    allSensors.forEach(sensor => {
+        const measurementType = sensor?.sensorType || sensor?.valueType;
+        if (!measurementType) return;
 
-            // Spectral mapping if type is wavelength
-            if (/^\d+nm$/.test(type)) {
-                const num = type.replace('nm', '');
-                const index = ['415', '445', '480', '515', '555', '590', '630', '680'].indexOf(num);
-                if (index !== -1) {
-                    spectralKeyMapFromData[type] = 'F' + (index + 1);
-                }
-            }
-            if (type === 'clear') spectralKeyMapFromData[type] = 'clear';
-            if (type === 'nir') spectralKeyMapFromData[type] = 'nir';
+        const sensorModel = sensor?.sensorName || sensor?.source || '-';
+        const normalizedType = sanitize(measurementType);
+        const normalizedModel = sanitize(sensorModel) || normalizedType;
+        const key = `${normalizedType}|${normalizedModel}`;
+
+        if (!measurementEntries.has(key)) {
+            measurementEntries.set(key, {
+                measurementType,
+                sensorModel,
+                normalizedType,
+                normalizedModel,
+                bandKey: getSpectralBandKey(measurementType),
+            });
         }
     });
 
-    if (measurementTypes.size === 0) {
+    if (measurementEntries.size === 0) {
         return (
             <div className={styles.wrapper}>
                 <div className={styles.emptyMessage}>No sensor data available.</div>
@@ -74,25 +93,42 @@ function DeviceTable({devices = {}}) {
         );
     }
 
-    const rows = [...measurementTypes].map(measurementType => {
-        const sensorModel = measurementToSensorModel[measurementType] || '-';
-        const range = configs[measurementType]?.idealRange;
-        const bandKey = spectralKeyMapFromData[measurementType];
-        const rowColor = bandKey ? `${spectralColors[bandKey]}22` : undefined;
+    const rows = [...measurementEntries.values()].map(entry => {
+        let range = configs[entry.measurementType]?.idealRange
+            ?? configs[entry.measurementType?.toLowerCase?.()]?.idealRange;
+        if (!range) {
+            const matchedConfigKey = Object.keys(configs).find(key => sanitize(key) === entry.normalizedType);
+            if (matchedConfigKey) range = configs[matchedConfigKey]?.idealRange;
+        }
+        const rowColor = entry.bandKey ? `${spectralColors[entry.bandKey]}22` : undefined;
 
         const cells = compositeIds.map(id => {
-            const s = devices[id].sensors?.find(s => (s.sensorType || s.valueType) === measurementType);
-            const value = s?.value;
-            const unit = s?.unit || '';
-            const display = (value === undefined || value === null) ? '-' : `${typeof value === 'number' ? value.toFixed(1) : value}${unit ? ` ${unit}` : ''}`;
+            const sensors = devices[id].sensors || [];
+            const matchedSensor = sensors.find(s => {
+                const sensorType = s?.sensorType || s?.valueType;
+                const sensorModel = s?.sensorName || s?.source || '-';
+                return sanitize(sensorType) === entry.normalizedType && (sanitize(sensorModel) || entry.normalizedType) === entry.normalizedModel;
+            });
+
+            const value = matchedSensor?.value;
+            const unit = matchedSensor?.unit || '';
+            const display = (value === undefined || value === null)
+                ? '-'
+                : `${typeof value === 'number' ? value.toFixed(1) : value}${unit ? ` ${unit}` : ''}`;
             const health = devices[id].health || {};
-            const sensorKey = s?.sensorName?.toLowerCase();
-            const ok = health[sensorKey] ?? health[s?.sensorName] ?? false;
+            const sensorKey = matchedSensor?.sensorName?.toLowerCase();
+            const ok = sensorKey ? (health[sensorKey] ?? health[matchedSensor?.sensorName]) : false;
             const color = getCellColor(value, range);
             return {display, ok, color};
         });
 
-        return {measurementType, sensorModel, range, cells, rowColor};
+        return {
+            measurementType: entry.measurementType,
+            sensorModel: entry.sensorModel,
+            range,
+            cells,
+            rowColor,
+        };
     });
 
     return (
@@ -113,7 +149,7 @@ function DeviceTable({devices = {}}) {
                 </thead>
                 <tbody>
                 {rows.map(row => (
-                    <tr key={row.measurementType}>
+                    <tr key={`${row.measurementType}-${row.sensorModel}`}>
                         <td className={styles.modelCell}>{row.sensorModel}</td>
                         <td className={styles.sensorCell} style={{backgroundColor: row.rowColor}}>
                             {getMeasurementLabel(row.measurementType, row.sensorModel)}
