@@ -6,6 +6,7 @@ export const topics = [
   "rootImages",
   "waterOutput",
   "waterTank",
+  "germinationTopic",
   "actuator/oxygenPump",
 ];
 
