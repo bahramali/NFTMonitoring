@@ -26,8 +26,9 @@ function SensorDashboard({ view, title = '' }) {
     // Show all available device IDs and topics
     const filteredCompositeIds = availableCompositeIds;
     const filteredSystemTopics = useMemo(() => {
-        const { [GERMINATION_TOPIC]: _omit, ...restTopics } = aggregatedTopics;
-        return restTopics;
+        return Object.fromEntries(
+            Object.entries(aggregatedTopics).filter(([topic]) => topic !== GERMINATION_TOPIC)
+        );
     }, [aggregatedTopics]);
     // Ensure selectedDevice remains valid after device list changes
     useEffect(() => {
