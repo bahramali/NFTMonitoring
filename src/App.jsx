@@ -4,6 +4,7 @@ import MainLayout from './layouts/MainLayout';
 import Overview from './pages/Overview';
 import Live from './pages/Live';
 import Cameras from './pages/Cameras';
+import Germination from './pages/Germination';
 import Reports from './pages/Reports';
 import UserInfo from './pages/UserInfo';
 import SensorConfig from './pages/SensorConfig';
@@ -21,6 +22,7 @@ function App() {
                     <Route index element={<Navigate to="/overview" replace />} />
                     <Route path="overview" element={<Overview />} />
                     <Route path="live" element={<Live />} />
+                    <Route path="germination" element={<Germination />} />
                     <Route path="cameras" element={<Cameras />} />
                     <Route path="reports" element={<Reports />} />
                     <Route path="note" element={<Note />} />
