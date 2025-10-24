@@ -44,6 +44,10 @@ export default function Sidebar() {
                     <span className={styles.icon}>📡</span>
                     {!collapsed && <span className={styles.text}>Live</span>}
                 </NavLink>
+                <NavLink to="/germination" className={linkClass}>
+                    <span className={styles.icon}>🌱</span>
+                    {!collapsed && <span className={styles.text}>Germination</span>}
+                </NavLink>
                 <NavLink to="/cameras" className={linkClass}>
                     <span className={styles.icon}>📷</span>
                     {!collapsed && <span className={styles.text}>Cameras</span>}

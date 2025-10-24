@@ -4,7 +4,7 @@ import Header from "../../../common/Header";
 import { useLiveDevices } from "../../../common/useLiveDevices.js";
 import styles from "./SensorDashboard.module.css";
 import Live from "../Live";
-import {SENSOR_TOPIC, topics} from "../../../common/dashboard.constants.js";
+import {GERMINATION_TOPIC, SENSOR_TOPIC, topics} from "../../../common/dashboard.constants.js";
 
 function SensorDashboard({ view, title = '' }) {
     const {deviceData, sensorData, availableCompositeIds, mergedDevices} = useLiveDevices(topics);
@@ -25,8 +25,10 @@ function SensorDashboard({ view, title = '' }) {
 
     // Show all available device IDs and topics
     const filteredCompositeIds = availableCompositeIds;
-    const filteredSystemTopics = aggregatedTopics;
-
+    const filteredSystemTopics = useMemo(() => {
+        const { [GERMINATION_TOPIC]: _omit, ...restTopics } = aggregatedTopics;
+        return restTopics;
+    }, [aggregatedTopics]);
     // Ensure selectedDevice remains valid after device list changes
     useEffect(() => {
         if (availableCompositeIds.length && !availableCompositeIds.includes(selectedDevice)) {
