@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Header from "../common/Header";
 import { useLiveDevices } from "../common/useLiveDevices";
-import { topics } from "../common/dashboard.constants";
+import { GERMINATION_TOPIC, topics } from "../common/dashboard.constants";
 import TopicSection from "../Live/components/TopicSection";
 import GerminationCamera from "./components/GerminationCamera";
 import styles from "./Germination.module.css";
@@ -72,7 +72,17 @@ export default function Germination() {
         return allTopics;
     }, [deviceData]);
 
-    const hasTopics = Object.keys(aggregatedTopics).length > 0;
+    const germinationTopics = useMemo(() => {
+        if (!aggregatedTopics[GERMINATION_TOPIC]) {
+            return {};
+        }
+
+        return {
+            [GERMINATION_TOPIC]: aggregatedTopics[GERMINATION_TOPIC],
+        };
+    }, [aggregatedTopics]);
+
+    const hasTopics = Object.keys(germinationTopics).length > 0;
 
     const handleStartChange = (event) => {
         setStartTime(event.target.value);
@@ -126,7 +136,7 @@ export default function Germination() {
                     <h2 className={styles.sectionTitle}>Live Sensor Table</h2>
                 </div>
                 {hasTopics ? (
-                    <TopicSection systemTopics={aggregatedTopics} />
+                    <TopicSection systemTopics={germinationTopics} />
                 ) : (
                     <div className={styles.emptyState}>No live sensor data available.</div>
                 )}
