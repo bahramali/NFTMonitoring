@@ -9,7 +9,7 @@ export default function MainLayout() {
                 display: "flex",
                 height: "100vh",
                 overflow: "hidden",
-                background: "#040914",
+                background: "#f1f5f9",
             }}
         >
             <Sidebar />
@@ -17,8 +17,8 @@ export default function MainLayout() {
                 style={{
                     flexGrow: 1,
                     overflowY: "auto",
-                    background: "radial-gradient(circle at top, rgba(42, 74, 140, 0.35), transparent 55%), #050b18",
-                    color: "#e5ecff",
+                    background: "#ffffff",
+                    color: "#0f172a",
                     padding: "2.25rem 2.75rem",
                     boxSizing: "border-box",
                 }}
