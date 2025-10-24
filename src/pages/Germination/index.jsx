@@ -237,10 +237,19 @@ export default function Germination() {
         }
     }, [availableMetrics, selectedMetricKey]);
 
-    const selectedMetric = useMemo(
-        () => availableMetrics.find((metric) => metric.key === selectedMetricKey) || null,
-        [availableMetrics, selectedMetricKey],
-    );
+    const selectedMetric = useMemo(() => {
+        const metric = availableMetrics.find((entry) => entry.key === selectedMetricKey);
+        if (!metric) return null;
+        return {
+            key: metric.key,
+            sensorType: metric.sensorType,
+            unit: metric.unit,
+            label: metric.label,
+        };
+    }, [availableMetrics, selectedMetricKey]);
+
+    const selectedMetricKeyValue = selectedMetric?.key ?? "";
+    const selectedMetricSensorType = selectedMetric?.sensorType ?? "";
 
     const metricReports = useMemo(() => {
         if (!hasTopics) return [];
@@ -365,6 +374,14 @@ export default function Germination() {
         setStartTime("");
     };
 
+    const handleRefresh = () => {
+        if (rangePreset === "custom") {
+            const nowValue = toLocalInputValue(new Date());
+            setCustomTo(nowValue);
+        }
+        setRefreshIndex((value) => value + 1);
+    };
+
     useEffect(() => {
         if (rangePreset !== "custom") return;
         if (customFrom && customTo) return;
@@ -374,7 +391,7 @@ export default function Germination() {
     }, [rangePreset, customFrom, customTo]);
 
     useEffect(() => {
-        if (!selectedCompositeId || !selectedMetric) {
+        if (!selectedCompositeId || !selectedMetricKeyValue) {
             setChartData([]);
             setChartDomain(null);
             return;
@@ -408,8 +425,8 @@ export default function Germination() {
                     from: range.from.toISOString(),
                     to: range.to.toISOString(),
                 });
-                if (selectedMetric?.sensorType) {
-                    params.append("sensorType", selectedMetric.sensorType);
+                if (selectedMetricSensorType) {
+                    params.append("sensorType", selectedMetricSensorType);
                 }
 
                 const response = await fetch(`${API_BASE}/api/records/history/aggregated?${params.toString()}`, {
@@ -423,7 +440,7 @@ export default function Germination() {
                 const points = entries
                     .map((entry) => ({
                         time: entry.timestamp,
-                        value: getEntryValue(entry, selectedMetric.key),
+                        value: getEntryValue(entry, selectedMetricKeyValue),
                     }))
                     .filter((point) => point.value !== null);
 
@@ -455,26 +472,32 @@ export default function Germination() {
         rangePreset,
         refreshIndex,
         selectedCompositeId,
-        selectedMetric,
+        selectedMetricKeyValue,
+        selectedMetricSensorType,
     ]);
 
+    const selectedMetricLabel = selectedMetric?.label ?? "";
+    const selectedMetricUnit = selectedMetric?.unit ?? "";
+    const selectedMetricDisplayName =
+        selectedMetricLabel || selectedMetricSensorType || selectedMetricKeyValue;
+
     const chartSeries = useMemo(() => {
-        if (!selectedMetric || chartData.length === 0) return [];
+        if (!selectedMetricKeyValue || chartData.length === 0) return [];
         return [
             {
-                name: selectedMetric.label || selectedMetric.sensorType,
+                name: selectedMetricDisplayName,
                 data: chartData,
                 yDataKey: "value",
             },
         ];
-    }, [chartData, selectedMetric]);
+    }, [chartData, selectedMetricDisplayName, selectedMetricKeyValue]);
 
     const chartYLabel = useMemo(() => {
-        if (!selectedMetric) return "";
-        return selectedMetric.unit
-            ? `${selectedMetric.label} (${selectedMetric.unit})`
-            : selectedMetric.label;
-    }, [selectedMetric]);
+        if (!selectedMetricKeyValue) return "";
+        return selectedMetricUnit
+            ? `${selectedMetricLabel} (${selectedMetricUnit})`
+            : selectedMetricLabel || selectedMetricDisplayName;
+    }, [selectedMetricDisplayName, selectedMetricKeyValue, selectedMetricLabel, selectedMetricUnit]);
 
     return (
         <div className={styles.page}>
@@ -637,7 +660,7 @@ export default function Germination() {
                         <button
                             type="button"
                             className={styles.refreshButton}
-                            onClick={() => setRefreshIndex((value) => value + 1)}
+                            onClick={handleRefresh}
                         >
                             Refresh
                         </button>
