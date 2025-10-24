@@ -85,12 +85,146 @@
     gap: 1.25rem;
 }
 
-.tableSection {
+.metricsSection {
     gap: 1.25rem;
 }
 
-.reportSection {
-    gap: 1.25rem;
+.chartSection {
+    gap: 1.5rem;
+}
+
+.notesSection {
+    gap: 1rem;
+}
+
+.reportGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: 1rem;
+}
+
+.reportCard {
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: rgba(15, 26, 43, 0.8);
+    border: 1px solid rgba(112, 129, 163, 0.16);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    box-shadow: 0 18px 30px rgba(9, 14, 25, 0.25);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.reportCard:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 22px 34px rgba(9, 14, 25, 0.35);
+}
+
+.reportCardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+}
+
+.reportMetric {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #f1f5ff;
+}
+
+.reportStatus {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.reportMeta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    color: #9daccc;
+}
+
+.reportModel {
+    font-weight: 500;
+}
+
+.reportRange {
+    opacity: 0.9;
+}
+
+.reportValues {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+}
+
+.reportValueItem {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #d8def2;
+    font-size: 0.95rem;
+}
+
+.reportDot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.reportDevice {
+    font-weight: 500;
+}
+
+.reportValue {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+    color: #f1f5ff;
+}
+
+.healthy {
+    background: #8ee36a;
+    box-shadow: 0 0 0 4px rgba(142, 227, 106, 0.15);
+}
+
+.unhealthy {
+    background: #ff7b7b;
+    box-shadow: 0 0 0 4px rgba(255, 123, 123, 0.12);
+}
+
+.unknown {
+    background: #7081a3;
+    box-shadow: 0 0 0 4px rgba(112, 129, 163, 0.12);
+}
+
+.successTone {
+    border-color: rgba(142, 227, 106, 0.35);
+    background: linear-gradient(160deg, rgba(28, 48, 42, 0.9), rgba(18, 29, 38, 0.92));
+}
+
+.warningTone {
+    border-color: rgba(255, 202, 99, 0.35);
+    background: linear-gradient(160deg, rgba(48, 43, 29, 0.9), rgba(18, 29, 38, 0.92));
+}
+
+.alertTone {
+    border-color: rgba(255, 123, 123, 0.4);
+    background: linear-gradient(160deg, rgba(50, 28, 34, 0.92), rgba(18, 29, 38, 0.95));
+}
+
+.neutralTone {
+    border-color: rgba(112, 129, 163, 0.2);
 }
 
 .sectionHeader {
@@ -111,16 +245,12 @@
     min-height: 18rem;
 }
 
-.tableSection :global(.deviceGroup) {
-    margin-bottom: 1.5rem;
-}
-
 .emptyState {
     color: #9daccc;
     font-size: 0.95rem;
 }
 
-.reportInput {
+.notesInput {
     width: 100%;
     min-height: 10rem;
     resize: vertical;
@@ -133,8 +263,139 @@
     line-height: 1.5;
 }
 
-.reportInput::placeholder {
+.notesInput::placeholder {
     color: #7081a3;
+}
+
+.chartControls {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.chartSelectors {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.chartLabel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #9daccc;
+}
+
+.chartSelect,
+.chartLabel select,
+.chartLabel input,
+.timeInput {
+    background: #0f1a2b;
+    border: 1px solid #21324a;
+    border-radius: 0.5rem;
+    color: #f1f5ff;
+    padding: 0.5rem 0.75rem;
+    min-width: 12rem;
+}
+
+.chartLabel input {
+    min-width: 14rem;
+}
+
+.rangeControls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.rangeLabel {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #9daccc;
+}
+
+.rangeButtons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.rangeButton {
+    background: #1b2940;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 0.35rem 0.9rem;
+    color: #d8def2;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.rangeButton:hover {
+    background: #223353;
+}
+
+.rangeButtonActive {
+    background: #365281;
+    border-color: rgba(142, 227, 106, 0.45);
+    color: #f1f5ff;
+}
+
+.customRangeInputs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.refreshButton {
+    align-self: flex-start;
+    background: linear-gradient(135deg, #3b6db1, #274b7a);
+    border: none;
+    border-radius: 999px;
+    color: #f1f5ff;
+    padding: 0.5rem 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 12px 24px rgba(28, 54, 89, 0.35);
+}
+
+.refreshButton:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 28px rgba(28, 54, 89, 0.4);
+}
+
+.chartArea {
+    width: 100%;
+    min-height: 320px;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(112, 129, 163, 0.16);
+    background: rgba(15, 26, 43, 0.65);
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chartArea :global(.recharts-responsive-container) {
+    width: 100% !important;
+}
+
+.chartMessage {
+    color: #9daccc;
+    font-size: 0.95rem;
+    text-align: center;
+}
+
+.errorMessage {
+    color: #ff7b7b;
+    font-size: 0.9rem;
 }
 
 @media (max-width: 768px) {
