@@ -48,6 +48,7 @@ function SensorDashboard({ view, title = '' }) {
                     filteredCompositeIds={filteredCompositeIds}
                     sensorData={sensorData}
                     mergedDevices={mergedDevices}
+                    systemTopics={filteredSystemTopics}
                 />
             )}
         </div>
