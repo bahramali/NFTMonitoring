@@ -25,8 +25,6 @@ function SensorDashboard({ view, title = '' }) {
 
     // Show all available device IDs and topics
     const filteredCompositeIds = availableCompositeIds;
-    const filteredSystemTopics = aggregatedTopics;
-
     // Ensure selectedDevice remains valid after device list changes
     useEffect(() => {
         if (availableCompositeIds.length && !availableCompositeIds.includes(selectedDevice)) {
@@ -39,7 +37,6 @@ function SensorDashboard({ view, title = '' }) {
             <Header title={title}/>
             {view !== 'overview' && (
                 <Live
-                    filteredSystemTopics={filteredSystemTopics}
                     sensorTopicDevices={sensorTopicDevices}
                     selectedDevice={selectedDevice}
                     setSelectedDevice={setSelectedDevice}

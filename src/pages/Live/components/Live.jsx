@@ -1,11 +1,9 @@
 import React from "react";
 import SpectrumBarChart from "./SpectrumBarChart";
-import TopicSection from "./TopicSection";
 import NotesBlock from "./NotesBlock";
 import styles from "./Live.module.css";
 
 function Live({
-    filteredSystemTopics = {},
     sensorTopicDevices = {},
     selectedDevice = "",
     setSelectedDevice = () => {},
@@ -16,9 +14,6 @@ function Live({
     return (
         <div className={styles.section}>
             <div className={styles.sectionBody}>
-                {/* Live tables filtered by Device/Layer/System */}
-                <TopicSection systemTopics={filteredSystemTopics}/>
-
                 {/* Live spectrum chart for the selected device */}
                 {Object.keys(sensorTopicDevices).length > 0 && (
                     <>
