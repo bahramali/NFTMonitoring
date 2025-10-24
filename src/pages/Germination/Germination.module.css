@@ -1,0 +1,152 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+.timerSection {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    display: grid;
+    gap: 1rem;
+}
+
+.timerControls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+}
+
+.timerControls label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #d8def2;
+}
+
+.timeInput {
+    background: #0f1a2b;
+    border: 1px solid #21324a;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    color: #f1f5ff;
+}
+
+.clearButton {
+    background: #21324a;
+    border: none;
+    border-radius: 0.5rem;
+    color: #e8edf6;
+    padding: 0.5rem 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s ease-in-out;
+}
+
+.clearButton:hover {
+    background: #2b3d58;
+}
+
+.clearButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.elapsedWrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.elapsedLabel {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #9daccc;
+}
+
+.elapsedValue {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #8ee36a;
+}
+
+.sectionCard {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.cameraSection {
+    gap: 1.25rem;
+}
+
+.tableSection {
+    gap: 1.25rem;
+}
+
+.reportSection {
+    gap: 1.25rem;
+}
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.sectionTitle {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #f1f5ff;
+}
+
+.cameraWrapper {
+    width: 100%;
+    min-height: 18rem;
+}
+
+.tableSection :global(.deviceGroup) {
+    margin-bottom: 1.5rem;
+}
+
+.emptyState {
+    color: #9daccc;
+    font-size: 0.95rem;
+}
+
+.reportInput {
+    width: 100%;
+    min-height: 10rem;
+    resize: vertical;
+    background: #0f1a2b;
+    border: 1px solid #21324a;
+    color: #f1f5ff;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.reportInput::placeholder {
+    color: #7081a3;
+}
+
+@media (max-width: 768px) {
+    .timerSection {
+        padding: 1.25rem;
+    }
+
+    .sectionCard {
+        padding: 1.25rem;
+    }
+
+    .elapsedValue {
+        font-size: 1.3rem;
+    }
+}
