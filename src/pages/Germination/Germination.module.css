@@ -1,16 +1,19 @@
 .page {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
-    padding-bottom: 2rem;
+    gap: 1.75rem;
+    padding-bottom: 2.5rem;
+    color: #e6edff;
 }
 
 .timerSection {
-    background: rgba(255, 255, 255, 0.04);
-    border-radius: 0.75rem;
-    padding: 1.5rem;
+    background: linear-gradient(150deg, rgba(12, 24, 46, 0.85), rgba(8, 16, 30, 0.92));
+    border: 1px solid rgba(72, 112, 171, 0.45);
+    border-radius: 1rem;
+    padding: 1.75rem;
     display: grid;
-    gap: 1rem;
+    gap: 1.1rem;
+    box-shadow: 0 24px 48px rgba(4, 10, 24, 0.55);
 }
 
 .timerControls {
@@ -23,29 +26,32 @@
 .timerControls label {
     font-size: 0.95rem;
     font-weight: 600;
-    color: #d8def2;
+    color: #d9e5ff;
 }
 
 .timeInput {
-    background: #0f1a2b;
-    border: 1px solid #21324a;
-    border-radius: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    color: #f1f5ff;
+    background: rgba(9, 17, 31, 0.92);
+    border: 1px solid rgba(78, 123, 191, 0.45);
+    border-radius: 0.65rem;
+    padding: 0.55rem 0.85rem;
+    color: #f6f8ff;
+    box-shadow: inset 0 0 0 1px rgba(29, 53, 92, 0.35);
 }
 
 .clearButton {
-    background: #21324a;
-    border: none;
-    border-radius: 0.5rem;
-    color: #e8edf6;
-    padding: 0.5rem 0.9rem;
+    background: linear-gradient(135deg, rgba(51, 86, 142, 0.95), rgba(33, 58, 104, 0.95));
+    border: 1px solid rgba(99, 140, 206, 0.5);
+    border-radius: 999px;
+    color: #f1f6ff;
+    padding: 0.5rem 1.1rem;
     cursor: pointer;
-    transition: background 0.2s ease-in-out;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 14px 26px rgba(14, 36, 76, 0.45);
 }
 
 .clearButton:hover {
-    background: #2b3d58;
+    transform: translateY(-1px);
+    box-shadow: 0 18px 32px rgba(14, 36, 76, 0.55);
 }
 
 .clearButton:disabled {
@@ -60,25 +66,28 @@
 }
 
 .elapsedLabel {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #9daccc;
+    letter-spacing: 0.18em;
+    color: #9fb7ff;
 }
 
 .elapsedValue {
-    font-size: 1.6rem;
+    font-size: 1.75rem;
     font-weight: 700;
-    color: #8ee36a;
+    color: #9ff088;
+    text-shadow: 0 8px 18px rgba(142, 227, 106, 0.28);
 }
 
 .sectionCard {
-    background: rgba(255, 255, 255, 0.04);
-    border-radius: 0.75rem;
-    padding: 1.5rem;
+    background: linear-gradient(160deg, rgba(10, 20, 38, 0.92), rgba(7, 14, 28, 0.94));
+    border: 1px solid rgba(74, 110, 176, 0.45);
+    border-radius: 1rem;
+    padding: 1.75rem;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.1rem;
+    box-shadow: 0 26px 48px rgba(5, 10, 24, 0.55);
 }
 
 .cameraSection {
@@ -104,20 +113,20 @@
 }
 
 .reportCard {
-    border-radius: 0.75rem;
-    padding: 1rem 1.25rem;
-    background: rgba(15, 26, 43, 0.8);
-    border: 1px solid rgba(112, 129, 163, 0.16);
+    border-radius: 0.9rem;
+    padding: 1.1rem 1.35rem;
+    background: linear-gradient(155deg, rgba(12, 25, 44, 0.95), rgba(8, 17, 32, 0.95));
+    border: 1px solid rgba(88, 120, 178, 0.35);
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    box-shadow: 0 18px 30px rgba(9, 14, 25, 0.25);
+    gap: 0.85rem;
+    box-shadow: 0 22px 44px rgba(4, 10, 24, 0.45);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .reportCard:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 22px 34px rgba(9, 14, 25, 0.35);
+    transform: translateY(-4px);
+    box-shadow: 0 30px 52px rgba(4, 10, 24, 0.55);
 }
 
 .reportCardHeader {
@@ -130,17 +139,18 @@
 .reportMetric {
     font-size: 1.05rem;
     font-weight: 600;
-    color: #f1f5ff;
+    color: #f9fbff;
 }
 
 .reportStatus {
-    font-size: 0.85rem;
-    font-weight: 600;
+    font-size: 0.75rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    padding: 0.25rem 0.6rem;
+    letter-spacing: 0.14em;
+    padding: 0.3rem 0.7rem;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(155, 196, 255, 0.18);
+    color: #f1f6ff;
 }
 
 .reportMeta {
@@ -148,7 +158,7 @@
     flex-wrap: wrap;
     gap: 0.75rem;
     font-size: 0.85rem;
-    color: #9daccc;
+    color: #a7b9e6;
 }
 
 .reportModel {
@@ -163,7 +173,7 @@
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.55rem;
     margin: 0;
     padding: 0;
 }
@@ -171,16 +181,17 @@
 .reportValueItem {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    color: #d8def2;
+    gap: 0.85rem;
+    color: #d6e2ff;
     font-size: 0.95rem;
 }
 
 .reportDot {
-    width: 0.55rem;
-    height: 0.55rem;
+    width: 0.6rem;
+    height: 0.6rem;
     border-radius: 50%;
     flex-shrink: 0;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
 }
 
 .reportDevice {
@@ -194,18 +205,18 @@
 }
 
 .healthy {
-    background: #8ee36a;
-    box-shadow: 0 0 0 4px rgba(142, 227, 106, 0.15);
+    background: #9ff088;
+    box-shadow: 0 0 0 4px rgba(159, 240, 136, 0.18);
 }
 
 .unhealthy {
-    background: #ff7b7b;
-    box-shadow: 0 0 0 4px rgba(255, 123, 123, 0.12);
+    background: #ff8f8f;
+    box-shadow: 0 0 0 4px rgba(255, 143, 143, 0.16);
 }
 
 .unknown {
-    background: #7081a3;
-    box-shadow: 0 0 0 4px rgba(112, 129, 163, 0.12);
+    background: #7b89aa;
+    box-shadow: 0 0 0 4px rgba(123, 137, 170, 0.16);
 }
 
 .successTone {
@@ -235,9 +246,11 @@
 }
 
 .sectionTitle {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: #f1f5ff;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #f6f8ff;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
 .cameraWrapper {
@@ -246,7 +259,7 @@
 }
 
 .emptyState {
-    color: #9daccc;
+    color: #aabce6;
     font-size: 0.95rem;
 }
 
@@ -254,17 +267,18 @@
     width: 100%;
     min-height: 10rem;
     resize: vertical;
-    background: #0f1a2b;
-    border: 1px solid #21324a;
-    color: #f1f5ff;
-    border-radius: 0.75rem;
+    background: rgba(9, 17, 31, 0.92);
+    border: 1px solid rgba(78, 123, 191, 0.45);
+    color: #f6f8ff;
+    border-radius: 0.9rem;
     padding: 1rem;
     font-size: 1rem;
     line-height: 1.5;
+    box-shadow: inset 0 0 0 1px rgba(29, 53, 92, 0.35);
 }
 
 .notesInput::placeholder {
-    color: #7081a3;
+    color: #7f94c4;
 }
 
 .chartControls {
@@ -280,25 +294,27 @@
     gap: 1rem;
 }
 
+
 .chartLabel {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
     font-size: 0.85rem;
     font-weight: 600;
-    color: #9daccc;
+    color: #a9c1ff;
 }
 
 .chartSelect,
 .chartLabel select,
 .chartLabel input,
 .timeInput {
-    background: #0f1a2b;
-    border: 1px solid #21324a;
-    border-radius: 0.5rem;
-    color: #f1f5ff;
-    padding: 0.5rem 0.75rem;
+    background: rgba(9, 17, 31, 0.92);
+    border: 1px solid rgba(78, 123, 191, 0.45);
+    border-radius: 0.65rem;
+    color: #f6f8ff;
+    padding: 0.55rem 0.85rem;
     min-width: 12rem;
+    box-shadow: inset 0 0 0 1px rgba(29, 53, 92, 0.35);
 }
 
 .chartLabel input {
@@ -312,11 +328,11 @@
 }
 
 .rangeLabel {
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: #9daccc;
+    color: #94afff;
 }
 
 .rangeButtons {
@@ -326,25 +342,29 @@
 }
 
 .rangeButton {
-    background: #1b2940;
-    border: 1px solid transparent;
+    background: rgba(24, 38, 66, 0.9);
+    border: 1px solid rgba(87, 123, 189, 0.45);
     border-radius: 999px;
-    padding: 0.35rem 0.9rem;
-    color: #d8def2;
+    padding: 0.4rem 1rem;
+    color: #dce7ff;
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s ease, border-color 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    box-shadow: 0 16px 32px rgba(8, 18, 38, 0.4);
 }
 
 .rangeButton:hover {
-    background: #223353;
+    background: rgba(36, 57, 92, 0.9);
+    transform: translateY(-1px);
+    box-shadow: 0 20px 36px rgba(8, 18, 38, 0.45);
 }
 
 .rangeButtonActive {
-    background: #365281;
-    border-color: rgba(142, 227, 106, 0.45);
-    color: #f1f5ff;
+    background: linear-gradient(135deg, #5e86ff, #3a59c7);
+    border-color: rgba(168, 198, 255, 0.6);
+    color: #f6f8ff;
+    box-shadow: 0 20px 38px rgba(28, 64, 150, 0.45);
 }
 
 .customRangeInputs {
@@ -355,32 +375,34 @@
 
 .refreshButton {
     align-self: flex-start;
-    background: linear-gradient(135deg, #3b6db1, #274b7a);
+    background: linear-gradient(135deg, #5f8dff, #3753c0);
     border: none;
     border-radius: 999px;
-    color: #f1f5ff;
-    padding: 0.5rem 1.2rem;
-    font-weight: 600;
+    color: #f6f8ff;
+    padding: 0.55rem 1.35rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 12px 24px rgba(28, 54, 89, 0.35);
+    box-shadow: 0 20px 38px rgba(22, 49, 112, 0.55);
 }
 
 .refreshButton:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 16px 28px rgba(28, 54, 89, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 26px 46px rgba(22, 49, 112, 0.6);
 }
 
 .chartArea {
     width: 100%;
     min-height: 320px;
-    border-radius: 0.75rem;
-    border: 1px solid rgba(112, 129, 163, 0.16);
-    background: rgba(15, 26, 43, 0.65);
-    padding: 1rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(78, 113, 180, 0.45);
+    background: linear-gradient(160deg, rgba(6, 13, 28, 0.9), rgba(10, 22, 45, 0.88));
+    padding: 1.1rem;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: inset 0 0 0 1px rgba(38, 60, 112, 0.28), 0 24px 48px rgba(5, 10, 24, 0.55);
 }
 
 .chartArea :global(.recharts-responsive-container) {
@@ -388,7 +410,7 @@
 }
 
 .chartMessage {
-    color: #9daccc;
+    color: #b4c8ff;
     font-size: 0.95rem;
     text-align: center;
 }
@@ -400,14 +422,14 @@
 
 @media (max-width: 768px) {
     .timerSection {
-        padding: 1.25rem;
+        padding: 1.35rem;
     }
 
     .sectionCard {
-        padding: 1.25rem;
+        padding: 1.35rem;
     }
 
     .elapsedValue {
-        font-size: 1.3rem;
+        font-size: 1.4rem;
     }
 }
