@@ -42,7 +42,6 @@ function SensorDashboard({ view, title = '' }) {
             <Header title={title}/>
             {view !== 'overview' && (
                 <Live
-                    filteredSystemTopics={filteredSystemTopics}
                     sensorTopicDevices={sensorTopicDevices}
                     selectedDevice={selectedDevice}
                     setSelectedDevice={setSelectedDevice}
