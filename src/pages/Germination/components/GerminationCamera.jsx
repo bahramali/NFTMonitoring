@@ -5,7 +5,7 @@ import { getCameraErrorMessage, DEFAULT_CAMERA_ERROR_MESSAGE } from "../../Camer
 
 const STREAM_URL =
     (import.meta?.env && (import.meta.env.VITE_GERMINATION_HLS || import.meta.env.VITE_TAPO_HLS)) ||
-    "https://cam.hydroleaf.se/tapo/index.m3u8";
+    "https://cam.hydroleaf.se/germination/index.m3u8";
 
 const STATUS_MESSAGES = {
     loading: "Loading germination stream…",
