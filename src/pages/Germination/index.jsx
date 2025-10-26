@@ -7,9 +7,13 @@ import { getMetricLiveLabel } from "../../config/sensorMetrics.js";
 import GerminationCamera from "./components/GerminationCamera";
 import HistoryChart from "../../components/HistoryChart.jsx";
 import { transformAggregatedData } from "../../utils.js";
+import {
+    getGerminationStatus,
+    triggerGerminationStart,
+    updateGerminationStart,
+} from "../../api/germination.js";
 import styles from "./Germination.module.css";
 
-const STORAGE_KEY = "germination:start-time";
 const API_BASE = import.meta.env.VITE_API_BASE ?? "https://api.hydroleaf.se";
 
 const RANGE_OPTIONS = [
@@ -112,14 +116,23 @@ function formatElapsed(elapsed) {
     return parts.join(" : ");
 }
 
+function toLocalInputValueIfValid(value) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return toLocalInputValue(date);
+}
+
 export default function Germination() {
     const { deviceData } = useLiveDevices(topics);
     const { findRange } = useSensorConfig();
-    const [startTime, setStartTime] = useState(() => {
-        if (typeof window === "undefined") return "";
-        return localStorage.getItem(STORAGE_KEY) || "";
-    });
-    const [elapsed, setElapsed] = useState(() => calculateElapsed(startTime));
+    const [startTime, setStartTime] = useState("");
+    const [elapsed, setElapsed] = useState(() => calculateElapsed(""));
+    const [statusLoading, setStatusLoading] = useState(true);
+    const [statusError, setStatusError] = useState("");
+    const [saving, setSaving] = useState(false);
+    const [saveMessage, setSaveMessage] = useState("");
+    const [saveError, setSaveError] = useState("");
     const [rangePreset, setRangePreset] = useState("1h");
     const [customFrom, setCustomFrom] = useState(() => {
         const now = new Date();
@@ -137,13 +150,37 @@ export default function Germination() {
 
     useEffect(() => {
         setElapsed(calculateElapsed(startTime));
-        if (typeof window === "undefined") return;
-        if (startTime) {
-            localStorage.setItem(STORAGE_KEY, startTime);
-        } else {
-            localStorage.removeItem(STORAGE_KEY);
-        }
     }, [startTime]);
+
+    useEffect(() => {
+        let cancelled = false;
+        const controller = new AbortController();
+
+        const loadStatus = async () => {
+            setStatusLoading(true);
+            setStatusError("");
+            try {
+                const status = await getGerminationStatus({ signal: controller.signal });
+                if (cancelled) return;
+                setStartTime(toLocalInputValueIfValid(status.startTime));
+            } catch (error) {
+                if (cancelled || controller.signal.aborted) return;
+                console.error("Failed to load germination status", error);
+                setStatusError("Unable to load germination start time. Please try again.");
+            } finally {
+                if (!cancelled) {
+                    setStatusLoading(false);
+                }
+            }
+        };
+
+        loadStatus();
+
+        return () => {
+            cancelled = true;
+            controller.abort();
+        };
+    }, []);
 
     useEffect(() => {
         if (!startTime) return undefined;
@@ -367,11 +404,64 @@ export default function Germination() {
     }, [findRange, germinationTopics, hasTopics]);
 
     const handleStartChange = (event) => {
+        setSaveMessage("");
+        setSaveError("");
+        setStatusError("");
         setStartTime(event.target.value);
     };
 
     const handleClearStart = () => {
+        setSaveMessage("");
+        setSaveError("");
+        setStatusError("");
         setStartTime("");
+    };
+
+    const handleSaveStart = async () => {
+        const parsed = parseLocalInput(startTime);
+        if (startTime && !parsed) {
+            setSaveMessage("");
+            setSaveError("Please enter a valid start time before saving.");
+            return;
+        }
+
+        const isoStart = parsed ? parsed.toISOString() : null;
+
+        setSaving(true);
+        setSaveMessage("");
+        setSaveError("");
+        setStatusError("");
+
+        try {
+            const status = await updateGerminationStart(isoStart);
+            const normalized = toLocalInputValueIfValid(status.startTime);
+            setStartTime(normalized);
+            setSaveMessage(parsed || isoStart ? "Start time saved." : "Start time cleared.");
+        } catch (error) {
+            console.error("Failed to save germination start time", error);
+            setSaveError("Unable to save start time. Please try again.");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleTriggerStart = async () => {
+        setSaving(true);
+        setSaveMessage("");
+        setSaveError("");
+        setStatusError("");
+
+        try {
+            const status = await triggerGerminationStart();
+            const normalized = toLocalInputValueIfValid(status.startTime) || toLocalInputValue(new Date());
+            setStartTime(normalized);
+            setSaveMessage("Germination timer started.");
+        } catch (error) {
+            console.error("Failed to trigger germination start", error);
+            setSaveError("Unable to start the germination timer. Please try again.");
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleRefresh = () => {
@@ -499,6 +589,22 @@ export default function Germination() {
             : selectedMetricLabel || selectedMetricDisplayName;
     }, [selectedMetricDisplayName, selectedMetricKeyValue, selectedMetricLabel, selectedMetricUnit]);
 
+    const timerFeedback = (() => {
+        if (statusLoading) {
+            return { type: "info", message: "Loading start time…" };
+        }
+        if (statusError) {
+            return { type: "error", message: statusError };
+        }
+        if (saveError) {
+            return { type: "error", message: saveError };
+        }
+        if (saveMessage) {
+            return { type: "success", message: saveMessage };
+        }
+        return null;
+    })();
+
     return (
         <div className={styles.page}>
             <Header title="Germination" />
@@ -514,15 +620,48 @@ export default function Germination() {
                             className={styles.timeInput}
                         />
                     </label>
-                    <button
-                        type="button"
-                        className={styles.clearButton}
-                        onClick={handleClearStart}
-                        disabled={!startTime}
-                    >
-                        Clear
-                    </button>
+                    <div className={styles.timerButtons}>
+                        <button
+                            type="button"
+                            className={`${styles.timerButton} ${styles.startButton}`}
+                            onClick={handleTriggerStart}
+                            disabled={saving || statusLoading}
+                        >
+                            Start now
+                        </button>
+                        <button
+                            type="button"
+                            className={`${styles.timerButton} ${styles.saveButton}`}
+                            onClick={handleSaveStart}
+                            disabled={saving || statusLoading}
+                        >
+                            Save
+                        </button>
+                        <button
+                            type="button"
+                            className={`${styles.timerButton} ${styles.clearButton}`}
+                            onClick={handleClearStart}
+                            disabled={saving || !startTime}
+                        >
+                            Clear
+                        </button>
+                    </div>
                 </div>
+                {timerFeedback && (
+                    <div className={styles.timerFeedback}>
+                        <span
+                            className={
+                                timerFeedback.type === "error"
+                                    ? styles.errorMessage
+                                    : timerFeedback.type === "success"
+                                    ? styles.successMessage
+                                    : styles.infoMessage
+                            }
+                        >
+                            {timerFeedback.message}
+                        </span>
+                    </div>
+                )}
                 <div className={styles.elapsedWrapper}>
                     <span className={styles.elapsedLabel}>Elapsed time</span>
                     <span className={styles.elapsedValue}>{formatElapsed(elapsed)}</span>
