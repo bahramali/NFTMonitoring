@@ -50,8 +50,10 @@ export function transformAggregatedData(data) {
     const map = {};
     for (const sensor of data.sensors) {
         const rawType = sensor.sensorType || sensor.valueType;
-        const sensorType = typeof rawType === 'string' ? rawType.replace(/\s+/g, '') : rawType;
         const unit = sensor.unit || '';
+        const sensorType = typeof rawType === 'string' ? rawType.replace(/\s+/g, '') : rawType;
+        const normalizedKey =
+            typeof rawType === 'string' ? rawType.trim().toLowerCase() : undefined;
 
         for (const entry of sensor.data || []) {
             const ts = Date.parse(entry.timestamp);
@@ -181,6 +183,22 @@ export function transformAggregatedData(data) {
                 case 'nir':
                     out.nir = Number(val);
                     break;
+            }
+
+            if (normalizedKey && !(normalizedKey in out)) {
+                if (val && typeof val === 'object' && 'value' in val) {
+                    const numeric = Number(val.value);
+                    out[normalizedKey] = {
+                        value: Number.isFinite(numeric) ? numeric : null,
+                        unit: val.unit ?? unit,
+                    };
+                } else {
+                    const numeric = Number(val);
+                    out[normalizedKey] = {
+                        value: Number.isFinite(numeric) ? numeric : null,
+                        unit,
+                    };
+                }
             }
         }
     }
