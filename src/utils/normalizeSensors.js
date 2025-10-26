@@ -38,12 +38,28 @@ function toNum(v) {
 export function normalizeSensors(src = []) {
   const sensors = Array.isArray(src) ? src : [];
   const out = {};
+
   for (const s of sensors) {
     const typeRaw = s?.sensorType ?? s?.valueType ?? s?.type ?? s?.name;
+    if (typeRaw == null) continue;
+
+    const rawKey = String(typeRaw);
     const key = canonKey(typeRaw);
+    const canonicalKey = key || rawKey;
     const val = toNum(s?.value);
-    if (key == null || val == null) continue;
+    if (val == null) continue;
     const unit = s?.unit || s?.units || s?.u || '';
+
+    const addObjectReading = (reading) => {
+      if (canonicalKey) out[canonicalKey] = reading;
+      if (rawKey && rawKey !== canonicalKey) out[rawKey] = reading;
+    };
+
+    const addNumericReading = (reading) => {
+      if (canonicalKey) out[canonicalKey] = reading;
+      if (rawKey && rawKey !== canonicalKey) out[rawKey] = reading;
+    };
+
     switch (key) {
       case 'temperature':
       case 'humidity':
@@ -53,32 +69,44 @@ export function normalizeSensors(src = []) {
       case 'ph':
       case 'do':
       case 'waterTemp':
-      case 'lux':
-        out[key] = { value: val, unit };
+      case 'lux': {
+        const reading = { value: val, unit, sensorType: rawKey };
+        addObjectReading(reading);
         break;
+      }
       case 'colorSpectrum': {
         const bands = ['F1','F2','F3','F4','F5','F6','F7','F8','clear','nir'];
+        const spectrum = {};
         let i = 0;
         for (const k in s.value || {}) {
           const v = toNum(s.value[k]);
-          if (v != null) out[bands[i++]] = v;
+          if (v != null) {
+            const bandKey = bands[i++];
+            if (bandKey) out[bandKey] = v;
+            spectrum[k] = v;
+          }
         }
+        if (canonicalKey) out[canonicalKey] = spectrum;
+        if (rawKey && rawKey !== canonicalKey) out[rawKey] = spectrum;
         break;
       }
       default: {
-        if (/^\d{3}nm$/.test(key)) {
-          const nm = key.slice(0,3);
+        if (/^\d{3}nm$/.test(key || '')) {
+          const nm = (key || '').slice(0,3);
           const band = nmToBand[nm];
+          addNumericReading(val);
           if (band) out[band] = val; else out[`${nm}nm`] = val;
         } else if (['clear','nir','vis1','vis2','nir855'].includes(key)) {
-          out[key] = val;
+          addNumericReading(val);
         } else {
-          out[key] = { value: val, unit };
+          const reading = { value: val, unit, sensorType: rawKey };
+          addObjectReading(reading);
         }
         break;
       }
     }
   }
+
   return out;
 }
 
@@ -88,8 +116,13 @@ export function deriveFromSensors(arr = []) {
   const spectrum = {};
   const otherLight = {};
   const water = {};
+  const seen = new Set();
 
   for (const [k, v] of Object.entries(normalized)) {
+    const sourceType = (v && typeof v === 'object' && 'sensorType' in v) ? v.sensorType : undefined;
+    const canonical = canonKey(sourceType ?? k) || k;
+    if (canonical && seen.has(canonical)) continue;
+    if (canonical) seen.add(canonical);
     if (/^F\d$/.test(k) || /^\d{3}nm$/.test(k) || k === 'clear' || k === 'nir') {
       spectrum[k] = v.value ?? v;
       continue;

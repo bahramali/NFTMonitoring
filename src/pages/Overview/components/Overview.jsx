@@ -14,7 +14,6 @@ import {
     fmt,
     localDateTime,
     aggregateFromCards,
-    sensorLabel,
     normalizeSensors,
 } from "../utils";
 import isWaterDevice from "../utils/isWaterDevice.js"; // import local to avoid cycles
@@ -138,11 +137,36 @@ function useSystemCompositeCards(systemKeyInput) {
     const upsert = React.useCallback((compId, sensors, ts) => {
         setCards((prev) => {
             const next = { ...prev };
-            const cur = next[compId] || { sensors: {}, ts: 0 };
+            const cur = next[compId] || { sensors: {}, rawSensors: [], ts: 0 };
             const normalized = normalizeSensors(sensors);
             for (const [k, obj] of Object.entries(normalized)) {
-                cur.sensors[k] = { value: obj.value, unit: obj.unit };
+                if (obj && typeof obj === "object") {
+                    cur.sensors[k] = {
+                        value: obj.value,
+                        unit: obj.unit,
+                        sensorType: obj.sensorType ?? k,
+                    };
+                } else {
+                    cur.sensors[k] = { value: obj, unit: undefined, sensorType: k };
+                }
             }
+            cur.rawSensors = Array.isArray(sensors)
+                ? sensors.map((sensor) => {
+                      const sensorType =
+                          sensor?.sensorType ??
+                          sensor?.valueType ??
+                          sensor?.type ??
+                          sensor?.name ??
+                          "";
+                      const unit = sensor?.unit || sensor?.units || sensor?.u || "";
+                      return {
+                          sensorType,
+                          value: sensor?.value,
+                          unit,
+                          sensorName: sensor?.sensorName ?? sensor?.name ?? sensor?.source ?? "",
+                      };
+                  })
+                : [];
             cur.ts = Math.max(cur.ts || 0, ts || Date.now());
             next[compId] = cur;
             return next;
@@ -261,10 +285,15 @@ export default function Overview() {
                                         <DeviceCard
                                             key={card.compId}
                                             compositeId={card.compId}
-                                            sensors={Object.entries(card.sensors).map(([k, v]) => ({
-                                                sensorType: sensorLabel(k, { topic: '/topic/waterTank' }),
-                                                value: fmt(v?.value),
-                                                unit: v?.unit || "",
+                                            sensors={(card.rawSensors || []).map((reading) => ({
+                                                sensorType:
+                                                    reading?.sensorType ??
+                                                    reading?.valueType ??
+                                                    reading?.type ??
+                                                    reading?.name ??
+                                                    "",
+                                                value: reading?.value,
+                                                unit: reading?.unit || "",
                                             }))}
                                         />
                                     ))

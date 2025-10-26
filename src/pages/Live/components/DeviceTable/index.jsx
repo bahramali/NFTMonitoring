@@ -1,6 +1,5 @@
 import React from 'react';
 import { useSensorConfig } from '../../../../context/SensorConfigContext.jsx';
-import { getMetricLiveLabel } from '../../../../config/sensorMetrics.js';
 import spectralColors from '../../../../spectralColors';
 import styles from './DeviceTable.module.css';
 
@@ -120,7 +119,7 @@ function DeviceTable({devices = {}, topic}) {
                     <tr key={`${row.measurementType}-${row.sensorModel}`}>
                         <td className={styles.modelCell}>{row.sensorModel}</td>
                         <td className={styles.sensorCell} style={{backgroundColor: row.rowColor}}>
-                            {getMetricLiveLabel(row.measurementType, { sensorModel: row.sensorModel, topic })}
+                            {row.measurementType}
                         </td>
                         <td style={{backgroundColor: row.rowColor}}>{row.range?.min ?? '-'}</td>
                         <td style={{backgroundColor: row.rowColor}}>{row.range?.max ?? '-'}</td>

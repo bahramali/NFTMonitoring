@@ -3,7 +3,6 @@ import Header from "../common/Header";
 import { useLiveDevices } from "../common/useLiveDevices";
 import { GERMINATION_TOPIC, topics } from "../common/dashboard.constants";
 import { useSensorConfig } from "../../context/SensorConfigContext.jsx";
-import { getMetricLiveLabel } from "../../config/sensorMetrics.js";
 import GerminationCamera from "./components/GerminationCamera";
 import HistoryChart from "../../components/HistoryChart.jsx";
 import { transformAggregatedData } from "../../utils.js";
@@ -216,10 +215,7 @@ export default function Germination() {
                 key,
                 sensorType: measurementType,
                 unit: sensor?.unit || "",
-                label: getMetricLiveLabel(measurementType, {
-                    sensorModel: sensor?.sensorName || sensor?.source || "",
-                    topic: GERMINATION_TOPIC,
-                }),
+                label: measurementType,
             });
         });
 
@@ -354,10 +350,7 @@ export default function Germination() {
             return {
                 measurementType: entry.measurementType,
                 sensorModel: entry.sensorModel,
-                label: getMetricLiveLabel(entry.measurementType, {
-                    sensorModel: entry.sensorModel,
-                    topic: GERMINATION_TOPIC,
-                }),
+                label: entry.measurementType,
                 range,
                 status,
                 tone,
