@@ -57,12 +57,12 @@ test('renders all sensor models at least once', () => {
 
 test('displays measurement labels correctly', () => {
   renderWithProvider(<DeviceTable devices={devices} topic="/topic/growSensors" />);
-  expect(screen.getByText('A_Temp')).toBeInTheDocument();
-  expect(screen.getByText('A_RH')).toBeInTheDocument();
+  expect(screen.getByText('temperature')).toBeInTheDocument();
+  expect(screen.getByText('humidity')).toBeInTheDocument();
   expect(screen.getByText('ph')).toBeInTheDocument();
 });
 
-test('uses grow topic label when model is unknown', () => {
+test('shows raw humidity label when model is unknown', () => {
   const growDevices = {
     dev1: {
       sensors: [
@@ -73,10 +73,11 @@ test('uses grow topic label when model is unknown', () => {
   };
 
   renderWithProvider(<DeviceTable devices={growDevices} topic="/topic/growSensors" />);
-  expect(screen.getByText('A_RH')).toBeInTheDocument();
+  const row = screen.getByText('GenericGrowSensor').closest('tr');
+  expect(within(row).getByText('humidity')).toBeInTheDocument();
 });
 
-test('shows D_Temp label for DS18B20 temperature sensor', () => {
+test('shows raw temperature label for DS18B20 on water topic', () => {
   const dsDevices = {
     dev1: {
       sensors: [
@@ -87,10 +88,11 @@ test('shows D_Temp label for DS18B20 temperature sensor', () => {
   };
 
   renderWithProvider(<DeviceTable devices={dsDevices} topic="/topic/waterTank" />);
-  expect(screen.getByText('D_Temp')).toBeInTheDocument();
+  const row = screen.getByText('DS18B20').closest('tr');
+  expect(within(row).getByText('temperature')).toBeInTheDocument();
 });
 
-test('uses water tank topic label when model is unknown', () => {
+test('shows raw temperature label when model is unknown on water topic', () => {
   const waterDevices = {
     dev1: {
       sensors: [
@@ -101,10 +103,11 @@ test('uses water tank topic label when model is unknown', () => {
   };
 
   renderWithProvider(<DeviceTable devices={waterDevices} topic="/topic/waterTank" />);
-  expect(screen.getByText('D_Temp')).toBeInTheDocument();
+  const row = screen.getByText('UnknownProbe').closest('tr');
+  expect(within(row).getByText('temperature')).toBeInTheDocument();
 });
 
-test('shows G_Temp label for HDC302x temperature sensor', () => {
+test('shows raw temperature label for HDC302x on germination topic', () => {
   const hdcDevices = {
     dev1: {
       sensors: [
@@ -115,10 +118,11 @@ test('shows G_Temp label for HDC302x temperature sensor', () => {
   };
 
   renderWithProvider(<DeviceTable devices={hdcDevices} topic="/topic/germinationTopic" />);
-  expect(screen.getByText('G_Temp')).toBeInTheDocument();
+  const row = screen.getByText('HDC302x').closest('tr');
+  expect(within(row).getByText('temperature')).toBeInTheDocument();
 });
 
-test('shows distinct label for DS18B20 temperature sensor on germination topic', () => {
+test('shows raw temperature label for DS18B20 on germination topic', () => {
   const dsDevices = {
     dev1: {
       sensors: [
@@ -129,10 +133,11 @@ test('shows distinct label for DS18B20 temperature sensor on germination topic',
   };
 
   renderWithProvider(<DeviceTable devices={dsDevices} topic="/topic/germinationTopic" />);
-  expect(screen.getByText('D_Temp')).toBeInTheDocument();
+  const row = screen.getByText('DS18B20').closest('tr');
+  expect(within(row).getByText('temperature')).toBeInTheDocument();
 });
 
-test('uses germination topic label when model is unknown', () => {
+test('shows raw temperature label when model is unknown on germination topic', () => {
   const genericDevices = {
     dev1: {
       sensors: [
@@ -143,10 +148,11 @@ test('uses germination topic label when model is unknown', () => {
   };
 
   renderWithProvider(<DeviceTable devices={genericDevices} topic="/topic/germinationTopic" />);
-  expect(screen.getByText('G_Temp')).toBeInTheDocument();
+  const row = screen.getByText('GenericSensor').closest('tr');
+  expect(within(row).getByText('temperature')).toBeInTheDocument();
 });
 
-test('normalizes model names when mapping HDC302x temperature labels', () => {
+test('normalizes model names while keeping raw temperature label', () => {
   const hdcDevices = {
     dev1: {
       sensors: [
@@ -157,10 +163,11 @@ test('normalizes model names when mapping HDC302x temperature labels', () => {
   };
 
   renderWithProvider(<DeviceTable devices={hdcDevices} topic="/topic/germinationTopic" />);
-  expect(screen.getByText('G_Temp')).toBeInTheDocument();
+  const row = screen.getByText('HDC302x Temperature').closest('tr');
+  expect(within(row).getByText('temperature')).toBeInTheDocument();
 });
 
-test('shows G_RH label for HDC302x humidity sensor', () => {
+test('shows raw humidity label for HDC302x sensor', () => {
   const hdcDevices = {
     dev1: {
       sensors: [
@@ -171,10 +178,11 @@ test('shows G_RH label for HDC302x humidity sensor', () => {
   };
 
   renderWithProvider(<DeviceTable devices={hdcDevices} topic="/topic/germinationTopic" />);
-  expect(screen.getByText('G_RH')).toBeInTheDocument();
+  const row = screen.getByText('HDC302x').closest('tr');
+  expect(within(row).getByText('humidity')).toBeInTheDocument();
 });
 
-test('normalizes model names when mapping HDC302x humidity labels', () => {
+test('normalizes model names while keeping raw humidity label', () => {
   const hdcDevices = {
     dev1: {
       sensors: [
@@ -185,7 +193,8 @@ test('normalizes model names when mapping HDC302x humidity labels', () => {
   };
 
   renderWithProvider(<DeviceTable devices={hdcDevices} topic="/topic/germinationTopic" />);
-  expect(screen.getByText('G_RH')).toBeInTheDocument();
+  const row = screen.getByText('HDC302x-Humidity').closest('tr');
+  expect(within(row).getByText('humidity')).toBeInTheDocument();
 });
 
 test('renders sensor values with correct units', () => {
@@ -197,7 +206,7 @@ test('renders sensor values with correct units', () => {
 
 test('displays configured min and max values', async () => {
   renderWithProvider(<DeviceTable devices={devices} topic="/topic/growSensors" />);
-  const tempRow = screen.getByText('A_Temp').closest('tr');
+  const tempRow = screen.getByText('temperature').closest('tr');
   const spectralRow = screen.getByText('415nm').closest('tr');
   await waitFor(() => {
     expect(within(tempRow).getByText('20')).toBeInTheDocument();
@@ -218,7 +227,7 @@ test('uses topic-specific ranges when available', async () => {
   };
 
   renderWithProvider(<DeviceTable devices={waterDevices} topic="/topic/waterTank" />);
-  const tempRow = screen.getByText('D_Temp').closest('tr');
+  const tempRow = screen.getByText('temperature').closest('tr');
   await waitFor(() => {
     expect(within(tempRow).getByText('18')).toBeInTheDocument();
     expect(within(tempRow).getByText('26')).toBeInTheDocument();
@@ -236,7 +245,7 @@ test('matches ranges by configured metric label when sensor type differs', async
   };
 
   renderWithProvider(<DeviceTable devices={germDevices} topic="/topic/germinationTopic" />);
-  const tempRow = screen.getByText('D_Temp').closest('tr');
+  const tempRow = screen.getByText('temperature').closest('tr');
   await waitFor(() => {
     expect(within(tempRow).getByText('15')).toBeInTheDocument();
     expect(within(tempRow).getByText('25')).toBeInTheDocument();

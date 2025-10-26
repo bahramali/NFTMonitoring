@@ -30,6 +30,7 @@ test('normalizes sensor readings and spectral bands', () => {
     expect(result['405nm']).toBe(274);
     expect(result.F4).toBe(493); // 515nm -> F4
     expect(result.F5).toBe(553); // 555nm -> F5
+    expect(result['AS7343']).toBeUndefined();
 });
 
 test('parses water tank readings', () => {
@@ -92,6 +93,9 @@ test('normalizes sensors array structure', () => {
     expect(result.lux.value).toBe(9);
     expect(result.tds.value).toBe(89);
     expect(result.ec.value).toBe(0.14);
+    expect(result['temperature'].sensorType).toBe('temperature');
+    expect(result['555 nm']).toBe(15);
+    expect(result['dissolvedOxygen']).toBeUndefined();
     expect(result.health.tds).toBe(true);
     expect(result.health.ph).toBe(false);
 });
@@ -117,7 +121,27 @@ test('supports sensors using valueType field', () => {
     const result = normalizeSensorData(raw);
     expect(result.tds.value).toBeCloseTo(535.7);
     expect(result.temperature.value).toBe(24.3);
+    expect(result['temperature'].sensorType).toBe('temperature');
     expect(result.health.tds).toBe(true);
+});
+
+test('preserves original sensor type keys alongside canonical ones', () => {
+    const raw = {
+        sensors: [
+            { sensorType: 'Temperature', value: '21.5', unit: '°C' },
+            { sensorType: '555 nm', value: 12 },
+            { sensorType: 'dissolvedOxygen', value: 6.4, unit: 'mg/L' },
+        ],
+    };
+    const result = normalizeSensorData(raw);
+    expect(result.temperature.value).toBeCloseTo(21.5);
+    expect(result['Temperature'].value).toBeCloseTo(21.5);
+    expect(result['Temperature'].sensorType).toBe('Temperature');
+    expect(result['555nm']).toBe(12);
+    expect(result['555 nm']).toBe(12);
+    expect(result.do.value).toBeCloseTo(6.4);
+    expect(result['dissolvedOxygen'].value).toBeCloseTo(6.4);
+    expect(result['dissolvedOxygen'].sensorType).toBe('dissolvedOxygen');
 });
 
 test('filterNoise discards out of range values', () => {

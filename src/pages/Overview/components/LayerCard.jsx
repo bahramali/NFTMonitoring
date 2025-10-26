@@ -3,7 +3,7 @@ import DeviceCard from "./DeviceCard.jsx";
 import Stat from "./Stat.jsx";
 import useLayerCompositeCards from "./useLayerCompositeCards.js";
 import { useSensorConfig } from "../../../context/SensorConfigContext.jsx";
-import { fmt, aggregateFromCards, sensorLabel, isWaterDevice } from "../utils";
+import { fmt, aggregateFromCards, isWaterDevice } from "../utils";
 import styles from "./LayerCard.module.css";
 
 function LayerCard({layer, systemId}) {
@@ -64,10 +64,15 @@ function LayerCard({layer, systemId}) {
               <DeviceCard
                 key={card.compId}
                 compositeId={card.compId}
-                sensors={Object.entries(card.sensors).map(([k, v]) => ({
-                  sensorType: sensorLabel(k, { topic: '/topic/growSensors' }),
-                  value: fmt(v?.value),
-                  unit: v?.unit || "",
+                sensors={(card.rawSensors || []).map((reading) => ({
+                  sensorType:
+                    reading?.sensorType ??
+                    reading?.valueType ??
+                    reading?.type ??
+                    reading?.name ??
+                    "",
+                  value: reading?.value,
+                  unit: reading?.unit || "",
                 }))}
               />
             ))
