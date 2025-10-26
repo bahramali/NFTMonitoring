@@ -29,6 +29,13 @@
     color: #d9e5ff;
 }
 
+.timerButtons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
 .timeInput {
     background: rgba(9, 17, 31, 0.92);
     border: 1px solid rgba(78, 123, 191, 0.45);
@@ -38,25 +45,59 @@
     box-shadow: inset 0 0 0 1px rgba(29, 53, 92, 0.35);
 }
 
-.clearButton {
-    background: linear-gradient(135deg, rgba(51, 86, 142, 0.95), rgba(33, 58, 104, 0.95));
-    border: 1px solid rgba(99, 140, 206, 0.5);
+.timerButton {
     border-radius: 999px;
     color: #f1f6ff;
     padding: 0.5rem 1.1rem;
     cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    font-weight: 600;
+    border: 1px solid transparent;
+    min-width: 6.25rem;
+    text-align: center;
+    box-shadow: 0 14px 26px rgba(14, 36, 76, 0.25);
+}
+
+.timerButton:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 32px rgba(14, 36, 76, 0.45);
+}
+
+.timerButton:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    filter: grayscale(0.2);
+}
+
+.startButton {
+    background: linear-gradient(135deg, rgba(70, 160, 110, 0.95), rgba(54, 126, 90, 0.95));
+    border-color: rgba(125, 214, 164, 0.55);
+    box-shadow: 0 14px 26px rgba(24, 68, 46, 0.45);
+}
+
+.saveButton {
+    background: linear-gradient(135deg, rgba(51, 86, 142, 0.95), rgba(33, 58, 104, 0.95));
+    border-color: rgba(99, 140, 206, 0.5);
     box-shadow: 0 14px 26px rgba(14, 36, 76, 0.45);
 }
 
-.clearButton:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 18px 32px rgba(14, 36, 76, 0.55);
+.clearButton {
+    background: linear-gradient(135deg, rgba(122, 48, 48, 0.9), rgba(86, 32, 32, 0.9));
+    border-color: rgba(214, 116, 116, 0.5);
+    box-shadow: 0 14px 26px rgba(60, 18, 18, 0.45);
 }
 
-.clearButton:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+.timerFeedback {
+    font-size: 0.9rem;
+    margin-top: 0.35rem;
+}
+
+.infoMessage {
+    color: #9fb7ff;
+}
+
+.successMessage {
+    color: #8feaa4;
 }
 
 .elapsedWrapper {
