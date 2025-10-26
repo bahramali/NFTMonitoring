@@ -1,56 +1,24 @@
 // src/pages/sensor-config/SensorConfigPage.jsx
-import React, { useMemo, useState } from "react";
+import React, { useId, useMemo, useState } from "react";
 import { useSensorConfig } from "../../context/SensorConfigContext.jsx";
 import { getMetricOverviewLabel } from "../../config/sensorMetrics.js";
 import styles from "./SensorConfigPage.module.css";
 import Header from "../common/Header";
 
-const KNOWN_TOPICS = [
-    "/topic/growSensors",
-    "/topic/waterTank",
-    "/topic/germinationTopic",
-];
-
-const KNOWN_METRICS_BY_TOPIC = {
-    "/topic/growSensors": [
-        "co2",
-        "lux",
-        "405nm",
-        "425nm",
-        "450nm",
-        "475nm",
-        "515nm",
-        "550nm",
-        "555nm",
-        "600nm",
-        "640nm",
-        "690nm",
-        "745nm",
-        "VIS1",
-        "VIS2",
-        "NIR855",
-        "temperature",
-        "humidity",
-    ],
-    "/topic/waterTank": [
-        "dissolvedOxygen",
-        "dissolvedEC",
-        "dissolvedTDS",
-        "temperature",
-        "ph",
-    ],
-    "/topic/germinationTopic": [
-        "temperature",
-        "humidity",
-        "dissolvedTemp",
-        "lux",
-    ],
-};
-
 const EMPTY_FORM = { topic: "", metric: "", minValue: "", maxValue: "", description: "" };
 
 export default function SensorConfigPage() {
     const { configs, error, createConfig, updateConfig, deleteConfig } = useSensorConfig();
+    const rawTopicListId = useId();
+    const rawMetricListId = useId();
+    const topicListId = useMemo(
+        () => `topics-${rawTopicListId.replace(/[^a-z0-9_-]/gi, "") || "list"}`,
+        [rawTopicListId]
+    );
+    const metricListId = useMemo(
+        () => `metrics-${rawMetricListId.replace(/[^a-z0-9_-]/gi, "") || "list"}`,
+        [rawMetricListId]
+    );
 
     // --- form state for create/update (top card)
     const [form, setForm] = useState(EMPTY_FORM);
@@ -64,37 +32,38 @@ export default function SensorConfigPage() {
         const ordered = [];
         const add = (value) => {
             const topic = (value || "").trim();
-            if (!topic || seen.has(topic)) return;
-            seen.add(topic);
+            if (!topic) return;
+            const key = topic.toLowerCase();
+            if (seen.has(key)) return;
+            seen.add(key);
             ordered.push(topic);
         };
 
-        KNOWN_TOPICS.forEach(add);
         Object.values(configs || {}).forEach((cfg) => add(cfg.topic));
         add(form.topic);
 
-        return ordered;
+        return ordered.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
     }, [configs, form.topic]);
 
     const metricOptions = useMemo(() => {
         const topicKey = form.topic?.trim();
         if (!topicKey) return [];
 
-        const defaults = KNOWN_METRICS_BY_TOPIC[topicKey] || [];
-        const seen = new Set(defaults);
+        const seen = new Map();
 
         Object.values(configs || {}).forEach((cfg) => {
-            if ((cfg.topic || "").trim() === topicKey && cfg.sensorType) {
-                seen.add(cfg.sensorType);
-            }
+            if ((cfg.topic || "").trim() !== topicKey) return;
+            const metric = (cfg.sensorType || "").trim();
+            if (!metric) return;
+            const key = metric.toLowerCase();
+            if (seen.has(key)) return;
+            const label = getMetricOverviewLabel(metric, { topic: topicKey }) || metric;
+            seen.set(key, { value: metric, label });
         });
 
-        return [...seen]
-            .map((metric) => ({
-                value: metric,
-                label: getMetricOverviewLabel(metric, { topic: topicKey }) || metric,
-            }))
-            .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
+        return Array.from(seen.values()).sort((a, b) =>
+            a.label.localeCompare(b.label, undefined, { sensitivity: "base" })
+        );
     }, [configs, form.topic]);
 
     // --- inline row edit state
@@ -294,46 +263,50 @@ export default function SensorConfigPage() {
                     <div className={styles.row}>
                         <label className={styles.label}>
                             <span>Topic</span>
-                            <select
+                            <input
                                 name="topic"
+                                list={topicListId}
                                 value={form.topic}
                                 onChange={setFormField}
                                 className={styles.input}
                                 disabled={Boolean(editing)}
                                 required={!editing}
-                            >
-                                <option value="">{topicOptions.length ? "Select topic" : "No topics available"}</option>
+                                placeholder={topicOptions.length ? "Select or type topic" : "Type topic"}
+                            />
+                            <datalist id={topicListId}>
                                 {topicOptions.map((topic) => (
                                     <option key={topic} value={topic}>
                                         {topic}
                                     </option>
                                 ))}
-                            </select>
+                            </datalist>
                         </label>
 
                         <label className={styles.label}>
                             <span>Metric</span>
-                            <select
+                            <input
                                 name="metric"
+                                list={metricListId}
                                 value={form.metric}
                                 onChange={setFormField}
                                 className={styles.input}
                                 required={!editing}
                                 disabled={!form.topic || Boolean(editing)}
-                            >
-                                <option value="">
-                                    {!form.topic
+                                placeholder={
+                                    !form.topic
                                         ? "Select topic first"
                                         : metricOptions.length
-                                            ? "Select metric"
-                                            : "No metrics available"}
-                                </option>
+                                            ? "Select or type metric"
+                                            : "Type metric"
+                                }
+                            />
+                            <datalist id={metricListId}>
                                 {metricOptions.map((metric) => (
                                     <option key={metric.value} value={metric.value}>
                                         {metric.label}
                                     </option>
                                 ))}
-                            </select>
+                            </datalist>
                         </label>
 
                         <label className={styles.label}>
