@@ -821,16 +821,6 @@ export default function Germination() {
                 </div>
             </section>
 
-            <section className={`${styles.sectionCard} ${styles.notesSection}`}>
-                <div className={styles.sectionHeader}>
-                    <h2 className={styles.sectionTitle}>Observation notes</h2>
-                </div>
-                <textarea
-                    className={styles.notesInput}
-                    placeholder="Record daily observations, tasks, and outcomes for the germination room."
-                />
-            </section>
-
             <section className={`${styles.sectionCard} ${styles.cameraSection}`}>
                 <div className={styles.sectionHeader}>
                     <h2 className={styles.sectionTitle}>Germination Room Camera</h2>
