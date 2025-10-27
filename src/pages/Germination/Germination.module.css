@@ -143,10 +143,6 @@
     gap: 1.5rem;
 }
 
-.notesSection {
-    gap: 1rem;
-}
-
 .reportGrid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
@@ -302,24 +298,6 @@
 .emptyState {
     color: #aabce6;
     font-size: 0.95rem;
-}
-
-.notesInput {
-    width: 100%;
-    min-height: 10rem;
-    resize: vertical;
-    background: rgba(9, 17, 31, 0.92);
-    border: 1px solid rgba(78, 123, 191, 0.45);
-    color: #f6f8ff;
-    border-radius: 0.9rem;
-    padding: 1rem;
-    font-size: 1rem;
-    line-height: 1.5;
-    box-shadow: inset 0 0 0 1px rgba(29, 53, 92, 0.35);
-}
-
-.notesInput::placeholder {
-    color: #7f94c4;
 }
 
 .chartControls {
