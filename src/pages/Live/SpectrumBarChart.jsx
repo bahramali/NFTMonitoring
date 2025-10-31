@@ -4,10 +4,10 @@ import {
     Label, ReferenceArea, Cell
 } from 'recharts';
 
-import palette from '../../../colorPalette';
-import spectralColors from '../../../spectralColors';
+import palette from '../../colorPalette';
+import spectralColors from '../../spectralColors';
 import styles from './SpectrumBarChart.module.css';
-import {useSensorConfig} from "../../../context/SensorConfigContext.jsx";
+import {useSensorConfig} from '../../context/SensorConfigContext.jsx';
 
 const legacyBandMeta = [
     ['F1', 'F1 (400–430 nm)'],

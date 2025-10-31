@@ -43,7 +43,7 @@ vi.mock('../src/context/SensorConfigContext.jsx', () => {
 
 import { render, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import SpectrumBarChart from '../src/pages/Live/components/SpectrumBarChart';
+import SpectrumBarChart from '../src/pages/Live/SpectrumBarChart.jsx';
 import { SensorConfigProvider } from '../src/context/SensorConfigContext.jsx';
 
 

@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import DeviceTable from '../src/pages/Live/components/DeviceTable';
-import styles from '../src/pages/Live/components/DeviceTable/DeviceTable.module.css';
+import { DeviceTable } from '../src/pages/Live/LiveDashboard.jsx';
+import styles from '../src/pages/Live/LiveDashboard.module.css';
 import { SensorConfigProvider } from '../src/context/SensorConfigContext.jsx';
 import * as SensorConfigContext from '../src/context/SensorConfigContext.jsx';
 import { mockSensorConfigApi } from './mocks/sensorConfigApi.js';
@@ -269,7 +269,7 @@ test('shows green indicator when health keys are lowercase', () => {
   };
   const { container } = renderWithProvider(<DeviceTable devices={devicesLower} topic="/topic/growSensors" />);
   const indicator = container.querySelector(`.${styles.indicator}`);
-  expect(indicator).toHaveClass(styles.on);
+  expect(indicator).toHaveClass(styles.indicatorOn);
 });
 
 test('uses sensor config hook only once per render', async () => {
