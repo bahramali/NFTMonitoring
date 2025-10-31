@@ -1,13 +1,27 @@
 // pages/Cameras/index.jsx
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
 import styles from "./Cameras.module.css";
 import { getCameraErrorMessage, DEFAULT_CAMERA_ERROR_MESSAGE } from "./errorMessages";
 
-// pick URL from env or fallback
-const SRC =
-    (import.meta?.env && import.meta.env.VITE_TAPO_HLS) ||
-    "https://cam.hydroleaf.se/tapo/index.m3u8";
+const DEFAULT_CAMERA_SOURCES = [
+    {
+        id: "tapo-main",
+        name: "Tapo Main Camera",
+        streamUrl:
+            (import.meta?.env && import.meta.env.VITE_TAPO_HLS) ||
+            "https://cam.hydroleaf.se/tapo/index.m3u8",
+        description: "Primary overview feed from the grow room.",
+    },
+    {
+        id: "s01-layer-03",
+        name: "Shelf S01 · Layer 03",
+        streamUrl:
+            (import.meta?.env && import.meta.env.VITE_S01L03_HLS) ||
+            "https://cam.hydroleaf.se/s01l03/index.m3u8",
+        description: "Detail view of shelf S01 on layer 03.",
+    },
+];
 
 const STATUS_MESSAGES = {
     loading: "Loading stream…",
@@ -16,18 +30,101 @@ const STATUS_MESSAGES = {
     error: DEFAULT_CAMERA_ERROR_MESSAGE,
 };
 
+const getStatusMessage = (state, camera) => {
+    const base = STATUS_MESSAGES[state] || "";
+    if (!camera?.name) {
+        return state === "loading" ? "Loading stream…" : base;
+    }
+
+    if (state === "loading") {
+        return `Preparing ${camera.name}…`;
+    }
+
+    if (!base) {
+        return camera.name;
+    }
+
+    if (state === "playing") {
+        return `${base} — ${camera.name}`;
+    }
+
+    return `${base} (${camera.name})`;
+};
+
+const parseCameraSourcesFromEnv = () => {
+    const envValue = import.meta?.env?.VITE_CAMERA_SOURCES;
+    if (!envValue) return undefined;
+
+    try {
+        const parsed = JSON.parse(envValue);
+        if (!Array.isArray(parsed)) return undefined;
+
+        const normalised = parsed
+            .filter((camera) => camera && camera.streamUrl)
+            .map((camera, index) => ({
+                id: camera.id || camera.name || `camera-${index + 1}`,
+                name: camera.name || `Camera ${index + 1}`,
+                streamUrl: camera.streamUrl,
+                description: camera.description || "",
+            }));
+
+        return normalised.length > 0 ? normalised : undefined;
+    } catch (error) {
+        console.warn("Invalid VITE_CAMERA_SOURCES value", error);
+        return undefined;
+    }
+};
+
+const CAMERA_SOURCES = parseCameraSourcesFromEnv() || DEFAULT_CAMERA_SOURCES;
+
 export default function Cameras() {
     const videoRef = useRef(null);
     const hlsRef = useRef(null); // keep instance for cleanup
-    const [status, setStatus] = useState({ state: "loading", message: STATUS_MESSAGES.loading });
+    const [selectedCameraId, setSelectedCameraId] = useState(
+        () => CAMERA_SOURCES[0]?.id ?? null,
+    );
+    const selectedCamera = useMemo(
+        () =>
+            CAMERA_SOURCES.find((camera) => camera.id === selectedCameraId) ||
+            CAMERA_SOURCES[0] ||
+            null,
+        [selectedCameraId],
+    );
+    const [status, setStatus] = useState(() => ({
+        state: "loading",
+        message: getStatusMessage("loading", selectedCamera),
+    }));
     const [reloadKey, setReloadKey] = useState(0);
+
+    useEffect(() => {
+        if (!selectedCamera) {
+            setStatus({
+                state: "error",
+                message: "No camera feeds are configured.",
+            });
+            return;
+        }
+
+        setStatus({ state: "loading", message: getStatusMessage("loading", selectedCamera) });
+    }, [selectedCamera]);
 
     useEffect(() => {
         const video = videoRef.current;
         if (!video) return undefined;
 
+        if (!selectedCamera?.streamUrl) {
+            setStatus({
+                state: "error",
+                message: `Missing stream URL for ${selectedCamera?.name || "the selected camera"}.`,
+            });
+            return undefined;
+        }
+
         const setState = (state, message) => {
-            setStatus({ state, message: message || STATUS_MESSAGES[state] || "" });
+            setStatus({
+                state,
+                message: message || getStatusMessage(state, selectedCamera),
+            });
         };
 
         const cleanupHls = () => {
@@ -75,7 +172,7 @@ export default function Cameras() {
             const errorMessage = getCameraErrorMessage({
                 errorCode: video?.error?.code,
                 errorMessage: video?.error?.message,
-                streamUrl: SRC,
+                streamUrl: selectedCamera?.streamUrl,
                 pageProtocol: typeof window !== "undefined" ? window.location?.protocol : undefined,
             });
             setState("error", errorMessage);
@@ -86,7 +183,7 @@ export default function Cameras() {
 
         // Native HLS (Safari/iOS)
         if (video.canPlayType("application/vnd.apple.mpegurl")) {
-            video.src = SRC;
+            video.src = selectedCamera.streamUrl;
             video.load();
             const onLoaded = () => handlePlaybackStart();
             video.addEventListener("loadedmetadata", onLoaded, { once: true });
@@ -155,7 +252,7 @@ export default function Cameras() {
 
             hls.attachMedia(video);
             hls.on(Hls.Events.MEDIA_ATTACHED, () => {
-                hls.loadSource(SRC);
+                hls.loadSource(selectedCamera.streamUrl);
             });
             hls.on(Hls.Events.MANIFEST_PARSED, onManifestParsed);
             hls.on(Hls.Events.ERROR, onHlsError);
@@ -178,7 +275,7 @@ export default function Cameras() {
         }
 
         // ultimate fallback
-        video.src = SRC;
+        video.src = selectedCamera.streamUrl;
         video.load();
         const onLoaded = () => handlePlaybackStart();
         video.addEventListener("loadedmetadata", onLoaded, { once: true });
@@ -191,10 +288,15 @@ export default function Cameras() {
             video.removeAttribute("src");
             video.load();
         };
-    }, [reloadKey]);
+    }, [reloadKey, selectedCamera]);
 
     const handleReload = () => {
         setReloadKey((key) => key + 1);
+    };
+
+    const handleCameraSelect = (cameraId) => {
+        if (!cameraId || cameraId === selectedCameraId) return;
+        setSelectedCameraId(cameraId);
     };
 
     const statusClass = () => {
@@ -212,29 +314,91 @@ export default function Cameras() {
         }
     };
 
+    const hasCameraSources = CAMERA_SOURCES.length > 0;
+    const reloadDisabled = status.state === "loading" || !selectedCamera?.streamUrl;
+    const canDisplayVideo = Boolean(selectedCamera?.streamUrl);
+
     return (
-        <div className={styles.container}>
-            <h2 className={styles.title}>Tapo Camera Stream</h2>
-            <video
-                ref={videoRef}
-                className={styles.video}
-                controls
-                muted
-                playsInline
-                autoPlay
-            />
-            <div className={styles.statusRow}>
-                <p className={`${styles.statusMessage} ${statusClass()}`} aria-live="polite">
-                    {status.message || STATUS_MESSAGES[status.state] || ""}
-                </p>
-                <button
-                    type="button"
-                    className={styles.button}
-                    onClick={handleReload}
-                    disabled={status.state === "loading"}
-                >
-                    Reload
-                </button>
+        <div className={styles.page}>
+            <div className={styles.container}>
+                <div className={styles.selector}>
+                    <div className={styles.selectorHeader}>
+                        <h2 className={styles.selectorTitle}>Available Cameras</h2>
+                        <p className={styles.selectorHint}>Select a feed to view it below.</p>
+                    </div>
+                    {hasCameraSources ? (
+                        <ul className={styles.cameraList}>
+                            {CAMERA_SOURCES.map((camera) => {
+                                const isActive = camera.id === selectedCamera?.id;
+                                return (
+                                    <li key={camera.id}>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleCameraSelect(camera.id)}
+                                            className={`${styles.cameraButton} ${
+                                                isActive ? styles.cameraButtonActive : ""
+                                            }`}
+                                            aria-pressed={isActive}
+                                        >
+                                            <span className={styles.cameraName}>{camera.name}</span>
+                                            {camera.description ? (
+                                                <span className={styles.cameraDescription}>
+                                                    {camera.description}
+                                                </span>
+                                            ) : null}
+                                        </button>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    ) : (
+                        <p className={styles.emptySelectorMessage}>
+                            No camera feeds configured yet.
+                        </p>
+                    )}
+                </div>
+
+                <section className={styles.viewer}>
+                    <div className={styles.videoHeader}>
+                        <div>
+                            <h2 className={styles.title}>{selectedCamera?.name || "Camera Stream"}</h2>
+                            {selectedCamera?.description ? (
+                                <p className={styles.subtitle}>{selectedCamera.description}</p>
+                            ) : null}
+                        </div>
+                        <button
+                            type="button"
+                            className={styles.button}
+                            onClick={handleReload}
+                            disabled={reloadDisabled}
+                        >
+                            Reload
+                        </button>
+                    </div>
+
+                    {canDisplayVideo ? (
+                        <video
+                            ref={videoRef}
+                            key={selectedCamera?.id}
+                            className={styles.video}
+                            controls
+                            muted
+                            playsInline
+                            autoPlay
+                        />
+                    ) : (
+                        <div className={styles.emptyState}>
+                            <strong>No live preview available.</strong>
+                            <span>Provide a valid stream URL to start monitoring.</span>
+                        </div>
+                    )}
+
+                    <div className={styles.statusRow}>
+                        <p className={`${styles.statusMessage} ${statusClass()}`} aria-live="polite">
+                            {status.message || STATUS_MESSAGES[status.state] || ""}
+                        </p>
+                    </div>
+                </section>
             </div>
         </div>
     );
