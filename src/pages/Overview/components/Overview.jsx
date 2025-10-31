@@ -15,6 +15,7 @@ import {
     localDateTime,
     aggregateFromCards,
     normalizeSensors,
+    buildAggregatedEntries,
 } from "../utils";
 import isWaterDevice from "../utils/isWaterDevice.js"; // import local to avoid cycles
 
@@ -231,6 +232,10 @@ export default function Overview() {
     const growCards = useMemo(() => sysCards.filter((c) => !isWaterDevice(c.compId)), [sysCards]);
     const envAgg = useMemo(() => aggregateFromCards(growCards), [growCards]);
     const { findRange } = useSensorConfig();
+    const envStats = useMemo(
+        () => buildAggregatedEntries(envAgg, { topic: '/topic/growSensors', findRange }),
+        [envAgg, findRange]
+    );
 
     return (
         <div className={styles.page}>
@@ -315,34 +320,14 @@ export default function Overview() {
                     <div className={`${styles.subcard} ${styles.env}`}>
                         <h3>Environment overview</h3>
                         <div className={styles.stats}>
-                            {envAgg?.counts?.light > 0 && (
+                            {envStats.map((stat) => (
                                 <Stat
-                                    label="Light="
-                                    value={`${fmt(envAgg.avg.light)} lux (${envAgg.counts.light} sensors)`}
-                                    range={findRange('lux', { topic: '/topic/growSensors' })}
+                                    key={stat.key}
+                                    label={`${stat.label}=`}
+                                    value={`${stat.value} (${stat.countLabel})`}
+                                    range={stat.range}
                                 />
-                            )}
-                            {envAgg?.counts?.temperature > 0 && (
-                                <Stat
-                                    label="Temp="
-                                    value={`${fmt(envAgg.avg.temperature)} °C (${envAgg.counts.temperature} sensors)`}
-                                    range={findRange('temperature', { topic: '/topic/growSensors' })}
-                                />
-                            )}
-                            {envAgg?.counts?.humidity > 0 && (
-                                <Stat
-                                    label="Humidity="
-                                    value={`${fmt(envAgg.avg.humidity)} % (${envAgg.counts.humidity} sensors)`}
-                                    range={findRange('humidity', { topic: '/topic/growSensors' })}
-                                />
-                            )}
-                            {envAgg?.counts?.co2 > 0 && (
-                                <Stat
-                                    label="CO₂="
-                                    value={`${fmt(envAgg.avg.co2, 0)} ppm (${envAgg.counts.co2} sensors)`}
-                                    range={findRange('co2', { topic: '/topic/growSensors' })}
-                                />
-                            )}
+                            ))}
                         </div>
 
                         <div className={styles.divider} />
