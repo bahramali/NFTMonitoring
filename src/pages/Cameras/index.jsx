@@ -21,6 +21,22 @@ const DEFAULT_CAMERA_SOURCES = [
             "https://cam.hydroleaf.se/s01l03/index.m3u8",
         description: "Detail view of shelf S01 on layer 03.",
     },
+    {
+        id: "s01-layer-13",
+        name: "Shelf S01 · Layer 03",
+        streamUrl:
+            (import.meta?.env && import.meta.env.VITE_S01L03_HLS) ||
+            "https://cam.hydroleaf.se/s01l13/index.m3u8",
+        description: "Detail view of shelf S01 on layer 03.",
+    },,
+    {
+        id: "s01-layer-02",
+        name: "Shelf S01 · Layer 03",
+        streamUrl:
+            (import.meta?.env && import.meta.env.VITE_S01L03_HLS) ||
+            "https://cam.hydroleaf.se/s01l02/index.m3u8",
+        description: "Detail view of shelf S01 on layer 03.",
+    },
 ];
 
 const STATUS_MESSAGES = {
