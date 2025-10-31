@@ -48,6 +48,28 @@ export default function DeviceCard({
   const waterFinal = water || derived.water;
   const clampList = (arr, max = 8) => (arr.length > max ? [...arr.slice(0, max), "…"] : arr);
 
+  const allSensorReadings = useMemo(() => {
+    if (!Array.isArray(sensors)) return [];
+    return sensors
+      .map((reading, index) => {
+        if (!reading) return null;
+        const rawValue = reading.value;
+        if (rawValue == null || rawValue === "") return null;
+
+        const label = reading.sensorName || reading.sensorType || `Sensor ${index + 1}`;
+        const valueNumber = Number(rawValue);
+        const formattedValue = Number.isFinite(valueNumber) ? fmt(valueNumber) : String(rawValue);
+        const suffix = reading.unit ? ` ${reading.unit}` : "";
+
+        return {
+          key: `${label}-${index}`,
+          label,
+          display: `${formattedValue}${suffix}`.trim(),
+        };
+      })
+      .filter(Boolean);
+  }, [sensors]);
+
   const { blueArr, redArr } = useMemo(() => {
     if (!spectrumFinal) return { blueArr: [], redArr: [] };
     const entries = Object.entries(spectrumFinal)
@@ -107,6 +129,20 @@ export default function DeviceCard({
 
         {renderOtherLight()}
         {renderWater()}
+
+        {allSensorReadings.length > 0 && (
+          <div className={styles.kv}>
+            <div className={styles.kvTitle}>All sensor readings</div>
+            <div className={styles.pairGrid}>
+              {allSensorReadings.map(({ key, label, display }) => (
+                <div key={key} className={styles.pairChip}>
+                  <span>{label}</span>
+                  <span>{display}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
