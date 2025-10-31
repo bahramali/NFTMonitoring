@@ -1,8 +1,8 @@
 import React from 'react';
-import SensorDashboard from './components/SensorDashboard';
+import LiveDashboard from './LiveDashboard.jsx';
 
 function Live() {
-    return <SensorDashboard view="live" title="Live" />;
+    return <LiveDashboard/>;
 }
 
 export default Live;

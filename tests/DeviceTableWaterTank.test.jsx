@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import DeviceTable from '../src/pages/Live/components/DeviceTable';
+import { DeviceTable } from '../src/pages/Live/LiveDashboard.jsx';
 import { SensorConfigProvider } from '../src/context/SensorConfigContext.jsx';
 import { mockSensorConfigApi } from './mocks/sensorConfigApi.js';
 import { vi } from 'vitest';
