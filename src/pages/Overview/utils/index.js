@@ -49,17 +49,32 @@ export function deriveHealth(layer) {
 export const sensorLabel = (k, context) => getMetricOverviewLabel(k, context);
 
 export function canonKey(raw) {
-  const t = fixSubs(String(raw || "")).toLowerCase();
-  if (!t) return null;
-  if (t === "light") return "light";
-  if (t === "temperature" || t === "temp") return "temperature";
-  if (t === "humidity" || t === "hum") return "humidity";
-  if (t === "co2" || t === "co₂" || t === "co2ppm") return "co2";
-  if (t === "ph") return "pH";
-  if (t === "do" || t === "dissolvedoxygen") return "dissolvedOxygen";
-  if (t === "ec" || t === "dissolvedec") return "dissolvedEC";
-  if (t === "tds" || t === "dissolvedtds") return "dissolvedTDS";
-  if (t === "watertemp" || t === "dissolvedtemp") return "dissolvedTemp";
+  const base = fixSubs(String(raw || "")).toLowerCase();
+  const normalized = base.replace(/[\s_-]/g, "");
+  if (!normalized) return null;
+  if (["light", "lux", "illumination"].includes(normalized)) return "light";
+  if (["temperature", "temp", "tempc", "temperaturec", "airtemp", "airtempc", "airtemperature", "airtemperaturec"].includes(normalized)) {
+    return "temperature";
+  }
+  if ([
+    "humidity",
+    "hum",
+    "rh",
+    "rhpct",
+    "humiditypct",
+    "humiditypercent",
+    "relativehumidity",
+    "relativehumiditypct",
+    "relativehumiditypercent",
+  ].includes(normalized)) {
+    return "humidity";
+  }
+  if (normalized === "co2" || normalized === "co2ppm") return "co2";
+  if (normalized === "ph") return "pH";
+  if (normalized === "do" || normalized === "dissolvedoxygen") return "dissolvedOxygen";
+  if (normalized === "ec" || normalized === "dissolvedec") return "dissolvedEC";
+  if (normalized === "tds" || normalized === "dissolvedtds") return "dissolvedTDS";
+  if (normalized === "watertemp" || normalized === "dissolvedtemp") return "dissolvedTemp";
   return raw;
 }
 
