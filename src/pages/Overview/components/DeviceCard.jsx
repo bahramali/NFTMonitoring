@@ -4,16 +4,67 @@ import styles from "./DeviceCard.module.css";
 import { deriveFromSensors } from "../../../utils/normalizeSensors.js";
 
 /* helpers */
-const nmToNumber = (key) => {
-  const m = /^(\d{3})nm$/i.exec(key || "");
-  return m ? Number(m[1]) : null;
-};
 const fmt = (v) =>
   v == null || Number.isNaN(v)
     ? "--"
     : Number(v) % 1 === 0
     ? String(Number(v))
     : Number(v).toFixed(1);
+
+const getAs7343Group = (sensorTypeRaw) => {
+  const type = String(sensorTypeRaw || "").trim().toLowerCase();
+  const nmMatch = /^(\d{3})nm$/.exec(type);
+
+  if (nmMatch) {
+    const nm = Number(nmMatch[1]);
+    if (nm < 500) return { key: "blue", label: "AS7343 (Blue band)" };
+    if (nm < 600) return { key: "green", label: "AS7343 (Green band)" };
+    return { key: "red", label: "AS7343 (Red/NIR band)" };
+  }
+
+  if (type === "vis1" || type === "vis2" || type === "clear") {
+    return { key: "green", label: "AS7343 (Green band)" };
+  }
+
+  if (type === "nir855" || type === "nir") {
+    return { key: "red", label: "AS7343 (Red/NIR band)" };
+  }
+
+  return null;
+};
+
+const buildAs7343GroupEntries = (items = []) => {
+  const order = [];
+  const groups = new Map();
+
+  items.forEach((item) => {
+    if (!item?.groupKey) return;
+    if (!groups.has(item.groupKey)) {
+      groups.set(item.groupKey, { label: item.groupLabel, items: [] });
+      order.push(item.groupKey);
+    }
+    const group = groups.get(item.groupKey);
+    group.items.push({
+      label: item.itemLabel || item.groupLabel,
+      display: item.display,
+    });
+  });
+
+  return order
+    .map((key) => {
+      const group = groups.get(key);
+      if (!group || group.items.length === 0) return null;
+      const joined = group.items
+        .map((entry) => `${entry.label}: ${entry.display}`)
+        .join(", ");
+      return {
+        key,
+        label: group.label,
+        display: `[${joined}]`,
+      };
+    })
+    .filter(Boolean);
+};
 
 
 /**
@@ -46,71 +97,158 @@ export default function DeviceCard({
   const spectrumFinal = Object.keys(spectrum).length ? spectrum : (derived.spectrum || {});
   const otherFinal = Object.keys(otherLight).length ? otherLight : (derived.otherLight || {});
   const waterFinal = water || derived.water;
-  const clampList = (arr, max = 8) => (arr.length > max ? [...arr.slice(0, max), "…"] : arr);
+  const { entries: sensorEntries, hasAS7343 } = useMemo(() => {
+    if (!Array.isArray(sensors) || sensors.length === 0) {
+      return { entries: [], hasAS7343: false };
+    }
 
-  const allSensorReadings = useMemo(() => {
-    if (!Array.isArray(sensors)) return [];
-    return sensors
-      .map((reading, index) => {
-        if (!reading) return null;
-        const rawValue = reading.value;
-        if (rawValue == null || rawValue === "") return null;
+    const singles = [];
+    const groupedItems = [];
+    let firstGroupIndex = null;
+    let hasGroup = false;
 
-        const label = reading.sensorName || reading.sensorType || `Sensor ${index + 1}`;
-        const valueNumber = Number(rawValue);
-        const formattedValue = Number.isFinite(valueNumber) ? fmt(valueNumber) : String(rawValue);
-        const suffix = reading.unit ? ` ${reading.unit}` : "";
+    sensors.forEach((reading, index) => {
+      if (!reading) return;
+      const rawValue = reading.value;
+      if (rawValue == null || rawValue === "") return;
 
-        return {
-          key: `${label}-${index}`,
-          label,
-          display: `${formattedValue}${suffix}`.trim(),
-        };
-      })
-      .filter(Boolean);
+      const label = reading.sensorName || reading.sensorType || `Sensor ${index + 1}`;
+      const valueNumber = Number(rawValue);
+      const formattedValue = Number.isFinite(valueNumber) ? fmt(valueNumber) : String(rawValue);
+      const suffix = reading.unit ? ` ${reading.unit}` : "";
+      const display = `${formattedValue}${suffix}`.trim();
+
+      const nameNorm = String(reading.sensorName || "").trim().toLowerCase();
+      const typeNorm = String(reading.sensorType || "").trim().toLowerCase();
+      const isAs7343Reading =
+        /as7343/.test(nameNorm) ||
+        /as7343/.test(typeNorm) ||
+        /^(\d{3})nm$/.test(typeNorm) ||
+        ["vis1", "vis2", "nir855", "nir", "clear"].includes(typeNorm);
+
+      const groupInfo = isAs7343Reading ? getAs7343Group(reading.sensorType || reading.sensorName) : null;
+
+      if (groupInfo) {
+        hasGroup = true;
+        if (firstGroupIndex == null) firstGroupIndex = singles.length;
+        groupedItems.push({
+          groupKey: groupInfo.key,
+          groupLabel: groupInfo.label,
+          itemLabel: reading.sensorType || label,
+          display,
+        });
+        return;
+      }
+
+      if (isAs7343Reading) {
+        hasGroup = true;
+      }
+
+      singles.push({
+        key: `${label}-${index}`,
+        label,
+        display,
+      });
+    });
+
+    const groupedEntries = buildAs7343GroupEntries(groupedItems).map((entry) => ({
+      key: `as7343-${entry.key}`,
+      label: entry.label,
+      display: entry.display,
+    }));
+
+    if (!groupedEntries.length) {
+      return { entries: singles, hasAS7343: hasGroup };
+    }
+
+    const insertAt = firstGroupIndex ?? singles.length;
+    const combined = [
+      ...singles.slice(0, insertAt),
+      ...groupedEntries,
+      ...singles.slice(insertAt),
+    ];
+
+    return { entries: combined, hasAS7343: true };
   }, [sensors]);
 
-  const { blueArr, redArr } = useMemo(() => {
-    if (!spectrumFinal) return { blueArr: [], redArr: [] };
-    const entries = Object.entries(spectrumFinal)
-      .map(([k, v]) => ({ nm: nmToNumber(k), val: v }))
-      .filter((x) => x.nm != null)
-      .sort((a, b) => a.nm - b.nm);
+  const fallbackEntries = useMemo(() => {
+    const entries = [];
+    const derivedMap = derived?.map || {};
 
-    const blue = entries.filter((e) => e.nm >= 400 && e.nm <= 500)
-      .map((e) => `${e.nm}nm: ${fmt(e.val)}`);
-    const red = entries.filter((e) => e.nm >= 550 && e.nm <= 750)
-      .map((e) => `${e.nm}nm: ${fmt(e.val)}`);
+    if (co2Valid && derivedMap.co2 == null) {
+      entries.push({ key: "fallback-co2", label: "CO₂", display: `${fmt(co2)} ppm` });
+    }
 
-    return { blueArr: blue, redArr: red };
-  }, [spectrumFinal]);
+    if (tValid && derivedMap.temp == null) {
+      entries.push({ key: "fallback-temp", label: "Temperature", display: `${fmt(t)} °C` });
+    }
 
-  const line = (label, value) => (
-    <div className={styles.row}>
-      <span className={styles.label}>{label}</span>
-      <span className={styles.eq}>=</span>
-      <span className={styles.vals}>{value}</span>
-    </div>
+    if (hValid && derivedMap.humidity == null) {
+      entries.push({ key: "fallback-humidity", label: "Humidity", display: `${fmt(h)} %` });
+    }
+
+    const derivedOther = derived?.otherLight;
+    if (Object.keys(otherFinal || {}).length && (!derivedOther || Object.keys(derivedOther).length === 0)) {
+      if (otherFinal.lux != null) {
+        entries.push({ key: "fallback-lux", label: "Lux", display: `${fmt(otherFinal.lux)} lux` });
+      }
+      if (otherFinal.vis1 != null) {
+        entries.push({ key: "fallback-vis1", label: "VIS1", display: fmt(otherFinal.vis1) });
+      }
+      if (otherFinal.vis2 != null) {
+        entries.push({ key: "fallback-vis2", label: "VIS2", display: fmt(otherFinal.vis2) });
+      }
+      if (otherFinal.nir855 != null) {
+        entries.push({ key: "fallback-nir855", label: "NIR855", display: fmt(otherFinal.nir855) });
+      }
+    }
+
+    const derivedWater = derived?.water;
+    if (waterFinal && (!derivedWater || Object.keys(derivedWater).length === 0)) {
+      if (waterFinal.tds_ppm != null) {
+        entries.push({ key: "fallback-water-tds", label: "Water (TDS)", display: `${fmt(waterFinal.tds_ppm)} ppm` });
+      }
+      if (waterFinal.ec_mScm != null) {
+        entries.push({ key: "fallback-water-ec", label: "Water (EC)", display: `${fmt(waterFinal.ec_mScm)} mS/cm` });
+      }
+      if (waterFinal.tempC != null) {
+        entries.push({ key: "fallback-water-temp", label: "Water (Temp)", display: `${fmt(waterFinal.tempC)} °C` });
+      }
+      if (waterFinal.do_mgL != null) {
+        entries.push({ key: "fallback-water-do", label: "Water (DO)", display: `${fmt(waterFinal.do_mgL)} mg/L` });
+      }
+    }
+
+    if (!hasAS7343 && spectrumFinal && Object.keys(spectrumFinal).length) {
+      const groupedFallback = buildAs7343GroupEntries(
+        Object.entries(spectrumFinal)
+          .map(([key, value]) => {
+            const groupInfo = getAs7343Group(key);
+            if (!groupInfo) return null;
+            return {
+              groupKey: groupInfo.key,
+              groupLabel: groupInfo.label,
+              itemLabel: key,
+              display: fmt(value),
+            };
+          })
+          .filter(Boolean)
+      ).map((entry) => ({
+        key: `fallback-${entry.key}`,
+        label: entry.label,
+        display: entry.display,
+      }));
+
+      entries.push(...groupedFallback);
+    }
+
+    return entries;
+  }, [co2Valid, co2, derived, hasAS7343, h, hValid, otherFinal, spectrumFinal, t, tValid, waterFinal]);
+
+  const allSensorReadings = useMemo(
+    () => [...fallbackEntries, ...sensorEntries],
+    [fallbackEntries, sensorEntries]
   );
-
-  const renderOtherLight = () => {
-    const bits = [];
-    if (otherFinal?.lux != null) bits.push(`Lux: ${fmt(otherFinal.lux)}`);
-    if (otherFinal?.vis1 != null) bits.push(`VIS1: ${fmt(otherFinal.vis1)}`);
-    if (otherFinal?.vis2 != null) bits.push(`VIS2: ${fmt(otherFinal.vis2)}`);
-    if (otherFinal?.nir855 != null) bits.push(`NIR855: ${fmt(otherFinal.nir855)}`);
-    return bits.length ? line("Other light", `[${bits.join(", ")}]`) : null;
-  };
-
-  const renderWater = () => {
-    if (!waterFinal) return null;
-    const bits = [];
-    if (waterFinal.tds_ppm != null) bits.push(`TDS: ${fmt(waterFinal.tds_ppm)} ppm`);
-    if (waterFinal.ec_mScm != null) bits.push(`EC: ${fmt(waterFinal.ec_mScm)} mS/cm`);
-    if (waterFinal.tempC != null) bits.push(`Temp: ${fmt(waterFinal.tempC)} °C`);
-    if (waterFinal.do_mgL != null) bits.push(`DO: ${fmt(waterFinal.do_mgL)} mg/L`);
-    return bits.length ? line("Water", `[${bits.join(", ")}]`) : null;
-  };
 
   return (
     <div className={styles.wrapper}>
@@ -118,18 +256,6 @@ export default function DeviceCard({
         <div className={styles.header}>
           <div className={styles.badge}>{name}</div>
         </div>
-
-        {co2Valid && line("CO₂", `${fmt(co2)} ppm`)}
-
-        {(tValid || hValid) &&
-          line("[Temp, Humidity]", `[${fmt(t)} °C, ${fmt(h)} %]`)}
-
-        {blueArr.length > 0 && line("Blue light", `[${clampList(blueArr).join(", ")}]`)}
-        {redArr.length  > 0 && line("Red light",  `[${clampList(redArr).join(", ")}]`)}
-
-        {renderOtherLight()}
-        {renderWater()}
-
         {allSensorReadings.length > 0 && (
           <div className={styles.kv}>
             <div className={styles.kvTitle}>All sensor readings</div>
