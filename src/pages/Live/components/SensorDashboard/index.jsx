@@ -1,15 +1,13 @@
 // SensorDashboard.jsx
-import React, {useEffect, useMemo, useState} from "react";
+import React, {useMemo} from "react";
 import Header from "../../../common/Header";
 import { useLiveDevices } from "../../../common/useLiveDevices.js";
 import styles from "./SensorDashboard.module.css";
 import Live from "../Live";
-import {GERMINATION_TOPIC, SENSOR_TOPIC, topics} from "../../../common/dashboard.constants.js";
+import {GERMINATION_TOPIC, topics} from "../../../common/dashboard.constants.js";
 
 function SensorDashboard({ view, title = '' }) {
-    const {deviceData, sensorData, availableCompositeIds, mergedDevices} = useLiveDevices(topics);
-
-    const [selectedDevice, setSelectedDevice] = useState("");
+    const {deviceData, mergedDevices} = useLiveDevices(topics);
 
     // Merge topics from all systems
     const aggregatedTopics = useMemo(() => {
@@ -21,32 +19,16 @@ function SensorDashboard({ view, title = '' }) {
         }
         return allTopics;
     }, [deviceData]);
-    const sensorTopicDevices = aggregatedTopics[SENSOR_TOPIC] || {};
-
-    // Show all available device IDs and topics
-    const filteredCompositeIds = availableCompositeIds;
     const filteredSystemTopics = useMemo(() => {
         return Object.fromEntries(
             Object.entries(aggregatedTopics).filter(([topic]) => topic !== GERMINATION_TOPIC)
         );
     }, [aggregatedTopics]);
-    // Ensure selectedDevice remains valid after device list changes
-    useEffect(() => {
-        if (availableCompositeIds.length && !availableCompositeIds.includes(selectedDevice)) {
-            setSelectedDevice(availableCompositeIds[0]);
-        }
-    }, [availableCompositeIds, selectedDevice]);
-
     return (
         <div className={styles.dashboard}>
             <Header title={title}/>
             {view !== 'overview' && (
                 <Live
-                    sensorTopicDevices={sensorTopicDevices}
-                    selectedDevice={selectedDevice}
-                    setSelectedDevice={setSelectedDevice}
-                    filteredCompositeIds={filteredCompositeIds}
-                    sensorData={sensorData}
                     mergedDevices={mergedDevices}
                     systemTopics={filteredSystemTopics}
                 />

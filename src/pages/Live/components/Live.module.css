@@ -9,36 +9,6 @@
     border-radius: 0 0 0.25rem 0.25rem;
 }
 
-.chartFilterRow {
-    margin-bottom: 0.3125rem;
-}
-
-.filterLabel {
-    margin-left: 0.625rem;
-}
-
-.intervalSelect {
-    margin-left: 0.625rem;
-}
-
-.deviceLabel {
-    text-align: center;
-    font-weight: bold;
-    margin-bottom: 0.625rem;
-}
-
-.spectrumBarChartWrapper {
-    width: 100%;
-    margin-top: 1.25rem;
-}
-
 .topicSection {
     margin-top: 2rem;
-}
-
-@media (min-width: 48rem) {
-    .spectrumBarChartWrapper {
-        width: 80%;
-        margin: 1.25rem auto 0;
-    }
 }
