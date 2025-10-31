@@ -3,13 +3,17 @@ import DeviceCard from "./DeviceCard.jsx";
 import Stat from "./Stat.jsx";
 import useLayerCompositeCards from "./useLayerCompositeCards.js";
 import { useSensorConfig } from "../../../context/SensorConfigContext.jsx";
-import { fmt, aggregateFromCards, isWaterDevice } from "../utils";
+import { aggregateFromCards, isWaterDevice, buildAggregatedEntries } from "../utils";
 import styles from "./LayerCard.module.css";
 
 function LayerCard({layer, systemId}) {
   const deviceCards = useLayerCompositeCards(systemId, layer.id).filter(card => !isWaterDevice(card.compId));
   const agg = useMemo(() => aggregateFromCards(deviceCards), [deviceCards]);
   const { findRange } = useSensorConfig();
+  const stats = useMemo(
+    () => buildAggregatedEntries(agg, { topic: '/topic/growSensors', findRange }),
+    [agg, findRange]
+  );
 
   return (
     <div className={`${styles.card} ${styles.layer}`}>
@@ -20,41 +24,14 @@ function LayerCard({layer, systemId}) {
       </div>
 
       <div className={styles.stats}>
-        {agg.counts.light > 0 && (
+        {stats.map((stat) => (
           <Stat
-            label="Light="
-            value={`${fmt(agg.avg.light)} lux (${agg.counts.light} sensors)`}
-            range={findRange('lux', { topic: '/topic/growSensors' })}
+            key={stat.key}
+            label={`${stat.label}=`}
+            value={`${stat.value} (${stat.countLabel})`}
+            range={stat.range}
           />
-        )}
-        {agg.counts.temperature > 0 && (
-          <Stat
-            label="Temp="
-            value={`${fmt(agg.avg.temperature)} °C (${agg.counts.temperature} sensors)`}
-            range={findRange('temperature', { topic: '/topic/growSensors' })}
-          />
-        )}
-        {agg.counts.humidity > 0 && (
-          <Stat
-            label="Humidity="
-            value={`${fmt(agg.avg.humidity)} % (${agg.counts.humidity} sensors)`}
-            range={findRange('humidity', { topic: '/topic/growSensors' })}
-          />
-        )}
-        {agg.counts.pH > 0 && (
-          <Stat
-            label="pH="
-            value={`${fmt(agg.avg.pH)} (${agg.counts.pH} sensors)`}
-            range={findRange('ph', { topic: '/topic/growSensors' })}
-          />
-        )}
-        {agg.counts.co2 > 0 && (
-          <Stat
-            label="CO₂="
-            value={`${fmt(agg.avg.co2, 0)} ppm (${agg.counts.co2} sensors)`}
-            range={findRange('co2', { topic: '/topic/growSensors' })}
-          />
-        )}
+        ))}
       </div>
 
       <div className={styles.details}>

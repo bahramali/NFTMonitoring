@@ -1,5 +1,6 @@
 import { getMetricOverviewLabel } from "../../../config/sensorMetrics.js";
 import { isWaterDevice } from "./isWaterDevice.js";
+
 export { isWaterDevice } from "./isWaterDevice.js";
 
 export const toNum = (v) => (v == null || v === "" ? null : Number(v));
@@ -22,6 +23,53 @@ export const normLayerId = (l) => {
 };
 
 const fixSubs = (s) => String(s).replace(/[₀₁₂₃₄₅₆₇₈₉]/g, (d) => "0123456789"["₀₁₂₃₄₅₆₇₈₉".indexOf(d)]);
+
+const sanitizeMetricKey = (raw) =>
+  String(raw || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+const METRIC_META = {
+  light: { unit: "lux", precision: 0, rangeKey: "lux" },
+  temperature: { unit: "°C", precision: 1, rangeKey: "temperature" },
+  humidity: { unit: "%", precision: 1, rangeKey: "humidity" },
+  co2: { unit: "ppm", precision: 0, rangeKey: "co2" },
+  ph: { unit: "", precision: 1, rangeKey: "ph" },
+  dissolvedoxygen: { unit: "mg/L", precision: 1, rangeKey: "dissolvedOxygen" },
+  dissolvedec: { unit: "mS/cm", precision: 2, rangeKey: "ec" },
+  dissolvedtds: { unit: "ppm", precision: 0, rangeKey: "tds" },
+  dissolvedtemp: { unit: "°C", precision: 1, rangeKey: "dissolvedTemp" },
+};
+
+const METRIC_ORDER = [
+  "light",
+  "temperature",
+  "humidity",
+  "ph",
+  "co2",
+  "dissolvedtemp",
+  "dissolvedoxygen",
+  "dissolvedec",
+  "dissolvedtds",
+];
+
+const SPECTRAL_MATCHERS = [
+  (key) => /^f\d{1,2}$/i.test(key),
+  (key) => /^\d{3}nm$/i.test(key),
+  (key) => /^(?:vis1|vis2|clear|nir|nir855)$/i.test(key),
+  (key) => /as7343/i.test(key),
+];
+
+const DEFAULT_EXCLUDED = new Set(["health"]);
+
+const shouldSkipMetricKey = (rawKey) => {
+  const safe = String(rawKey || "").trim();
+  if (!safe) return true;
+  const sanitized = sanitizeMetricKey(safe);
+  if (!sanitized) return true;
+  if (DEFAULT_EXCLUDED.has(sanitized)) return true;
+  return SPECTRAL_MATCHERS.some((matcher) => matcher(safe));
+};
 
 export function getMetric(obj, key) {
   if (!obj) return null;
@@ -105,23 +153,96 @@ export function normalizeSensors(src) {
   return out;
 }
 
-export function aggregateFromCards(cards) {
-  const keys = ["light", "temperature", "humidity", "pH", "co2"];
-  const sums = {}, counts = {};
-  for (const c of cards || []) {
-    const s = c?.sensors || {};
-    for (const k of keys) {
-      const v = s[k]?.value;
-      const n = v == null ? null : Number(v);
-      if (n != null && !Number.isNaN(n)) {
-        sums[k] = (sums[k] || 0) + n;
-        counts[k] = (counts[k] || 0) + 1;
-      }
+export function aggregateFromCards(cards = []) {
+  const sums = {};
+  const counts = {};
+  const units = {};
+  const order = [];
+  const displayKeys = {};
+
+  for (const card of cards || []) {
+    const sensors = card?.sensors || {};
+    for (const [rawKey, reading] of Object.entries(sensors)) {
+      if (shouldSkipMetricKey(rawKey)) continue;
+
+      const displayKey = String(rawKey || "").trim();
+      const metricKey = sanitizeMetricKey(displayKey);
+      if (!metricKey) continue;
+
+      const rawValue = typeof reading === "number" ? reading : reading?.value;
+      const numeric = rawValue == null ? null : Number(rawValue);
+      if (!Number.isFinite(numeric)) continue;
+
+      if (!order.includes(metricKey)) order.push(metricKey);
+      if (!displayKeys[metricKey]) displayKeys[metricKey] = displayKey || metricKey;
+
+      sums[metricKey] = (sums[metricKey] || 0) + numeric;
+      counts[metricKey] = (counts[metricKey] || 0) + 1;
+
+      const unit = reading?.unit;
+      if (unit && !units[metricKey]) units[metricKey] = unit;
     }
   }
+
   const avg = {};
-  Object.keys(sums).forEach(k => (avg[k] = sums[k] / counts[k]));
-  return {avg, counts};
+  Object.keys(sums).forEach((key) => {
+    const count = counts[key];
+    if (count) {
+      avg[key] = sums[key] / count;
+    }
+  });
+
+  return { avg, counts, units, order, displayKeys };
+}
+
+const sensorCountLabel = (count) => `${count} sensor${count === 1 ? "" : "s"}`;
+
+const sortAggregatedKeys = (keys = [], displayKeys = {}) => {
+  const getOrderIndex = (key) => {
+    const idx = METRIC_ORDER.indexOf(key);
+    return idx === -1 ? Infinity : idx;
+  };
+
+  return [...keys].sort((a, b) => {
+    const orderA = getOrderIndex(a);
+    const orderB = getOrderIndex(b);
+    if (orderA !== orderB) return orderA - orderB;
+    const labelA = (displayKeys[a] ?? a).toString();
+    const labelB = (displayKeys[b] ?? b).toString();
+    return labelA.localeCompare(labelB);
+  });
+};
+
+export function buildAggregatedEntries(agg, { topic, findRange } = {}) {
+  if (!agg) return [];
+
+  const keys = sortAggregatedKeys(
+    (agg.order && agg.order.length ? agg.order : Object.keys(agg.avg || {})).filter(
+      (key) => agg.counts?.[key] > 0
+    ),
+    agg.displayKeys
+  );
+
+  return keys.map((key) => {
+    const meta = METRIC_META[key] || {};
+    const precision = meta.precision ?? 1;
+    const unit = agg.units?.[key] ?? meta.unit ?? "";
+    const labelSource = agg.displayKeys?.[key] ?? key;
+    const label = sensorLabel(labelSource, { topic }) ?? labelSource;
+    const value = fmt(agg.avg?.[key], precision);
+    const formattedValue = unit ? `${value} ${unit}` : value;
+    const rangeKey = meta.rangeKey ?? labelSource;
+    const range = typeof findRange === "function" ? findRange(rangeKey, { topic }) : undefined;
+
+    return {
+      key,
+      label,
+      value: formattedValue,
+      count: agg.counts?.[key] ?? 0,
+      countLabel: sensorCountLabel(agg.counts?.[key] ?? 0),
+      range,
+    };
+  });
 }
 
 export default {
@@ -136,5 +257,6 @@ export default {
   canonKey,
   normalizeSensors,
   aggregateFromCards,
+  buildAggregatedEntries,
   isWaterDevice,
 };
