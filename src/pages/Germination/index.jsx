@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import Header from "../common/Header";
 import { useLiveDevices } from "../common/useLiveDevices";
 import { GERMINATION_TOPIC, topics } from "../common/dashboard.constants";
-import { useSensorConfig } from "../../context/SensorConfigContext.jsx";
 import GerminationCamera from "./components/GerminationCamera";
 import HistoryChart from "../../components/HistoryChart.jsx";
 import { transformAggregatedData } from "../../utils.js";
@@ -11,6 +10,7 @@ import {
     triggerGerminationStart,
     updateGerminationStart,
 } from "../../api/germination.js";
+import { getGerminationStageByDay, getStageRangeForMetric } from "./germinationStages.js";
 import styles from "./Germination.module.css";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "https://api.hydroleaf.se";
@@ -87,6 +87,24 @@ function getEntryValue(entry, metricKey) {
     return null;
 }
 
+function formatRangeValue(value) {
+    if (typeof value !== "number" || Number.isNaN(value)) return "-";
+    const abs = Math.abs(value);
+    let decimals = 0;
+    if (abs >= 100 || Number.isInteger(value)) {
+        decimals = 0;
+    } else if (abs >= 10) {
+        decimals = 1;
+    } else if (abs >= 1) {
+        decimals = 1;
+    } else if (abs >= 0.1) {
+        decimals = 2;
+    } else {
+        decimals = 3;
+    }
+    return Number(value.toFixed(decimals)).toString();
+}
+
 function calculateElapsed(value) {
     if (!value) return null;
     const start = new Date(value);
@@ -124,7 +142,6 @@ function toLocalInputValueIfValid(value) {
 
 export default function Germination() {
     const { deviceData } = useLiveDevices(topics);
-    const { findRange } = useSensorConfig();
     const [startTime, setStartTime] = useState("");
     const [elapsed, setElapsed] = useState(() => calculateElapsed(""));
     const [statusLoading, setStatusLoading] = useState(true);
@@ -146,6 +163,31 @@ export default function Germination() {
     const [chartDomain, setChartDomain] = useState(null);
     const [chartError, setChartError] = useState("");
     const [chartLoading, setChartLoading] = useState(false);
+
+    const stageDetails = useMemo(() => {
+        if (!startTime) return null;
+        const parsed = parseLocalInput(startTime);
+        if (!parsed) return null;
+
+        let dayNumber;
+        if (elapsed && typeof elapsed.days === "number") {
+            dayNumber = elapsed.days + 1;
+        } else {
+            const diffMs = Date.now() - parsed.getTime();
+            const safeDiff = diffMs < 0 ? 0 : diffMs;
+            dayNumber = Math.floor(safeDiff / 86_400_000) + 1;
+        }
+
+        const safeDay = Number.isFinite(dayNumber) ? Math.max(1, dayNumber) : 1;
+        const stage = getGerminationStageByDay(safeDay);
+        if (!stage) return null;
+
+        return {
+            dayNumber: safeDay,
+            stage,
+            beyondDefinedRange: Boolean(stage.isBeyondDefinedRange),
+        };
+    }, [startTime, elapsed]);
 
     useEffect(() => {
         setElapsed(calculateElapsed(startTime));
@@ -330,10 +372,10 @@ export default function Germination() {
         });
 
         return Array.from(entries.values()).map((entry) => {
-            const range = findRange(entry.measurementType, {
-                topic: GERMINATION_TOPIC,
-                sensorModel: entry.sensorModel,
-            });
+            const stageRange = stageDetails?.stage
+                ? getStageRangeForMetric(entry.measurementType, stageDetails.stage)
+                : null;
+            const range = stageRange ?? null;
 
             const formattedValues = entry.values.map((value) => {
                 const numericValue = typeof value.rawValue === "number" ? value.rawValue : Number(value.rawValue);
@@ -354,12 +396,38 @@ export default function Germination() {
             });
 
             const numericValues = formattedValues.filter((value) => value.numericValue !== null);
+            const hasMin = range && typeof range.min === "number" && Number.isFinite(range.min);
+            const hasMax = range && typeof range.max === "number" && Number.isFinite(range.max);
             const outOfRange =
                 range && numericValues.length > 0
-                    ? numericValues.some(
-                          (value) => value.numericValue < range.min || value.numericValue > range.max,
-                      )
+                    ? numericValues.some((value) => {
+                          const val = value.numericValue;
+                          if (val === null) return false;
+                          if (hasMin && val < range.min) return true;
+                          if (hasMax && val > range.max) return true;
+                          return false;
+                      })
                     : false;
+            const tolerance = 0.01;
+            const atBoundary =
+                !outOfRange && range && numericValues.length > 0
+                    ? numericValues.some((value) => {
+                          const val = value.numericValue;
+                          if (val === null) return false;
+                          const nearMin =
+                              hasMin && Math.abs(val - range.min) <= Math.max(Math.abs(range.min) * tolerance, tolerance);
+                          const nearMax =
+                              hasMax && Math.abs(val - range.max) <= Math.max(Math.abs(range.max) * tolerance, tolerance);
+                          return nearMin || nearMax;
+                      })
+                    : false;
+            const rangeStatus = !range || numericValues.length === 0
+                ? "none"
+                : outOfRange
+                ? "alert"
+                : atBoundary
+                ? "warning"
+                : "ok";
             const healthyValues = formattedValues.filter((value) => value.healthy === true);
             const unhealthyValues = formattedValues.filter((value) => value.healthy === false);
             const hasUnknown = formattedValues.some((value) => value.healthy === null);
@@ -376,6 +444,9 @@ export default function Germination() {
             } else if (unhealthyValues.length > 0) {
                 status = "Check sensors";
                 tone = "warning";
+            } else if (rangeStatus === "warning") {
+                status = "Approaching limit";
+                tone = "warning";
             } else if (healthyValues.length > 0 && !hasUnknown) {
                 status = "Stable";
                 tone = "success";
@@ -389,12 +460,16 @@ export default function Germination() {
                 sensorModel: entry.sensorModel,
                 label: entry.measurementType,
                 range,
+                rangeStatus,
+                stageDescription: range?.stageDescription ?? "",
+                stageDaysLabel: range?.stageDaysLabel ?? "",
+                stageBeyondDefinedRange: range?.stageBeyondDefinedRange ?? false,
                 status,
                 tone,
                 values: formattedValues,
             };
         });
-    }, [findRange, germinationTopics, hasTopics]);
+    }, [germinationTopics, hasTopics, stageDetails]);
 
     const handleStartChange = (event) => {
         setSaveMessage("");
@@ -659,6 +734,31 @@ export default function Germination() {
                     <span className={styles.elapsedLabel}>Elapsed time</span>
                     <span className={styles.elapsedValue}>{formatElapsed(elapsed)}</span>
                 </div>
+                <div className={styles.stageSummary}>
+                    {stageDetails ? (
+                        <>
+                            <span className={styles.stageSummaryLabel}>Current stage</span>
+                            <div className={styles.stageSummaryContent}>
+                                <span className={styles.stageSummaryName}>
+                                    {stageDetails.stage.description}
+                                </span>
+                                <span className={styles.stageSummaryDays}>
+                                    Day {stageDetails.dayNumber}
+                                    {stageDetails.stage.daysLabel
+                                        ? ` • Target window ${stageDetails.stage.daysLabel}`
+                                        : ""}
+                                    {stageDetails.beyondDefinedRange
+                                        ? " • Beyond defined schedule"
+                                        : ""}
+                                </span>
+                            </div>
+                        </>
+                    ) : (
+                        <span className={styles.stageSummaryPlaceholder}>
+                            Set a start time to see stage-based target ranges.
+                        </span>
+                    )}
+                </div>
             </section>
 
             <section className={`${styles.sectionCard} ${styles.metricsSection}`}>
@@ -667,44 +767,64 @@ export default function Germination() {
                 </div>
                 {metricReports.length > 0 ? (
                     <div className={styles.reportGrid}>
-                        {metricReports.map((report) => (
-                            <article
-                                key={`${report.measurementType}-${report.sensorModel}`}
-                                className={`${styles.reportCard} ${styles[`${report.tone}Tone`]}`}
-                            >
-                                <header className={styles.reportCardHeader}>
-                                    <h3 className={styles.reportMetric}>{report.label}</h3>
-                                    <span className={styles.reportStatus}>{report.status}</span>
-                                </header>
-                                <div className={styles.reportMeta}>
-                                    <span className={styles.reportModel}>{report.sensorModel}</span>
-                                    {report.range ? (
-                                        <span className={styles.reportRange}>
-                                            Range: {report.range.min ?? "-"} - {report.range.max ?? "-"}
-                                        </span>
-                                    ) : (
-                                        <span className={styles.reportRange}>No configured range</span>
-                                    )}
-                                </div>
-                                <ul className={styles.reportValues}>
-                                    {report.values.map((value) => {
-                                        const toneClass =
-                                            value.healthy === true
-                                                ? styles.healthy
-                                                : value.healthy === false
-                                                ? styles.unhealthy
-                                                : styles.unknown;
-                                        return (
-                                            <li key={value.deviceId} className={styles.reportValueItem}>
-                                                <span className={`${styles.reportDot} ${toneClass}`} />
-                                                <span className={styles.reportDevice}>{value.deviceId}</span>
-                                                <span className={styles.reportValue}>{value.displayValue}</span>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </article>
-                        ))}
+                        {metricReports.map((report) => {
+                            const rangeClassName =
+                                report.rangeStatus === "alert"
+                                    ? styles.rangeAlert
+                                    : report.rangeStatus === "warning"
+                                    ? styles.rangeWarning
+                                    : report.rangeStatus === "ok"
+                                    ? styles.rangeOk
+                                    : "";
+                            const stageMeta = report.stageDescription
+                                ? `${report.stageDescription}${
+                                      report.stageDaysLabel ? ` • Days ${report.stageDaysLabel}` : ""
+                                  }${report.stageBeyondDefinedRange ? " • Beyond schedule" : ""}`
+                                : "";
+
+                            const rangeLabelPrefix = stageMeta ? `Target range (${stageMeta})` : "Target range";
+                            const minDisplay = formatRangeValue(report.range?.min);
+                            const maxDisplay = formatRangeValue(report.range?.max);
+
+                            return (
+                                <article
+                                    key={`${report.measurementType}-${report.sensorModel}`}
+                                    className={`${styles.reportCard} ${styles[`${report.tone}Tone`]}`}
+                                >
+                                    <header className={styles.reportCardHeader}>
+                                        <h3 className={styles.reportMetric}>{report.label}</h3>
+                                        <span className={styles.reportStatus}>{report.status}</span>
+                                    </header>
+                                    <div className={styles.reportMeta}>
+                                        <span className={styles.reportModel}>{report.sensorModel}</span>
+                                        {report.range ? (
+                                            <span className={`${styles.reportRange} ${rangeClassName}`}>
+                                                {rangeLabelPrefix}: {minDisplay} - {maxDisplay}
+                                            </span>
+                                        ) : (
+                                            <span className={styles.reportRange}>No configured range</span>
+                                        )}
+                                    </div>
+                                    <ul className={styles.reportValues}>
+                                        {report.values.map((value) => {
+                                            const toneClass =
+                                                value.healthy === true
+                                                    ? styles.healthy
+                                                    : value.healthy === false
+                                                    ? styles.unhealthy
+                                                    : styles.unknown;
+                                            return (
+                                                <li key={value.deviceId} className={styles.reportValueItem}>
+                                                    <span className={`${styles.reportDot} ${toneClass}`} />
+                                                    <span className={styles.reportDevice}>{value.deviceId}</span>
+                                                    <span className={styles.reportValue}>{value.displayValue}</span>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </article>
+                            );
+                        })}
                     </div>
                 ) : (
                     <div className={styles.emptyState}>No summary data available.</div>
