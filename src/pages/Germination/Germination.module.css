@@ -120,6 +120,47 @@
     text-shadow: 0 8px 18px rgba(142, 227, 106, 0.28);
 }
 
+.stageSummary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 1rem 1.1rem;
+    border-radius: 0.9rem;
+    background: rgba(16, 28, 52, 0.82);
+    border: 1px solid rgba(92, 130, 204, 0.35);
+    box-shadow: inset 0 0 0 1px rgba(34, 58, 102, 0.25);
+}
+
+.stageSummaryLabel {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: #8faeff;
+}
+
+.stageSummaryContent {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.stageSummaryName {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #f6f8ff;
+}
+
+.stageSummaryDays {
+    font-size: 0.9rem;
+    color: #a9c1ff;
+}
+
+.stageSummaryPlaceholder {
+    font-size: 0.9rem;
+    color: #7f8fb4;
+}
+
 .sectionCard {
     background: linear-gradient(160deg, rgba(10, 20, 38, 0.92), rgba(7, 14, 28, 0.94));
     border: 1px solid rgba(74, 110, 176, 0.45);
@@ -204,6 +245,18 @@
 
 .reportRange {
     opacity: 0.9;
+}
+
+.rangeOk {
+    color: #9ff088;
+}
+
+.rangeWarning {
+    color: #ffd166;
+}
+
+.rangeAlert {
+    color: #ff7b7b;
 }
 
 .reportValues {
