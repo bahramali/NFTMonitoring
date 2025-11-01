@@ -27,6 +27,122 @@
     margin-top: 2rem;
 }
 
+.stageSection {
+    margin-bottom: 2rem;
+}
+
+.stageControls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.dayInputLabel {
+    display: flex;
+    flex-direction: column;
+    font-weight: 600;
+    color: #1f2937;
+    gap: 0.5rem;
+}
+
+.dayInput {
+    max-width: 6rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.375rem;
+    border: 1px solid #cbd5f5;
+    background: #f9fbff;
+    font-size: 1rem;
+}
+
+.stageHint {
+    color: #4b5563;
+    font-size: 0.9rem;
+}
+
+.stageSummaryGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(16.5rem, 1fr));
+    gap: 1rem;
+}
+
+.stageCard {
+    border: 1px solid #d1d9f0;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, #f5f9ff 0%, #ffffff 100%);
+    padding: 1rem;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.stageCardHeader {
+    margin-bottom: 0.75rem;
+}
+
+.stageGroup {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #2563eb;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stageDescription {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #111827;
+    margin-top: 0.25rem;
+}
+
+.stageDays {
+    font-size: 0.85rem;
+    color: #4b5563;
+    margin-top: 0.25rem;
+}
+
+.stageStatus {
+    margin-top: 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #b45309;
+}
+
+.stageMetricList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.4rem;
+}
+
+.stageMetricList li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    background: rgba(59, 130, 246, 0.08);
+    border-radius: 0.5rem;
+    padding: 0.45rem 0.6rem;
+}
+
+.metricName {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.metricRange {
+    font-variant-numeric: tabular-nums;
+    color: #1d4ed8;
+}
+
+.stageNotes {
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: #1f2937;
+    border-top: 1px dashed #9ca3af;
+    padding-top: 0.75rem;
+}
+
 .deviceGroup {
     margin-bottom: 2rem;
 }
