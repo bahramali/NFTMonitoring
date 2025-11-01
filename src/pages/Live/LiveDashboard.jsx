@@ -1,10 +1,11 @@
-import React, {useMemo} from "react";
+import React, {useMemo, useState} from "react";
 import Header from "../common/Header";
 import {useLiveDevices} from "../common/useLiveDevices.js";
 import {GERMINATION_TOPIC, bandMap, knownFields, topics} from "../common/dashboard.constants.js";
 import spectralColors from "../../spectralColors";
 import {useSensorConfig} from "../../context/SensorConfigContext.jsx";
 import styles from "./LiveDashboard.module.css";
+import {getNftStageContext} from "./nftStages.js";
 
 const META_FIELDS = new Set(["timestamp", "deviceId", "compositeId", "layer"]);
 
@@ -41,7 +42,7 @@ function buildTopicList(systemTopics = {}) {
         .filter(([, devices = {}]) => Object.keys(devices).length > 0);
 }
 
-function NotesList({mergedDevices = {}}) {
+function NotesList({mergedDevices = {}, extraNotes = []}) {
     const sensors = useMemo(() => {
         const result = new Set();
         for (const dev of Object.values(mergedDevices)) {
@@ -72,13 +73,14 @@ function NotesList({mergedDevices = {}}) {
         return collected;
     }, [findConfig, sensors]);
 
-    if (!notes.length) return null;
+    const combinedNotes = [...notes, ...extraNotes];
+    if (!combinedNotes.length) return null;
 
     return (
         <div className={styles.noteBlock}>
             <div className={styles.noteTitle}>Notes:</div>
             <ul>
-                {notes.map((note, index) => (
+                {combinedNotes.map((note, index) => (
                     <li key={index}>{note}</li>
                 ))}
             </ul>
@@ -86,7 +88,26 @@ function NotesList({mergedDevices = {}}) {
     );
 }
 
-export function DeviceTable({devices = {}, topic}) {
+function resolveStageRange(normalizedType, topic, rangeLookup) {
+    if (!normalizedType || !rangeLookup) return null;
+    const {byTopic, global} = rangeLookup;
+    const topicKey = sanitize(topic);
+
+    if (topicKey && byTopic?.has(topicKey)) {
+        const topicMap = byTopic.get(topicKey);
+        if (topicMap?.has(normalizedType)) {
+            return topicMap.get(normalizedType);
+        }
+    }
+
+    if (global?.has(normalizedType)) {
+        return global.get(normalizedType);
+    }
+
+    return null;
+}
+
+export function DeviceTable({devices = {}, topic, rangeLookup}) {
     const {findRange} = useSensorConfig();
     const compositeIds = useMemo(() => Object.keys(devices), [devices]);
 
@@ -124,7 +145,9 @@ export function DeviceTable({devices = {}, topic}) {
     }
 
     const rows = [...measurementEntries.values()].map(entry => {
-        const range = findRange(entry.measurementType, {topic, sensorModel: entry.sensorModel});
+        const stageRange = resolveStageRange(entry.normalizedType, topic, rangeLookup);
+        const configRange = findRange(entry.measurementType, {topic, sensorModel: entry.sensorModel});
+        const range = stageRange ?? configRange;
         const rowColor = entry.bandKey ? `${spectralColors[entry.bandKey]}22` : undefined;
 
         const cells = compositeIds.map(id => {
@@ -200,7 +223,7 @@ export function DeviceTable({devices = {}, topic}) {
     );
 }
 
-function TopicGroups({systemTopics = {}}) {
+function TopicGroups({systemTopics = {}, rangeLookup}) {
     const topics = useMemo(() => buildTopicList(systemTopics), [systemTopics]);
     if (!topics.length) return null;
 
@@ -209,15 +232,80 @@ function TopicGroups({systemTopics = {}}) {
             {topics.map(([topic, devices]) => (
                 <div key={topic} className={styles.deviceGroup}>
                     <h3 className={styles.topicTitle}>{topic}</h3>
-                    <DeviceTable topic={topic} devices={devices}/>
+                    <DeviceTable topic={topic} devices={devices} rangeLookup={rangeLookup}/>
                 </div>
             ))}
         </div>
     );
 }
 
+function StageSummary({dayNumber, onDayChange, summaries}) {
+    if (!summaries.length) return null;
+
+    return (
+        <div className={styles.stageSection}>
+            <div className={styles.stageControls}>
+                <label className={styles.dayInputLabel}>
+                    Day after transplant
+                    <input
+                        type="number"
+                        min={1}
+                        max={120}
+                        value={dayNumber}
+                        onChange={event => {
+                            const value = Number(event.target.value);
+                            onDayChange(Number.isFinite(value) ? Math.max(1, value) : 1);
+                        }}
+                        className={styles.dayInput}
+                    />
+                </label>
+                <div className={styles.stageHint}>Adjust the day to see target ranges per stage.</div>
+            </div>
+            <div className={styles.stageSummaryGrid}>
+                {summaries.map((summary) => (
+                    <div key={summary.groupId} className={styles.stageCard}>
+                        <div className={styles.stageCardHeader}>
+                            <div className={styles.stageGroup}>{summary.groupLabel}</div>
+                            <div className={styles.stageDescription}>{summary.description}</div>
+                            {summary.daysLabel && (
+                                <div className={styles.stageDays}>Target window {summary.daysLabel}</div>
+                            )}
+                            {summary.isBeforeRange && (
+                                <div className={styles.stageStatus}>Before defined schedule</div>
+                            )}
+                            {summary.isBeyondRange && (
+                                <div className={styles.stageStatus}>Beyond defined schedule</div>
+                            )}
+                        </div>
+                        <ul className={styles.stageMetricList}>
+                            {summary.metrics.map((metric) => (
+                                <li key={`${summary.groupId}-${metric.label}`}>
+                                    <span className={styles.metricName}>{metric.label}</span>
+                                    <span className={styles.metricRange}>
+                                        {metric.range.min ?? "?"}–{metric.range.max ?? "?"}
+                                        {metric.range.unit ? ` ${metric.range.unit}` : ""}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                        {summary.notes && summary.notes.length > 0 && (
+                            <div className={styles.stageNotes}>
+                                {summary.notes.map((note, index) => (
+                                    <div key={index}>{note}</div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 function LiveDashboard() {
     const {deviceData, mergedDevices} = useLiveDevices(topics);
+    const [dayNumber, setDayNumber] = useState(21);
+    const stageContext = useMemo(() => getNftStageContext(dayNumber), [dayNumber]);
 
     const aggregatedTopics = useMemo(() => {
         const allTopics = {};
@@ -237,11 +325,19 @@ function LiveDashboard() {
 
     return (
         <div className={styles.dashboard}>
-            <Header title="Live"/>
+            <Header title="NFT Channels"/>
             <section className={styles.section}>
                 <div className={styles.sectionBody}>
-                    <NotesList mergedDevices={mergedDevices}/>
-                    <TopicGroups systemTopics={filteredTopics}/>
+                    <StageSummary
+                        dayNumber={dayNumber}
+                        onDayChange={setDayNumber}
+                        summaries={stageContext.summaries}
+                    />
+                    <NotesList mergedDevices={mergedDevices} extraNotes={stageContext.notes}/>
+                    <TopicGroups
+                        systemTopics={filteredTopics}
+                        rangeLookup={stageContext.rangeLookup}
+                    />
                 </div>
             </section>
         </div>

@@ -14,16 +14,16 @@ vi.mock('react-router-dom', () => ({
 import { MemoryRouter } from 'react-router-dom';
 import Sidebar from '../src/pages/common/Sidebar';
 
-test('renders Live link', () => {
+test('renders NFT Channels link', () => {
     render(
         <MemoryRouter>
             <Sidebar />
         </MemoryRouter>
     );
 
-    const liveLink = screen.getByRole('link', { name: /live/i });
-    expect(liveLink).toBeInTheDocument();
-    expect(liveLink).toHaveAttribute('href', '/live');
+    const nftLink = screen.getByRole('link', { name: /nft channels/i });
+    expect(nftLink).toBeInTheDocument();
+    expect(nftLink).toHaveAttribute('href', '/live');
 });
 
 test('renders Note link', () => {

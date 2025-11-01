@@ -42,7 +42,7 @@ export default function Sidebar() {
                 </NavLink>
                 <NavLink to="/live" className={linkClass}>
                     <span className={styles.icon}>📡</span>
-                    {!collapsed && <span className={styles.text}>Live</span>}
+                    {!collapsed && <span className={styles.text}>NFT Channels</span>}
                 </NavLink>
                 <NavLink to="/germination" className={linkClass}>
                     <span className={styles.icon}>🌱</span>
