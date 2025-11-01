@@ -6,10 +6,10 @@ const BASIL_GROWTH_STAGES = [
         maxDay: 3,
         description: "Seed Germination (Pre-Sprout)",
         params: {
-            AirTemp: { min: 27, max: 30 },
-            WaterTemp: { min: 26, max: 28 },
-            Humidity: { min: 90, max: 99 },
-            Light: { min: 0, max: 300 },
+            A_Temp_G: { min: 27, max: 30 },
+            A_Temp_W: { min: 26, max: 28 },
+            A_RH_G: { min: 90, max: 99 },
+            light: { min: 0, max: 300 },
             pH: { min: 5.8, max: 6.0 },
             EC: { min: 0.0, max: 0.3 },
         },
@@ -21,10 +21,10 @@ const BASIL_GROWTH_STAGES = [
         maxDay: 6,
         description: "Sprouting & Cotyledon Expansion",
         params: {
-            AirTemp: { min: 25, max: 28 },
-            WaterTemp: { min: 23, max: 25 },
-            Humidity: { min: 85, max: 90 },
-            Light: { min: 1000, max: 2500 },
+            A_Temp_G: { min: 25, max: 28 },
+            A_Temp_W: { min: 23, max: 25 },
+            A_RH_G: { min: 85, max: 90 },
+            light: { min: 1000, max: 2500 },
             pH: { min: 5.8, max: 6.0 },
             EC: { min: 0.3, max: 0.5 },
         },
@@ -36,10 +36,10 @@ const BASIL_GROWTH_STAGES = [
         maxDay: 9,
         description: "Early Root Development",
         params: {
-            AirTemp: { min: 23, max: 25 },
-            WaterTemp: { min: 21, max: 23 },
-            Humidity: { min: 75, max: 80 },
-            Light: { min: 4500, max: 6000 },
+            A_Temp_G: { min: 23, max: 25 },
+            A_Temp_W: { min: 21, max: 23 },
+            A_RH_G: { min: 75, max: 80 },
+            light: { min: 4500, max: 6000 },
             pH: { min: 5.8, max: 6.0 },
             EC: { min: 0.5, max: 0.7 },
         },
@@ -51,71 +51,15 @@ const BASIL_GROWTH_STAGES = [
         maxDay: 14,
         description: "Pre-Transplant Root Strengthening",
         params: {
-            AirTemp: { min: 23, max: 25 },
-            WaterTemp: { min: 21, max: 23 },
-            Humidity: { min: 70, max: 75 },
-            Light: { min: 6000, max: 8000 },
+            A_Temp_G: { min: 23, max: 25 },
+            A_Temp_W: { min: 21, max: 23 },
+            A_RH_G: { min: 70, max: 75 },
+            light: { min: 6000, max: 8000 },
             pH: { min: 5.8, max: 6.1 },
             EC: { min: 0.7, max: 0.9 },
         },
     },
 ];
-
-const sanitize = (value) =>
-    String(value ?? "")
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "");
-
-const DIRECT_STAGE_PARAM_MAP = {
-    airtemp: "AirTemp",
-    airtemperature: "AirTemp",
-    ambienttemperature: "AirTemp",
-    temperature: "AirTemp",
-    watertemp: "WaterTemp",
-    watertemperature: "WaterTemp",
-    solutiontemperature: "WaterTemp",
-    humidity: "Humidity",
-    relativehumidity: "Humidity",
-    rh: "Humidity",
-    light: "Light",
-    lighting: "Light",
-    lux: "Light",
-    illuminance: "Light",
-    illumination: "Light",
-    ph: "pH",
-    acidity: "pH",
-    ec: "EC",
-    conductivity: "EC",
-    electricalconductivity: "EC",
-};
-
-function resolveStageParamKey(metricKey) {
-    const sanitized = sanitize(metricKey);
-    if (!sanitized) return "";
-    if (DIRECT_STAGE_PARAM_MAP[sanitized]) {
-        return DIRECT_STAGE_PARAM_MAP[sanitized];
-    }
-
-    if (sanitized.includes("water") || sanitized.includes("solution") || sanitized.includes("nutrient")) {
-        return "WaterTemp";
-    }
-    if (sanitized.includes("air")) {
-        return "AirTemp";
-    }
-    if (sanitized.includes("humidity")) {
-        return "Humidity";
-    }
-    if (sanitized.includes("light") || sanitized.includes("lux")) {
-        return "Light";
-    }
-    if (sanitized.includes("ph")) {
-        return "pH";
-    }
-    if (sanitized.includes("conduct")) {
-        return "EC";
-    }
-    return "";
-}
 
 export function getGerminationStageByDay(dayNumber) {
     if (!Number.isFinite(dayNumber) || dayNumber < 1) {
@@ -138,9 +82,18 @@ export function getGerminationStageByDay(dayNumber) {
 
 export function getStageRangeForMetric(metricKey, stage) {
     if (!stage || !metricKey) return null;
-    const resolvedKey = resolveStageParamKey(metricKey);
-    if (!resolvedKey) return null;
-    const rawRange = stage.params?.[resolvedKey];
+    const { params = {} } = stage;
+    if (!params || typeof params !== "object") return null;
+
+    let rawRange = params[metricKey];
+
+    if (!rawRange) {
+        const normalizedKey = String(metricKey).toLowerCase();
+        const entry = Object.entries(params).find(([key]) => key.toLowerCase() === normalizedKey);
+        if (!entry) return null;
+        [, rawRange] = entry;
+    }
+
     if (!rawRange) return null;
     const { min, max } = rawRange;
     const hasMin = typeof min === "number" && Number.isFinite(min);
