@@ -2,17 +2,13 @@ import React, {useMemo, useState} from "react";
 import Header from "../common/Header";
 import {useLiveDevices} from "../common/useLiveDevices.js";
 import {GERMINATION_TOPIC, bandMap, knownFields, topics} from "../common/dashboard.constants.js";
+import {AS7343_MODEL_KEY, makeMeasurementKey, sanitize} from "../common/measurementUtils.js";
 import spectralColors from "../../spectralColors";
 import {useSensorConfig} from "../../context/SensorConfigContext.jsx";
 import styles from "./LiveDashboard.module.css";
 import {getNftStageContext} from "./nftStages.js";
 
 const META_FIELDS = new Set(["timestamp", "deviceId", "compositeId", "layer"]);
-
-function sanitize(value) {
-    if (value === undefined || value === null) return "";
-    return String(value).toLowerCase().replace(/[^a-z0-9]/g, "");
-}
 
 function getSpectralBandKey(measurementType) {
     const normalized = sanitize(measurementType);
@@ -107,7 +103,7 @@ function resolveStageRange(normalizedType, topic, rangeLookup) {
     return null;
 }
 
-export function DeviceTable({devices = {}, topic, rangeLookup}) {
+export function DeviceTable({devices = {}, topic, rangeLookup, sensorExtrema = {}}) {
     const {findRange} = useSensorConfig();
     const compositeIds = useMemo(() => Object.keys(devices), [devices]);
 
@@ -149,8 +145,9 @@ export function DeviceTable({devices = {}, topic, rangeLookup}) {
         const configRange = findRange(entry.measurementType, {topic, sensorModel: entry.sensorModel});
         const range = stageRange ?? configRange;
         const rowColor = entry.bandKey ? `${spectralColors[entry.bandKey]}22` : undefined;
+        const measurementKey = makeMeasurementKey(entry.normalizedType, entry.normalizedModel);
 
-        const cells = compositeIds.map(id => {
+        const cells = compositeIds.map((id, index) => {
             const sensors = devices[id].sensors || [];
             const matchedSensor = sensors.find(sensor => {
                 const sensorType = sensor?.sensorType || sensor?.valueType;
@@ -164,11 +161,23 @@ export function DeviceTable({devices = {}, topic, rangeLookup}) {
             const display = (value === undefined || value === null)
                 ? "-"
                 : `${typeof value === "number" ? value.toFixed(1) : value}${unit ? ` ${unit}` : ""}`;
+            let finalDisplay = display;
+
+            if (entry.normalizedModel === AS7343_MODEL_KEY) {
+                const extrema = sensorExtrema?.[compositeIds[index]]?.[measurementKey];
+                if (extrema && typeof extrema.min === "number" && typeof extrema.max === "number" && extrema.min !== undefined && extrema.max !== undefined && display !== "-") {
+                    const minDisplay = Number.isFinite(extrema.min) ? extrema.min.toFixed(1) : "-";
+                    const maxDisplay = Number.isFinite(extrema.max) ? extrema.max.toFixed(1) : "-";
+                    if (minDisplay !== "-" && maxDisplay !== "-") {
+                        finalDisplay = `[${minDisplay} – ${maxDisplay}] ${display}`;
+                    }
+                }
+            }
             const health = devices[id].health || {};
             const sensorKey = matchedSensor?.sensorName?.toLowerCase();
             const ok = sensorKey ? (health[sensorKey] ?? health[matchedSensor?.sensorName]) : false;
             const color = getCellColor(value, range);
-            return {display, ok, color};
+            return {display: finalDisplay, ok, color};
         });
 
         return {
@@ -223,7 +232,7 @@ export function DeviceTable({devices = {}, topic, rangeLookup}) {
     );
 }
 
-function TopicGroups({systemTopics = {}, rangeLookup}) {
+function TopicGroups({systemTopics = {}, rangeLookup, sensorExtrema = {}}) {
     const topics = useMemo(() => buildTopicList(systemTopics), [systemTopics]);
     if (!topics.length) return null;
 
@@ -232,7 +241,7 @@ function TopicGroups({systemTopics = {}, rangeLookup}) {
             {topics.map(([topic, devices]) => (
                 <div key={topic} className={styles.deviceGroup}>
                     <h3 className={styles.topicTitle}>{topic}</h3>
-                    <DeviceTable topic={topic} devices={devices} rangeLookup={rangeLookup}/>
+                    <DeviceTable topic={topic} devices={devices} rangeLookup={rangeLookup} sensorExtrema={sensorExtrema}/>
                 </div>
             ))}
         </div>
@@ -303,7 +312,7 @@ function StageSummary({dayNumber, onDayChange, summaries}) {
 }
 
 function LiveDashboard() {
-    const {deviceData, mergedDevices} = useLiveDevices(topics);
+    const {deviceData, mergedDevices, sensorExtrema} = useLiveDevices(topics);
     const [dayNumber, setDayNumber] = useState(21);
     const stageContext = useMemo(() => getNftStageContext(dayNumber), [dayNumber]);
 
@@ -337,6 +346,7 @@ function LiveDashboard() {
                     <TopicGroups
                         systemTopics={filteredTopics}
                         rangeLookup={stageContext.rangeLookup}
+                        sensorExtrema={sensorExtrema}
                     />
                 </div>
             </section>
