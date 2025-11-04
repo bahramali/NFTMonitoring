@@ -6,19 +6,19 @@ import { getCameraErrorMessage, DEFAULT_CAMERA_ERROR_MESSAGE } from "./errorMess
 
 const DEFAULT_CAMERA_SOURCES = [
     {
-        id: "tapo-main",
-        name: "Tapo Main Camera",
+        id: "s01-layer-01",
+        name: "Shelf S01 · Layer 01",
         streamUrl:
             (import.meta?.env && import.meta.env.VITE_TAPO_HLS) ||
             "https://cam.hydroleaf.se/tapo/index.m3u8",
         description: "Primary overview feed from the grow room.",
     },
     {
-        id: "s01-layer-03",
-        name: "Shelf S01 · Layer 03",
+        id: "s01-layer-02",
+        name: "Shelf S01 · Layer 02",
         streamUrl:
             (import.meta?.env && import.meta.env.VITE_S01L03_HLS) ||
-            "https://cam.hydroleaf.se/s01l03/index.m3u8",
+            "https://cam.hydroleaf.se/s01l02/index.m3u8",
         description: "Detail view of shelf S01 on layer 03.",
     },
     {
@@ -30,13 +30,13 @@ const DEFAULT_CAMERA_SOURCES = [
         description: "Detail view of shelf S01 on layer 03.",
     },
     {
-        id: "s01-layer-02",
-        name: "Shelf S01 · Layer 03",
+        id: "s01-layer-04",
+        name: "Shelf S01 · Layer 04",
         streamUrl:
             (import.meta?.env && import.meta.env.VITE_S01L03_HLS) ||
-            "https://cam.hydroleaf.se/s01l02/index.m3u8",
+            "https://cam.hydroleaf.se/s01l03/index.m3u8",
         description: "Detail view of shelf S01 on layer 03.",
-    },
+    }
 ];
 
 const STATUS_MESSAGES = {
