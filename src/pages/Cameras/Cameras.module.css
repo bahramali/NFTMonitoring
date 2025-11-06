@@ -17,10 +17,11 @@
   display: flex;
   gap: 1.5rem;
   align-items: stretch;
+  min-height: calc(100vh - clamp(2rem, 6vw, 4rem));
 }
 
 .sidebar {
-  flex: 0 0 260px;
+  flex: 0 0 220px;
   max-width: 100%;
   background: linear-gradient(160deg, rgba(14, 26, 48, 0.88), rgba(9, 18, 34, 0.92));
   border: 1px solid rgba(76, 120, 188, 0.45);
@@ -31,7 +32,10 @@
   flex-direction: column;
   gap: 1.1rem;
   overflow-y: auto;
+  max-height: calc(100vh - clamp(3.5rem, 7vw, 5rem));
   backdrop-filter: blur(6px);
+  position: sticky;
+  top: clamp(1rem, 3vw, 2rem);
 }
 
 .selectorHeader {
@@ -191,6 +195,48 @@
   border: 1px solid rgba(98, 140, 210, 0.32);
 }
 
+.videoNavigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1.25rem;
+  background: linear-gradient(135deg, rgba(34, 58, 102, 0.85), rgba(26, 44, 82, 0.9));
+  color: #f1f6ff;
+  border: 1px solid rgba(82, 122, 190, 0.55);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  box-shadow: 0 16px 28px rgba(12, 26, 54, 0.5);
+  min-width: 5.5rem;
+}
+
+.secondaryButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 20px 36px rgba(12, 26, 54, 0.58);
+  filter: brightness(1.05);
+}
+
+.secondaryButton:focus-visible {
+  outline: 2px solid rgba(156, 224, 180, 0.75);
+  outline-offset: 3px;
+}
+
+.viewerPosition {
+  font-size: 0.9rem;
+  color: #a5bfff;
+  letter-spacing: 0.04em;
+}
+
 .statusRow {
   display: flex;
   align-items: center;
@@ -273,11 +319,13 @@
 
   .layout {
     flex-direction: column;
+    min-height: auto;
   }
 
   .sidebar {
     flex: 1 1 auto;
     max-height: none;
+    position: static;
   }
 }
 

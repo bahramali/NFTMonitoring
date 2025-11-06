@@ -201,6 +201,13 @@ export default function Cameras() {
             null,
         [selectedCameraId],
     );
+    const selectedCameraIndex = useMemo(
+        () =>
+            CAMERA_SOURCES.findIndex((camera) => camera.id === selectedCamera?.id),
+        [selectedCamera?.id],
+    );
+    const viewerPosition = selectedCameraIndex >= 0 ? selectedCameraIndex + 1 : 1;
+    const hasMultipleCameras = CAMERA_SOURCES.length > 1;
     const [status, setStatus] = useState(() => ({
         state: "loading",
         message: getStatusMessage("loading", selectedCamera),
@@ -410,6 +417,20 @@ export default function Cameras() {
         setSelectedCameraId(cameraId);
     };
 
+    const handleCameraStep = (direction) => {
+        if (!hasMultipleCameras) return;
+        const currentIndex = selectedCameraIndex >= 0 ? selectedCameraIndex : 0;
+        const nextIndex =
+            (currentIndex + direction + CAMERA_SOURCES.length) % CAMERA_SOURCES.length;
+        const nextCamera = CAMERA_SOURCES[nextIndex];
+        if (nextCamera?.id) {
+            setSelectedCameraId(nextCamera.id);
+        }
+    };
+
+    const handlePreviousCamera = () => handleCameraStep(-1);
+    const handleNextCamera = () => handleCameraStep(1);
+
     const statusClass = () => {
         switch (status.state) {
             case "playing":
@@ -493,6 +514,30 @@ export default function Cameras() {
                             <span>Provide a valid stream URL to start monitoring.</span>
                         </div>
                     )}
+
+                    {hasMultipleCameras ? (
+                        <div className={styles.videoNavigation}>
+                            <button
+                                type="button"
+                                className={styles.secondaryButton}
+                                onClick={handlePreviousCamera}
+                                aria-label="View previous camera"
+                            >
+                                Previous
+                            </button>
+                            <span className={styles.viewerPosition}>
+                                {viewerPosition} / {CAMERA_SOURCES.length}
+                            </span>
+                            <button
+                                type="button"
+                                className={styles.secondaryButton}
+                                onClick={handleNextCamera}
+                                aria-label="View next camera"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    ) : null}
 
                     <div className={styles.statusRow}>
                         <p className={`${styles.statusMessage} ${statusClass()}`} aria-live="polite">
