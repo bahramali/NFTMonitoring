@@ -14,6 +14,15 @@ const DEFAULT_CAMERA_SOURCES = [
         description: "Primary overview feed from the grow room.",
     },
     {
+        id: "germination",
+        name: "Germination Room",
+        streamUrl:
+            (import.meta?.env &&
+                (import.meta.env.VITE_GERMINATION_HLS || import.meta.env.VITE_TAPO_HLS)) ||
+            "https://cam.hydroleaf.se/germination/index.m3u8",
+        description: "Live feed from the germination chamber.",
+    },
+    {
         id: "s01-layer-02",
         name: "Shelf S01 · Layer 02",
         streamUrl:
@@ -92,6 +101,92 @@ const parseCameraSourcesFromEnv = () => {
 };
 
 const CAMERA_SOURCES = parseCameraSourcesFromEnv() || DEFAULT_CAMERA_SOURCES;
+
+function CameraPreview({ camera, isActive, onSelect }) {
+    const videoRef = useRef(null);
+    const hlsRef = useRef(null);
+
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video || !camera?.streamUrl) {
+            return undefined;
+        }
+
+        const cleanupVideo = () => {
+            video.pause();
+            video.removeAttribute("src");
+            video.load();
+        };
+
+        const cleanupHls = () => {
+            if (!hlsRef.current) return;
+            try {
+                hlsRef.current.destroy();
+            } catch (err) {
+                console.warn("Failed to destroy preview hls instance", err);
+            }
+            hlsRef.current = null;
+        };
+
+        cleanupHls();
+        cleanupVideo();
+
+        video.autoplay = true;
+        video.muted = true;
+        video.playsInline = true;
+        video.loop = true;
+        video.preload = "auto";
+
+        const attachNative = () => {
+            video.src = camera.streamUrl;
+            video.load();
+        };
+
+        if (video.canPlayType("application/vnd.apple.mpegurl")) {
+            attachNative();
+        } else if (Hls.isSupported()) {
+            const hls = new Hls({ enableWorker: true, lowLatencyMode: false });
+            hlsRef.current = hls;
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+                hls.loadSource(camera.streamUrl);
+            });
+        } else {
+            attachNative();
+        }
+
+        return () => {
+            cleanupHls();
+            cleanupVideo();
+        };
+    }, [camera?.streamUrl]);
+
+    return (
+        <button
+            type="button"
+            onClick={() => onSelect(camera.id)}
+            className={`${styles.cameraPreview} ${isActive ? styles.cameraPreviewActive : ""}`}
+            aria-pressed={isActive}
+        >
+            <div className={styles.cameraPreviewVideoWrapper}>
+                <video
+                    ref={videoRef}
+                    className={styles.cameraPreviewVideo}
+                    muted
+                    playsInline
+                    autoPlay
+                    loop
+                />
+            </div>
+            <div className={styles.cameraPreviewDetails}>
+                <span className={styles.cameraName}>{camera.name}</span>
+                {camera.description ? (
+                    <span className={styles.cameraDescription}>{camera.description}</span>
+                ) : null}
+            </div>
+        </button>
+    );
+}
 
 export default function Cameras() {
     const videoRef = useRef(null);
@@ -336,8 +431,8 @@ export default function Cameras() {
 
     return (
         <div className={styles.page}>
-            <div className={styles.container}>
-                <div className={styles.selector}>
+            <div className={styles.layout}>
+                <aside className={styles.sidebar}>
                     <div className={styles.selectorHeader}>
                         <h2 className={styles.selectorTitle}>Available Cameras</h2>
                         <p className={styles.selectorHint}>Select a feed to view it below.</p>
@@ -348,21 +443,11 @@ export default function Cameras() {
                                 const isActive = camera.id === selectedCamera?.id;
                                 return (
                                     <li key={camera.id}>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleCameraSelect(camera.id)}
-                                            className={`${styles.cameraButton} ${
-                                                isActive ? styles.cameraButtonActive : ""
-                                            }`}
-                                            aria-pressed={isActive}
-                                        >
-                                            <span className={styles.cameraName}>{camera.name}</span>
-                                            {camera.description ? (
-                                                <span className={styles.cameraDescription}>
-                                                    {camera.description}
-                                                </span>
-                                            ) : null}
-                                        </button>
+                                        <CameraPreview
+                                            camera={camera}
+                                            isActive={isActive}
+                                            onSelect={handleCameraSelect}
+                                        />
                                     </li>
                                 );
                             })}
@@ -372,7 +457,7 @@ export default function Cameras() {
                             No camera feeds configured yet.
                         </p>
                     )}
-                </div>
+                </aside>
 
                 <section className={styles.viewer}>
                     <div className={styles.videoHeader}>
