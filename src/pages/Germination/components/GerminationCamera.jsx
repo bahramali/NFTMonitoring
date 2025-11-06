@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 import styles from "./GerminationCamera.module.css";
 import { getCameraErrorMessage, DEFAULT_CAMERA_ERROR_MESSAGE } from "../../Cameras/errorMessages";
@@ -19,6 +19,19 @@ export default function GerminationCamera() {
     const hlsRef = useRef(null);
     const [status, setStatus] = useState({ state: "loading", message: STATUS_MESSAGES.loading });
     const [reloadKey, setReloadKey] = useState(0);
+    const detectionCanvasRef = useRef(null);
+    const detectionFrameRef = useRef(null);
+    const detectionStateRef = useRef({ previous: null, flowFrames: 0, stillFrames: 0, lastFlow: false });
+    const [flowStatus, setFlowStatus] = useState({ detected: false, message: "Detecting water flow…" });
+
+    const setFlowIndicator = useCallback((detected, message) => {
+        setFlowStatus((prev) => {
+            if (prev.detected === detected && prev.message === message) {
+                return prev;
+            }
+            return { detected, message };
+        });
+    }, []);
 
     useEffect(() => {
         const video = videoRef.current;
@@ -185,11 +198,143 @@ export default function GerminationCamera() {
     }, [reloadKey]);
 
     const handleReload = () => {
+        if (detectionFrameRef.current) {
+            cancelAnimationFrame(detectionFrameRef.current);
+            detectionFrameRef.current = null;
+        }
+        detectionStateRef.current = { previous: null, flowFrames: 0, stillFrames: 0, lastFlow: false };
+        setFlowIndicator(false, "Detecting water flow…");
         setReloadKey((key) => key + 1);
     };
 
+    useEffect(() => {
+        const video = videoRef.current;
+
+        if (detectionFrameRef.current) {
+            cancelAnimationFrame(detectionFrameRef.current);
+            detectionFrameRef.current = null;
+        }
+
+        detectionStateRef.current = { previous: null, flowFrames: 0, stillFrames: 0, lastFlow: false };
+
+        if (!video) {
+            return undefined;
+        }
+
+        if (status.state !== "playing") {
+            switch (status.state) {
+                case "loading":
+                    setFlowIndicator(false, "Detecting water flow…");
+                    break;
+                case "interaction":
+                    setFlowIndicator(false, "Press play to enable water detection");
+                    break;
+                case "error":
+                    setFlowIndicator(false, "Water detection unavailable");
+                    break;
+                default:
+                    setFlowIndicator(false, "Water detection paused");
+                    break;
+            }
+            return undefined;
+        }
+
+        const canvas = detectionCanvasRef.current || document.createElement("canvas");
+        detectionCanvasRef.current = canvas;
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+
+        if (!context) {
+            setFlowIndicator(false, "Water detection unavailable");
+            return undefined;
+        }
+
+        setFlowIndicator(false, "Detecting water flow…");
+
+        const FLOW_THRESHOLD = 18;
+        const FLOW_STREAK_TARGET = 6;
+        const STILL_STREAK_TARGET = 12;
+        const SAMPLE_STEP = 160;
+
+        const analyzeFrame = () => {
+            if (!video || video.paused || video.ended || video.readyState < 2) {
+                detectionFrameRef.current = requestAnimationFrame(analyzeFrame);
+                return;
+            }
+
+            const width = video.videoWidth;
+            const height = video.videoHeight;
+
+            if (!width || !height) {
+                detectionFrameRef.current = requestAnimationFrame(analyzeFrame);
+                return;
+            }
+
+            if (canvas.width !== width || canvas.height !== height) {
+                canvas.width = width;
+                canvas.height = height;
+                detectionStateRef.current.previous = null;
+            }
+
+            context.drawImage(video, 0, 0, width, height);
+            const frame = context.getImageData(0, 0, width, height);
+            const data = frame.data;
+            const state = detectionStateRef.current;
+
+            if (state.previous) {
+                let diff = 0;
+                let samples = 0;
+
+                for (let i = 0; i + 2 < data.length; i += SAMPLE_STEP) {
+                    const current = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    const previous = (state.previous[i] + state.previous[i + 1] + state.previous[i + 2]) / 3;
+                    diff += Math.abs(current - previous);
+                    samples += 1;
+                }
+
+                const avgDiff = samples ? diff / samples : 0;
+
+                if (avgDiff > FLOW_THRESHOLD) {
+                    state.flowFrames = Math.min(state.flowFrames + 1, FLOW_STREAK_TARGET);
+                    state.stillFrames = 0;
+                } else {
+                    state.stillFrames = Math.min(state.stillFrames + 1, STILL_STREAK_TARGET);
+                    state.flowFrames = 0;
+                }
+
+                if (!state.lastFlow && state.flowFrames >= FLOW_STREAK_TARGET) {
+                    state.lastFlow = true;
+                    setFlowIndicator(true, "Water detected in channel");
+                } else if (state.lastFlow && state.stillFrames >= STILL_STREAK_TARGET) {
+                    state.lastFlow = false;
+                    setFlowIndicator(false, "No visible water flow");
+                }
+            }
+
+            state.previous = new Uint8ClampedArray(data);
+
+            detectionFrameRef.current = requestAnimationFrame(analyzeFrame);
+        };
+
+        detectionFrameRef.current = requestAnimationFrame(analyzeFrame);
+
+        return () => {
+            if (detectionFrameRef.current) {
+                cancelAnimationFrame(detectionFrameRef.current);
+                detectionFrameRef.current = null;
+            }
+        };
+    }, [reloadKey, setFlowIndicator, status.state]);
+
     return (
         <div className={styles.wrapper}>
+            <div
+                className={`${styles.flowIndicator} ${flowStatus.detected ? styles.flowIndicatorActive : ""}`}
+            >
+                <span
+                    className={`${styles.flowDot} ${flowStatus.detected ? styles.flowDotActive : ""}`}
+                />
+                {flowStatus.message}
+            </div>
             <video
                 key={reloadKey}
                 ref={videoRef}

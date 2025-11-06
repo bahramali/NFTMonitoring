@@ -18,6 +18,43 @@
     outline: none;
 }
 
+.flowIndicator {
+    position: absolute;
+    top: 0.75rem;
+    left: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(0, 0, 0, 0.65);
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    color: #f2f6ff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    backdrop-filter: blur(6px);
+    transition: background 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.flowIndicatorActive {
+    background: rgba(67, 160, 71, 0.32);
+    color: #d9ffe7;
+}
+
+.flowDot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: #ffb74d;
+    box-shadow: 0 0 0.2rem rgba(255, 183, 77, 0.65);
+    transition: background 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.flowDotActive {
+    background: #8ee36a;
+    box-shadow: 0 0 0.35rem rgba(142, 227, 106, 0.85);
+}
+
 .statusBar {
     position: absolute;
     bottom: 0.75rem;
