@@ -1,7 +1,5 @@
 /* Cameras.module.css */
 
-
-
 .page {
   width: 100%;
   min-height: 100vh;
@@ -9,47 +7,51 @@
   justify-content: center;
   padding: 2rem clamp(1rem, 3vw, 3rem);
   box-sizing: border-box;
-  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 42%);
+  background: radial-gradient(circle at top left, rgba(30, 60, 110, 0.4), transparent 45%),
+    linear-gradient(160deg, rgba(6, 14, 28, 0.96), rgba(10, 20, 38, 0.98) 55%, rgba(4, 10, 24, 0.94));
+  color: #e6edff;
 }
 
 .layout {
   width: min(1380px, 100%);
   display: flex;
-  gap: 1.25rem;
+  gap: 1.5rem;
   align-items: stretch;
 }
 
 .sidebar {
   flex: 0 0 260px;
   max-width: 100%;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 1.25rem;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+  background: linear-gradient(160deg, rgba(14, 26, 48, 0.88), rgba(9, 18, 34, 0.92));
+  border: 1px solid rgba(76, 120, 188, 0.45);
+  border-radius: 18px;
+  padding: 1.35rem;
+  box-shadow: 0 24px 48px rgba(4, 10, 24, 0.45);
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
   overflow-y: auto;
+  backdrop-filter: blur(6px);
 }
 
 .selectorHeader {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.35rem;
 }
 
 .selectorTitle {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.12rem;
   font-weight: 600;
-  color: #0f172a;
+  color: #f2f6ff;
+  letter-spacing: 0.01em;
 }
 
 .selectorHint {
   margin: 0;
   font-size: 0.9rem;
-  color: #64748b;
+  color: #9fb7ff;
 }
 
 .cameraList {
@@ -69,45 +71,47 @@
 .emptySelectorMessage {
   margin: 0;
   font-size: 0.9rem;
-  color: #64748b;
+  color: #94a9e3;
 }
 
 .cameraPreview {
   width: 100%;
   text-align: left;
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  background: #ffffff;
-  border-radius: 12px;
+  border: 1px solid rgba(90, 134, 206, 0.35);
+  background: rgba(11, 22, 40, 0.85);
+  border-radius: 14px;
   padding: 0;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
-  color: #0f172a;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+  color: inherit;
   font: inherit;
+  box-shadow: inset 0 0 0 1px rgba(32, 52, 92, 0.35), 0 16px 32px rgba(8, 18, 34, 0.4);
 }
 
 .cameraPreview:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.18);
+  border-color: rgba(128, 176, 255, 0.8);
+  box-shadow: inset 0 0 0 1px rgba(74, 116, 182, 0.55), 0 22px 44px rgba(18, 36, 68, 0.55);
   transform: translateY(-2px);
+  filter: brightness(1.05);
 }
 
 .cameraPreviewActive {
-  border-color: #2563eb;
-  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.25);
+  border-color: rgba(156, 224, 180, 0.85);
+  box-shadow: inset 0 0 0 1px rgba(104, 186, 150, 0.6), 0 26px 52px rgba(28, 74, 52, 0.55);
 }
 
 .cameraPreviewActive .cameraName {
-  color: #1d4ed8;
+  color: #b9f4c6;
 }
 
 .cameraPreviewVideoWrapper {
   position: relative;
   width: 100%;
   padding-top: 56.25%;
-  background: #0f172a;
+  background: radial-gradient(circle at top, rgba(34, 60, 104, 0.6), rgba(8, 16, 30, 0.95));
   overflow: hidden;
 }
 
@@ -119,10 +123,11 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  filter: saturate(1.1) contrast(1.05);
 }
 
 .cameraPreviewDetails {
-  padding: 0.75rem 0.85rem;
+  padding: 0.75rem 0.9rem;
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
@@ -130,24 +135,26 @@
 
 .cameraName {
   font-weight: 600;
-  font-size: 0.98rem;
+  font-size: 1rem;
+  color: #eaf2ff;
 }
 
 .cameraDescription {
   font-size: 0.85rem;
-  color: #475569;
+  color: #9fb7ff;
 }
 
 .viewer {
-  background: #ffffff;
-  border-radius: 20px;
-  padding: 1.75rem;
-  box-shadow: 0 26px 60px rgba(15, 23, 42, 0.14);
+  background: linear-gradient(160deg, rgba(14, 26, 48, 0.92), rgba(8, 16, 30, 0.95));
+  border-radius: 22px;
+  padding: 1.85rem;
+  box-shadow: 0 32px 64px rgba(4, 10, 24, 0.55);
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  border: 1px solid rgba(148, 163, 184, 0.32);
+  gap: 1.35rem;
+  border: 1px solid rgba(76, 120, 188, 0.4);
   flex: 1;
+  backdrop-filter: blur(4px);
 }
 
 .videoHeader {
@@ -162,12 +169,13 @@
   margin: 0;
   font-size: 1.5rem;
   letter-spacing: -0.01em;
-  color: #0f172a;
+  color: #f1f6ff;
+  text-shadow: 0 8px 18px rgba(22, 48, 94, 0.6);
 }
 
 .subtitle {
   margin: 0.35rem 0 0;
-  color: #64748b;
+  color: #9fb7ff;
   font-size: 0.9rem;
   max-width: 38ch;
 }
@@ -175,12 +183,12 @@
 .video {
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: #000000;
-  border-radius: 16px;
+  background: #03060d;
+  border-radius: 18px;
   display: block;
   object-fit: cover;
-  box-shadow: 0 28px 54px rgba(15, 23, 42, 0.24);
-  border: 1px solid rgba(15, 23, 42, 0.1);
+  box-shadow: 0 34px 68px rgba(4, 12, 28, 0.6);
+  border: 1px solid rgba(98, 140, 210, 0.32);
 }
 
 .statusRow {
@@ -194,48 +202,51 @@
   flex: 1;
   margin: 0;
   font-size: 0.95rem;
-  color: #475569;
+  color: #b3c7ff;
 }
 
 .statusLoading {
-  color: #475569;
+  color: #9fb7ff;
 }
 
 .statusPlaying {
-  color: #15803d;
+  color: #8feaa4;
 }
 
 .statusInteraction,
 .statusError {
-  color: #b91c1c;
+  color: #f2a5a5;
 }
 
 .button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.55rem 1.1rem;
-  background: #2563eb;
-  color: #ffffff;
-  border: none;
-  border-radius: 8px;
+  padding: 0.6rem 1.25rem;
+  background: linear-gradient(135deg, rgba(51, 86, 142, 0.95), rgba(33, 58, 104, 0.95));
+  color: #f1f6ff;
+  border: 1px solid rgba(99, 140, 206, 0.55);
+  border-radius: 999px;
   cursor: pointer;
   font-size: 0.92rem;
   font-weight: 600;
-  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  box-shadow: 0 18px 36px rgba(14, 36, 76, 0.45);
+  min-width: 6.25rem;
 }
 
 .button:hover:not(:disabled) {
-  background: #1d4ed8;
   transform: translateY(-1px);
+  box-shadow: 0 22px 44px rgba(14, 36, 76, 0.55);
+  filter: brightness(1.05);
 }
 
 .button:disabled {
-  background: #94a3b8;
+  opacity: 0.6;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+  filter: none;
 }
 
 .emptyState {
@@ -247,15 +258,17 @@
   flex-direction: column;
   gap: 0.75rem;
   text-align: center;
-  color: #475569;
-  background: linear-gradient(145deg, rgba(226, 232, 240, 0.45), rgba(241, 245, 249, 0.8));
-  border-radius: 12px;
-  border: 1px dashed #cbd5f5;
+  color: #b3c7ff;
+  background: rgba(16, 28, 52, 0.82);
+  border-radius: 16px;
+  border: 1px dashed rgba(120, 160, 230, 0.6);
+  box-shadow: inset 0 0 0 1px rgba(34, 58, 102, 0.3);
+  padding: 1.5rem;
 }
 
 @media (max-width: 900px) {
   .page {
-    padding: 1rem;
+    padding: 1.2rem;
   }
 
   .layout {
