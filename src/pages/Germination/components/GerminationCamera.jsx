@@ -22,14 +22,15 @@ export default function GerminationCamera() {
     const detectionCanvasRef = useRef(null);
     const detectionFrameRef = useRef(null);
     const detectionStateRef = useRef({ previous: null, flowFrames: 0, stillFrames: 0, lastFlow: false });
-    const [flowStatus, setFlowStatus] = useState({ detected: false, message: "Detecting water flow…" });
+    const [flowStatus, setFlowStatus] = useState({ detected: false, message: null });
 
     const setFlowIndicator = useCallback((detected, message) => {
+        const nextMessage = message ?? null;
         setFlowStatus((prev) => {
-            if (prev.detected === detected && prev.message === message) {
+            if (prev.detected === detected && prev.message === nextMessage) {
                 return prev;
             }
-            return { detected, message };
+            return { detected, message: nextMessage };
         });
     }, []);
 
@@ -203,7 +204,7 @@ export default function GerminationCamera() {
             detectionFrameRef.current = null;
         }
         detectionStateRef.current = { previous: null, flowFrames: 0, stillFrames: 0, lastFlow: false };
-        setFlowIndicator(false, "Detecting water flow…");
+        setFlowIndicator(false);
         setReloadKey((key) => key + 1);
     };
 
@@ -224,16 +225,16 @@ export default function GerminationCamera() {
         if (status.state !== "playing") {
             switch (status.state) {
                 case "loading":
-                    setFlowIndicator(false, "Detecting water flow…");
+                    setFlowIndicator(false);
                     break;
                 case "interaction":
-                    setFlowIndicator(false, "Press play to enable water detection");
+                    setFlowIndicator(false);
                     break;
                 case "error":
-                    setFlowIndicator(false, "Water detection unavailable");
+                    setFlowIndicator(false);
                     break;
                 default:
-                    setFlowIndicator(false, "Water detection paused");
+                    setFlowIndicator(false);
                     break;
             }
             return undefined;
@@ -244,11 +245,11 @@ export default function GerminationCamera() {
         const context = canvas.getContext("2d", { willReadFrequently: true });
 
         if (!context) {
-            setFlowIndicator(false, "Water detection unavailable");
+            setFlowIndicator(false);
             return undefined;
         }
 
-        setFlowIndicator(false, "Detecting water flow…");
+        setFlowIndicator(false);
 
         const FLOW_THRESHOLD = 18;
         const FLOW_STREAK_TARGET = 6;
@@ -303,10 +304,10 @@ export default function GerminationCamera() {
 
                 if (!state.lastFlow && state.flowFrames >= FLOW_STREAK_TARGET) {
                     state.lastFlow = true;
-                    setFlowIndicator(true, "Water detected in channel");
+                    setFlowIndicator(true, "Water flow detected");
                 } else if (state.lastFlow && state.stillFrames >= STILL_STREAK_TARGET) {
                     state.lastFlow = false;
-                    setFlowIndicator(false, "No visible water flow");
+                    setFlowIndicator(false);
                 }
             }
 
@@ -327,14 +328,16 @@ export default function GerminationCamera() {
 
     return (
         <div className={styles.wrapper}>
-            <div
-                className={`${styles.flowIndicator} ${flowStatus.detected ? styles.flowIndicatorActive : ""}`}
-            >
-                <span
-                    className={`${styles.flowDot} ${flowStatus.detected ? styles.flowDotActive : ""}`}
-                />
-                {flowStatus.message}
-            </div>
+            {flowStatus.message ? (
+                <div
+                    className={`${styles.flowIndicator} ${flowStatus.detected ? styles.flowIndicatorActive : ""}`}
+                >
+                    <span
+                        className={`${styles.flowDot} ${flowStatus.detected ? styles.flowDotActive : ""}`}
+                    />
+                    {flowStatus.message}
+                </div>
+            ) : null}
             <video
                 key={reloadKey}
                 ref={videoRef}
