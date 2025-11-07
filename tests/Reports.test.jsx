@@ -59,7 +59,7 @@ test('fetches device catalog from API', async () => {
 
   expect(await screen.findByLabelText('S10-L20-D01')).toBeInTheDocument();
   expect(global.fetch).toHaveBeenCalledTimes(1);
-  expect(global.fetch.mock.calls[0][0].toString()).toContain('/api/reports/meta');
+  expect(global.fetch.mock.calls[0][0].toString()).toContain('/api/devices');
 });
 
 test('Apply sends one request per compositeId', async () => {
