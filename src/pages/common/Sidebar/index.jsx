@@ -1,9 +1,38 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import styles from "./Sidebar.module.css";
+import ReportFiltersCompare from "../../Reports/components/ReportFiltersCompare";
+import { useReportsFilters } from "../../../context/ReportsFiltersContext.jsx";
 
 export default function Sidebar() {
     const [collapsed, setCollapsed] = useState(() => window.innerWidth < 768);
+    const {
+        isReportsRoute,
+        deviceMeta,
+        fromDate,
+        setFromDate,
+        toDate,
+        setToDate,
+        autoRefreshValue,
+        setAutoRefreshValue,
+        systems,
+        layers,
+        deviceIds,
+        handleSystemChange,
+        handleLayerChange,
+        handleDeviceChange,
+        onReset,
+        onAddCompare,
+        onClearCompare,
+        onRemoveCompare,
+        compareItems,
+        selSensors,
+        toggleSensor,
+        setAllSensors,
+        clearSensors,
+        selectedCIDs,
+        triggerApply,
+    } = useReportsFilters();
 
     useEffect(() => {
         const handleResize = () => {
@@ -17,6 +46,28 @@ export default function Sidebar() {
 
     const linkClass = ({ isActive }) =>
         `${styles.menuItem} ${isActive ? styles.active : ""}`;
+
+    const sensorValues = useMemo(
+        () => ({
+            water: Array.from(selSensors.water),
+            light: Array.from(selSensors.light),
+            blue: Array.from(selSensors.blue),
+            red: Array.from(selSensors.red),
+            airq: Array.from(selSensors.airq),
+        }),
+        [selSensors],
+    );
+
+    const toLabels = (keys = []) =>
+        keys.map((item) => (typeof item === "string" ? item : item?.label)).filter(Boolean);
+
+    const rangeLabel = useMemo(() => {
+        if (!fromDate || !toDate) return "";
+        const from = new Date(fromDate);
+        const to = new Date(toDate);
+        if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return "";
+        return `From: ${from.toLocaleString()} until: ${to.toLocaleString()}`;
+    }, [fromDate, toDate]);
 
     return (
         <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ""}`}>
@@ -65,6 +116,62 @@ export default function Sidebar() {
                     {!collapsed && <span className={styles.text}>Sensor Config</span>}
                 </NavLink>
             </nav>
+
+            {isReportsRoute && !collapsed && (
+                <div className={styles.filtersWrapper}>
+                    <div className={styles.divider} />
+                    <div className={styles.reportFiltersWrapper}>
+                        <ReportFiltersCompare
+                            catalog={deviceMeta}
+                            fromDate={fromDate}
+                            toDate={toDate}
+                            onFromDateChange={(e) => setFromDate(e.target.value)}
+                            onToDateChange={(e) => setToDate(e.target.value)}
+                            onApply={triggerApply}
+                            autoRefreshValue={autoRefreshValue}
+                            onAutoRefreshValueChange={(e) => setAutoRefreshValue(e.target.value)}
+                            systems={systems}
+                            layers={layers}
+                            devices={deviceIds}
+                            onSystemChange={handleSystemChange}
+                            onLayerChange={handleLayerChange}
+                            onDeviceChange={handleDeviceChange}
+                            onReset={onReset}
+                            onAddCompare={onAddCompare}
+                            onExportCsv={() => {}}
+                            rangeLabel={rangeLabel}
+                            compareItems={compareItems}
+                            onClearCompare={onClearCompare}
+                            onRemoveCompare={onRemoveCompare}
+                            water={{ values: sensorValues.water }}
+                            light={{ values: sensorValues.light }}
+                            blue={{ values: sensorValues.blue }}
+                            red={{ values: sensorValues.red }}
+                            airq={{ values: sensorValues.airq }}
+                            onToggleWater={(key) => toggleSensor("water", key)}
+                            onToggleLight={(key) => toggleSensor("light", key)}
+                            onToggleBlue={(key) => toggleSensor("blue", key)}
+                            onToggleRed={(key) => toggleSensor("red", key)}
+                            onToggleAirq={(key) => toggleSensor("airq", key)}
+                            onAllWater={(keys) => setAllSensors("water", toLabels(keys))}
+                            onNoneWater={() => clearSensors("water")}
+                            onAllLight={(keys) => setAllSensors("light", toLabels(keys))}
+                            onNoneLight={() => clearSensors("light")}
+                            onAllBlue={(keys) => setAllSensors("blue", toLabels(keys))}
+                            onNoneBlue={() => clearSensors("blue")}
+                            onAllRed={(keys) => setAllSensors("red", toLabels(keys))}
+                            onNoneRed={() => clearSensors("red")}
+                            onAllAirq={(keys) => setAllSensors("airq", toLabels(keys))}
+                            onNoneAirq={() => clearSensors("airq")}
+                        />
+                        {selectedCIDs.length <= 1 ? null : (
+                            <div className={styles.selectionHint}>
+                                {`${selectedCIDs.length} devices selected`}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
         </aside>
     );
