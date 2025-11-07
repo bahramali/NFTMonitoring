@@ -3,6 +3,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 
 // mock ReportCharts to observe render
 vi.mock('../src/pages/Reports/components/ReportCharts', () => ({
@@ -11,8 +12,21 @@ vi.mock('../src/pages/Reports/components/ReportCharts', () => ({
 
 import Reports from '../src/pages/Reports';
 import ReportCharts from '../src/pages/Reports/components/ReportCharts';
+import Sidebar from '../src/pages/common/Sidebar';
+import { ReportsFiltersProvider } from '../src/context/ReportsFiltersContext.jsx';
 
 const mockDeviceCatalog = (devices) => ({ devices });
+
+const renderReportsView = () => render(
+  <MemoryRouter initialEntries={['/reports']}>
+    <ReportsFiltersProvider>
+      <div style={{ display: 'flex' }}>
+        <Sidebar />
+        <Reports />
+      </div>
+    </ReportsFiltersProvider>
+  </MemoryRouter>
+);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -31,7 +45,7 @@ test('renders Reports and shows charts', async () => {
     .mockResolvedValueOnce({ ok: true, json: async () => catalog })
     .mockResolvedValue({ ok: true, json: async () => ({ sensors: [] }) });
 
-  render(<Reports />);
+  renderReportsView();
 
   expect(await screen.findByTestId('charts')).toBeInTheDocument();
   expect(ReportCharts).toHaveBeenCalled();
@@ -55,7 +69,7 @@ test('fetches device catalog from API', async () => {
       json: async () => ({ sensors: [] }),
     });
 
-  render(<Reports />);
+  renderReportsView();
 
   expect(await screen.findByLabelText('S10-L20-D01')).toBeInTheDocument();
   expect(global.fetch).toHaveBeenCalledTimes(1);
@@ -73,7 +87,7 @@ test('Apply sends one request per compositeId', async () => {
     .mockResolvedValueOnce({ ok: true, json: async () => mockDeviceCatalog(devices) })
     .mockResolvedValue({ ok: true, json: async () => ({ sensors: [] }) });
 
-  render(<Reports />);
+  renderReportsView();
 
   await screen.findByLabelText('S01-L01-G01');
   await screen.findByLabelText('S01-L01-G02');
@@ -100,7 +114,7 @@ test('filters by Composite ID selection only fetches selected CIDs', async () =>
     .mockResolvedValueOnce({ ok: true, json: async () => mockDeviceCatalog(devices) })
     .mockResolvedValue({ ok: true, json: async () => ({ sensors: [] }) });
 
-  render(<Reports />);
+  renderReportsView();
 
   const cid1 = await screen.findByLabelText('S01-L01-G01');
   const cid2 = await screen.findByLabelText('S01-L01-G02');
