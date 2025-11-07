@@ -25,28 +25,53 @@
 
 .reportFiltersWrapper :global(.rf) {
     --rf-surface: transparent;
-    --rf-surface-subtle: rgba(15, 26, 43, 0.55);
-    --rf-surface-strong: rgba(11, 22, 38, 0.85);
+    --rf-surface-subtle: rgba(15, 26, 43, 0.6);
+    --rf-surface-strong: rgba(11, 22, 38, 0.92);
     --rf-border: #1f2d44;
-    --rf-border-soft: #243653;
-    --rf-card-surface: rgba(15, 26, 43, 0.55);
-    --rf-text-strong: #e2e8f0;
-    --rf-text-muted: #94a3b8;
+    --rf-border-soft: #253753;
+    --rf-card-surface: rgba(12, 22, 35, 0.85);
+    --rf-text-strong: #f1f5f9;
+    --rf-text-muted: #9ab0ce;
     --rf-text-accent: #c3dafe;
-    --rf-text-secondary: #b2c6e7;
-    --rf-text-tertiary: #9ab0ce;
-    --rf-chip-bg: rgba(56, 189, 248, 0.16);
-    --rf-btn-bg: #0b1626;
-    --rf-btn-border: #1f2d44;
+    --rf-text-secondary: #b9cae4;
+    --rf-text-tertiary: #93a9c7;
+    --rf-chip-bg: rgba(99, 179, 237, 0.22);
+    --rf-btn-bg: rgba(15, 26, 43, 0.75);
+    --rf-btn-border: #263852;
     --rf-btn-text: #e2e8f0;
-    --rf-btn-primary-border: #38bdf8;
-    --rf-btn-primary-text: #38bdf8;
-    --rf-error: #f87171;
+    --rf-btn-primary-border: #60a5fa;
+    --rf-btn-primary-text: #60a5fa;
+    --rf-error: #fca5a5;
     --rf-calendar-filter: invert(0.9);
 
     background: transparent;
     box-shadow: none;
     padding: 0;
+}
+
+.reportFiltersWrapper :global(.block),
+.reportFiltersWrapper :global(.group),
+.reportFiltersWrapper :global(.treeCard),
+.reportFiltersWrapper :global(.checklist) {
+    background: var(--rf-card-surface);
+    border-color: var(--rf-border);
+    box-shadow: none;
+}
+
+.reportFiltersWrapper :global(.groupTitle),
+.reportFiltersWrapper :global(.title) {
+    color: var(--rf-text-accent);
+}
+
+.reportFiltersWrapper :global(input[type="datetime-local"]),
+.reportFiltersWrapper :global(select) {
+    background: var(--rf-btn-bg);
+    border-color: var(--rf-btn-border);
+    color: var(--rf-btn-text);
+}
+
+.reportFiltersWrapper :global(.item) {
+    color: var(--rf-btn-text);
 }
 
 .reportFiltersWrapper :global(.layout) { flex-direction:column; gap:1rem; }
