@@ -2,28 +2,17 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ReportFiltersCompare from '../src/pages/Reports/components/ReportFiltersCompare.jsx';
-import { vi } from 'vitest';
 
-beforeEach(() => {
-  const catalog = {
-    systems: [
-      { id: 'S01', compositeIds: ['S01-L01-D1'] },
-      { id: 'S02', compositeIds: ['S02-L02-D2'] },
-    ],
-    devices: [
-      { systemId: 'S01', layerId: 'L01', deviceId: 'D1' },
-      { systemId: 'S02', layerId: 'L02', deviceId: 'D2' },
-    ],
-  };
-  global.fetch = vi.fn().mockResolvedValue({
-    ok: true,
-    json: async () => catalog,
-  });
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
+const catalog = {
+  systems: [
+    { id: 'S01', compositeIds: ['S01-L01-D1'] },
+    { id: 'S02', compositeIds: ['S02-L02-D2'] },
+  ],
+  devices: [
+    { systemId: 'S01', layerId: 'L01', deviceId: 'D1' },
+    { systemId: 'S02', layerId: 'L02', deviceId: 'D2' },
+  ],
+};
 
 test('lists composite IDs from API', async () => {
   render(
@@ -33,6 +22,7 @@ test('lists composite IDs from API', async () => {
       onFromDateChange={() => {}}
       onToDateChange={() => {}}
       rangeLabel=""
+      catalog={catalog}
     />
   );
 
@@ -48,6 +38,7 @@ test('selecting composite id selects related location checkboxes', async () => {
       onFromDateChange={() => {}}
       onToDateChange={() => {}}
       rangeLabel=""
+      catalog={catalog}
     />
   );
 
@@ -65,6 +56,7 @@ test('selecting location checkboxes selects composite id', async () => {
       onFromDateChange={() => {}}
       onToDateChange={() => {}}
       rangeLabel=""
+      catalog={catalog}
     />
   );
 

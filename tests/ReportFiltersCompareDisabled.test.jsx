@@ -2,25 +2,6 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ReportFiltersCompare from '../src/pages/Reports/components/ReportFiltersCompare.jsx';
-import { vi } from 'vitest';
-
-beforeEach(() => {
-  const catalog = {
-    systems: [{ id: 'S1' }],
-    devices: [
-      { systemId: 'S1', layerId: 'L1', deviceId: 'D1', sensors: [{ sensorName: 'dissolvedTemp' }] },
-      { systemId: 'S1', layerId: 'L1', deviceId: 'D2', sensors: [{ sensorName: 'temperature' }] },
-    ],
-  };
-  global.fetch = vi.fn().mockResolvedValue({
-    ok: true,
-    json: async () => catalog,
-  });
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
 
 test('enables only sensors for selected device', async () => {
   render(
@@ -30,6 +11,13 @@ test('enables only sensors for selected device', async () => {
       onFromDateChange={() => {}}
       onToDateChange={() => {}}
       rangeLabel=""
+      catalog={{
+        systems: [{ id: 'S1' }],
+        devices: [
+          { systemId: 'S1', layerId: 'L1', deviceId: 'D1', sensors: [{ sensorName: 'dissolvedTemp' }] },
+          { systemId: 'S1', layerId: 'L1', deviceId: 'D2', sensors: [{ sensorName: 'temperature' }] },
+        ],
+      }}
       water={{ options: [], values: [] }}
     />
   );

@@ -1,5 +1,6 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import styles from './ReportFiltersCompare.module.css';
+import {normalizeDeviceCatalog} from '../utils/catalog';
 
 const DEFAULT_SENSOR_GROUPS = {
     water: ['dissolvedTemp', 'dissolvedEC', 'dissolvedTDS', 'dissolvedOxygen'],
@@ -86,28 +87,6 @@ const parseCompositeId = (cid) => {
     };
 };
 
-const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
-const CATALOG_ENDPOINTS = [
-    `${API_BASE}/api/reports/meta`,
-    `${API_BASE}/api/device-catalog`,
-    `${API_BASE}/api/deviceCatalog`,
-];
-
-const normaliseCatalog = (raw) => {
-    if (!raw) return null;
-    if (Array.isArray(raw)) return { devices: raw };
-    if (Array.isArray(raw.devices)) return raw;
-    if (raw.data) {
-        if (Array.isArray(raw.data)) return { ...raw, devices: raw.data };
-        if (Array.isArray(raw.data.devices)) return { ...raw, ...raw.data };
-    }
-    if (raw.catalog) {
-        if (Array.isArray(raw.catalog)) return { ...raw, devices: raw.catalog };
-        if (Array.isArray(raw.catalog.devices)) return { ...raw, ...raw.catalog };
-    }
-    return null;
-};
-
 export default function ReportFiltersCompare(props) {
     const {
         fromDate, toDate, onFromDateChange, onToDateChange, onApply,
@@ -129,50 +108,7 @@ export default function ReportFiltersCompare(props) {
         catalog: catalogProp,
     } = props;
 
-    const [catalog, setCatalog] = useState(() => (catalogProp != null ? catalogProp : null));
-    const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
-    const [catalogError, setCatalogError] = useState('');
-
-    useEffect(() => {
-        if (catalogProp !== undefined) {
-            setCatalog(catalogProp || null);
-        }
-    }, [catalogProp]);
-
-    useEffect(() => {
-        if (catalogProp !== undefined) return;
-        let cancelled = false;
-        const loadCatalog = async () => {
-            setIsLoadingCatalog(true);
-            setCatalogError('');
-            let lastError = null;
-            for (const url of CATALOG_ENDPOINTS) {
-                try {
-                    const res = await fetch(url);
-                    if (!res.ok) {
-                        lastError = new Error(`HTTP ${res.status}`);
-                        continue;
-                    }
-                    const data = await res.json();
-                    const parsed = normaliseCatalog(data);
-                    if (parsed?.devices?.length) {
-                        if (!cancelled) setCatalog(parsed);
-                        return;
-                    }
-                } catch (err) {
-                    lastError = err;
-                }
-            }
-            if (!cancelled) {
-                setCatalog(null);
-                if (lastError) setCatalogError(lastError.message || String(lastError));
-            }
-        };
-        loadCatalog().finally(() => {
-            if (!cancelled) setIsLoadingCatalog(false);
-        });
-        return () => { cancelled = true; };
-    }, [catalogProp]);
+    const catalog = useMemo(() => normalizeDeviceCatalog(catalogProp), [catalogProp]);
 
     const locationData = useMemo(() => {
         const systemMap = new Map();
@@ -607,12 +543,6 @@ export default function ReportFiltersCompare(props) {
 
                     <div className={styles.block}>
                         <h4>Location</h4>
-                        {isLoadingCatalog && (
-                            <div className={styles.muted}>Loading devices…</div>
-                        )}
-                        {catalogError && (
-                            <div className={styles.errorText}>Unable to load devices ({catalogError}).</div>
-                        )}
                         <div className={styles.locationSection}>
                             {isLegacyMode ? (
                                 <>
