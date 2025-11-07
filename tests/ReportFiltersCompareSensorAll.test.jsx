@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ReportFiltersCompare from '../src/pages/Reports/components/ReportFiltersCompare.jsx';
+import { vi } from 'vitest';
 
 test('All selects all sensors and notifies parent', () => {
   const onAllWater = vi.fn();

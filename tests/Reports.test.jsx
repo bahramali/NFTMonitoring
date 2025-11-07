@@ -75,6 +75,10 @@ test('Apply sends one request per compositeId', async () => {
 
   render(<Reports />);
 
+  await screen.findByLabelText('S01-L01-G01');
+  await screen.findByLabelText('S01-L01-G02');
+  await screen.findByLabelText('S02-L02-G01');
+
   fireEvent.click(await screen.findByRole('button', { name: /apply/i }));
 
   await waitFor(() => {

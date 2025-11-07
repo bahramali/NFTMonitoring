@@ -3,6 +3,7 @@ import ReportCharts from "./components/ReportCharts";
 import ReportFiltersCompare from "./components/ReportFiltersCompare";
 import {transformAggregatedData} from "../../utils.js";
 import Header from "../common/Header";
+import {API_BASE, fetchDeviceCatalog} from "./utils/catalog";
 
 // helpers
 const toCID = (d) => `${d.systemId}-${d.layerId}-${d.deviceId}`;
@@ -14,27 +15,6 @@ const toLocalInputValue = (date) => {
 };
 const toISOSeconds = (v) => (v ? new Date(v).toISOString() : "");
 const AUTO_REFRESH_MS = {"30s": 30_000, "1m": 60_000, "5m": 300_000};
-const API_BASE = import.meta.env.VITE_API_BASE ?? "https://api.hydroleaf.se";
-const CATALOG_ENDPOINTS = [
-    `${API_BASE}/api/reports/meta`,
-    `${API_BASE}/api/device-catalog`,
-    `${API_BASE}/api/deviceCatalog`,
-];
-
-const normaliseCatalog = (raw) => {
-    if (!raw) return null;
-    if (Array.isArray(raw)) return { devices: raw };
-    if (Array.isArray(raw.devices)) return raw;
-    if (raw.data) {
-        if (Array.isArray(raw.data)) return { ...raw, devices: raw.data };
-        if (Array.isArray(raw.data.devices)) return { ...raw, ...raw.data };
-    }
-    if (raw.catalog) {
-        if (Array.isArray(raw.catalog)) return { ...raw, devices: raw.catalog };
-        if (Array.isArray(raw.catalog.devices)) return { ...raw, ...raw.catalog };
-    }
-    return null;
-};
 
 // English: choose bucket by range. Min resolution is 1m (your sampling rate)
 const pickBucket = (fromLocal, toLocal) => {
@@ -50,35 +30,31 @@ const pickBucket = (fromLocal, toLocal) => {
 function useDevicesMeta() {
     const [meta, setMeta] = useState({devices: []});
     useEffect(() => {
+        const controller = new AbortController();
         let cancelled = false;
         const loadMeta = async () => {
-            let lastError = null;
-            for (const url of CATALOG_ENDPOINTS) {
-                try {
-                    const res = await fetch(url);
-                    if (!res.ok) {
-                        lastError = new Error(`HTTP ${res.status}`);
-                        continue;
+            try {
+                const {catalog, error} = await fetchDeviceCatalog({ signal: controller.signal });
+                if (cancelled) return;
+                if (catalog?.devices?.length) {
+                    setMeta(catalog);
+                } else {
+                    setMeta({ devices: [] });
+                    if (error) {
+                        console.error("Unable to load device catalog for reports", error);
                     }
-                    const data = await res.json();
-                    const parsed = normaliseCatalog(data);
-                    if (parsed?.devices?.length) {
-                        if (!cancelled) setMeta(parsed);
-                        return;
-                    }
-                } catch (err) {
-                    lastError = err;
                 }
-            }
-            if (!cancelled) {
+            } catch (err) {
+                if (err?.name === "AbortError" || cancelled) return;
                 setMeta({ devices: [] });
-                if (lastError) {
-                    console.error("Unable to load device catalog for reports", lastError);
-                }
+                console.error("Unable to load device catalog for reports", err);
             }
         };
         loadMeta();
-        return () => { cancelled = true; };
+        return () => {
+            cancelled = true;
+            controller.abort();
+        };
     }, []);
     return meta;
 }
