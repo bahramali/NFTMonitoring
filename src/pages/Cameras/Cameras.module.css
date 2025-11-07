@@ -13,7 +13,7 @@
 }
 
 .layout {
-  width: min(1380px, 100%);
+  width: min(1640px, 100%);
   display: flex;
   gap: 1.5rem;
   align-items: stretch;
@@ -21,7 +21,7 @@
 }
 
 .sidebar {
-  flex: 0 0 220px;
+  flex: 0 0 clamp(180px, 16vw, 220px);
   max-width: 100%;
   background: linear-gradient(160deg, rgba(14, 26, 48, 0.88), rgba(9, 18, 34, 0.92));
   border: 1px solid rgba(76, 120, 188, 0.45);
@@ -151,13 +151,13 @@
 .viewer {
   background: linear-gradient(160deg, rgba(14, 26, 48, 0.92), rgba(8, 16, 30, 0.95));
   border-radius: 22px;
-  padding: 1.85rem;
+  padding: clamp(1.5rem, 2.5vw, 2.35rem);
   box-shadow: 0 32px 64px rgba(4, 10, 24, 0.55);
   display: flex;
   flex-direction: column;
   gap: 1.35rem;
   border: 1px solid rgba(76, 120, 188, 0.4);
-  flex: 1;
+  flex: 1 1 0;
   backdrop-filter: blur(4px);
 }
 
@@ -187,6 +187,7 @@
 .video {
   width: 100%;
   aspect-ratio: 16 / 9;
+  min-height: clamp(420px, 60vh, 860px);
   background: #03060d;
   border-radius: 18px;
   display: block;
@@ -326,6 +327,10 @@
     flex: 1 1 auto;
     max-height: none;
     position: static;
+  }
+
+  .video {
+    min-height: clamp(280px, 50vh, 520px);
   }
 }
 
