@@ -122,6 +122,7 @@ export default function Sidebar() {
                     <div className={styles.divider} />
                     <div className={styles.reportFiltersWrapper}>
                         <ReportFiltersCompare
+                            variant="sidebar"
                             catalog={deviceMeta}
                             fromDate={fromDate}
                             toDate={toDate}

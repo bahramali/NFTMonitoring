@@ -29,6 +29,75 @@
     gap: 1rem;
 }
 
+.rfSidebar {
+    --rf-surface: #0f1a2b;
+    --rf-surface-subtle: #132132;
+    --rf-surface-strong: #0c1523;
+    --rf-border: #1f2d44;
+    --rf-border-soft: #253753;
+    --rf-card-surface: #152338;
+    --rf-text-strong: #f1f5f9;
+    --rf-text-muted: #9ab0ce;
+    --rf-text-accent: #c3dafe;
+    --rf-text-secondary: #b9cae4;
+    --rf-text-tertiary: #93a9c7;
+    --rf-chip-bg: rgba(99, 179, 237, 0.22);
+    --rf-btn-bg: rgba(15, 26, 43, 0.75);
+    --rf-btn-border: #263852;
+    --rf-btn-text: #e2e8f0;
+    --rf-btn-primary-border: #60a5fa;
+    --rf-btn-primary-text: #60a5fa;
+    --rf-error: #fca5a5;
+    --rf-calendar-filter: invert(0.9);
+
+    background: var(--rf-surface);
+    box-shadow: none;
+    color: var(--rf-text-strong);
+    padding: 1rem 0.75rem 1.25rem;
+    border-radius: 0;
+}
+
+.rfSidebar .title {
+    color: var(--rf-text-accent);
+    margin-bottom: 0.75rem;
+}
+
+.rfSidebar .layout {
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.rfSidebar .sidebar,
+.rfSidebar .content {
+    flex: 1 1 auto;
+    width: 100%;
+}
+
+.rfSidebar .block,
+.rfSidebar .group,
+.rfSidebar .treeCard,
+.rfSidebar .checklist {
+    background: var(--rf-card-surface);
+    border-color: var(--rf-border);
+    box-shadow: none;
+}
+
+.rfSidebar .groupTitle,
+.rfSidebar .title {
+    color: var(--rf-text-accent);
+}
+
+.rfSidebar input[type="datetime-local"],
+.rfSidebar select {
+    background: var(--rf-btn-bg);
+    border-color: var(--rf-btn-border);
+    color: var(--rf-btn-text);
+}
+
+.rfSidebar .item {
+    color: var(--rf-btn-text);
+}
+
 .title {
     font-weight: 700;
     color: var(--rf-text-accent);

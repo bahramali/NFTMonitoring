@@ -89,6 +89,8 @@ const parseCompositeId = (cid) => {
 
 export default function ReportFiltersCompare(props) {
     const {
+        className,
+        variant = "default",
         fromDate, toDate, onFromDateChange, onToDateChange, onApply,
         autoRefreshValue = 'Off',
         onAutoRefreshValueChange = () => {},
@@ -514,8 +516,14 @@ export default function ReportFiltersCompare(props) {
     const selectedCompositeCount = selectedCompositeIds.size;
     const totalCompositeCount = compositeIds.length;
 
+    const containerClassName = [
+        styles.rf,
+        variant === "sidebar" ? styles.rfSidebar : "",
+        className || "",
+    ].filter(Boolean).join(" ");
+
     return (
-        <div className={styles.rf}>
+        <div className={containerClassName}>
             <div className={styles.title}>Filters</div>
             <div className={styles.layout}>
                 <aside className={styles.sidebar}>
