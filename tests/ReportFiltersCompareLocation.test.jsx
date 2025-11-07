@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ReportFiltersCompare from '../src/pages/Reports/components/ReportFiltersCompare.jsx';
+import { vi } from 'vitest';
 
 beforeEach(() => {
   const catalog = {
@@ -21,11 +22,14 @@ beforeEach(() => {
       },
     ],
   };
-  window.localStorage.setItem('deviceCatalog', JSON.stringify(catalog));
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => catalog,
+  });
 });
 
 afterEach(() => {
-  window.localStorage.clear();
+  vi.restoreAllMocks();
 });
 
 test('selecting multiple devices enables union of sensors', async () => {
@@ -39,23 +43,22 @@ test('selecting multiple devices enables union of sensors', async () => {
     />
   );
 
-  const humidity = screen.getByLabelText('humidity');
-  const temperature = screen.getByLabelText('temperature');
+  const humidity = await screen.findByLabelText('humidity');
+  const temperature = await screen.findByLabelText('temperature');
 
-  // both disabled initially
   expect(humidity).toBeDisabled();
   expect(temperature).toBeDisabled();
 
-  // select first device
-  fireEvent.click(screen.getByLabelText('D1'));
+  const firstDevice = await screen.findByLabelText('D1');
+  fireEvent.click(firstDevice);
 
   await waitFor(() => {
     expect(humidity).not.toBeDisabled();
   });
   expect(temperature).toBeDisabled();
 
-  // select second device
-  fireEvent.click(screen.getByLabelText('D2'));
+  const secondDevice = await screen.findByLabelText('D2');
+  fireEvent.click(secondDevice);
 
   await waitFor(() => {
     expect(temperature).not.toBeDisabled();

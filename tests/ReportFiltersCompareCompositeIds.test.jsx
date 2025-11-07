@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ReportFiltersCompare from '../src/pages/Reports/components/ReportFiltersCompare.jsx';
+import { vi } from 'vitest';
 
 beforeEach(() => {
   const catalog = {
@@ -14,14 +15,17 @@ beforeEach(() => {
       { systemId: 'S02', layerId: 'L02', deviceId: 'D2' },
     ],
   };
-  window.localStorage.setItem('deviceCatalog', JSON.stringify(catalog));
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => catalog,
+  });
 });
 
 afterEach(() => {
-  window.localStorage.clear();
+  vi.restoreAllMocks();
 });
 
-test('lists composite IDs from local storage', () => {
+test('lists composite IDs from API', async () => {
   render(
     <ReportFiltersCompare
       fromDate=""
@@ -32,11 +36,11 @@ test('lists composite IDs from local storage', () => {
     />
   );
 
-  expect(screen.getByLabelText('S01-L01-D1')).toBeInTheDocument();
-  expect(screen.getByLabelText('S02-L02-D2')).toBeInTheDocument();
+  expect(await screen.findByLabelText('S01-L01-D1')).toBeInTheDocument();
+  expect(await screen.findByLabelText('S02-L02-D2')).toBeInTheDocument();
 });
 
-test('selecting composite id selects related location checkboxes', () => {
+test('selecting composite id selects related location checkboxes', async () => {
   render(
     <ReportFiltersCompare
       fromDate=""
@@ -47,13 +51,13 @@ test('selecting composite id selects related location checkboxes', () => {
     />
   );
 
-  fireEvent.click(screen.getByLabelText('S01-L01-D1'));
+  fireEvent.click(await screen.findByLabelText('S01-L01-D1'));
   expect(screen.getByLabelText('S01')).toBeChecked();
   expect(screen.getByLabelText('L01')).toBeChecked();
   expect(screen.getByLabelText('D1')).toBeChecked();
 });
 
-test('selecting location checkboxes selects composite id', () => {
+test('selecting location checkboxes selects composite id', async () => {
   render(
     <ReportFiltersCompare
       fromDate=""
@@ -64,7 +68,7 @@ test('selecting location checkboxes selects composite id', () => {
     />
   );
 
-  fireEvent.click(screen.getByLabelText('S02'));
+  fireEvent.click(await screen.findByLabelText('S02'));
   fireEvent.click(screen.getByLabelText('L02'));
   fireEvent.click(screen.getByLabelText('D2'));
   expect(screen.getByLabelText('S02-L02-D2')).toBeChecked();
