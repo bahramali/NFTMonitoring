@@ -23,34 +23,35 @@
 .reportFiltersWrapper { background:transparent; color:#e8edf6; display:flex; flex-direction:column; gap:0.75rem; }
 .selectionHint { font-size:0.75rem; color:#9ab0ce; padding:0 0.25rem; }
 
-.reportFiltersWrapper :global(.rf) { background:transparent; box-shadow:none; padding:0; }
-.reportFiltersWrapper :global(.title) { color:#e8edf6; }
+.reportFiltersWrapper :global(.rf) {
+    --rf-surface: transparent;
+    --rf-surface-subtle: rgba(15, 26, 43, 0.55);
+    --rf-surface-strong: rgba(11, 22, 38, 0.85);
+    --rf-border: #1f2d44;
+    --rf-border-soft: #243653;
+    --rf-card-surface: rgba(15, 26, 43, 0.55);
+    --rf-text-strong: #e2e8f0;
+    --rf-text-muted: #94a3b8;
+    --rf-text-accent: #c3dafe;
+    --rf-text-secondary: #b2c6e7;
+    --rf-text-tertiary: #9ab0ce;
+    --rf-chip-bg: rgba(56, 189, 248, 0.16);
+    --rf-btn-bg: #0b1626;
+    --rf-btn-border: #1f2d44;
+    --rf-btn-text: #e2e8f0;
+    --rf-btn-primary-border: #38bdf8;
+    --rf-btn-primary-text: #38bdf8;
+    --rf-error: #f87171;
+    --rf-calendar-filter: invert(0.9);
+
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+}
+
 .reportFiltersWrapper :global(.layout) { flex-direction:column; gap:1rem; }
 .reportFiltersWrapper :global(.sidebar),
 .reportFiltersWrapper :global(.content) { flex:1 1 auto; width:100%; }
-.reportFiltersWrapper :global(.block),
-.reportFiltersWrapper :global(.treeCard),
-.reportFiltersWrapper :global(.group),
-.reportFiltersWrapper :global(.summaryCard),
-.reportFiltersWrapper :global(.compare) { background:rgba(15,26,43,0.55); border-color:#1f2d44; }
-.reportFiltersWrapper :global(.label),
-.reportFiltersWrapper :global(.groupTitle) { color:#c3dafe; }
-.reportFiltersWrapper :global(.allnone) { color:#94a3b8; }
-.reportFiltersWrapper :global(.item) { color:#e2e8f0; }
-.reportFiltersWrapper :global(input[type="datetime-local"]),
-.reportFiltersWrapper :global(select) { background:#0b1626; border-color:#1f2d44; color:#e2e8f0; }
-.reportFiltersWrapper :global(.checklist) { background:#0b1626; border-color:#1f2d44; }
-.reportFiltersWrapper :global(.systemItem),
-.reportFiltersWrapper :global(.layerItem),
-.reportFiltersWrapper :global(.deviceItem) { background:#0b1626; border-color:#1f2d44; }
-.reportFiltersWrapper :global(.badge) { background:#2563eb33; }
-.reportFiltersWrapper :global(.btn) { background:#0b1626; border-color:#1f2d44; color:#e2e8f0; }
-.reportFiltersWrapper :global(.btn.primary) { border-color:#38bdf8; color:#38bdf8; }
-.reportFiltersWrapper :global(.rangeLabel) { color:#e2e8f0; }
-.reportFiltersWrapper :global(.summaryMeta) { color:#94a3b8; }
-.reportFiltersWrapper :global(.compareItem) { background:#0b1626; border-color:#1f2d44; }
-.reportFiltersWrapper :global(.muted) { color:#94a3b8; }
-.reportFiltersWrapper :global(.errorText) { color:#f87171; }
 
 /* collapsed */
 .collapsed .brand, .collapsed .text, .collapsed .filtersTitle { display:none; }
