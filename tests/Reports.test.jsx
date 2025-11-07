@@ -12,16 +12,10 @@ vi.mock('../src/pages/Reports/components/ReportCharts', () => ({
 import Reports from '../src/pages/Reports';
 import ReportCharts from '../src/pages/Reports/components/ReportCharts';
 
-const setMeta = (meta) =>
-    localStorage.setItem('reportsMeta:v1', JSON.stringify(meta));
+const mockDeviceCatalog = (devices) => ({ devices });
 
 beforeEach(() => {
-  localStorage.clear();
-  vi.restoreAllMocks();
-  global.fetch = vi.fn().mockResolvedValue({
-    ok: true,
-    json: async () => ({ series: [] }),
-  });
+  vi.clearAllMocks();
 });
 
 afterEach(() => {
@@ -29,12 +23,13 @@ afterEach(() => {
 });
 
 test('renders Reports and shows charts', async () => {
-  setMeta({
-    version: 'x',
-    devices: [
-      { systemId: 'S01', layerId: 'L01', deviceId: 'G01', sensors: ['ph'] },
-    ],
-  });
+  const catalog = mockDeviceCatalog([
+    { systemId: 'S01', layerId: 'L01', deviceId: 'G01', sensors: ['ph'] },
+  ]);
+
+  global.fetch = vi.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => catalog })
+    .mockResolvedValue({ ok: true, json: async () => ({ sensors: [] }) });
 
   render(<Reports />);
 
@@ -42,8 +37,7 @@ test('renders Reports and shows charts', async () => {
   expect(ReportCharts).toHaveBeenCalled();
 });
 
-test('fetches device catalog when cache is empty', async () => {
-  localStorage.clear();
+test('fetches device catalog from API', async () => {
   const payload = {
     devices: [
       { systemId: 'S10', layerId: 'L20', deviceId: 'D01', sensors: ['ph'] },
@@ -66,61 +60,60 @@ test('fetches device catalog when cache is empty', async () => {
   expect(await screen.findByLabelText('S10-L20-D01')).toBeInTheDocument();
   expect(global.fetch).toHaveBeenCalledTimes(1);
   expect(global.fetch.mock.calls[0][0].toString()).toContain('/api/reports/meta');
-  expect(localStorage.getItem('reportsMeta:v1')).toBe(JSON.stringify(payload));
-  expect(localStorage.getItem('deviceCatalog')).toBe(JSON.stringify(payload));
 });
 
 test('Apply sends one request per compositeId', async () => {
-  setMeta({
-    version: 'x',
-    devices: [
-      { systemId: 'S01', layerId: 'L01', deviceId: 'G01', sensors: ['ph'] },
-      { systemId: 'S01', layerId: 'L01', deviceId: 'G02', sensors: ['lux'] },
-      { systemId: 'S02', layerId: 'L02', deviceId: 'G01', sensors: ['600nm'] },
-    ],
-  });
+  const devices = [
+    { systemId: 'S01', layerId: 'L01', deviceId: 'G01', sensors: ['ph'] },
+    { systemId: 'S01', layerId: 'L01', deviceId: 'G02', sensors: ['lux'] },
+    { systemId: 'S02', layerId: 'L02', deviceId: 'G01', sensors: ['600nm'] },
+  ];
+
+  global.fetch = vi.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => mockDeviceCatalog(devices) })
+    .mockResolvedValue({ ok: true, json: async () => ({ sensors: [] }) });
 
   render(<Reports />);
 
   fireEvent.click(await screen.findByRole('button', { name: /apply/i }));
 
   await waitFor(() => {
-    expect(global.fetch).toHaveBeenCalledTimes(3);
+    expect(global.fetch).toHaveBeenCalledTimes(1 + devices.length);
   });
-  const called = global.fetch.mock.calls.map((c) => c[0].toString());
+  const called = global.fetch.mock.calls.slice(1).map((c) => c[0].toString());
   expect(called.some((u) => u.includes('compositeId=S01-L01-G01'))).toBe(true);
   expect(called.some((u) => u.includes('compositeId=S01-L01-G02'))).toBe(true);
   expect(called.some((u) => u.includes('compositeId=S02-L02-G01'))).toBe(true);
 });
 
 test('filters by Composite ID selection only fetches selected CIDs', async () => {
-  setMeta({
-    version: 'x',
-    devices: [
-      { systemId: 'S01', layerId: 'L01', deviceId: 'G01', sensors: [] },
-      { systemId: 'S01', layerId: 'L01', deviceId: 'G02', sensors: [] },
-    ],
-  });
+  const devices = [
+    { systemId: 'S01', layerId: 'L01', deviceId: 'G01', sensors: [] },
+    { systemId: 'S01', layerId: 'L01', deviceId: 'G02', sensors: [] },
+  ];
+
+  global.fetch = vi.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => mockDeviceCatalog(devices) })
+    .mockResolvedValue({ ok: true, json: async () => ({ sensors: [] }) });
 
   render(<Reports />);
 
   const cid1 = await screen.findByLabelText('S01-L01-G01');
   const cid2 = await screen.findByLabelText('S01-L01-G02');
 
-  // ensure only cid2 is selected
-  if ((cid1).checked) fireEvent.click(cid1); // uncheck if any
-  if (!(cid2).checked) fireEvent.click(cid2); // check cid2
+  if (cid1.checked) fireEvent.click(cid1);
+  if (!cid2.checked) fireEvent.click(cid2);
 
   await waitFor(() => {
-    expect((cid1 ).checked).toBe(false);
-    expect((cid2 ).checked).toBe(true);
+    expect(cid1.checked).toBe(false);
+    expect(cid2.checked).toBe(true);
   });
 
   fireEvent.click(screen.getByRole('button', { name: /apply/i }));
 
-  await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
 
-  const url = global.fetch.mock.calls[0][0].toString();
+  const url = global.fetch.mock.calls[1][0].toString();
   expect(url.includes('compositeId=S01-L01-G02')).toBe(true);
   expect(url.includes('compositeId=S01-L01-G01')).toBe(false);
 });

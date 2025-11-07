@@ -52,22 +52,6 @@ function useDevicesMeta() {
     useEffect(() => {
         let cancelled = false;
         const loadMeta = async () => {
-            let cachedMeta = null;
-            if (typeof window !== "undefined") {
-                const cached = localStorage.getItem("reportsMeta:v1") || localStorage.getItem("deviceCatalog");
-                if (cached) {
-                    try {
-                        cachedMeta = JSON.parse(cached);
-                        if (!cancelled) setMeta(cachedMeta);
-                    } catch {
-                        cachedMeta = null;
-                    }
-                }
-            }
-
-            if (cachedMeta?.devices?.length) return;
-
-            let fetched = false;
             let lastError = null;
             for (const url of CATALOG_ENDPOINTS) {
                 try {
@@ -79,29 +63,20 @@ function useDevicesMeta() {
                     const data = await res.json();
                     const parsed = normaliseCatalog(data);
                     if (parsed?.devices?.length) {
-                        fetched = true;
-                        if (typeof window !== "undefined") {
-                            const serialised = JSON.stringify(parsed);
-                            try {
-                                localStorage.setItem("reportsMeta:v1", serialised);
-                                localStorage.setItem("deviceCatalog", serialised);
-                            } catch {
-                                /* ignore storage errors */
-                            }
-                        }
                         if (!cancelled) setMeta(parsed);
-                        break;
+                        return;
                     }
                 } catch (err) {
                     lastError = err;
                 }
             }
-
-            if (!fetched && !cachedMeta?.devices?.length && lastError) {
-                console.error("Unable to load device catalog for reports", lastError);
+            if (!cancelled) {
+                setMeta({ devices: [] });
+                if (lastError) {
+                    console.error("Unable to load device catalog for reports", lastError);
+                }
             }
         };
-
         loadMeta();
         return () => { cancelled = true; };
     }, []);

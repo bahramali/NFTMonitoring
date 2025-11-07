@@ -1,6 +1,7 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { vi } from 'vitest';
 import ReportFiltersCompare from '../src/pages/Reports/components/ReportFiltersCompare.jsx';
 
 beforeEach(() => {
@@ -11,14 +12,17 @@ beforeEach(() => {
       { systemId: 'S1', layerId: 'L1', deviceId: 'D2', sensors: [{ sensorName: 'temperature' }] },
     ],
   };
-  window.localStorage.setItem('deviceCatalog', JSON.stringify(catalog));
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => catalog,
+  });
 });
 
 afterEach(() => {
-  window.localStorage.clear();
+  vi.restoreAllMocks();
 });
 
-test('shows sensors disabled before any device is selected', () => {
+test('shows sensors disabled before any device is selected', async () => {
   render(
     <ReportFiltersCompare
       fromDate=""
@@ -29,7 +33,9 @@ test('shows sensors disabled before any device is selected', () => {
       water={{ options: [], values: [] }}
     />
   );
-  expect(screen.getByLabelText('humidity')).toBeDisabled();
+  await waitFor(() => {
+    expect(screen.getByLabelText('humidity')).toBeDisabled();
+  });
   expect(screen.getByLabelText('temperature')).toBeDisabled();
   expect(screen.getByLabelText('dissolvedTemp')).toBeDisabled();
 });

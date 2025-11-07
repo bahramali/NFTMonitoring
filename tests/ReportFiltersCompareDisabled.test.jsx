@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ReportFiltersCompare from '../src/pages/Reports/components/ReportFiltersCompare.jsx';
+import { vi } from 'vitest';
 
 beforeEach(() => {
   const catalog = {
@@ -11,11 +12,14 @@ beforeEach(() => {
       { systemId: 'S1', layerId: 'L1', deviceId: 'D2', sensors: [{ sensorName: 'temperature' }] },
     ],
   };
-  window.localStorage.setItem('deviceCatalog', JSON.stringify(catalog));
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => catalog,
+  });
 });
 
 afterEach(() => {
-  window.localStorage.clear();
+  vi.restoreAllMocks();
 });
 
 test('enables only sensors for selected device', async () => {
