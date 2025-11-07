@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import styles from './ReportFiltersCompare.module.css';
 
 const DEFAULT_SENSOR_GROUPS = {
@@ -59,6 +59,33 @@ const normKey = (s) =>
             : (s?.sensorName || s?.sensorType || s?.valueType || '')
     ).toString().toLowerCase();
 
+const ensureString = (value, fallback = '') => {
+    if (value === undefined || value === null) return fallback;
+    const str = String(value).trim();
+    return str.length ? str : fallback;
+};
+
+const toFallbackComposite = (systemId, layerId, deviceId) =>
+    [systemId, layerId, deviceId].filter(Boolean).join('-');
+
+const parseCompositeId = (cid) => {
+    const value = ensureString(cid);
+    if (!value) return { systemId: '', layerId: '', deviceId: '' };
+    const parts = value.split('-');
+    if (parts.length < 3) {
+        return {
+            systemId: parts[0] || value,
+            layerId: parts[1] || '',
+            deviceId: parts[2] || '',
+        };
+    }
+    return {
+        systemId: parts[0],
+        layerId: parts[1],
+        deviceId: parts.slice(2).join('-'),
+    };
+};
+
 export default function ReportFiltersCompare(props) {
     const {
         fromDate, toDate, onFromDateChange, onToDateChange, onApply,
@@ -99,144 +126,380 @@ export default function ReportFiltersCompare(props) {
         }
     }, [catalogProp]);
 
-    // composite IDs
-    const compositeIds = useMemo(() => {
-        const sys = catalog?.systems || [];
-        const ids = sys.flatMap(s =>
-            (s.deviceCompositeIds || s.compositeIds || [])
-                .concat((s.layers || []).flatMap(l => (l.devices || []).map(d => d.compositeId).filter(Boolean)))
-        );
-        if (ids.length) return Array.from(new Set(ids));
-        return (catalog?.devices || []).map(d => `${d.systemId}-${d.layerId}-${d.deviceId}`);
-    }, [catalog]);
+    const locationData = useMemo(() => {
+        const systemMap = new Map();
+        const compositeMeta = new Map();
 
-    // location lists
-    const systemsFromCatalog = useMemo(
-        () => Array.from(new Set((catalog?.systems || []).map(s => s.id))).sort(),
-        [catalog]
-    );
-    const systems = systemsProp.length ? systemsProp : systemsFromCatalog;
+        const addDevice = ({
+            systemId,
+            systemLabel,
+            layerId,
+            layerLabel,
+            deviceId,
+            deviceLabel,
+            compositeId,
+        }) => {
+            const cid = ensureString(compositeId);
+            const sysId = ensureString(systemId);
+            const layId = ensureString(layerId);
+            const devId = ensureString(deviceId);
+            if (!cid || !sysId || !layId || !devId) return;
 
-    const layersFromCatalog = useMemo(() =>
-        Array.from(new Set((catalog?.devices || []).map(d => d.layerId))).sort(), [catalog]);
-    const layers = layersProp.length ? layersProp : layersFromCatalog;
+            if (!compositeMeta.has(cid)) {
+                compositeMeta.set(cid, {
+                    systemId: sysId,
+                    layerId: layId,
+                    deviceId: devId,
+                    labels: {
+                        system: ensureString(systemLabel, sysId),
+                        layer: ensureString(layerLabel, layId),
+                        device: ensureString(deviceLabel, devId),
+                    },
+                });
+            }
 
-    const devicesFromCatalog = useMemo(() =>
-        Array.from(new Set((catalog?.devices || []).map(d => d.deviceId))).sort(), [catalog]);
-    const devices = devicesProp.length ? devicesProp : devicesFromCatalog;
+            let systemEntry = systemMap.get(sysId);
+            if (!systemEntry) {
+                systemEntry = { id: sysId, label: ensureString(systemLabel, sysId), layers: new Map() };
+                systemMap.set(sysId, systemEntry);
+            }
 
-    // controlled selections
-    const [selectedSystems, setSelectedSystems] = useState([]);
-    const [selectedLayers,  setSelectedLayers]  = useState([]);
-    const [selectedDevices, setSelectedDevices] = useState([]);
+            let layerEntry = systemEntry.layers.get(layId);
+            if (!layerEntry) {
+                layerEntry = { id: layId, label: ensureString(layerLabel, layId), devices: [] };
+                systemEntry.layers.set(layId, layerEntry);
+            }
+
+            if (!layerEntry.devices.some(dev => dev.compositeId === cid)) {
+                layerEntry.devices.push({
+                    id: devId,
+                    label: ensureString(deviceLabel, devId),
+                    compositeId: cid,
+                });
+            }
+        };
+
+        const catalogDevices = Array.isArray(catalog?.devices) ? catalog.devices : [];
+        catalogDevices.forEach(device => {
+            const systemId = ensureString(device.systemId ?? device.system?.id);
+            const layerId = ensureString(device.layerId ?? device.layer?.id);
+            const deviceId = ensureString(device.deviceId ?? device.id ?? device.device?.id);
+            const compositeId = ensureString(device.compositeId ?? toFallbackComposite(systemId, layerId, deviceId));
+            const systemLabel = ensureString(device.systemName ?? device.system?.name, systemId);
+            const layerLabel = ensureString(device.layerName ?? device.layer?.name, layerId);
+            const deviceLabel = ensureString(device.deviceName ?? device.name ?? device.label, deviceId);
+            addDevice({
+                systemId,
+                systemLabel,
+                layerId,
+                layerLabel,
+                deviceId,
+                deviceLabel,
+                compositeId,
+            });
+        });
+
+        if (!systemMap.size) {
+            const catalogSystems = Array.isArray(catalog?.systems) ? catalog.systems : [];
+            catalogSystems.forEach(system => {
+                const systemId = ensureString(system.id);
+                if (!systemId) return;
+                const systemLabel = ensureString(system.name, systemId);
+
+                if (Array.isArray(system.layers)) {
+                    system.layers.forEach(layer => {
+                        const layerId = ensureString(layer.id);
+                        const layerLabel = ensureString(layer.name, layerId);
+                        const devices = Array.isArray(layer.devices) ? layer.devices : [];
+                        devices.forEach(dev => {
+                            const parsed = parseCompositeId(dev.compositeId ?? dev.id);
+                            const deviceId = ensureString(dev.deviceId ?? dev.id ?? parsed.deviceId);
+                            const compositeId = ensureString(dev.compositeId ?? dev.id ?? toFallbackComposite(systemId, layerId || parsed.layerId, deviceId));
+                            const resolvedLayerId = ensureString(layerId || parsed.layerId);
+                            addDevice({
+                                systemId,
+                                systemLabel,
+                                layerId: resolvedLayerId,
+                                layerLabel: ensureString(layerLabel, resolvedLayerId),
+                                deviceId,
+                                deviceLabel: ensureString(dev.name ?? dev.label, deviceId),
+                                compositeId,
+                            });
+                        });
+                    });
+                }
+
+                const compositeCandidates = [
+                    ...(Array.isArray(system.deviceCompositeIds) ? system.deviceCompositeIds : []),
+                    ...(Array.isArray(system.compositeIds) ? system.compositeIds : []),
+                ];
+                compositeCandidates.forEach(cid => {
+                    const parsed = parseCompositeId(cid);
+                    const layerId = ensureString(parsed.layerId || '');
+                    const deviceId = ensureString(parsed.deviceId || cid);
+                    addDevice({
+                        systemId,
+                        systemLabel,
+                        layerId: layerId || 'Layer',
+                        layerLabel: ensureString(parsed.layerId, layerId || 'Layer'),
+                        deviceId,
+                        deviceLabel: deviceId,
+                        compositeId: ensureString(cid),
+                    });
+                });
+            });
+        }
+
+        if (!systemMap.size && devicesProp.length) {
+            devicesProp.forEach(raw => {
+                const cid = ensureString(raw);
+                if (!cid || !cid.includes('-')) return;
+                const parsed = parseCompositeId(cid);
+                const systemId = ensureString(parsed.systemId || 'System');
+                const layerId = ensureString(parsed.layerId || 'Layer');
+                const deviceId = ensureString(parsed.deviceId || cid);
+                addDevice({
+                    systemId,
+                    systemLabel: systemId,
+                    layerId,
+                    layerLabel: layerId,
+                    deviceId,
+                    deviceLabel: deviceId,
+                    compositeId: cid,
+                });
+            });
+        }
+
+        const systems = Array.from(systemMap.values()).map(system => ({
+            id: system.id,
+            label: system.label,
+            layers: Array.from(system.layers.values()).map(layer => ({
+                id: layer.id,
+                label: layer.label,
+                devices: layer.devices.sort((a, b) =>
+                    a.label.localeCompare(b.label) || a.compositeId.localeCompare(b.compositeId)
+                ),
+            })).sort((a, b) => a.label.localeCompare(b.label) || a.id.localeCompare(b.id)),
+        })).sort((a, b) => a.label.localeCompare(b.label) || a.id.localeCompare(b.id));
+
+        const compositeIds = Array.from(compositeMeta.keys()).sort();
+
+        return { systems, compositeIds, compositeMeta };
+    }, [catalog, devicesProp]);
+
+    const { systems: locationSystems, compositeIds, compositeMeta } = locationData;
+
+    const [legacySelectedSystems, setLegacySelectedSystems] = useState([]);
+    const [legacySelectedLayers, setLegacySelectedLayers] = useState([]);
+    const [legacySelectedDevices, setLegacySelectedDevices] = useState([]);
+
+    const legacySystems = useMemo(() => {
+        if (systemsProp.length) return systemsProp;
+        const fromCatalog = (catalog?.systems || []).map(s => ensureString(s.id)).filter(Boolean);
+        return Array.from(new Set(fromCatalog));
+    }, [systemsProp, catalog]);
+
+    const legacyLayers = useMemo(() => {
+        if (layersProp.length) return layersProp;
+        const fromCatalog = (catalog?.devices || []).map(d => ensureString(d.layerId ?? d.layer?.id)).filter(Boolean);
+        return Array.from(new Set(fromCatalog));
+    }, [layersProp, catalog]);
+
+    const legacyDevices = useMemo(() => {
+        if (devicesProp.length) return devicesProp;
+        const fromCatalog = (catalog?.devices || []).map(d => ensureString(d.deviceId ?? d.id ?? d.device?.id)).filter(Boolean);
+        return Array.from(new Set(fromCatalog));
+    }, [devicesProp, catalog]);
 
     const toggleIn = (arr, v) => (arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]);
 
-    const handleSystemToggle = (id) => {
-        setSelectedSystems(prev => {
-            const next = toggleIn(prev, id);
-            onSystemChange && onSystemChange({ target: { value: id } });
+    const handleLegacySystemToggle = (id) => {
+        setLegacySelectedSystems(prev => toggleIn(prev, id));
+    };
+
+    const handleLegacyLayerToggle = (id) => {
+        setLegacySelectedLayers(prev => toggleIn(prev, id));
+    };
+
+    const handleLegacyDeviceToggle = (id) => {
+        setLegacySelectedDevices(prev => toggleIn(prev, id));
+    };
+
+    const handleLegacyAllSystems = () => {
+        setLegacySelectedSystems([...legacySystems]);
+    };
+
+    const handleLegacyNoneSystems = () => {
+        setLegacySelectedSystems([]);
+    };
+
+    const handleLegacyAllLayers = () => {
+        setLegacySelectedLayers([...legacyLayers]);
+    };
+
+    const handleLegacyNoneLayers = () => {
+        setLegacySelectedLayers([]);
+    };
+
+    const handleLegacyAllDevices = () => {
+        setLegacySelectedDevices([...legacyDevices]);
+    };
+
+    const handleLegacyNoneDevices = () => {
+        setLegacySelectedDevices([]);
+    };
+
+    const [selectedCompositeIds, setSelectedCompositeIds] = useState(() => new Set());
+
+    const isLegacyMode = locationSystems.length === 0;
+
+    const selectedSummary = useMemo(() => {
+        const sysSet = new Set();
+        const laySet = new Set();
+        const devSet = new Set();
+        for (const cid of selectedCompositeIds) {
+            const meta = compositeMeta.get(cid);
+            if (!meta) continue;
+            if (meta.systemId) sysSet.add(meta.systemId);
+            if (meta.layerId) laySet.add(meta.layerId);
+            if (meta.deviceId) devSet.add(meta.deviceId);
+        }
+        return {
+            systems: Array.from(sysSet),
+            layers: Array.from(laySet),
+            devices: Array.from(devSet),
+        };
+    }, [selectedCompositeIds, compositeMeta]);
+
+    const selectedSystems = selectedSummary.systems;
+    const selectedLayers  = selectedSummary.layers;
+    const selectedDevices = selectedSummary.devices;
+
+    const activeSelectedSystems = isLegacyMode ? legacySelectedSystems : selectedSystems;
+    const activeSelectedLayers  = isLegacyMode ? legacySelectedLayers  : selectedLayers;
+    const activeSelectedDevices = isLegacyMode ? legacySelectedDevices : selectedDevices;
+
+    const syncParentSelection = (prev = [], next = [], handler) => {
+        if (typeof handler !== 'function') return;
+        const prevSet = new Set(prev);
+        const nextSet = new Set(next);
+        next.forEach(id => {
+            if (!prevSet.has(id)) handler({ target: { value: id } });
+        });
+        prev.forEach(id => {
+            if (!nextSet.has(id)) handler({ target: { value: id } });
+        });
+    };
+
+    const prevSystemsRef = useRef(activeSelectedSystems);
+    useEffect(() => {
+        syncParentSelection(prevSystemsRef.current, activeSelectedSystems, onSystemChange);
+        prevSystemsRef.current = activeSelectedSystems;
+    }, [activeSelectedSystems, onSystemChange]);
+
+    const prevLayersRef = useRef(activeSelectedLayers);
+    useEffect(() => {
+        syncParentSelection(prevLayersRef.current, activeSelectedLayers, onLayerChange);
+        prevLayersRef.current = activeSelectedLayers;
+    }, [activeSelectedLayers, onLayerChange]);
+
+    const prevDevicesRef = useRef(activeSelectedDevices);
+    useEffect(() => {
+        syncParentSelection(prevDevicesRef.current, activeSelectedDevices, onDeviceChange);
+        prevDevicesRef.current = activeSelectedDevices;
+    }, [activeSelectedDevices, onDeviceChange]);
+
+    const mutateCompositeSelection = (mutator) => {
+        setSelectedCompositeIds(prev => {
+            const next = new Set(prev);
+            mutator(next, prev);
             return next;
         });
     };
-    const handleLayerToggle = (id) => {
-        setSelectedLayers(prev => {
-            const next = toggleIn(prev, id);
-            onLayerChange && onLayerChange({ target: { value: id } });
+
+    useEffect(() => {
+        setSelectedCompositeIds(prev => {
+            const next = new Set();
+            let changed = false;
+            for (const cid of prev) {
+                if (compositeMeta.has(cid)) next.add(cid);
+                else changed = true;
+            }
+            if (!changed) return prev;
             return next;
         });
-    };
-    const handleDeviceToggle = (id) => {
-        setSelectedDevices(prev => {
-            const next = toggleIn(prev, id);
-            onDeviceChange && onDeviceChange({ target: { value: id } });
-            return next;
+    }, [compositeMeta]);
+
+    const handleSystemToggle = (system) => {
+        if (!system) return;
+        mutateCompositeSelection((next, prev) => {
+            const cids = system.layers.flatMap(layer => layer.devices.map(dev => dev.compositeId));
+            const shouldSelect = cids.some(cid => !prev.has(cid));
+            cids.forEach(cid => {
+                if (shouldSelect) next.add(cid);
+                else next.delete(cid);
+            });
         });
     };
 
-    const handleAllSystems = () => {
-        setSelectedSystems(prev => {
-            systems.forEach(id => {
-                if (!prev.includes(id)) {
-                    onSystemChange && onSystemChange({ target: { value: id } });
-                }
+    const handleLayerToggle = (layer) => {
+        if (!layer) return;
+        mutateCompositeSelection((next, prev) => {
+            const cids = layer.devices.map(dev => dev.compositeId);
+            const shouldSelect = cids.some(cid => !prev.has(cid));
+            cids.forEach(cid => {
+                if (shouldSelect) next.add(cid);
+                else next.delete(cid);
             });
-            return [...systems];
         });
     };
 
-    const handleNoneSystems = () => {
-        setSelectedSystems(prev => {
-            prev.forEach(id => {
-                onSystemChange && onSystemChange({ target: { value: id } });
-            });
-            return [];
+    const handleDeviceToggle = (device, checked) => {
+        if (!device) return;
+        mutateCompositeSelection((next) => {
+            if (checked) next.add(device.compositeId);
+            else next.delete(device.compositeId);
         });
     };
 
-    const handleAllLayers  = () => {
-        setSelectedLayers(prev => {
-            layers.forEach(id => {
-                if (!prev.includes(id)) {
-                    onLayerChange && onLayerChange({ target: { value: id } });
-                }
-            });
-            return [...layers];
+    const handleCompositeToggle = (cid, checked) => {
+        const meta = compositeMeta.get(cid);
+        if (!meta) return;
+        mutateCompositeSelection((next) => {
+            if (checked) next.add(cid);
+            else next.delete(cid);
         });
     };
 
-    const handleNoneLayers = () => {
-        setSelectedLayers(prev => {
-            prev.forEach(id => {
-                onLayerChange && onLayerChange({ target: { value: id } });
-            });
-            return [];
-        });
+    const handleSelectAllLocations = () => {
+        setSelectedCompositeIds(new Set(compositeIds));
     };
 
-    const handleAllDevices = () => {
-        setSelectedDevices(prev => {
-            devices.forEach(id => {
-                if (!prev.includes(id)) {
-                    onDeviceChange && onDeviceChange({ target: { value: id } });
-                }
-            });
-            return [...devices];
-        });
-    };
-
-    const handleNoneDevices= () => {
-        setSelectedDevices(prev => {
-            prev.forEach(id => {
-                onDeviceChange && onDeviceChange({ target: { value: id } });
-            });
-            return [];
-        });
+    const handleClearLocations = () => {
+        setSelectedCompositeIds(new Set());
     };
 
     // filtered catalog devices according to location selection
     const filteredCatalogDevices = useMemo(() => {
         const all = catalog?.devices || [];
         return all.filter(d => {
-            const sysOk = !selectedSystems.length || selectedSystems.includes(d.systemId);
-            const layOk = !selectedLayers.length  || selectedLayers.includes(d.layerId);
-            const devOk = !selectedDevices.length || selectedDevices.includes(d.deviceId);
+            const systemId = ensureString(d.systemId ?? d.system?.id);
+            const layerId = ensureString(d.layerId ?? d.layer?.id);
+            const deviceId = ensureString(d.deviceId ?? d.id ?? d.device?.id);
+            const sysOk = !activeSelectedSystems.length || activeSelectedSystems.includes(systemId);
+            const layOk = !activeSelectedLayers.length  || activeSelectedLayers.includes(layerId);
+            const devOk = !activeSelectedDevices.length || activeSelectedDevices.includes(deviceId);
             return sysOk && layOk && devOk;
         });
-    }, [catalog, selectedSystems, selectedLayers, selectedDevices]);
+    }, [catalog, activeSelectedSystems, activeSelectedLayers, activeSelectedDevices]);
 
     // composite checkbox state derived from location selection
-    const isCompositeChecked = (cid) => {
-        const [s, l, d] = cid.split('-');
-        return selectedSystems.includes(s) &&
-            selectedLayers.includes(l) &&
-            selectedDevices.includes(d);
-    };
+    const isCompositeChecked = (cid) => selectedCompositeIds.has(cid);
 
 
     // sensors: before any location selection, everything disabled (tests expect this)
     const hasAnyLocationSelection =
-        selectedSystems.length > 0 || selectedLayers.length > 0 || selectedDevices.length > 0;
+        activeSelectedSystems.length > 0 || activeSelectedLayers.length > 0 || activeSelectedDevices.length > 0;
     const baseDevicesForUnion = hasAnyLocationSelection ? filteredCatalogDevices : [];
 
     const sensorGroups = useMemo(() => {
@@ -263,17 +526,6 @@ export default function ReportFiltersCompare(props) {
     const blue  = {options: sensorGroups.blue,  values: blueProp?.values  || []};
     const red   = {options: sensorGroups.red,   values: redProp?.values   || []};
     const airq  = {options: sensorGroups.airq,  values: airqProp?.values  || []};
-
-    // English: clicking a composite id should also select related location checkboxes
-    const handleCompositeToggle = (cid, checked) => {
-        const [s, l, d] = cid.split("-");
-        setSelectedSystems(prev => checked ? Array.from(new Set([...prev, s])) : prev.filter(x => x !== s));
-        setSelectedLayers(prev  => checked ? Array.from(new Set([...prev, l])) : prev.filter(x => x !== l));
-        setSelectedDevices(prev => checked ? Array.from(new Set([...prev, d])) : prev.filter(x => x !== d));
-        onSystemChange && onSystemChange({ target: { value: s } });
-        onLayerChange  && onLayerChange({ target: { value: l } });
-        onDeviceChange && onDeviceChange({ target: { value: d } });
-    };
 
     return (
         <div className={styles.rf}>
@@ -303,69 +555,176 @@ export default function ReportFiltersCompare(props) {
             {/* Location */}
             <div className={styles.block}>
                 <h4>Location</h4>
-                <div className={`${styles.row} ${styles.cols4}`}>
-                    {/* Systems */}
-                    <div className={styles.group}>
-                        <div className={styles.groupTitle}>Systems</div>
-                        <AllNone name="sys-allnone" onAll={handleAllSystems} onNone={handleNoneSystems}/>
-                        <div className={styles.checklist}>
-                            {systems.map(s => (
-                                <label key={s} className={styles.item}>
-                                    <input type="checkbox" checked={selectedSystems.includes(s)} onChange={() => handleSystemToggle(s)} />
-                                    {s}
-                                </label>
-                            ))}
+                {isLegacyMode ? (
+                    <div className={`${styles.row} ${styles.cols4}`}>
+                        <div className={styles.group}>
+                            <div className={styles.groupTitle}>Systems</div>
+                            <AllNone name="sys-allnone" onAll={handleLegacyAllSystems} onNone={handleLegacyNoneSystems}/>
+                            <div className={styles.checklist}>
+                                {legacySystems.map(s => (
+                                    <label key={s} className={styles.item}>
+                                        <input
+                                            type="checkbox"
+                                            checked={legacySelectedSystems.includes(s)}
+                                            onChange={() => handleLegacySystemToggle(s)}
+                                        />
+                                        {s}
+                                    </label>
+                                ))}
+                                {!legacySystems.length && (
+                                    <span className={styles.emptyState}>No systems found.</span>
+                                )}
+                            </div>
                         </div>
-                    </div>
-
-                    {/* Layers */}
-                    <div className={styles.group}>
-                        <div className={styles.groupTitle}>Layers</div>
-                        <AllNone name="lay-allnone" onAll={handleAllLayers} onNone={handleNoneLayers}/>
-                        <div className={styles.checklist}>
-                            {layers.map(l => (
-                                <label key={l} className={styles.item}>
-                                    <input type="checkbox" checked={selectedLayers.includes(l)} onChange={() => handleLayerToggle(l)} />
-                                    {l}
-                                </label>
-                            ))}
+                        <div className={styles.group}>
+                            <div className={styles.groupTitle}>Layers</div>
+                            <AllNone name="lay-allnone" onAll={handleLegacyAllLayers} onNone={handleLegacyNoneLayers}/>
+                            <div className={styles.checklist}>
+                                {legacyLayers.map(l => (
+                                    <label key={l} className={styles.item}>
+                                        <input
+                                            type="checkbox"
+                                            checked={legacySelectedLayers.includes(l)}
+                                            onChange={() => handleLegacyLayerToggle(l)}
+                                        />
+                                        {l}
+                                    </label>
+                                ))}
+                                {!legacyLayers.length && (
+                                    <span className={styles.emptyState}>No layers found.</span>
+                                )}
+                            </div>
                         </div>
-                    </div>
-
-                    {/* Devices */}
-                    <div className={styles.group}>
-                        <div className={styles.groupTitle}>Devices</div>
-                        <AllNone name="dev-allnone" onAll={handleAllDevices} onNone={handleNoneDevices}/>
-                        <div className={styles.checklist}>
-                            {devices.map(d => (
-                                <label key={d} className={styles.item}>
-                                    <input type="checkbox" checked={selectedDevices.includes(d)} onChange={() => handleDeviceToggle(d)} />
-                                    {d}
-                                </label>
-                            ))}
+                        <div className={styles.group}>
+                            <div className={styles.groupTitle}>Devices</div>
+                            <AllNone name="dev-allnone" onAll={handleLegacyAllDevices} onNone={handleLegacyNoneDevices}/>
+                            <div className={styles.checklist}>
+                                {legacyDevices.map(d => (
+                                    <label key={d} className={styles.item}>
+                                        <input
+                                            type="checkbox"
+                                            checked={legacySelectedDevices.includes(d)}
+                                            onChange={() => handleLegacyDeviceToggle(d)}
+                                        />
+                                        {d}
+                                    </label>
+                                ))}
+                                {!legacyDevices.length && (
+                                    <span className={styles.emptyState}>No devices found.</span>
+                                )}
+                            </div>
                         </div>
-                    </div>
-
-                    {/* Composite IDs */}
-                    <div className={styles.group}>
-                        <div className={styles.groupTitle}>Device Composite IDs</div>
-                        <div className={styles.checklist}>
-                            {compositeIds.map(id => {
-                                const checked = isCompositeChecked(id);
-                                return (
+                        <div className={`${styles.group} ${styles.compositeGroup}`}>
+                            <div className={styles.groupTitle}>Device Composite IDs</div>
+                            <div className={styles.checklist}>
+                                {compositeIds.map(id => (
                                     <label key={id} className={styles.item}>
                                         <input
                                             type="checkbox"
-                                            checked={checked}
+                                            checked={isCompositeChecked(id)}
                                             onChange={(e) => handleCompositeToggle(id, e.target.checked)}
+                                            aria-label={id}
                                         />
                                         {id}
                                     </label>
-                                );
-                            })}
+                                ))}
+                                {!compositeIds.length && (
+                                    <span className={styles.emptyState}>No composite IDs found.</span>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
+                ) : (
+                    <div className={styles.locationRow}>
+                        <div className={styles.treeCard}>
+                            <div className={styles.treeHead}>
+                                <div className={styles.groupTitle}>Systems · Layers · Devices</div>
+                                <AllNone name="loc-tree" onAll={handleSelectAllLocations} onNone={handleClearLocations}/>
+                            </div>
+                            <div className={styles.treeList}>
+                                {locationSystems.map(system => {
+                                    const systemChecked = activeSelectedSystems.includes(system.id);
+                                    const deviceCount = system.layers.reduce((acc, layer) => acc + layer.devices.length, 0);
+                                    return (
+                                        <div key={system.id} className={styles.systemRow}>
+                                            <label className={`${styles.item} ${styles.systemItem}`}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={systemChecked}
+                                                    onChange={() => handleSystemToggle(system)}
+                                                    aria-label={system.label}
+                                                />
+                                                <span className={styles.systemLabel}>{system.label}</span>
+                                                <span className={styles.badge}>{deviceCount}</span>
+                                            </label>
+                                            <div className={styles.layerList}>
+                                                {system.layers.map(layer => {
+                                                    const layerChecked = activeSelectedLayers.includes(layer.id);
+                                                    return (
+                                                        <div key={`${system.id}-${layer.id}`} className={styles.layerRow}>
+                                                            <label className={`${styles.item} ${styles.layerItem}`}>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={layerChecked}
+                                                                    onChange={() => handleLayerToggle(layer)}
+                                                                    aria-label={layer.label}
+                                                                />
+                                                                <span className={styles.layerLabel}>{layer.label}</span>
+                                                                <span className={styles.badge}>{layer.devices.length}</span>
+                                                            </label>
+                                                            <div className={styles.deviceList}>
+                                                                {layer.devices.map(device => {
+                                                                    const checked = isCompositeChecked(device.compositeId);
+                                                                    return (
+                                                                        <label
+                                                                            key={device.compositeId}
+                                                                            className={`${styles.item} ${styles.deviceItem}`}
+                                                                        >
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={checked}
+                                                                                onChange={(e) => handleDeviceToggle(device, e.target.checked)}
+                                                                                aria-label={device.label}
+                                                                            />
+                                                                            <span className={styles.deviceLabel}>{device.label}</span>
+                                                                            <span className={styles.deviceCid}>{device.compositeId}</span>
+                                                                        </label>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        <div className={`${styles.group} ${styles.compositeGroup}`}>
+                            <div className={styles.groupTitle}>Device Composite IDs</div>
+                            <div className={styles.checklist}>
+                                {compositeIds.map(id => {
+                                    const checked = isCompositeChecked(id);
+                                    return (
+                                        <label key={id} className={styles.item}>
+                                            <input
+                                                type="checkbox"
+                                                checked={checked}
+                                                onChange={(e) => handleCompositeToggle(id, e.target.checked)}
+                                                aria-label={id}
+                                            />
+                                            {id}
+                                        </label>
+                                    );
+                                })}
+                                {!compositeIds.length && (
+                                    <span className={styles.emptyState}>No composite IDs found.</span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Sensor Types */}
