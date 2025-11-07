@@ -446,6 +446,15 @@ export default function ReportFiltersCompare(props) {
         });
     };
 
+    const handleCompositeToggle = (cid, checked) => {
+        const compositeId = ensureString(cid);
+        if (!compositeId) return;
+        mutateCompositeSelection((next) => {
+            if (checked) next.add(compositeId);
+            else next.delete(compositeId);
+        });
+    };
+
     const handleSelectAllLocations = () => {
         setSelectedCompositeIds(new Set(compositeIds));
     };
@@ -656,10 +665,32 @@ export default function ReportFiltersCompare(props) {
                                                                     </div>
                                                                 );
                                                             })}
-                                                        </div>
                                                     </div>
+                                                </div>
+                                            );
+                                        })}
+                                        </div>
+                                    </div>
+                                    <div className={`${styles.group} ${styles.compositeGroup}`}>
+                                        <div className={styles.groupTitle}>Composite IDs</div>
+                                        <div className={styles.checklist}>
+                                            {compositeIds.map((cid) => {
+                                                const checked = isCompositeChecked(cid);
+                                                return (
+                                                    <label key={cid} className={styles.item}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checked}
+                                                            onChange={(e) => handleCompositeToggle(cid, e.target.checked)}
+                                                            aria-label={cid}
+                                                        />
+                                                        {cid}
+                                                    </label>
                                                 );
                                             })}
+                                            {!compositeIds.length && (
+                                                <span className={styles.emptyState}>No composite IDs found.</span>
+                                            )}
                                         </div>
                                     </div>
                                 </>
