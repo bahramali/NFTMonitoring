@@ -446,15 +446,6 @@ export default function ReportFiltersCompare(props) {
         });
     };
 
-    const handleCompositeToggle = (cid, checked) => {
-        const meta = compositeMeta.get(cid);
-        if (!meta) return;
-        mutateCompositeSelection((next) => {
-            if (checked) next.add(cid);
-            else next.delete(cid);
-        });
-    };
-
     const handleSelectAllLocations = () => {
         setSelectedCompositeIds(new Set(compositeIds));
     };
@@ -603,25 +594,6 @@ export default function ReportFiltersCompare(props) {
                                             )}
                                         </div>
                                     </div>
-                                    <div className={`${styles.group} ${styles.compositeGroup}`}>
-                                        <div className={styles.groupTitle}>Device Composite IDs</div>
-                                        <div className={styles.checklist}>
-                                            {compositeIds.map(id => (
-                                                <label key={id} className={styles.item}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={isCompositeChecked(id)}
-                                                        onChange={(e) => handleCompositeToggle(id, e.target.checked)}
-                                                        aria-label={id}
-                                                    />
-                                                    {id}
-                                                </label>
-                                            ))}
-                                            {!compositeIds.length && (
-                                                <span className={styles.emptyState}>No composite IDs found.</span>
-                                            )}
-                                        </div>
-                                    </div>
                                 </>
                             ) : (
                                 <>
@@ -688,28 +660,6 @@ export default function ReportFiltersCompare(props) {
                                                     </div>
                                                 );
                                             })}
-                                        </div>
-                                    </div>
-                                    <div className={`${styles.group} ${styles.compositeGroup}`}>
-                                        <div className={styles.groupTitle}>Device Composite IDs</div>
-                                        <div className={styles.checklist}>
-                                            {compositeIds.map(id => {
-                                                const checked = isCompositeChecked(id);
-                                                return (
-                                                    <label key={id} className={styles.item}>
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={checked}
-                                                            onChange={(e) => handleCompositeToggle(id, e.target.checked)}
-                                                            aria-label={id}
-                                                        />
-                                                        {id}
-                                                    </label>
-                                                );
-                                            })}
-                                            {!compositeIds.length && (
-                                                <span className={styles.emptyState}>No composite IDs found.</span>
-                                            )}
                                         </div>
                                     </div>
                                 </>
