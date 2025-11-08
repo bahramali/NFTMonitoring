@@ -27,11 +27,11 @@ test('location tree is collapsed by default and expands on demand', async () => 
     />
   );
 
-  expect(screen.queryByLabelText('S01')).not.toBeInTheDocument();
+  expect(screen.queryByText('S01')).not.toBeInTheDocument();
 
   fireEvent.click(screen.getByRole('button', { name: /expand systems list/i }));
 
-  expect(await screen.findByLabelText('S01')).toBeInTheDocument();
+  expect(await screen.findByText('S01')).toBeInTheDocument();
   expect(screen.getByLabelText('Device 1')).toBeInTheDocument();
 });
 
@@ -62,7 +62,7 @@ test('selecting a device updates summary and triggers apply handler', async () =
   expect(labels.length).toBeGreaterThan(0);
 });
 
-test('selecting a system selects all nested devices', async () => {
+test('collapsing a system hides its layers and devices', async () => {
   render(
     <ReportFiltersCompare
       fromDate=""
@@ -76,9 +76,17 @@ test('selecting a system selects all nested devices', async () => {
 
   fireEvent.click(screen.getByRole('button', { name: /expand systems list/i }));
 
-  fireEvent.click(await screen.findByLabelText('S02'));
+  const collapseButton = await screen.findByRole('button', { name: /collapse s01/i });
+
+  expect(screen.queryByLabelText('S01')).not.toBeInTheDocument();
+
+  fireEvent.click(collapseButton);
 
   await waitFor(() => {
-    expect(screen.getByLabelText('Device 2')).toBeChecked();
+    expect(screen.queryByText('Device 1')).not.toBeInTheDocument();
   });
+
+  fireEvent.click(screen.getByRole('button', { name: /expand s01/i }));
+
+  expect(await screen.findByText('Device 1')).toBeInTheDocument();
 });
