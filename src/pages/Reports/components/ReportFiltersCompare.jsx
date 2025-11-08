@@ -278,6 +278,7 @@ export default function ReportFiltersCompare(props) {
     const [legacySelectedSystems, setLegacySelectedSystems] = useState([]);
     const [legacySelectedLayers, setLegacySelectedLayers] = useState([]);
     const [legacySelectedDevices, setLegacySelectedDevices] = useState([]);
+    const [isTreeCollapsed, setIsTreeCollapsed] = useState(true);
 
     const legacySystems = useMemo(() => {
         if (systemsProp.length) return systemsProp;
@@ -448,15 +449,6 @@ export default function ReportFiltersCompare(props) {
         });
     };
 
-    const handleCompositeToggle = (cid, checked) => {
-        const compositeId = ensureString(cid);
-        if (!compositeId) return;
-        mutateCompositeSelection((next) => {
-            if (checked) next.add(compositeId);
-            else next.delete(compositeId);
-        });
-    };
-
     const handleSelectAllLocations = () => {
         setSelectedCompositeIds(new Set(compositeIds));
     };
@@ -515,6 +507,23 @@ export default function ReportFiltersCompare(props) {
 
     const selectedCompositeCount = selectedCompositeIds.size;
     const totalCompositeCount = compositeIds.length;
+
+    const selectedDeviceNames = useMemo(() => {
+        if (!selectedCompositeIds.size) return [];
+        const names = new Set();
+        selectedCompositeIds.forEach((cid) => {
+            const meta = compositeMeta.get(cid);
+            const label = meta?.labels?.device || cid;
+            if (label) names.add(label);
+        });
+        return Array.from(names);
+    }, [selectedCompositeIds, compositeMeta]);
+
+    useEffect(() => {
+        if (typeof onApply === 'function' && selectedCompositeIds.size > 0) {
+            onApply();
+        }
+    }, [selectedCompositeIds, onApply]);
 
     const containerClassName = [
         styles.rf,
@@ -614,92 +623,85 @@ export default function ReportFiltersCompare(props) {
                                 </>
                             ) : (
                                 <>
-                                    <div className={styles.treeCard}>
+                                    <div className={`${styles.treeCard} ${isTreeCollapsed ? styles.treeCollapsed : ''}`}>
                                         <div className={styles.treeHead}>
                                             <div className={styles.groupTitle}>Systems · Layers · Devices</div>
-                                            <AllNone name="loc-tree" onAll={handleSelectAllLocations} onNone={handleClearLocations}/>
+                                            <div className={styles.treeActions}>
+                                                {!isTreeCollapsed && (
+                                                    <AllNone name="loc-tree" onAll={handleSelectAllLocations} onNone={handleClearLocations}/>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    className={styles.collapseToggle}
+                                                    onClick={() => setIsTreeCollapsed(prev => !prev)}
+                                                    aria-expanded={!isTreeCollapsed}
+                                                    aria-label={isTreeCollapsed ? 'Expand systems list' : 'Collapse systems list'}
+                                                >
+                                                    {isTreeCollapsed ? 'Expand' : 'Collapse'}
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div className={styles.treeList}>
-                                            {locationSystems.map(system => {
-                                                const systemChecked = activeSelectedSystems.includes(system.id);
-                                                const deviceCount = system.layers.reduce((acc, layer) => acc + layer.devices.length, 0);
-                                                return (
-                                                    <div key={system.id} className={styles.systemRow}>
-                                                        <label className={`${styles.item} ${styles.systemItem}`}>
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={systemChecked}
-                                                                onChange={() => handleSystemToggle(system)}
-                                                                aria-label={system.label}
-                                                            />
-                                                            <span className={styles.systemLabel}>{system.label}</span>
-                                                            <span className={styles.badge}>{deviceCount}</span>
-                                                        </label>
-                                                        <div className={styles.layerList}>
-                                                            {system.layers.map(layer => {
-                                                                const layerChecked = activeSelectedLayers.includes(layer.id);
-                                                                return (
-                                                                    <div key={`${system.id}-${layer.id}`} className={styles.layerRow}>
-                                                                        <label className={`${styles.item} ${styles.layerItem}`}>
-                                                                            <input
-                                                                                type="checkbox"
-                                                                                checked={layerChecked}
-                                                                                onChange={() => handleLayerToggle(layer)}
-                                                                                aria-label={layer.label}
-                                                                            />
-                                                                            <span className={styles.layerLabel}>{layer.label}</span>
-                                                                            <span className={styles.badge}>{layer.devices.length}</span>
-                                                                        </label>
-                                                                        <div className={styles.deviceList}>
-                                                                            {layer.devices.map(device => {
-                                                                                const checked = isCompositeChecked(device.compositeId);
-                                                                                return (
-                                                                                    <label
-                                                                                        key={device.compositeId}
-                                                                                        className={`${styles.item} ${styles.deviceItem}`}
-                                                                                    >
-                                                                                        <input
-                                                                                            type="checkbox"
-                                                                                            checked={checked}
-                                                                                            onChange={(e) => handleDeviceToggle(device, e.target.checked)}
-                                                                                            aria-label={device.label}
-                                                                                        />
-                                                                                        <span className={styles.deviceLabel}>{device.label}</span>
-                                                                                        <span className={styles.deviceCid}>{device.compositeId}</span>
-                                                                                    </label>
-                                                                                );
-                                                                            })}
+                                        {!isTreeCollapsed && (
+                                            <div className={styles.treeList}>
+                                                {locationSystems.map(system => {
+                                                    const systemChecked = activeSelectedSystems.includes(system.id);
+                                                    const deviceCount = system.layers.reduce((acc, layer) => acc + layer.devices.length, 0);
+                                                    return (
+                                                        <div key={system.id} className={styles.systemRow}>
+                                                            <label className={`${styles.item} ${styles.systemItem}`}>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={systemChecked}
+                                                                    onChange={() => handleSystemToggle(system)}
+                                                                    aria-label={system.label}
+                                                                />
+                                                                <span className={styles.systemLabel}>{system.label}</span>
+                                                                <span className={styles.badge}>{deviceCount}</span>
+                                                            </label>
+                                                            <div className={styles.layerList}>
+                                                                {system.layers.map(layer => {
+                                                                    const layerChecked = activeSelectedLayers.includes(layer.id);
+                                                                    return (
+                                                                        <div key={`${system.id}-${layer.id}`} className={styles.layerRow}>
+                                                                            <label className={`${styles.item} ${styles.layerItem}`}>
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    checked={layerChecked}
+                                                                                    onChange={() => handleLayerToggle(layer)}
+                                                                                    aria-label={layer.label}
+                                                                                />
+                                                                                <span className={styles.layerLabel}>{layer.label}</span>
+                                                                                <span className={styles.badge}>{layer.devices.length}</span>
+                                                                            </label>
+                                                                            <div className={styles.deviceList}>
+                                                                                {layer.devices.map(device => {
+                                                                                    const checked = isCompositeChecked(device.compositeId);
+                                                                                    return (
+                                                                                        <label
+                                                                                            key={device.compositeId}
+                                                                                            className={`${styles.item} ${styles.deviceItem}`}
+                                                                                        >
+                                                                                            <input
+                                                                                                type="checkbox"
+                                                                                                checked={checked}
+                                                                                                onChange={(e) => handleDeviceToggle(device, e.target.checked)}
+                                                                                                aria-label={device.label}
+                                                                                            />
+                                                                                            <span className={styles.deviceLabel}>{device.label}</span>
+                                                                                            <span className={styles.deviceCid}>{device.compositeId}</span>
+                                                                                        </label>
+                                                                                    );
+                                                                                })}
+                                                                            </div>
                                                                         </div>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                        </div>
-                                    </div>
-                                    <div className={`${styles.group} ${styles.compositeGroup}`}>
-                                        <div className={styles.groupTitle}>Composite IDs</div>
-                                        <div className={styles.checklist}>
-                                            {compositeIds.map((cid) => {
-                                                const checked = isCompositeChecked(cid);
-                                                return (
-                                                    <label key={cid} className={styles.item}>
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={checked}
-                                                            onChange={(e) => handleCompositeToggle(cid, e.target.checked)}
-                                                            aria-label={cid}
-                                                        />
-                                                        {cid}
-                                                    </label>
-                                                );
-                                            })}
-                                            {!compositeIds.length && (
-                                                <span className={styles.emptyState}>No composite IDs found.</span>
-                                            )}
-                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
                                 </>
                             )}
@@ -717,12 +719,6 @@ export default function ReportFiltersCompare(props) {
                         </div>
                     </div>
 
-                    <div className={`${styles.block} ${styles.actionsBlock}`}>
-                        <button type="button" className={styles.btn} onClick={onApply}>Apply</button>
-                        <button type="button" className={styles.btn} onClick={onReset}>Reset</button>
-                        <button type="button" className={`${styles.btn} ${styles.primary}`} onClick={onAddCompare}>Add to Compare</button>
-                        <button type="button" className={styles.btn} onClick={onExportCsv}>Export CSV (Table)</button>
-                    </div>
                 </aside>
 
                 <section className={styles.content}>
@@ -733,6 +729,17 @@ export default function ReportFiltersCompare(props) {
                                 {selectedCompositeCount} / {totalCompositeCount || 0} device IDs selected
                             </span>
                         </div>
+                        {selectedDeviceNames.length > 0 ? (
+                            <div className={styles.selectedDevicesRow}>
+                                <span className={styles.summaryLabel}>Selected devices</span>
+                                <span className={styles.selectedDevicesValue}>{selectedDeviceNames.join(', ')}</span>
+                            </div>
+                        ) : (
+                            <div className={styles.selectedDevicesRow}>
+                                <span className={styles.summaryLabel}>Selected devices</span>
+                                <span className={styles.noDeviceSelected}>No device selected</span>
+                            </div>
+                        )}
                         <div className={styles.summaryMeta}>Auto refresh: {autoRefreshValue}</div>
                     </div>
 
