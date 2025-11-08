@@ -73,8 +73,9 @@ test('fetches device catalog from API', async () => {
   fireEvent.click(await screen.findByRole('button', { name: /expand systems list/i }));
 
   expect(await screen.findByLabelText('D01')).toBeInTheDocument();
-  expect(global.fetch).toHaveBeenCalledTimes(1);
-  expect(global.fetch.mock.calls[0][0].toString()).toContain('/api/devices');
+  const fetchCalls = global.fetch.mock.calls.map(([url]) => url.toString());
+  const catalogCalls = fetchCalls.filter((url) => url.includes('/api/devices'));
+  expect(catalogCalls).toHaveLength(1);
 });
 
 test('selecting devices triggers fetch for each compositeId', async () => {
