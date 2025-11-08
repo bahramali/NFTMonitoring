@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ReportFiltersCompare from '../src/pages/Reports/components/ReportFiltersCompare.jsx';
 
@@ -21,6 +21,7 @@ test('enables only sensors for selected device', async () => {
       water={{ options: [], values: [] }}
     />
   );
+  fireEvent.click(screen.getByRole('button', { name: /expand systems list/i }));
   const d1 = await screen.findByLabelText('D1');
   const dissolved = screen.getByLabelText('dissolvedTemp');
   const temperature = screen.getByLabelText('temperature');

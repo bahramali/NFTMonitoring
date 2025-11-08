@@ -37,6 +37,8 @@ test('selecting multiple devices enables union of sensors', async () => {
   expect(humidity).toBeDisabled();
   expect(temperature).toBeDisabled();
 
+  fireEvent.click(screen.getByRole('button', { name: /expand systems list/i }));
+
   const firstDevice = await screen.findByLabelText('D1');
   fireEvent.click(firstDevice);
 

@@ -65,6 +65,6 @@ test('shows report filters when reports route is active', () => {
     );
 
     expect(screen.getByText(/filters/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /apply/i })).toBeInTheDocument();
+    expect(screen.getByText(/timing/i)).toBeInTheDocument();
 });
 

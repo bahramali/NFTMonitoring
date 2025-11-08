@@ -70,13 +70,14 @@ test('fetches device catalog from API', async () => {
     });
 
   renderReportsView();
+  fireEvent.click(await screen.findByRole('button', { name: /expand systems list/i }));
 
-  expect(await screen.findByLabelText('S10-L20-D01')).toBeInTheDocument();
+  expect(await screen.findByLabelText('D01')).toBeInTheDocument();
   expect(global.fetch).toHaveBeenCalledTimes(1);
   expect(global.fetch.mock.calls[0][0].toString()).toContain('/api/devices');
 });
 
-test('Apply sends one request per compositeId', async () => {
+test('selecting devices triggers fetch for each compositeId', async () => {
   const devices = [
     { systemId: 'S01', layerId: 'L01', deviceId: 'G01', sensors: ['ph'] },
     { systemId: 'S01', layerId: 'L01', deviceId: 'G02', sensors: ['lux'] },
@@ -88,20 +89,24 @@ test('Apply sends one request per compositeId', async () => {
     .mockResolvedValue({ ok: true, json: async () => ({ sensors: [] }) });
 
   renderReportsView();
+  fireEvent.click(await screen.findByRole('button', { name: /expand systems list/i }));
 
-  await screen.findByLabelText('S01-L01-G01');
-  await screen.findByLabelText('S01-L01-G02');
-  await screen.findByLabelText('S02-L02-G01');
+  const [deviceA, deviceC] = await screen.findAllByLabelText('G01');
+  const deviceB = await screen.findByLabelText('G02');
 
-  fireEvent.click(await screen.findByRole('button', { name: /apply/i }));
+  fireEvent.click(deviceA);
+  fireEvent.click(deviceB);
+  fireEvent.click(deviceC);
 
   await waitFor(() => {
-    expect(global.fetch).toHaveBeenCalledTimes(1 + devices.length);
+    const historyCalls = global.fetch.mock.calls
+      .map(([url]) => url.toString())
+      .filter((url) => url.includes('/api/records/history'));
+    expect(historyCalls.length).toBeGreaterThanOrEqual(3);
+    expect(historyCalls.some((u) => u.includes('compositeId=S01-L01-G01'))).toBe(true);
+    expect(historyCalls.some((u) => u.includes('compositeId=S01-L01-G02'))).toBe(true);
+    expect(historyCalls.some((u) => u.includes('compositeId=S02-L02-G01'))).toBe(true);
   });
-  const called = global.fetch.mock.calls.slice(1).map((c) => c[0].toString());
-  expect(called.some((u) => u.includes('compositeId=S01-L01-G01'))).toBe(true);
-  expect(called.some((u) => u.includes('compositeId=S01-L01-G02'))).toBe(true);
-  expect(called.some((u) => u.includes('compositeId=S02-L02-G01'))).toBe(true);
 });
 
 test('filters by Composite ID selection only fetches selected CIDs', async () => {
@@ -115,24 +120,40 @@ test('filters by Composite ID selection only fetches selected CIDs', async () =>
     .mockResolvedValue({ ok: true, json: async () => ({ sensors: [] }) });
 
   renderReportsView();
+  fireEvent.click(await screen.findByRole('button', { name: /expand systems list/i }));
 
-  const cid1 = await screen.findByLabelText('S01-L01-G01');
-  const cid2 = await screen.findByLabelText('S01-L01-G02');
+  const [device1] = await screen.findAllByLabelText('G01');
+  const device2 = await screen.findByLabelText('G02');
 
-  if (cid1.checked) fireEvent.click(cid1);
-  if (!cid2.checked) fireEvent.click(cid2);
+  fireEvent.click(device1);
+  fireEvent.click(device2);
 
   await waitFor(() => {
-    expect(cid1.checked).toBe(false);
-    expect(cid2.checked).toBe(true);
+    const historyCalls = global.fetch.mock.calls
+      .map(([url]) => url.toString())
+      .filter((url) => url.includes('/api/records/history'));
+    expect(historyCalls.length).toBeGreaterThanOrEqual(2);
   });
 
-  fireEvent.click(screen.getByRole('button', { name: /apply/i }));
+  global.fetch.mockClear();
+  global.fetch.mockResolvedValue({ ok: true, json: async () => ({ sensors: [] }) });
 
-  await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+  fireEvent.click(device1);
 
-  const url = global.fetch.mock.calls[1][0].toString();
-  expect(url.includes('compositeId=S01-L01-G02')).toBe(true);
-  expect(url.includes('compositeId=S01-L01-G01')).toBe(false);
+  await waitFor(() => {
+    expect(global.fetch).toHaveBeenCalled();
+  });
+
+  const newCalls = global.fetch.mock.calls;
+  const historyCalls = newCalls
+    .map(([url]) => url.toString())
+    .filter((url) => url.includes('/api/records/history'));
+
+  expect(historyCalls.length).toBeGreaterThan(0);
+  expect(
+    historyCalls.some((url) =>
+      url.includes('compositeId=S01-L01-G02') && !url.includes('S01-L01-G01')
+    )
+  ).toBe(true);
 });
 
