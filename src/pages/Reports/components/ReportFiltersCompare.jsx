@@ -105,7 +105,7 @@ export default function ReportFiltersCompare(props) {
         onToggleWater, onToggleLight, onToggleBlue, onToggleRed, onToggleAirq,
         onAllWater, onNoneWater, onAllLight, onNoneLight, onAllBlue, onNoneBlue, onAllRed, onNoneRed, onAllAirq, onNoneAirq,
 
-        onReset, onAddCompare, onExportCsv, rangeLabel,
+        rangeLabel,
         compareItems = [], onClearCompare, onRemoveCompare,
         catalog: catalogProp,
     } = props;
@@ -275,6 +275,37 @@ export default function ReportFiltersCompare(props) {
 
     const { systems: locationSystems, compositeIds, compositeMeta } = locationData;
 
+    useEffect(() => {
+        setCollapsedSystems(prev => {
+            if (!prev.size) return prev;
+            const validSystemIds = new Set(locationSystems.map(system => system.id));
+            let changed = false;
+            const next = new Set();
+            prev.forEach(id => {
+                if (validSystemIds.has(id)) next.add(id);
+                else changed = true;
+            });
+            return changed ? next : prev;
+        });
+
+        setCollapsedLayers(prev => {
+            if (!prev.size) return prev;
+            const validLayerKeys = new Set();
+            locationSystems.forEach(system => {
+                system.layers.forEach(layer => {
+                    validLayerKeys.add(`${system.id}::${layer.id}`);
+                });
+            });
+            let changed = false;
+            const next = new Set();
+            prev.forEach(key => {
+                if (validLayerKeys.has(key)) next.add(key);
+                else changed = true;
+            });
+            return changed ? next : prev;
+        });
+    }, [locationSystems]);
+
     const [legacySelectedSystems, setLegacySelectedSystems] = useState([]);
     const [legacySelectedLayers, setLegacySelectedLayers] = useState([]);
     const [legacySelectedDevices, setLegacySelectedDevices] = useState([]);
@@ -337,6 +368,8 @@ export default function ReportFiltersCompare(props) {
     };
 
     const [selectedCompositeIds, setSelectedCompositeIds] = useState(() => new Set());
+    const [collapsedSystems, setCollapsedSystems] = useState(() => new Set());
+    const [collapsedLayers, setCollapsedLayers] = useState(() => new Set());
 
     const isLegacyMode = locationSystems.length === 0;
 
@@ -404,6 +437,26 @@ export default function ReportFiltersCompare(props) {
         });
     };
 
+    const toggleSystemCollapse = (systemId) => {
+        if (!systemId) return;
+        setCollapsedSystems(prev => {
+            const next = new Set(prev);
+            if (next.has(systemId)) next.delete(systemId);
+            else next.add(systemId);
+            return next;
+        });
+    };
+
+    const toggleLayerCollapse = (layerKey) => {
+        if (!layerKey) return;
+        setCollapsedLayers(prev => {
+            const next = new Set(prev);
+            if (next.has(layerKey)) next.delete(layerKey);
+            else next.add(layerKey);
+            return next;
+        });
+    };
+
     useEffect(() => {
         setSelectedCompositeIds(prev => {
             const next = new Set();
@@ -416,30 +469,6 @@ export default function ReportFiltersCompare(props) {
             return next;
         });
     }, [compositeMeta]);
-
-    const handleSystemToggle = (system) => {
-        if (!system) return;
-        mutateCompositeSelection((next, prev) => {
-            const cids = system.layers.flatMap(layer => layer.devices.map(dev => dev.compositeId));
-            const shouldSelect = cids.some(cid => !prev.has(cid));
-            cids.forEach(cid => {
-                if (shouldSelect) next.add(cid);
-                else next.delete(cid);
-            });
-        });
-    };
-
-    const handleLayerToggle = (layer) => {
-        if (!layer) return;
-        mutateCompositeSelection((next, prev) => {
-            const cids = layer.devices.map(dev => dev.compositeId);
-            const shouldSelect = cids.some(cid => !prev.has(cid));
-            cids.forEach(cid => {
-                if (shouldSelect) next.add(cid);
-                else next.delete(cid);
-            });
-        });
-    };
 
     const handleDeviceToggle = (device, checked) => {
         if (!device) return;
@@ -644,59 +673,74 @@ export default function ReportFiltersCompare(props) {
                                         {!isTreeCollapsed && (
                                             <div className={styles.treeList}>
                                                 {locationSystems.map(system => {
-                                                    const systemChecked = activeSelectedSystems.includes(system.id);
                                                     const deviceCount = system.layers.reduce((acc, layer) => acc + layer.devices.length, 0);
+                                                    const isSystemCollapsed = collapsedSystems.has(system.id);
                                                     return (
                                                         <div key={system.id} className={styles.systemRow}>
-                                                            <label className={`${styles.item} ${styles.systemItem}`}>
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={systemChecked}
-                                                                    onChange={() => handleSystemToggle(system)}
-                                                                    aria-label={system.label}
-                                                                />
-                                                                <span className={styles.systemLabel}>{system.label}</span>
-                                                                <span className={styles.badge}>{deviceCount}</span>
-                                                            </label>
-                                                            <div className={styles.layerList}>
-                                                                {system.layers.map(layer => {
-                                                                    const layerChecked = activeSelectedLayers.includes(layer.id);
-                                                                    return (
-                                                                        <div key={`${system.id}-${layer.id}`} className={styles.layerRow}>
-                                                                            <label className={`${styles.item} ${styles.layerItem}`}>
-                                                                                <input
-                                                                                    type="checkbox"
-                                                                                    checked={layerChecked}
-                                                                                    onChange={() => handleLayerToggle(layer)}
-                                                                                    aria-label={layer.label}
-                                                                                />
-                                                                                <span className={styles.layerLabel}>{layer.label}</span>
-                                                                                <span className={styles.badge}>{layer.devices.length}</span>
-                                                                            </label>
-                                                                            <div className={styles.deviceList}>
-                                                                                {layer.devices.map(device => {
-                                                                                    const checked = isCompositeChecked(device.compositeId);
-                                                                                    return (
-                                                                                        <label
-                                                                                            key={device.compositeId}
-                                                                                            className={`${styles.item} ${styles.deviceItem}`}
-                                                                                        >
-                                                                                            <input
-                                                                                                type="checkbox"
-                                                                                                checked={checked}
-                                                                                                onChange={(e) => handleDeviceToggle(device, e.target.checked)}
-                                                                                                aria-label={device.label}
-                                                                                            />
-                                                                                            <span className={styles.deviceLabel}>{device.label}</span>
-                                                                                            <span className={styles.deviceCid}>{device.compositeId}</span>
-                                                                                        </label>
-                                                                                    );
-                                                                                })}
-                                                                            </div>
-                                                                        </div>
-                                                                    );
-                                                                })}
+                                                            <div className={styles.systemHeader}>
+                                                                <div className={styles.systemInfo}>
+                                                                    <span className={styles.systemLabel}>{system.label}</span>
+                                                                    <span className={styles.badge}>{deviceCount}</span>
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    className={styles.collapseToggle}
+                                                                    onClick={() => toggleSystemCollapse(system.id)}
+                                                                    aria-expanded={!isSystemCollapsed}
+                                                                    aria-label={`${isSystemCollapsed ? 'Expand' : 'Collapse'} ${system.label}`}
+                                                                >
+                                                                    {isSystemCollapsed ? 'Expand' : 'Collapse'}
+                                                                </button>
                                                             </div>
+                                                            {!isSystemCollapsed && (
+                                                                <div className={styles.layerList}>
+                                                                    {system.layers.map(layer => {
+                                                                        const layerKey = `${system.id}::${layer.id}`;
+                                                                        const isLayerCollapsed = collapsedLayers.has(layerKey);
+                                                                        return (
+                                                                            <div key={`${system.id}-${layer.id}`} className={styles.layerRow}>
+                                                                                <div className={styles.layerHeader}>
+                                                                                    <div className={styles.layerInfo}>
+                                                                                        <span className={styles.layerLabel}>{layer.label}</span>
+                                                                                        <span className={styles.badge}>{layer.devices.length}</span>
+                                                                                    </div>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        className={styles.collapseToggle}
+                                                                                        onClick={() => toggleLayerCollapse(layerKey)}
+                                                                                        aria-expanded={!isLayerCollapsed}
+                                                                                        aria-label={`${isLayerCollapsed ? 'Expand' : 'Collapse'} ${layer.label}`}
+                                                                                    >
+                                                                                        {isLayerCollapsed ? 'Expand' : 'Collapse'}
+                                                                                    </button>
+                                                                                </div>
+                                                                                {!isLayerCollapsed && (
+                                                                                    <div className={styles.deviceList}>
+                                                                                        {layer.devices.map(device => {
+                                                                                            const checked = isCompositeChecked(device.compositeId);
+                                                                                            return (
+                                                                                                <label
+                                                                                                    key={device.compositeId}
+                                                                                                    className={`${styles.item} ${styles.deviceItem}`}
+                                                                                                >
+                                                                                                    <input
+                                                                                                        type="checkbox"
+                                                                                                        checked={checked}
+                                                                                                        onChange={(e) => handleDeviceToggle(device, e.target.checked)}
+                                                                                                        aria-label={device.label}
+                                                                                                    />
+                                                                                                    <span className={styles.deviceLabel}>{device.label}</span>
+                                                                                                    <span className={styles.deviceCid}>{device.compositeId}</span>
+                                                                                                </label>
+                                                                                            );
+                                                                                        })}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     );
                                                 })}

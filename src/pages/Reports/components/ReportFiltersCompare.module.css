@@ -302,17 +302,27 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     padding-bottom: 0;
 }
 
-.systemItem {
+.systemLabel {
+    font-weight: 600;
+    color: var(--rf-text-strong);
+    flex: 1;
+}
+
+.systemHeader {
+    display: flex;
+    align-items: center;
     justify-content: space-between;
+    gap: 0.5rem;
     background: var(--rf-btn-bg);
     border: 0.0625rem solid var(--rf-border-soft);
     border-radius: 0.5rem;
     padding: 0.375rem 0.5rem;
 }
 
-.systemLabel {
-    font-weight: 600;
-    color: var(--rf-text-strong);
+.systemInfo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     flex: 1;
 }
 
@@ -329,16 +339,26 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     gap: 0.375rem;
 }
 
-.layerItem {
+.layerLabel {
+    color: var(--rf-text-tertiary);
+    flex: 1;
+}
+
+.layerHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
     background: var(--rf-btn-bg);
     border: 0.0625rem solid var(--rf-border-soft);
     border-radius: 0.5rem;
     padding: 0.3125rem 0.5rem;
-    justify-content: space-between;
 }
 
-.layerLabel {
-    color: var(--rf-text-tertiary);
+.layerInfo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     flex: 1;
 }
 
