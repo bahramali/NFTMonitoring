@@ -5,6 +5,18 @@ import {SENSOR_TOPIC} from "./dashboard.constants.js";
 import {isAs7343Sensor, makeMeasurementKey, sanitize} from "./measurementUtils.js";
 
 const EXTREMA_WINDOW_MS = 5 * 60 * 1000;
+const RESERVED_EXTRA_KEYS = new Set([
+    "controllers",
+    "deviceId",
+    "extra",
+    "health",
+    "layer",
+    "meta",
+    "payload",
+    "sensors",
+    "system",
+    "compositeId",
+]);
 
 function mergeControllers(a = [], b = []) {
     const map = new Map();
@@ -107,8 +119,21 @@ export function useLiveDevices(topics) {
             health: payload.health || {},
             ...(loc ? {layer: loc} : {}),
             deviceId: baseId,
-            compositeId
+            compositeId,
+            receivedAt: Date.now()
         };
+
+        if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+            const extras = Object.entries(payload).reduce((acc, [key, value]) => {
+                if (RESERVED_EXTRA_KEYS.has(key)) return acc;
+                if (key === "system") return acc;
+                acc[key] = value;
+                return acc;
+            }, {});
+            if (Object.keys(extras).length > 0) {
+                tableData.extra = extras;
+            }
+        }
 
         setDeviceData(prev => {
             const sys = {...(prev[systemId] || {})};
@@ -138,11 +163,30 @@ export function useLiveDevices(topics) {
             for (const topicKey of Object.keys(sysData)) {
                 for (const [cid, data] of Object.entries(sysData[topicKey])) {
                     const existing = combined[cid] || {};
-                    combined[cid] = {
+                    const extra = {
+                        ...(existing?.extra || {}),
+                        ...(data?.extra || {})
+                    };
+                    const receivedAt = Math.max(
+                        Number.isFinite(existing?.receivedAt) ? existing.receivedAt : 0,
+                        Number.isFinite(data?.receivedAt) ? data.receivedAt : 0
+                    );
+
+                    const merged = {
                         ...existing,
                         ...data,
                         controllers: mergeControllers(existing.controllers, data.controllers)
                     };
+
+                    if (Object.keys(extra).length > 0) {
+                        merged.extra = extra;
+                    }
+
+                    if (receivedAt > 0) {
+                        merged.receivedAt = receivedAt;
+                    }
+
+                    combined[cid] = merged;
                 }
             }
         }

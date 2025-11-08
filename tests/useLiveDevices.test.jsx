@@ -188,3 +188,26 @@ test('constructs compositeId from object layer field', () => {
 
   expect(result.current.sensorData['L01T01'].temperature.value).toBe(20);
 });
+
+test('captures auxiliary payload fields for non-sensor topics', () => {
+  vi.useFakeTimers();
+  const fixedDate = new Date('2024-01-01T00:00:00Z');
+  vi.setSystemTime(fixedDate);
+
+  const { result } = renderHook(() => useLiveDevices(['water_flow']));
+
+  act(() => {
+    global.__stompHandler('water_flow', {
+      deviceId: 'WF01',
+      layer: 'L03',
+      system: 'SYS01',
+      status: 'on',
+    });
+  });
+
+  const topicEntry = result.current.deviceData['SYS01']['water_flow']['L03WF01'];
+  expect(topicEntry.extra).toEqual({ status: 'on' });
+  expect(topicEntry.receivedAt).toBe(fixedDate.getTime());
+
+  vi.useRealTimers();
+});

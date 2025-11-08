@@ -1,7 +1,7 @@
 import React, {useMemo, useState} from "react";
 import Header from "../common/Header";
 import {useLiveDevices} from "../common/useLiveDevices.js";
-import {GERMINATION_TOPIC, bandMap, knownFields, topics} from "../common/dashboard.constants.js";
+import {GERMINATION_TOPIC, WATER_FLOW_TOPIC, bandMap, knownFields, topics} from "../common/dashboard.constants.js";
 import {AS7343_MODEL_KEY, makeMeasurementKey, sanitize} from "../common/measurementUtils.js";
 import spectralColors from "../../spectralColors";
 import {useSensorConfig} from "../../context/SensorConfigContext.jsx";
@@ -9,6 +9,119 @@ import styles from "./LiveDashboard.module.css";
 import {getNftStageContext} from "./nftStages.js";
 
 const META_FIELDS = new Set(["timestamp", "deviceId", "compositeId", "layer"]);
+const WATER_STATUS_KEYS = [
+    "status",
+    "state",
+    "value",
+    "running",
+    "active",
+    "isActive",
+    "isOn",
+    "enabled",
+    "flow",
+    "waterFlow",
+];
+const ON_STRINGS = new Set(["on", "true", "enabled", "running", "active", "open", "flowing", "start", "started"]);
+const OFF_STRINGS = new Set(["off", "false", "disabled", "stopped", "inactive", "closed", "stopping", "stop"]);
+
+function coerceWaterStatus(value) {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "number") {
+        if (Number.isNaN(value)) return null;
+        return value !== 0;
+    }
+    if (typeof value === "string") {
+        const normalized = value.trim().toLowerCase();
+        if (!normalized) return null;
+        if (ON_STRINGS.has(normalized)) return true;
+        if (OFF_STRINGS.has(normalized)) return false;
+        if (!Number.isNaN(Number(normalized))) {
+            return Number(normalized) !== 0;
+        }
+    }
+    return null;
+}
+
+function extractWaterFlowStatus(device = {}) {
+    const extra = device.extra && typeof device.extra === "object" ? device.extra : null;
+    const controllers = Array.isArray(device.controllers) ? device.controllers : [];
+    const candidates = [];
+
+    if (extra) {
+        for (const key of WATER_STATUS_KEYS) {
+            if (extra[key] !== undefined) {
+                candidates.push(extra[key]);
+            }
+        }
+    }
+
+    for (const controller of controllers) {
+        if (!controller || typeof controller !== "object") continue;
+        for (const key of ["state", "status", "value"]) {
+            if (controller[key] !== undefined) {
+                candidates.push(controller[key]);
+            }
+        }
+    }
+
+    for (const candidate of candidates) {
+        const status = coerceWaterStatus(candidate);
+        if (status !== null) {
+            return {
+                isOn: status,
+                label: status ? "On" : "Off",
+                rawValue: candidate,
+                source: device.compositeId || device.deviceId || "",
+            };
+        }
+    }
+
+    return null;
+}
+
+function WaterFlowStatus({status}) {
+    const hasData = status && typeof status.isOn === "boolean";
+    const cardClassNames = [styles.statusCard];
+    if (hasData) {
+        cardClassNames.push(status.isOn ? styles.statusCardOn : styles.statusCardOff);
+    } else {
+        cardClassNames.push(styles.statusCardIdle);
+    }
+
+    const indicatorClassNames = [styles.statusDot];
+    if (hasData) {
+        indicatorClassNames.push(status.isOn ? styles.statusDotOn : styles.statusDotOff);
+    } else {
+        indicatorClassNames.push(styles.statusDotIdle);
+    }
+
+    const updatedLabel = (hasData && status.receivedAt)
+        ? new Date(status.receivedAt).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit", second: "2-digit"})
+        : null;
+
+    return (
+        <div className={styles.statusSection}>
+            <div className={cardClassNames.join(" ")}>
+                <div className={styles.statusHeader}>
+                    <span className={indicatorClassNames.join(" ")} aria-hidden="true"></span>
+                    <span className={styles.statusTitle}>Water Flow</span>
+                </div>
+                <div className={styles.statusValue}>
+                    {hasData ? status.label : "Waiting for data"}
+                </div>
+                {hasData && status.source && (
+                    <div className={styles.statusSource}>Source: {status.source}</div>
+                )}
+                {updatedLabel && (
+                    <div className={styles.statusTimestamp}>Last updated {updatedLabel}</div>
+                )}
+                {hasData && status.rawValue !== status.label && status.rawValue !== undefined && (
+                    <div className={styles.statusDetail}>Raw: {String(status.rawValue)}</div>
+                )}
+            </div>
+        </div>
+    );
+}
 
 function getSpectralBandKey(measurementType) {
     const normalized = sanitize(measurementType);
@@ -326,9 +439,27 @@ function LiveDashboard() {
         return allTopics;
     }, [deviceData]);
 
+    const waterFlowStatus = useMemo(() => {
+        const topicDevices = aggregatedTopics[WATER_FLOW_TOPIC];
+        if (!topicDevices) return null;
+
+        let latest = null;
+        for (const device of Object.values(topicDevices)) {
+            if (!device) continue;
+            const parsed = extractWaterFlowStatus(device);
+            if (!parsed) continue;
+            const receivedAt = Number.isFinite(device.receivedAt) ? device.receivedAt : Date.now();
+            if (!latest || receivedAt > latest.receivedAt) {
+                latest = {...parsed, receivedAt};
+            }
+        }
+
+        return latest;
+    }, [aggregatedTopics]);
+
     const filteredTopics = useMemo(() => {
         const entries = Object.entries(aggregatedTopics)
-            .filter(([topic]) => topic !== GERMINATION_TOPIC);
+            .filter(([topic]) => topic !== GERMINATION_TOPIC && topic !== WATER_FLOW_TOPIC);
         return Object.fromEntries(entries);
     }, [aggregatedTopics]);
 
@@ -337,6 +468,7 @@ function LiveDashboard() {
             <Header title="NFT Channels"/>
             <section className={styles.section}>
                 <div className={styles.sectionBody}>
+                    <WaterFlowStatus status={waterFlowStatus}/>
                     <StageSummary
                         dayNumber={dayNumber}
                         onDayChange={setDayNumber}
