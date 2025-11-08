@@ -8,6 +8,14 @@ import { useReportsFilters } from "../../context/ReportsFiltersContext.jsx";
 
 const AUTO_REFRESH_MS = { "30s": 30_000, "1m": 60_000, "5m": 300_000 };
 
+const EMPTY_CHART_DATA = {
+    tempByCid: {},
+    rangeByCid: {},
+    phByCid: {},
+    ecTdsByCid: {},
+    doByCid: {},
+};
+
 export default function Reports() {
     const {
         fromDate,
@@ -18,13 +26,7 @@ export default function Reports() {
         registerApplyHandler,
     } = useReportsFilters();
 
-    const [chartData, setChartData] = useState({
-        tempByCid: {},
-        rangeByCid: {},
-        phByCid: {},
-        ecTdsByCid: {},
-        doByCid: {},
-    });
+    const [chartData, setChartData] = useState(EMPTY_CHART_DATA);
     const [error, setError] = useState("");
     const abortRef = useRef(null);
 
@@ -34,7 +36,10 @@ export default function Reports() {
             if (abortRef.current) abortRef.current.abort();
             abortRef.current = new AbortController();
             const { signal } = abortRef.current;
-            if (!selectedCIDs.length) return;
+            if (!selectedCIDs.length) {
+                setChartData(EMPTY_CHART_DATA);
+                return;
+            }
 
             const sensorsSelected = [
                 ...selSensors.water,
@@ -88,6 +93,10 @@ export default function Reports() {
             }
         }
     }, [fromDate, toDate, selectedCIDs, selSensors]);
+
+    useEffect(() => {
+        fetchReportData();
+    }, [fetchReportData]);
 
     useEffect(() => {
         registerApplyHandler(fetchReportData);
