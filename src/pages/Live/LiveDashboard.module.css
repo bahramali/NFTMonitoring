@@ -13,6 +13,107 @@
     border-radius: 0 0 0.25rem 0.25rem;
 }
 
+.statusSection {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.statusCard {
+    flex: 1 1 16rem;
+    min-width: 14rem;
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid #d1d5db;
+    background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+    transition: transform 0.2s ease;
+}
+
+.statusCardOn {
+    border-left: 0.35rem solid #16a34a;
+}
+
+.statusCardOff {
+    border-left: 0.35rem solid #dc2626;
+}
+
+.statusCardIdle {
+    border-left: 0.35rem solid #6b7280;
+    opacity: 0.85;
+}
+
+.statusCard:hover {
+    transform: translateY(-2px);
+}
+
+.statusHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: #1f2937;
+    letter-spacing: 0.05em;
+    font-size: 0.75rem;
+}
+
+.statusTitle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.statusValue {
+    margin-top: 0.75rem;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.statusSource {
+    margin-top: 0.35rem;
+    font-size: 0.85rem;
+    color: #1f2937;
+}
+
+.statusTimestamp {
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: #4b5563;
+}
+
+.statusDetail {
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.statusDot {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 9999px;
+    background: #d1d5db;
+    box-shadow: inset 0 0 0 0.0625rem rgba(15, 23, 42, 0.15);
+}
+
+.statusDotOn {
+    background: #16a34a;
+    box-shadow: 0 0 0 0.35rem rgba(34, 197, 94, 0.15);
+}
+
+.statusDotOff {
+    background: #dc2626;
+    box-shadow: 0 0 0 0.35rem rgba(239, 68, 68, 0.18);
+}
+
+.statusDotIdle {
+    background: #9ca3af;
+    box-shadow: 0 0 0 0.35rem rgba(156, 163, 175, 0.15);
+}
+
 .noteBlock {
     margin-top: 1.25rem;
     font-size: 0.85rem;
