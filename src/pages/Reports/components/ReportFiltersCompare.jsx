@@ -100,6 +100,7 @@ export default function ReportFiltersCompare(props) {
         devices: devicesProp = [],
 
         onSystemChange, onLayerChange, onDeviceChange,
+        onCompositeSelectionChange,
 
         water: waterProp, light: lightProp, blue: blueProp, red: redProp, airq: airqProp,
         onToggleWater, onToggleLight, onToggleBlue, onToggleRed, onToggleAirq,
@@ -368,6 +369,12 @@ export default function ReportFiltersCompare(props) {
     };
 
     const [selectedCompositeIds, setSelectedCompositeIds] = useState(() => new Set());
+
+    useEffect(() => {
+        if (typeof onCompositeSelectionChange === 'function') {
+            onCompositeSelectionChange(Array.from(selectedCompositeIds));
+        }
+    }, [selectedCompositeIds, onCompositeSelectionChange]);
     const [collapsedSystems, setCollapsedSystems] = useState(() => new Set());
     const [collapsedLayers, setCollapsedLayers] = useState(() => new Set());
 
