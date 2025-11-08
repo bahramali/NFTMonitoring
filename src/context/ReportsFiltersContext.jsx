@@ -67,6 +67,7 @@ export function ReportsFiltersProvider({ children }) {
     const [selLayers, setSelLayers] = useState(new Set());
     const [selDevices, setSelDevices] = useState(new Set());
     const [selCIDs, setSelCIDs] = useState(new Set());
+    const [selCompositeIds, setSelCompositeIds] = useState(new Set());
 
     const [selSensors, setSelSensors] = useState({
         water: new Set(),
@@ -112,11 +113,44 @@ export function ReportsFiltersProvider({ children }) {
         setSelCIDs(new Set(filtered.map(toCID)));
     }, [isReportsRoute, deviceRows, selSystems, selLayers, selDevices]);
 
+    useEffect(() => {
+        const valid = new Set(deviceRows.map(toCID));
+        setSelCompositeIds((prev) => {
+            if (!prev.size) return prev;
+            let changed = false;
+            const next = new Set();
+            prev.forEach((cid) => {
+                if (valid.has(cid)) {
+                    next.add(cid);
+                } else {
+                    changed = true;
+                }
+            });
+            return changed ? next : prev;
+        });
+    }, [deviceRows]);
+
+    useEffect(() => {
+        if (isReportsRoute) return;
+        setSelCompositeIds(new Set());
+    }, [isReportsRoute]);
+
     const selectedCIDs = useMemo(() => {
+        const compositeArr = Array.from(selCompositeIds);
+        if (compositeArr.length) return compositeArr;
+
         const arr = Array.from(selCIDs);
         if (arr.length) return arr;
         return Array.from(new Set(filteredDeviceRows.map(toCID)));
-    }, [selCIDs, filteredDeviceRows]);
+    }, [selCompositeIds, selCIDs, filteredDeviceRows]);
+
+    const handleCompositeSelectionChange = useCallback((compositeIds = []) => {
+        if (!Array.isArray(compositeIds) || compositeIds.length === 0) {
+            setSelCompositeIds(new Set());
+            return;
+        }
+        setSelCompositeIds(new Set(compositeIds));
+    }, []);
 
     const updateSensorGroup = useCallback((group, updater) => {
         setSelSensors((prev) => {
@@ -221,6 +255,7 @@ export function ReportsFiltersProvider({ children }) {
         setSelLayers(new Set());
         setSelDevices(new Set());
         setSelCIDs(new Set());
+        setSelCompositeIds(new Set());
         setSelSensors({
             water: new Set(),
             light: new Set(),
@@ -302,6 +337,7 @@ export function ReportsFiltersProvider({ children }) {
             setAllSensors,
             clearSensors,
             selectedCIDs,
+            handleCompositeSelectionChange,
             registerApplyHandler,
             triggerApply,
         }),
@@ -327,6 +363,7 @@ export function ReportsFiltersProvider({ children }) {
             setAllSensors,
             clearSensors,
             selectedCIDs,
+            handleCompositeSelectionChange,
             registerApplyHandler,
             triggerApply,
         ],

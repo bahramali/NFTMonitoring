@@ -31,6 +31,7 @@ export default function Sidebar() {
         setAllSensors,
         clearSensors,
         selectedCIDs,
+        handleCompositeSelectionChange,
         triggerApply,
     } = useReportsFilters();
 
@@ -137,6 +138,7 @@ export default function Sidebar() {
                             onSystemChange={handleSystemChange}
                             onLayerChange={handleLayerChange}
                             onDeviceChange={handleDeviceChange}
+                            onCompositeSelectionChange={handleCompositeSelectionChange}
                             onReset={onReset}
                             onAddCompare={onAddCompare}
                             onExportCsv={() => {}}
