@@ -39,10 +39,12 @@ export default function Sidebar() {
         setAllTopics,
         clearTopics,
         availableTopicSensors,
+        availableTopicDevices,
         toggleSensor,
         setAllSensors,
         clearSensors,
         selectedCIDs,
+        selectedCompositeIds,
         handleCompositeSelectionChange,
         triggerApply,
     } = useReportsFilters();
@@ -81,6 +83,14 @@ export default function Sidebar() {
             sensors,
         }));
     }, [availableTopicSensors]);
+
+    const topicDeviceOptions = useMemo(() => {
+        const entries = Object.entries(availableTopicDevices || {});
+        return entries.reduce((acc, [topic, devices]) => {
+            acc[topic] = Array.isArray(devices) ? devices : [];
+            return acc;
+        }, {});
+    }, [availableTopicDevices]);
 
     const selectedSensorsByTopic = useMemo(() => {
         const map = {};
@@ -191,10 +201,12 @@ export default function Sidebar() {
                             onAllTopics={setAllTopics}
                             onNoneTopics={clearTopics}
                             topicSensors={availableTopicSensors}
+                            topicDevices={topicDeviceOptions}
                             selectedTopicSensors={selectedSensorsByTopic}
                             onToggleTopicSensor={(topic, key) => toggleSensor(topic, key)}
                             onAllTopicSensors={(topic, keys) => setAllSensors(topic, keys)}
                             onNoneTopicSensors={(topic) => clearSensors(topic)}
+                            selectedCompositeIds={selectedCompositeIds}
                         />
                         {selectedCIDs.length <= 1 ? null : (
                             <div className={styles.selectionHint}>

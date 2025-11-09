@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styles from './ReportFiltersCompare.module.css';
 import {normalizeDeviceCatalog} from '../utils/catalog';
 
@@ -91,10 +91,12 @@ export default function ReportFiltersCompare(props) {
         topics: topicsProp = [],
         selectedTopics: selectedTopicsProp = [],
         onTopicToggle,
-        onAllTopics,
-        onNoneTopics,
+        onAllTopics = () => {},
+        onNoneTopics = () => {},
         topicSensors: topicSensorsProp = {},
+        topicDevices: topicDevicesProp = {},
         selectedTopicSensors: selectedTopicSensorsProp = {},
+        selectedCompositeIds: selectedCompositeIdsProp = [],
         onToggleTopicSensor,
         onAllTopicSensors,
         onNoneTopicSensors,
@@ -118,6 +120,13 @@ export default function ReportFiltersCompare(props) {
         });
         return map;
     }, [topics, topicSensorsProp]);
+    const topicDevices = useMemo(() => {
+        const map = {};
+        Object.entries(topicDevicesProp || {}).forEach(([topic, devices]) => {
+            map[topic] = Array.isArray(devices) ? devices : [];
+        });
+        return map;
+    }, [topicDevicesProp]);
     const selectedTopicSensors = useMemo(() => {
         const map = {};
         Object.entries(selectedTopicSensorsProp || {}).forEach(([topic, values]) => {
@@ -125,6 +134,17 @@ export default function ReportFiltersCompare(props) {
         });
         return map;
     }, [selectedTopicSensorsProp]);
+    const selectedTopicId = useMemo(() => {
+        if (!selectedTopics.size) return null;
+        const iterator = selectedTopics.values();
+        const first = iterator.next();
+        return first?.value || null;
+    }, [selectedTopics]);
+
+    const devicesForSelectedTopic = useMemo(
+        () => (selectedTopicId ? topicDevices[selectedTopicId] || [] : []),
+        [selectedTopicId, topicDevices],
+    );
 
     const locationData = useMemo(() => {
         const systemMap = new Map();
@@ -381,7 +401,36 @@ export default function ReportFiltersCompare(props) {
         setLegacySelectedDevices([]);
     };
 
-    const [selectedCompositeIds, setSelectedCompositeIds] = useState(() => new Set());
+    const [selectedCompositeIds, setSelectedCompositeIds] = useState(
+        () => new Set(Array.isArray(selectedCompositeIdsProp) ? selectedCompositeIdsProp : [])
+    );
+
+    const syncCompositeSelection = useCallback((source = []) => {
+        setSelectedCompositeIds((prev) => {
+            const next = new Set(source);
+            if (prev.size === next.size) {
+                let identical = true;
+                prev.forEach((cid) => {
+                    if (!next.has(cid)) {
+                        identical = false;
+                    }
+                });
+                if (identical) return prev;
+            }
+            return next;
+        });
+    }, []);
+
+    useEffect(() => {
+        if (!selectedTopicId) {
+            syncCompositeSelection([]);
+            return;
+        }
+        const allowed = new Set(devicesForSelectedTopic.map((device) => device?.compositeId).filter(Boolean));
+        const raw = Array.isArray(selectedCompositeIdsProp) ? selectedCompositeIdsProp : [];
+        const filtered = raw.filter((cid) => allowed.has(cid));
+        syncCompositeSelection(filtered);
+    }, [selectedCompositeIdsProp, selectedTopicId, devicesForSelectedTopic, syncCompositeSelection]);
 
     useEffect(() => {
         if (typeof onCompositeSelectionChange === 'function') {
@@ -499,11 +548,18 @@ export default function ReportFiltersCompare(props) {
     };
 
     const handleSelectAllLocations = () => {
-        setSelectedCompositeIds(new Set(compositeIds));
+        if (selectedTopicId) {
+            const allForTopic = devicesForSelectedTopic
+                .map((device) => device?.compositeId)
+                .filter(Boolean);
+            syncCompositeSelection(allForTopic);
+            return;
+        }
+        syncCompositeSelection(compositeIds);
     };
 
     const handleClearLocations = () => {
-        setSelectedCompositeIds(new Set());
+        syncCompositeSelection([]);
     };
 
     // filtered catalog devices according to location selection
@@ -525,23 +581,40 @@ export default function ReportFiltersCompare(props) {
 
 
     // sensors: before any location selection, everything disabled (tests expect this)
-    const hasAnyLocationSelection =
-        activeSelectedSystems.length > 0 || activeSelectedLayers.length > 0 || activeSelectedDevices.length > 0;
+    const hasAnyLocationSelection = selectedCompositeIds.size > 0;
     const baseDevicesForUnion = hasAnyLocationSelection ? filteredCatalogDevices : [];
 
     const selectedCompositeCount = selectedCompositeIds.size;
-    const totalCompositeCount = compositeIds.length;
+    const totalCompositeCount = selectedTopicId ? (topicDevices[selectedTopicId] || []).length : compositeIds.length;
+
+    const deviceLabelMap = useMemo(() => {
+        const map = new Map();
+        Object.values(topicDevices).forEach((devices = []) => {
+            devices.forEach((device) => {
+                const cid = ensureString(device?.compositeId);
+                if (!cid || map.has(cid)) return;
+                const label = ensureString(device?.label) || ensureString(device?.deviceId) || cid;
+                map.set(cid, label);
+            });
+        });
+        compositeMeta.forEach((meta, cid) => {
+            if (!map.has(cid)) {
+                const label = meta?.labels?.device || cid;
+                if (label) map.set(cid, label);
+            }
+        });
+        return map;
+    }, [topicDevices, compositeMeta]);
 
     const selectedDeviceNames = useMemo(() => {
         if (!selectedCompositeIds.size) return [];
         const names = new Set();
         selectedCompositeIds.forEach((cid) => {
-            const meta = compositeMeta.get(cid);
-            const label = meta?.labels?.device || cid;
+            const label = deviceLabelMap.get(cid) || cid;
             if (label) names.add(label);
         });
         return Array.from(names);
-    }, [selectedCompositeIds, compositeMeta]);
+    }, [selectedCompositeIds, deviceLabelMap]);
 
     useEffect(() => {
         if (typeof onApply === 'function' && selectedCompositeIds.size > 0) {
@@ -586,15 +659,17 @@ export default function ReportFiltersCompare(props) {
                         <h4>Topics</h4>
                         <div className={styles.sidebarFieldset}>
                             <AllNone name="topics-allnone" onAll={onAllTopics} onNone={onNoneTopics} />
-                            <div className={styles.checklist}>
+                            <div className={styles.radioList}>
                                 {topics.map((topic) => (
-                                    <label key={topic.id} className={styles.item}>
+                                    <label key={topic.id} className={styles.radioItem}>
                                         <input
-                                            type="checkbox"
-                                            checked={selectedTopics.has(topic.id)}
+                                            type="radio"
+                                            name="report-topic"
+                                            value={topic.id}
+                                            checked={selectedTopicId === topic.id}
                                             onChange={() => onTopicToggle && onTopicToggle(topic.id)}
                                         />
-                                        {topic.label}
+                                        <span className={styles.radioLabel}>{topic.label}</span>
                                     </label>
                                 ))}
                                 {!topics.length && (
@@ -607,30 +682,70 @@ export default function ReportFiltersCompare(props) {
                 </aside>
 
                 <section className={styles.content}>
+                    <div className={styles.topicDevicesPanel}>
+                        <h3>Select Device IDs</h3>
+                        {!selectedTopicId ? (
+                            <p className={styles.emptyState}>Select a topic to load available devices.</p>
+                        ) : devicesForSelectedTopic.length === 0 ? (
+                            <p className={styles.emptyState}>No devices available for the selected topic.</p>
+                        ) : (
+                            <>
+                                <div className={styles.deviceActions}>
+                                    <button type="button" className={styles.btn} onClick={handleSelectAllLocations}>
+                                        Select all
+                                    </button>
+                                    <button type="button" className={styles.btn} onClick={handleClearLocations}>
+                                        Clear
+                                    </button>
+                                </div>
+                                <div className={styles.deviceChecklist}>
+                                    {devicesForSelectedTopic.map((device) => {
+                                        const compositeId = ensureString(device?.compositeId);
+                                        if (!compositeId) return null;
+                                        return (
+                                            <label key={compositeId} className={styles.deviceOption}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isCompositeChecked(compositeId)}
+                                                    onChange={(event) =>
+                                                        handleDeviceToggle({ ...device, compositeId }, event.target.checked)
+                                                    }
+                                                />
+                                                <span className={styles.deviceInfo}>
+                                                    <span className={styles.deviceLabel}>{device?.label || device?.deviceId || compositeId}</span>
+                                                    <span className={styles.deviceCid}>{compositeId}</span>
+                                                </span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        )}
+                    </div>
+
                     <div className={styles.topicSensorsPanel}>
                         <h3>Select Sensor Types</h3>
-                        {selectedTopics.size === 0 ? (
+                        {!selectedTopicId ? (
                             <p className={styles.emptyState}>Choose a topic to see available sensor types.</p>
                         ) : (
                             <div className={styles.sensorGrid}>
-                                {topics
-                                    .filter((topic) => selectedTopics.has(topic.id))
-                                    .map((topic) => {
-                                        const options = topicSensors[topic.id] || [];
-                                        const values = selectedTopicSensors[topic.id] || [];
-                                        return (
-                                            <Group
-                                                key={topic.id}
-                                                title={topic.label}
-                                                name={`topic-${topic.id}`}
-                                                options={options}
-                                                values={values}
-                                                onAll={(opts) => onAllTopicSensors && onAllTopicSensors(topic.id, opts)}
-                                                onNone={() => onNoneTopicSensors && onNoneTopicSensors(topic.id)}
-                                                onToggle={(label) => onToggleTopicSensor && onToggleTopicSensor(topic.id, label)}
-                                            />
-                                        );
-                                    })}
+                                {(() => {
+                                    const options = topicSensors[selectedTopicId] || [];
+                                    const values = selectedTopicSensors[selectedTopicId] || [];
+                                    const topicMeta = topics.find((topic) => topic.id === selectedTopicId);
+                                    return (
+                                        <Group
+                                            key={selectedTopicId}
+                                            title={topicMeta?.label || selectedTopicId}
+                                            name={`topic-${selectedTopicId}`}
+                                            options={options}
+                                            values={values}
+                                            onAll={(opts) => onAllTopicSensors && onAllTopicSensors(selectedTopicId, opts)}
+                                            onNone={() => onNoneTopicSensors && onNoneTopicSensors(selectedTopicId)}
+                                            onToggle={(label) => onToggleTopicSensor && onToggleTopicSensor(selectedTopicId, label)}
+                                        />
+                                    );
+                                })()}
                             </div>
                         )}
                     </div>
