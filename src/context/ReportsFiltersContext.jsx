@@ -81,7 +81,9 @@ export function ReportsFiltersProvider({ children }) {
     const [selCompositeIds, setSelCompositeIds] = useState(new Set());
     const [apiTopicSensors, setApiTopicSensors] = useState({});
 
-    const [selectedTopics, setSelectedTopics] = useState(() => new Set(DEFAULT_REPORT_TOPICS));
+    const [selectedTopics, setSelectedTopics] = useState(
+        () => new Set(DEFAULT_REPORT_TOPICS.length ? [DEFAULT_REPORT_TOPICS[0]] : [])
+    );
     const prevReportTopicsRef = useRef(reportTopics);
     const [selSensors, setSelSensors] = useState(() => {
         const initial = {};
@@ -118,42 +120,16 @@ export function ReportsFiltersProvider({ children }) {
 
     useEffect(() => {
         const previousTopics = prevReportTopicsRef.current || [];
-        const previousTopicSet = new Set(previousTopics);
         const topicSet = new Set(reportTopics);
 
         setSelectedTopics((prev) => {
-            if (!prev) return new Set(reportTopics);
-
-            const hadAllPrevious =
-                previousTopics.length > 0 &&
-                previousTopics.every((topic) => prev.has(topic)) &&
-                prev.size === previousTopicSet.size;
-
-            let changed = false;
-            const next = new Set();
-
-            prev.forEach((topic) => {
-                if (topicSet.has(topic)) {
-                    next.add(topic);
-                } else {
-                    changed = true;
-                }
-            });
-
-            if (hadAllPrevious) {
-                reportTopics.forEach((topic) => {
-                    if (!next.has(topic)) {
-                        next.add(topic);
-                        changed = true;
-                    }
-                });
+            const current = prev && prev.size ? Array.from(prev)[0] : undefined;
+            if (current && topicSet.has(current)) {
+                return prev.size === 1 ? prev : new Set([current]);
             }
-
-            if (!changed && next.size === prev.size) {
-                return prev;
-            }
-
-            return next;
+            const fallback = reportTopics[0];
+            if (!fallback) return new Set();
+            return new Set([fallback]);
         });
 
         prevReportTopicsRef.current = reportTopics;
@@ -322,6 +298,45 @@ export function ReportsFiltersProvider({ children }) {
         return result;
     }, [apiTopicSensors, deviceData, reportTopics]);
 
+    const availableTopicDevices = useMemo(() => {
+        const devicesMap = new Map();
+        reportTopics.forEach((topic) => {
+            devicesMap.set(topic, new Map());
+        });
+
+        Object.values(deviceData || {}).forEach((systemEntry) => {
+            if (!systemEntry || typeof systemEntry !== "object") return;
+            Object.entries(systemEntry).forEach(([topicKey, devices]) => {
+                if (!devicesMap.has(topicKey)) {
+                    devicesMap.set(topicKey, new Map());
+                }
+                const topicDevices = devicesMap.get(topicKey);
+                Object.values(devices || {}).forEach((device) => {
+                    const compositeId = ensureString(device?.compositeId);
+                    if (!compositeId) return;
+                    if (!topicDevices.has(compositeId)) {
+                        topicDevices.set(compositeId, {
+                            id: compositeId,
+                            compositeId,
+                            deviceId: ensureString(device?.deviceId, compositeId),
+                            label: ensureString(device?.deviceId || device?.compositeId, compositeId),
+                            layerId: ensureString(device?.layer),
+                        });
+                    }
+                });
+            });
+        });
+
+        const result = {};
+        devicesMap.forEach((topicSet, topicKey) => {
+            const devices = Array.from(topicSet.values()).sort((a, b) =>
+                a.label.localeCompare(b.label) || a.compositeId.localeCompare(b.compositeId)
+            );
+            result[topicKey] = devices;
+        });
+        return result;
+    }, [deviceData, reportTopics]);
+
     useEffect(() => {
         if (!isReportsRoute) return;
         const filtered = deviceRows.filter(
@@ -424,13 +439,10 @@ export function ReportsFiltersProvider({ children }) {
     const toggleTopicSelection = useCallback((topic) => {
         if (!topic) return;
         setSelectedTopics((prev) => {
-            const next = new Set(prev);
-            if (next.has(topic)) {
-                next.delete(topic);
-            } else {
-                next.add(topic);
+            if (prev.size === 1 && prev.has(topic)) {
+                return prev;
             }
-            return next;
+            return new Set([topic]);
         });
     }, []);
 
@@ -505,7 +517,7 @@ export function ReportsFiltersProvider({ children }) {
         setSelDevices(new Set());
         setSelCIDs(new Set());
         setSelCompositeIds(new Set());
-        setSelectedTopics(new Set(reportTopics));
+        setSelectedTopics(new Set(reportTopics.length ? [reportTopics[0]] : []));
         setSelSensors(() => {
             const reset = {};
             reportTopics.forEach((topic) => {
@@ -582,10 +594,12 @@ export function ReportsFiltersProvider({ children }) {
             setAllTopics,
             clearTopics,
             availableTopicSensors,
+            availableTopicDevices,
             toggleSensor,
             setAllSensors,
             clearSensors,
             selectedCIDs,
+            selectedCompositeIds: Array.from(selCompositeIds),
             handleCompositeSelectionChange,
             registerApplyHandler,
             triggerApply,
@@ -613,10 +627,12 @@ export function ReportsFiltersProvider({ children }) {
             setAllTopics,
             clearTopics,
             availableTopicSensors,
+            availableTopicDevices,
             toggleSensor,
             setAllSensors,
             clearSensors,
             selectedCIDs,
+            selCompositeIds,
             handleCompositeSelectionChange,
             registerApplyHandler,
             triggerApply,
