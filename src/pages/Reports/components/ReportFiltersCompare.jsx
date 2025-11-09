@@ -2,6 +2,40 @@ import React, {useEffect, useMemo, useRef, useState} from 'react';
 import styles from './ReportFiltersCompare.module.css';
 import {normalizeDeviceCatalog} from '../utils/catalog';
 
+const SENSOR_TOPIC_DELIM = '@@';
+
+const ensureString = (value, fallback = '') => {
+    if (value === undefined || value === null) return fallback;
+    const str = String(value).trim();
+    return str.length ? str : fallback;
+};
+
+const getSensorIdentity = (sensor, fallback = '') => {
+    const fallbackStr = ensureString(fallback);
+
+    if (sensor === undefined || sensor === null) {
+        if (!fallbackStr) return { key: '', label: '' };
+        const [base] = fallbackStr.split(SENSOR_TOPIC_DELIM);
+        return { key: ensureString(base).toLowerCase(), label: fallbackStr };
+    }
+
+    if (typeof sensor === 'string') {
+        const raw = ensureString(sensor, fallbackStr);
+        if (!raw) return { key: '', label: '' };
+        const [base] = raw.split(SENSOR_TOPIC_DELIM);
+        return { key: ensureString(base).toLowerCase(), label: raw };
+    }
+
+    const type = ensureString(sensor.sensorType);
+    const valueType = ensureString(sensor.valueType);
+    const sensorName = ensureString(sensor.sensorName);
+    const name = ensureString(sensor.name);
+    const label = type || valueType || sensorName || name || fallbackStr;
+    if (!label) return { key: '', label: '' };
+    const [base] = label.split(SENSOR_TOPIC_DELIM);
+    return { key: ensureString(base).toLowerCase(), label };
+};
+
 const DEFAULT_SENSOR_GROUPS = {
     water: ['dissolvedTemp', 'dissolvedEC', 'dissolvedTDS', 'dissolvedOxygen'],
     light: ['VIS1', 'VIS2', 'NIR855', 'light'],
@@ -53,18 +87,6 @@ function Group({title, name, options = [], values = [], onAll, onNone, onToggle}
         </div>
     );
 }
-
-const normKey = (s) =>
-    (typeof s === 'string'
-            ? s
-            : (s?.sensorName || s?.sensorType || s?.valueType || '')
-    ).toString().toLowerCase();
-
-const ensureString = (value, fallback = '') => {
-    if (value === undefined || value === null) return fallback;
-    const str = String(value).trim();
-    return str.length ? str : fallback;
-};
 
 const toFallbackComposite = (systemId, layerId, deviceId) =>
     [systemId, layerId, deviceId].filter(Boolean).join('-');
@@ -519,19 +541,40 @@ export default function ReportFiltersCompare(props) {
     const sensorGroups = useMemo(() => {
         const base = baseDevicesForUnion;
         const nothingSelected = base.length === 0;
-        const union = new Set(base.flatMap(d => (d.sensors || []).map(normKey)));
-        const hasSensorInfo = base.some(d => Array.isArray(d.sensors) && d.sensors.length > 0);
+
+        const sensorMeta = new Map();
+        base.forEach(device => {
+            (device.sensors || []).forEach(sensor => {
+                const identity = getSensorIdentity(sensor);
+                if (!identity.key || sensorMeta.has(identity.key)) return;
+                sensorMeta.set(identity.key, identity);
+            });
+        });
+
+        const availableKeys = new Set(sensorMeta.keys());
+        const hasSensorInfo = availableKeys.size > 0;
 
         const groups = {};
         Object.entries(DEFAULT_SENSOR_GROUPS).forEach(([grp, labels]) => {
-            groups[grp] = labels.map(label => {
+            groups[grp] = labels.map((fallback) => {
+                const fallbackIdentity = getSensorIdentity(fallback);
+                const lookupKey = fallbackIdentity.key;
+                const meta = lookupKey ? sensorMeta.get(lookupKey) : undefined;
+                const resolvedLabel = meta?.label || fallbackIdentity.label || ensureString(fallback);
+
                 let disabled;
-                if (nothingSelected) disabled = true;
-                else if (hasSensorInfo) disabled = !union.has(label.toLowerCase());
-                else disabled = false;
-                return { label, disabled };
+                if (nothingSelected) {
+                    disabled = true;
+                } else if (hasSensorInfo) {
+                    disabled = lookupKey ? !availableKeys.has(lookupKey) : true;
+                } else {
+                    disabled = false;
+                }
+
+                return { label: resolvedLabel, disabled };
             });
         });
+
         return groups;
     }, [baseDevicesForUnion]);
 
