@@ -11,6 +11,7 @@ import { useLocation } from "react-router-dom";
 import { fetchDeviceCatalog } from "../pages/Reports/utils/catalog";
 import { pickBucket, toISOSeconds, toLocalInputValue } from "../pages/Reports/utils/datetime";
 import { useLiveDevices } from "../pages/common/useLiveDevices";
+import { fetchTopicSensors } from "../api/topics.js";
 
 const ReportsFiltersContext = createContext(null);
 const toCID = (d) => `${d.systemId}-${d.layerId}-${d.deviceId}`;
@@ -77,6 +78,7 @@ export function ReportsFiltersProvider({ children }) {
     const [selDevices, setSelDevices] = useState(new Set());
     const [selCIDs, setSelCIDs] = useState(new Set());
     const [selCompositeIds, setSelCompositeIds] = useState(new Set());
+    const [apiTopicSensors, setApiTopicSensors] = useState({});
 
     const [selectedTopics, setSelectedTopics] = useState(() => new Set(REPORT_TOPICS));
     const [selSensors, setSelSensors] = useState(() => {
@@ -112,10 +114,82 @@ export function ReportsFiltersProvider({ children }) {
         [filteredDeviceRows],
     );
 
+    useEffect(() => {
+        if (!isReportsRoute) return undefined;
+
+        let cancelled = false;
+        const controller = new AbortController();
+
+        const loadTopicSensors = async () => {
+            try {
+                const { topics: topicEntries, error } = await fetchTopicSensors({ signal: controller.signal });
+                if (cancelled) return;
+
+                if (Array.isArray(topicEntries) && topicEntries.length) {
+                    const next = {};
+                    topicEntries.forEach((entry) => {
+                        const topicId = ensureString(entry?.topic);
+                        if (!topicId || !REPORT_TOPICS.includes(topicId)) return;
+
+                        const sensorList = Array.isArray(entry?.sensorTypes) ? entry.sensorTypes : [];
+                        const deduped = new Map();
+                        sensorList.forEach((sensor) => {
+                            const label = ensureString(sensor);
+                            if (!label) return;
+                            const id = label.toLowerCase();
+                            if (!deduped.has(id)) {
+                                deduped.set(id, {
+                                    id,
+                                    label,
+                                    topic: topicId,
+                                });
+                            }
+                        });
+                        next[topicId] = Array.from(deduped.values());
+                    });
+                    setApiTopicSensors(next);
+                } else {
+                    setApiTopicSensors({});
+                }
+
+                if (error) {
+                    console.error("Unable to load topic sensors", error);
+                }
+            } catch (err) {
+                if (cancelled || err?.name === "AbortError") return;
+                console.error("Unable to load topic sensors", err);
+                setApiTopicSensors({});
+            }
+        };
+
+        loadTopicSensors();
+
+        return () => {
+            cancelled = true;
+            controller.abort();
+        };
+    }, [isReportsRoute]);
+
     const availableTopicSensors = useMemo(() => {
         const sensorsMap = new Map();
         REPORT_TOPICS.forEach((topic) => {
             sensorsMap.set(topic, new Map());
+        });
+
+        Object.entries(apiTopicSensors || {}).forEach(([topicKey, sensors]) => {
+            if (!REPORT_TOPICS.includes(topicKey)) return;
+            const topicSensors = sensorsMap.get(topicKey);
+            (sensors || []).forEach((sensor) => {
+                if (!sensor?.label) return;
+                const id = ensureString(sensor?.id, sensor.label.toLowerCase());
+                if (!topicSensors.has(id)) {
+                    topicSensors.set(id, {
+                        id,
+                        label: sensor.label,
+                        topic: topicKey,
+                    });
+                }
+            });
         });
 
         Object.values(deviceData || {}).forEach((systemEntry) => {
@@ -150,7 +224,7 @@ export function ReportsFiltersProvider({ children }) {
             result[topicKey] = sensors;
         });
         return result;
-    }, [deviceData]);
+    }, [apiTopicSensors, deviceData]);
 
     useEffect(() => {
         if (!isReportsRoute) return;
