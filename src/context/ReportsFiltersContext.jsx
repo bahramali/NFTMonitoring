@@ -15,7 +15,7 @@ import { fetchTopicSensors } from "../api/topics.js";
 
 const ReportsFiltersContext = createContext(null);
 const toCID = (d) => `${d.systemId}-${d.layerId}-${d.deviceId}`;
-const REPORT_TOPICS = ["growSensors", "germinationTopic", "waterTank"];
+const DEFAULT_REPORT_TOPICS = ["growSensors", "germinationTopic", "waterTank"];
 
 const ensureString = (value, fallback = "") => {
     if (value === undefined || value === null) return fallback;
@@ -29,7 +29,8 @@ export function ReportsFiltersProvider({ children }) {
     const isReportsRoute = normalizedPath === "/reports";
 
     const [deviceMeta, setDeviceMeta] = useState({ devices: [] });
-    const { deviceData } = useLiveDevices(REPORT_TOPICS);
+    const [reportTopics, setReportTopics] = useState(DEFAULT_REPORT_TOPICS);
+    const { deviceData } = useLiveDevices(reportTopics);
 
     useEffect(() => {
         if (!isReportsRoute) return undefined;
@@ -80,14 +81,83 @@ export function ReportsFiltersProvider({ children }) {
     const [selCompositeIds, setSelCompositeIds] = useState(new Set());
     const [apiTopicSensors, setApiTopicSensors] = useState({});
 
-    const [selectedTopics, setSelectedTopics] = useState(() => new Set(REPORT_TOPICS));
+    const [selectedTopics, setSelectedTopics] = useState(() => new Set(DEFAULT_REPORT_TOPICS));
+    const prevReportTopicsRef = useRef(reportTopics);
     const [selSensors, setSelSensors] = useState(() => {
         const initial = {};
-        REPORT_TOPICS.forEach((topic) => {
+        DEFAULT_REPORT_TOPICS.forEach((topic) => {
             initial[topic] = new Set();
         });
         return initial;
     });
+
+    useEffect(() => {
+        setSelSensors((prev) => {
+            const topicSet = new Set(reportTopics);
+            let changed = false;
+            const next = {};
+
+            reportTopics.forEach((topic) => {
+                if (prev[topic]) {
+                    next[topic] = prev[topic];
+                } else {
+                    next[topic] = new Set();
+                    changed = true;
+                }
+            });
+
+            Object.keys(prev).forEach((topic) => {
+                if (!topicSet.has(topic)) {
+                    changed = true;
+                }
+            });
+
+            return changed ? next : prev;
+        });
+    }, [reportTopics]);
+
+    useEffect(() => {
+        const previousTopics = prevReportTopicsRef.current || [];
+        const previousTopicSet = new Set(previousTopics);
+        const topicSet = new Set(reportTopics);
+
+        setSelectedTopics((prev) => {
+            if (!prev) return new Set(reportTopics);
+
+            const hadAllPrevious =
+                previousTopics.length > 0 &&
+                previousTopics.every((topic) => prev.has(topic)) &&
+                prev.size === previousTopicSet.size;
+
+            let changed = false;
+            const next = new Set();
+
+            prev.forEach((topic) => {
+                if (topicSet.has(topic)) {
+                    next.add(topic);
+                } else {
+                    changed = true;
+                }
+            });
+
+            if (hadAllPrevious) {
+                reportTopics.forEach((topic) => {
+                    if (!next.has(topic)) {
+                        next.add(topic);
+                        changed = true;
+                    }
+                });
+            }
+
+            if (!changed && next.size === prev.size) {
+                return prev;
+            }
+
+            return next;
+        });
+
+        prevReportTopicsRef.current = reportTopics;
+    }, [reportTopics]);
 
     const systems = useMemo(
         () => Array.from(new Set(deviceRows.map((d) => d.systemId))).sort(),
@@ -127,9 +197,12 @@ export function ReportsFiltersProvider({ children }) {
 
                 if (Array.isArray(topicEntries) && topicEntries.length) {
                     const next = {};
+                    const apiTopics = [];
                     topicEntries.forEach((entry) => {
                         const topicId = ensureString(entry?.topic);
-                        if (!topicId || !REPORT_TOPICS.includes(topicId)) return;
+                        if (!topicId) return;
+
+                        apiTopics.push(topicId);
 
                         const sensorList = Array.isArray(entry?.sensorTypes) ? entry.sensorTypes : [];
                         const deduped = new Map();
@@ -146,6 +219,25 @@ export function ReportsFiltersProvider({ children }) {
                             }
                         });
                         next[topicId] = Array.from(deduped.values());
+                    });
+                    const dedupedTopics = [];
+                    const seenTopics = new Set();
+                    const addTopic = (topic) => {
+                        if (!topic || seenTopics.has(topic)) return;
+                        seenTopics.add(topic);
+                        dedupedTopics.push(topic);
+                    };
+                    DEFAULT_REPORT_TOPICS.forEach(addTopic);
+                    apiTopics.forEach(addTopic);
+
+                    setReportTopics((prev) => {
+                        if (
+                            prev.length === dedupedTopics.length &&
+                            prev.every((topic, index) => topic === dedupedTopics[index])
+                        ) {
+                            return prev;
+                        }
+                        return dedupedTopics;
                     });
                     setApiTopicSensors(next);
                 } else {
@@ -172,12 +264,14 @@ export function ReportsFiltersProvider({ children }) {
 
     const availableTopicSensors = useMemo(() => {
         const sensorsMap = new Map();
-        REPORT_TOPICS.forEach((topic) => {
+        reportTopics.forEach((topic) => {
             sensorsMap.set(topic, new Map());
         });
 
         Object.entries(apiTopicSensors || {}).forEach(([topicKey, sensors]) => {
-            if (!REPORT_TOPICS.includes(topicKey)) return;
+            if (!sensorsMap.has(topicKey)) {
+                sensorsMap.set(topicKey, new Map());
+            }
             const topicSensors = sensorsMap.get(topicKey);
             (sensors || []).forEach((sensor) => {
                 if (!sensor?.label) return;
@@ -195,7 +289,9 @@ export function ReportsFiltersProvider({ children }) {
         Object.values(deviceData || {}).forEach((systemEntry) => {
             if (!systemEntry || typeof systemEntry !== "object") return;
             Object.entries(systemEntry).forEach(([topicKey, devices]) => {
-                if (!REPORT_TOPICS.includes(topicKey)) return;
+                if (!sensorsMap.has(topicKey)) {
+                    sensorsMap.set(topicKey, new Map());
+                }
                 const topicSensors = sensorsMap.get(topicKey);
                 Object.values(devices || {}).forEach((device) => {
                     (device?.sensors || []).forEach((sensor) => {
@@ -224,7 +320,7 @@ export function ReportsFiltersProvider({ children }) {
             result[topicKey] = sensors;
         });
         return result;
-    }, [apiTopicSensors, deviceData]);
+    }, [apiTopicSensors, deviceData, reportTopics]);
 
     useEffect(() => {
         if (!isReportsRoute) return;
@@ -339,8 +435,8 @@ export function ReportsFiltersProvider({ children }) {
     }, []);
 
     const setAllTopics = useCallback(() => {
-        setSelectedTopics(new Set(REPORT_TOPICS));
-    }, []);
+        setSelectedTopics(new Set(reportTopics));
+    }, [reportTopics]);
 
     const clearTopics = useCallback(() => {
         setSelectedTopics(new Set());
@@ -409,15 +505,15 @@ export function ReportsFiltersProvider({ children }) {
         setSelDevices(new Set());
         setSelCIDs(new Set());
         setSelCompositeIds(new Set());
-        setSelectedTopics(new Set(REPORT_TOPICS));
+        setSelectedTopics(new Set(reportTopics));
         setSelSensors(() => {
             const reset = {};
-            REPORT_TOPICS.forEach((topic) => {
+            reportTopics.forEach((topic) => {
                 reset[topic] = new Set();
             });
             return reset;
         });
-    }, []);
+    }, [reportTopics]);
 
     const [compareItems, setCompareItems] = useState([]);
 
