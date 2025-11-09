@@ -4,8 +4,15 @@ import styles from "./Sidebar.module.css";
 import ReportFiltersCompare from "../../Reports/components/ReportFiltersCompare";
 import { useReportsFilters } from "../../../context/ReportsFiltersContext.jsx";
 
+const getWindowWidth = () => (typeof window === "undefined" ? 1024 : window.innerWidth);
+
 export default function Sidebar() {
-    const [collapsed, setCollapsed] = useState(() => window.innerWidth < 768);
+    const [isMobile, setIsMobile] = useState(() => getWindowWidth() < 768);
+    const [collapsed, setCollapsed] = useState(() => {
+        const width = getWindowWidth();
+        if (width < 768) return false;
+        return width < 1024;
+    });
     const {
         isReportsRoute,
         deviceMeta,
@@ -37,10 +44,19 @@ export default function Sidebar() {
 
     useEffect(() => {
         const handleResize = () => {
-            const shouldCollapse = window.innerWidth < 768;
-            setCollapsed((prev) => (prev === shouldCollapse ? prev : shouldCollapse));
+            const width = getWindowWidth();
+            setIsMobile(width < 768);
+
+            if (width < 768) {
+                setCollapsed(false);
+            } else if (width < 1024) {
+                setCollapsed(true);
+            } else {
+                setCollapsed(false);
+            }
         };
 
+        handleResize();
         window.addEventListener("resize", handleResize);
         return () => window.removeEventListener("resize", handleResize);
     }, []);
@@ -70,11 +86,20 @@ export default function Sidebar() {
         return `From: ${from.toLocaleString()} until: ${to.toLocaleString()}`;
     }, [fromDate, toDate]);
 
+    const sidebarClassName = [
+        styles.sidebar,
+        collapsed ? styles.collapsed : "",
+        isMobile ? styles.mobile : "",
+        isMobile && collapsed ? styles.mobileCollapsed : "",
+    ]
+        .filter(Boolean)
+        .join(" ");
+
     return (
-        <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ""}`}>
+        <aside className={sidebarClassName}>
             {/* Header */}
             <div className={styles.header}>
-                {!collapsed && <div className={styles.brand}>HydroLeaf</div>}
+                {(!collapsed || isMobile) && <div className={styles.brand}>HydroLeaf</div>}
                 <button
                     className={`${styles.toggle} ${collapsed ? styles.rotated : ""}`}
                     onClick={() => setCollapsed(c => !c)}

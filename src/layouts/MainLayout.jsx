@@ -2,29 +2,14 @@ import React from 'react';
 import { Outlet } from "react-router-dom";
 import Sidebar from "../pages/common/Sidebar";
 import { ReportsFiltersProvider } from "../context/ReportsFiltersContext.jsx";
+import styles from "./MainLayout.module.css";
 
 export default function MainLayout() {
     return (
         <ReportsFiltersProvider>
-            <div
-                style={{
-                    display: "flex",
-                    height: "100vh",
-                    overflow: "hidden",
-                    background: "#f1f5f9",
-                }}
-            >
+            <div className={styles.layout}>
                 <Sidebar />
-                <main
-                    style={{
-                        flexGrow: 1,
-                        overflowY: "auto",
-                        background: "#ffffff",
-                        color: "#0f172a",
-                        padding: "2.25rem 2.75rem",
-                        boxSizing: "border-box",
-                    }}
-                >
+                <main className={styles.main}>
                     <Outlet />
                 </main>
             </div>
