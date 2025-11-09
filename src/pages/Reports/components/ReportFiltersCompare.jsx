@@ -2,46 +2,10 @@ import React, {useEffect, useMemo, useRef, useState} from 'react';
 import styles from './ReportFiltersCompare.module.css';
 import {normalizeDeviceCatalog} from '../utils/catalog';
 
-const SENSOR_TOPIC_DELIM = '@@';
-
 const ensureString = (value, fallback = '') => {
     if (value === undefined || value === null) return fallback;
     const str = String(value).trim();
     return str.length ? str : fallback;
-};
-
-const getSensorIdentity = (sensor, fallback = '') => {
-    const fallbackStr = ensureString(fallback);
-
-    if (sensor === undefined || sensor === null) {
-        if (!fallbackStr) return { key: '', label: '' };
-        const [base] = fallbackStr.split(SENSOR_TOPIC_DELIM);
-        return { key: ensureString(base).toLowerCase(), label: fallbackStr };
-    }
-
-    if (typeof sensor === 'string') {
-        const raw = ensureString(sensor, fallbackStr);
-        if (!raw) return { key: '', label: '' };
-        const [base] = raw.split(SENSOR_TOPIC_DELIM);
-        return { key: ensureString(base).toLowerCase(), label: raw };
-    }
-
-    const type = ensureString(sensor.sensorType);
-    const valueType = ensureString(sensor.valueType);
-    const sensorName = ensureString(sensor.sensorName);
-    const name = ensureString(sensor.name);
-    const label = type || valueType || sensorName || name || fallbackStr;
-    if (!label) return { key: '', label: '' };
-    const [base] = label.split(SENSOR_TOPIC_DELIM);
-    return { key: ensureString(base).toLowerCase(), label };
-};
-
-const DEFAULT_SENSOR_GROUPS = {
-    water: ['dissolvedTemp', 'dissolvedEC', 'dissolvedTDS', 'dissolvedOxygen'],
-    light: ['VIS1', 'VIS2', 'NIR855', 'light'],
-    blue:  ['405nm', '425nm', '450nm', '475nm', '515nm'],
-    red:   ['550nm', '555nm', '600nm', '640nm', '690nm', '745nm'],
-    airq:  ['humidity', 'temperature', 'CO2'],
 };
 
 function AllNone({name, onAll, onNone}) {
@@ -124,9 +88,16 @@ export default function ReportFiltersCompare(props) {
         onSystemChange, onLayerChange, onDeviceChange,
         onCompositeSelectionChange,
 
-        water: waterProp, light: lightProp, blue: blueProp, red: redProp, airq: airqProp,
-        onToggleWater, onToggleLight, onToggleBlue, onToggleRed, onToggleAirq,
-        onAllWater, onNoneWater, onAllLight, onNoneLight, onAllBlue, onNoneBlue, onAllRed, onNoneRed, onAllAirq, onNoneAirq,
+        topics: topicsProp = [],
+        selectedTopics: selectedTopicsProp = [],
+        onTopicToggle,
+        onAllTopics,
+        onNoneTopics,
+        topicSensors: topicSensorsProp = {},
+        selectedTopicSensors: selectedTopicSensorsProp = {},
+        onToggleTopicSensor,
+        onAllTopicSensors,
+        onNoneTopicSensors,
 
         rangeLabel,
         compareItems = [], onClearCompare, onRemoveCompare,
@@ -134,6 +105,26 @@ export default function ReportFiltersCompare(props) {
     } = props;
 
     const catalog = useMemo(() => normalizeDeviceCatalog(catalogProp), [catalogProp]);
+    const topics = useMemo(() => (Array.isArray(topicsProp) ? topicsProp : []), [topicsProp]);
+    const selectedTopics = useMemo(
+        () => new Set(Array.isArray(selectedTopicsProp) ? selectedTopicsProp : []),
+        [selectedTopicsProp],
+    );
+    const topicSensors = useMemo(() => {
+        const map = {};
+        topics.forEach((topic) => {
+            const arr = Array.isArray(topicSensorsProp?.[topic.id]) ? topicSensorsProp[topic.id] : [];
+            map[topic.id] = arr.map((item) => (typeof item === "string" ? item : item?.label)).filter(Boolean);
+        });
+        return map;
+    }, [topics, topicSensorsProp]);
+    const selectedTopicSensors = useMemo(() => {
+        const map = {};
+        Object.entries(selectedTopicSensorsProp || {}).forEach(([topic, values]) => {
+            map[topic] = Array.isArray(values) ? values : Array.from(values || []);
+        });
+        return map;
+    }, [selectedTopicSensorsProp]);
 
     const locationData = useMemo(() => {
         const systemMap = new Map();
@@ -538,52 +529,6 @@ export default function ReportFiltersCompare(props) {
         activeSelectedSystems.length > 0 || activeSelectedLayers.length > 0 || activeSelectedDevices.length > 0;
     const baseDevicesForUnion = hasAnyLocationSelection ? filteredCatalogDevices : [];
 
-    const sensorGroups = useMemo(() => {
-        const base = baseDevicesForUnion;
-        const nothingSelected = base.length === 0;
-
-        const sensorMeta = new Map();
-        base.forEach(device => {
-            (device.sensors || []).forEach(sensor => {
-                const identity = getSensorIdentity(sensor);
-                if (!identity.key || sensorMeta.has(identity.key)) return;
-                sensorMeta.set(identity.key, identity);
-            });
-        });
-
-        const availableKeys = new Set(sensorMeta.keys());
-        const hasSensorInfo = availableKeys.size > 0;
-
-        const groups = {};
-        Object.entries(DEFAULT_SENSOR_GROUPS).forEach(([grp, labels]) => {
-            groups[grp] = labels.map((fallback) => {
-                const fallbackIdentity = getSensorIdentity(fallback);
-                const lookupKey = fallbackIdentity.key;
-                const meta = lookupKey ? sensorMeta.get(lookupKey) : undefined;
-                const resolvedLabel = meta?.label || fallbackIdentity.label || ensureString(fallback);
-
-                let disabled;
-                if (nothingSelected) {
-                    disabled = true;
-                } else if (hasSensorInfo) {
-                    disabled = lookupKey ? !availableKeys.has(lookupKey) : true;
-                } else {
-                    disabled = false;
-                }
-
-                return { label: resolvedLabel, disabled };
-            });
-        });
-
-        return groups;
-    }, [baseDevicesForUnion]);
-
-    const water = {options: sensorGroups.water, values: waterProp?.values || []};
-    const light = {options: sensorGroups.light, values: lightProp?.values || []};
-    const blue  = {options: sensorGroups.blue,  values: blueProp?.values  || []};
-    const red   = {options: sensorGroups.red,   values: redProp?.values   || []};
-    const airq  = {options: sensorGroups.airq,  values: airqProp?.values  || []};
-
     const selectedCompositeCount = selectedCompositeIds.size;
     const totalCompositeCount = compositeIds.length;
 
@@ -638,184 +583,58 @@ export default function ReportFiltersCompare(props) {
                     </div>
 
                     <div className={styles.block}>
-                        <h4>Location</h4>
-                        <div className={styles.locationSection}>
-                            {isLegacyMode ? (
-                                <>
-                                    <div className={styles.group}>
-                                        <div className={styles.groupTitle}>Systems</div>
-                                        <AllNone name="sys-allnone" onAll={handleLegacyAllSystems} onNone={handleLegacyNoneSystems}/>
-                                        <div className={styles.checklist}>
-                                            {legacySystems.map(s => (
-                                                <label key={s} className={styles.item}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={legacySelectedSystems.includes(s)}
-                                                        onChange={() => handleLegacySystemToggle(s)}
-                                                    />
-                                                    {s}
-                                                </label>
-                                            ))}
-                                            {!legacySystems.length && (
-                                                <span className={styles.emptyState}>No systems found.</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className={styles.group}>
-                                        <div className={styles.groupTitle}>Layers</div>
-                                        <AllNone name="lay-allnone" onAll={handleLegacyAllLayers} onNone={handleLegacyNoneLayers}/>
-                                        <div className={styles.checklist}>
-                                            {legacyLayers.map(l => (
-                                                <label key={l} className={styles.item}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={legacySelectedLayers.includes(l)}
-                                                        onChange={() => handleLegacyLayerToggle(l)}
-                                                    />
-                                                    {l}
-                                                </label>
-                                            ))}
-                                            {!legacyLayers.length && (
-                                                <span className={styles.emptyState}>No layers found.</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className={styles.group}>
-                                        <div className={styles.groupTitle}>Devices</div>
-                                        <AllNone name="dev-allnone" onAll={handleLegacyAllDevices} onNone={handleLegacyNoneDevices}/>
-                                        <div className={styles.checklist}>
-                                            {legacyDevices.map(d => (
-                                                <label key={d} className={styles.item}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={legacySelectedDevices.includes(d)}
-                                                        onChange={() => handleLegacyDeviceToggle(d)}
-                                                    />
-                                                    {d}
-                                                </label>
-                                            ))}
-                                            {!legacyDevices.length && (
-                                                <span className={styles.emptyState}>No devices found.</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className={`${styles.treeCard} ${isTreeCollapsed ? styles.treeCollapsed : ''}`}>
-                                        <div className={styles.treeHead}>
-                                            <div className={styles.groupTitle}>Systems · Layers · Devices</div>
-                                            <div className={styles.treeActions}>
-                                                {!isTreeCollapsed && (
-                                                    <AllNone name="loc-tree" onAll={handleSelectAllLocations} onNone={handleClearLocations}/>
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    className={styles.collapseToggle}
-                                                    onClick={() => setIsTreeCollapsed(prev => !prev)}
-                                                    aria-expanded={!isTreeCollapsed}
-                                                    aria-label={isTreeCollapsed ? 'Expand systems list' : 'Collapse systems list'}
-                                                >
-                                                    {isTreeCollapsed ? 'Expand' : 'Collapse'}
-                                                </button>
-                                            </div>
-                                        </div>
-                                        {!isTreeCollapsed && (
-                                            <div className={styles.treeList}>
-                                                {locationSystems.map(system => {
-                                                    const deviceCount = system.layers.reduce((acc, layer) => acc + layer.devices.length, 0);
-                                                    const isSystemCollapsed = collapsedSystems.has(system.id);
-                                                    return (
-                                                        <div key={system.id} className={styles.systemRow}>
-                                                            <div className={styles.systemHeader}>
-                                                                <div className={styles.systemInfo}>
-                                                                    <span className={styles.systemLabel}>{system.label}</span>
-                                                                    <span className={styles.badge}>{deviceCount}</span>
-                                                                </div>
-                                                                <button
-                                                                    type="button"
-                                                                    className={styles.collapseToggle}
-                                                                    onClick={() => toggleSystemCollapse(system.id)}
-                                                                    aria-expanded={!isSystemCollapsed}
-                                                                    aria-label={`${isSystemCollapsed ? 'Expand' : 'Collapse'} ${system.label}`}
-                                                                >
-                                                                    {isSystemCollapsed ? 'Expand' : 'Collapse'}
-                                                                </button>
-                                                            </div>
-                                                            {!isSystemCollapsed && (
-                                                                <div className={styles.layerList}>
-                                                                    {system.layers.map(layer => {
-                                                                        const layerKey = `${system.id}::${layer.id}`;
-                                                                        const isLayerCollapsed = collapsedLayers.has(layerKey);
-                                                                        return (
-                                                                            <div key={`${system.id}-${layer.id}`} className={styles.layerRow}>
-                                                                                <div className={styles.layerHeader}>
-                                                                                    <div className={styles.layerInfo}>
-                                                                                        <span className={styles.layerLabel}>{layer.label}</span>
-                                                                                        <span className={styles.badge}>{layer.devices.length}</span>
-                                                                                    </div>
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        className={styles.collapseToggle}
-                                                                                        onClick={() => toggleLayerCollapse(layerKey)}
-                                                                                        aria-expanded={!isLayerCollapsed}
-                                                                                        aria-label={`${isLayerCollapsed ? 'Expand' : 'Collapse'} ${layer.label}`}
-                                                                                    >
-                                                                                        {isLayerCollapsed ? 'Expand' : 'Collapse'}
-                                                                                    </button>
-                                                                                </div>
-                                                                                {!isLayerCollapsed && (
-                                                                                    <div className={styles.deviceList}>
-                                                                                        {layer.devices.map(device => {
-                                                                                            const checked = isCompositeChecked(device.compositeId);
-                                                                                            return (
-                                                                                                <label
-                                                                                                    key={device.compositeId}
-                                                                                                    className={`${styles.item} ${styles.deviceItem}`}
-                                                                                                >
-                                                                                                    <input
-                                                                                                        type="checkbox"
-                                                                                                        checked={checked}
-                                                                                                        onChange={(e) => handleDeviceToggle(device, e.target.checked)}
-                                                                                                        aria-label={device.label}
-                                                                                                    />
-                                                                                                    <span className={styles.deviceLabel}>{device.label}</span>
-                                                                                                    <span className={styles.deviceCid}>{device.compositeId}</span>
-                                                                                                </label>
-                                                                                            );
-                                                                                        })}
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
-                                                                        );
-                                                                    })}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className={styles.block}>
-                        <h4>Select Sensor Type</h4>
-                        <div className={styles.sensorGrid}>
-                            <Group title="Water Parameters"      name="water" options={water.options||[]} values={water.values} onAll={onAllWater} onNone={onNoneWater} onToggle={onToggleWater}/>
-                            <Group title="Air – Light Intensity" name="light" options={light.options||[]} values={light.values} onAll={onAllLight} onNone={onNoneLight} onToggle={onToggleLight}/>
-                            <Group title="Air – Blue Spectrum"   name="blue"  options={blue.options||[]}  values={blue.values}  onAll={onAllBlue}  onNone={onNoneBlue}  onToggle={onToggleBlue}/>
-                            <Group title="Air – Red Spectrum"    name="red"   options={red.options||[]}   values={red.values}   onAll={onAllRed}   onNone={onNoneRed}   onToggle={onToggleRed}/>
-                            <Group title="Air – Quality"         name="airq"  options={airq.options||[]}  values={airq.values}  onAll={onAllAirq}  onNone={onNoneAirq}  onToggle={onToggleAirq}/>
+                        <h4>Topics</h4>
+                        <div className={styles.sidebarFieldset}>
+                            <AllNone name="topics-allnone" onAll={onAllTopics} onNone={onNoneTopics} />
+                            <div className={styles.checklist}>
+                                {topics.map((topic) => (
+                                    <label key={topic.id} className={styles.item}>
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedTopics.has(topic.id)}
+                                            onChange={() => onTopicToggle && onTopicToggle(topic.id)}
+                                        />
+                                        {topic.label}
+                                    </label>
+                                ))}
+                                {!topics.length && (
+                                    <span className={styles.emptyState}>No topics available.</span>
+                                )}
+                            </div>
                         </div>
                     </div>
 
                 </aside>
 
                 <section className={styles.content}>
+                    <div className={styles.topicSensorsPanel}>
+                        <h3>Select Sensor Types</h3>
+                        {selectedTopics.size === 0 ? (
+                            <p className={styles.emptyState}>Choose a topic to see available sensor types.</p>
+                        ) : (
+                            <div className={styles.sensorGrid}>
+                                {topics
+                                    .filter((topic) => selectedTopics.has(topic.id))
+                                    .map((topic) => {
+                                        const options = topicSensors[topic.id] || [];
+                                        const values = selectedTopicSensors[topic.id] || [];
+                                        return (
+                                            <Group
+                                                key={topic.id}
+                                                title={topic.label}
+                                                name={`topic-${topic.id}`}
+                                                options={options}
+                                                values={values}
+                                                onAll={(opts) => onAllTopicSensors && onAllTopicSensors(topic.id, opts)}
+                                                onNone={() => onNoneTopicSensors && onNoneTopicSensors(topic.id)}
+                                                onToggle={(label) => onToggleTopicSensor && onToggleTopicSensor(topic.id, label)}
+                                            />
+                                        );
+                                    })}
+                            </div>
+                        )}
+                    </div>
+
                     <div className={styles.summaryCard}>
                         <div className={styles.summaryRow}>
                             <span className={styles.rangeLabel}>{rangeLabel}</span>

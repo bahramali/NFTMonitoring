@@ -23,6 +23,7 @@ export default function Reports() {
         autoRefreshValue,
         selectedCIDs,
         selSensors,
+        selectedTopics,
         registerApplyHandler,
     } = useReportsFilters();
 
@@ -41,20 +42,19 @@ export default function Reports() {
                 return;
             }
 
-            const sensorsSelected = [
-                ...selSensors.water,
-                ...selSensors.light,
-                ...selSensors.blue,
-                ...selSensors.red,
-                ...selSensors.airq,
-            ];
+            const sensorsSelected = Array.from(selectedTopics).reduce((acc, topic) => {
+                const topicSensors = selSensors[topic] || new Set();
+                topicSensors.forEach((label) => acc.add(label));
+                return acc;
+            }, new Set());
+            const selectedSensorList = Array.from(sensorsSelected);
             const autoBucket = pickBucket(fromDate, toDate);
             const baseParams = { from: toISOSeconds(fromDate), to: toISOSeconds(toDate), bucket: autoBucket };
 
             const requests = selectedCIDs.map((cid) => {
                 const params = new URLSearchParams(baseParams);
                 params.set("compositeId", cid);
-                if (sensorsSelected.length) sensorsSelected.forEach((s) => params.append("sensorType", s));
+                if (selectedSensorList.length) selectedSensorList.forEach((s) => params.append("sensorType", s));
                 const url = `${API_BASE}/api/records/history/aggregated?${params.toString()}`;
                 return (async () => {
                     const res = await fetch(url, { signal });
@@ -92,7 +92,7 @@ export default function Reports() {
                 setError(String(e.message || e));
             }
         }
-    }, [fromDate, toDate, selectedCIDs, selSensors]);
+    }, [fromDate, toDate, selectedCIDs, selSensors, selectedTopics]);
 
     useEffect(() => {
         fetchReportData();
@@ -138,13 +138,13 @@ export default function Reports() {
                         ecTdsByCid={chartData.ecTdsByCid}
                         doByCid={chartData.doByCid}
                         selectedDevice={selectedDeviceLabel}
-                        selectedSensors={{
-                            water: Array.from(selSensors.water),
-                            light: Array.from(selSensors.light),
-                            blue: Array.from(selSensors.blue),
-                            red: Array.from(selSensors.red),
-                            airq: Array.from(selSensors.airq),
-                        }}
+                        selectedSensors={Array.from(selectedTopics).reduce((acc, topic) => {
+                            const topicSensors = selSensors[topic] || new Set();
+                            topicSensors.forEach((label) => {
+                                if (!acc.includes(label)) acc.push(label);
+                            });
+                            return acc;
+                        }, [])}
                         xDomain={xDomain}
                     />
                 </div>

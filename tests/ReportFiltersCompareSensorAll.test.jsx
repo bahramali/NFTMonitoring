@@ -4,8 +4,8 @@ import '@testing-library/jest-dom';
 import ReportFiltersCompare from '../src/pages/Reports/components/ReportFiltersCompare.jsx';
 import { vi } from 'vitest';
 
-test('All selects all sensors and notifies parent', () => {
-  const onAllWater = vi.fn();
+test('All selects all sensors for the chosen topic', () => {
+  const onAllTopicSensors = vi.fn();
   render(
     <ReportFiltersCompare
       fromDate=""
@@ -17,13 +17,16 @@ test('All selects all sensors and notifies parent', () => {
       onAddCompare={() => {}}
       onExportCsv={() => {}}
       rangeLabel=""
-      water={{ values: [] }}
-      onAllWater={onAllWater}
-      onNoneWater={() => {}}
+      topics={[{ id: 'growSensors', label: 'Grow Sensors' }]}
+      selectedTopics={['growSensors']}
+      topicSensors={{ growSensors: [{ label: 'temperature' }, { label: 'humidity' }] }}
+      selectedTopicSensors={{ growSensors: [] }}
+      onAllTopicSensors={onAllTopicSensors}
+      onNoneTopicSensors={() => {}}
     />
   );
 
-  fireEvent.click(screen.getByLabelText('All', { selector: 'input[name="water"]' }));
-  const labels = onAllWater.mock.calls[0][0].map((o) => (typeof o === 'string' ? o : o.label));
-  expect(labels).toEqual(['dissolvedTemp', 'dissolvedEC', 'dissolvedTDS', 'dissolvedOxygen']);
+  fireEvent.click(screen.getByLabelText('All', { selector: 'input[name="topic-growSensors"]' }));
+
+  expect(onAllTopicSensors).toHaveBeenCalledWith('growSensors', ['temperature', 'humidity']);
 });

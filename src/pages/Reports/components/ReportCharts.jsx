@@ -22,6 +22,12 @@ const withDevice = (title, selectedDevice) =>
 
 const hasData = (series = []) => series.some((s) => Array.isArray(s.data) && s.data.length);
 
+const AIR_KEYS = new Set(["temperature", "humidity"]);
+const WATER_KEYS = new Set(["ph", "dissolvedec", "dissolvedtds", "dissolvedoxygen", "dissolvedtemp"]);
+const LIGHT_KEYS = new Set(["light", "lux", "vis1", "vis2", "nir855"]);
+const BLUE_KEYS = new Set(["405nm", "425nm", "450nm", "475nm", "515nm"]);
+const RED_KEYS = new Set(["550nm", "555nm", "600nm", "640nm", "690nm", "745nm"]);
+
 
 export default function ReportCharts({
                                          tempByCid,
@@ -29,15 +35,47 @@ export default function ReportCharts({
                                          phByCid,
                                          ecTdsByCid,
                                          doByCid,
-                                         selectedSensors = {},
+                                         selectedSensors = [],
                                          xDomain,
                                          selectedDevice
                                      }) {
-    const airq = new Set(selectedSensors.airq || []);
-    const water = new Set(selectedSensors.water || []);
-    const light = new Set(selectedSensors.light || []);
-    const blue = new Set(selectedSensors.blue || []);
-    const red = new Set(selectedSensors.red || []);
+    const sensorEntries = useMemo(
+        () =>
+            (selectedSensors || []).map((label) => ({
+                label,
+                key: String(label || "").trim().toLowerCase(),
+            })),
+        [selectedSensors],
+    );
+
+    const selectedKeys = useMemo(() => new Set(sensorEntries.map((entry) => entry.key)), [sensorEntries]);
+
+    const categorized = useMemo(() => {
+        const buckets = {
+            air: [],
+            water: [],
+            light: [],
+            blue: [],
+            red: [],
+            other: [],
+        };
+        sensorEntries.forEach((entry) => {
+            if (BLUE_KEYS.has(entry.key)) {
+                buckets.blue.push(entry.label);
+            } else if (RED_KEYS.has(entry.key)) {
+                buckets.red.push(entry.label);
+            } else if (WATER_KEYS.has(entry.key)) {
+                buckets.water.push(entry.label);
+            } else if (AIR_KEYS.has(entry.key)) {
+                buckets.air.push(entry.label);
+            } else if (LIGHT_KEYS.has(entry.key)) {
+                buckets.light.push(entry.label);
+            } else {
+                buckets.other.push(entry.label);
+            }
+        });
+        return buckets;
+    }, [sensorEntries]);
 
     const deviceLabel = selectedDevice || "Multiple devices";
 
@@ -58,23 +96,24 @@ export default function ReportCharts({
 
     const sensorSummary = useMemo(() => {
         const entries = [
-            { key: "airq", label: "Air", value: selectedSensors.airq || [] },
-            { key: "water", label: "Water", value: selectedSensors.water || [] },
-            { key: "light", label: "Light", value: selectedSensors.light || [] },
-            { key: "blue", label: "Blue Spectrum", value: selectedSensors.blue || [] },
-            { key: "red", label: "Red Spectrum", value: selectedSensors.red || [] },
+            { key: "air", label: "Air", value: categorized.air },
+            { key: "water", label: "Water", value: categorized.water },
+            { key: "light", label: "Light", value: categorized.light },
+            { key: "blue", label: "Blue Spectrum", value: categorized.blue },
+            { key: "red", label: "Red Spectrum", value: categorized.red },
+            { key: "other", label: "Other", value: categorized.other },
         ];
         return entries
             .map((entry) => ({ ...entry, count: entry.value.length }))
             .filter((entry) => entry.count > 0);
-    }, [selectedSensors]);
+    }, [categorized]);
 
-    const totalSensorsSelected = sensorSummary.reduce((acc, entry) => acc + entry.count, 0);
+    const totalSensorsSelected = sensorEntries.length;
 
     const chartSections = [
         {
             id: "temperature",
-            visible: airq.has("temperature"),
+            visible: selectedKeys.has("temperature"),
             title: withDevice("Temperature", selectedDevice),
             description: "Monitor canopy-level temperature swings and react before plants feel the stress.",
             series: toSeries(tempByCid, "temperature"),
@@ -82,7 +121,7 @@ export default function ReportCharts({
         },
         {
             id: "humidity",
-            visible: airq.has("humidity"),
+            visible: selectedKeys.has("humidity"),
             title: withDevice("Humidity", selectedDevice),
             description: "Keep relative humidity within the ideal VPD range for faster growth.",
             series: toSeries(tempByCid, "humidity"),
@@ -90,23 +129,23 @@ export default function ReportCharts({
         },
         {
             id: "blueSpectrum",
-            visible: blue.size > 0,
+            visible: categorized.blue.length > 0,
             title: withDevice("Blue Spectrum", selectedDevice),
             description: "Review short-wavelength intensity to understand structural development.",
-            series: toSpectrumSeries(rangeByCid, Array.from(blue)),
+            series: toSpectrumSeries(rangeByCid, categorized.blue),
             yLabel: "Intensity",
         },
         {
             id: "redSpectrum",
-            visible: red.size > 0,
+            visible: categorized.red.length > 0,
             title: withDevice("Red Spectrum", selectedDevice),
             description: "Balance the bloom spectrum to drive flowering without wasting energy.",
-            series: toSpectrumSeries(rangeByCid, Array.from(red)),
+            series: toSpectrumSeries(rangeByCid, categorized.red),
             yLabel: "Intensity",
         },
         {
             id: "lux",
-            visible: light.size > 0 && light.has("light"),
+            visible: categorized.light.some((label) => label.toLowerCase() === "light"),
             title: withDevice("Lux", selectedDevice),
             description: "Watch overall light levels to tune daily light integral (DLI).",
             series: toSeries(rangeByCid, "lux"),
@@ -114,7 +153,7 @@ export default function ReportCharts({
         },
         {
             id: "ph",
-            visible: water.has("ph"),
+            visible: selectedKeys.has("ph"),
             title: withDevice("pH", selectedDevice),
             description: "Maintain nutrient uptake by holding pH within your target band.",
             series: toSeries(phByCid, "ph"),
@@ -122,7 +161,7 @@ export default function ReportCharts({
         },
         {
             id: "ec",
-            visible: water.has("dissolvedEC"),
+            visible: selectedKeys.has("dissolvedec"),
             title: withDevice("Electrical Conductivity", selectedDevice),
             description: "Spot dilution or concentration trends before EC drifts too far.",
             series: toSeries(ecTdsByCid, "ec"),
@@ -130,7 +169,7 @@ export default function ReportCharts({
         },
         {
             id: "tds",
-            visible: water.has("dissolvedTDS"),
+            visible: selectedKeys.has("dissolvedtds"),
             title: withDevice("Total Dissolved Solids", selectedDevice),
             description: "Confirm nutrient dosing by tracking dissolved solids over time.",
             series: toSeries(ecTdsByCid, "tds"),
@@ -138,7 +177,7 @@ export default function ReportCharts({
         },
         {
             id: "do",
-            visible: water.has("dissolvedOxygen"),
+            visible: selectedKeys.has("dissolvedoxygen"),
             title: withDevice("Dissolved Oxygen", selectedDevice),
             description: "Protect root health with enough oxygenation in the solution.",
             series: toSeries(doByCid, "do"),

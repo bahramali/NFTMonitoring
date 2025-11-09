@@ -10,14 +10,14 @@ vi.mock('../src/components/HistoryChart', () => ({ default: () => <div /> }));
 function setup() {
   render(
     <ReportCharts
-      rangeData={[]}
-      tempRangeData={[]}
-      phRangeData={[]}
-      ecTdsRangeData={[]}
-      doRangeData={[]}
+      rangeByCid={{}}
+      tempByCid={{}}
+      phByCid={{}}
+      ecTdsByCid={{}}
+      doByCid={{}}
       xDomain={[]}
       selectedDevice="L01G03"
-      selectedSensors={{ airq: ['temperature'] }}
+      selectedSensors={['temperature']}
     />
   );
 }

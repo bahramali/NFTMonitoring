@@ -10,9 +10,17 @@ import React, {
 import { useLocation } from "react-router-dom";
 import { fetchDeviceCatalog } from "../pages/Reports/utils/catalog";
 import { pickBucket, toISOSeconds, toLocalInputValue } from "../pages/Reports/utils/datetime";
+import { useLiveDevices } from "../pages/common/useLiveDevices";
 
 const ReportsFiltersContext = createContext(null);
 const toCID = (d) => `${d.systemId}-${d.layerId}-${d.deviceId}`;
+const REPORT_TOPICS = ["growSensors", "germinationTopic", "waterTank"];
+
+const ensureString = (value, fallback = "") => {
+    if (value === undefined || value === null) return fallback;
+    const str = String(value).trim();
+    return str.length ? str : fallback;
+};
 
 export function ReportsFiltersProvider({ children }) {
     const location = useLocation();
@@ -20,6 +28,7 @@ export function ReportsFiltersProvider({ children }) {
     const isReportsRoute = normalizedPath === "/reports";
 
     const [deviceMeta, setDeviceMeta] = useState({ devices: [] });
+    const { deviceData } = useLiveDevices(REPORT_TOPICS);
 
     useEffect(() => {
         if (!isReportsRoute) return undefined;
@@ -69,12 +78,13 @@ export function ReportsFiltersProvider({ children }) {
     const [selCIDs, setSelCIDs] = useState(new Set());
     const [selCompositeIds, setSelCompositeIds] = useState(new Set());
 
-    const [selSensors, setSelSensors] = useState({
-        water: new Set(),
-        light: new Set(),
-        blue: new Set(),
-        red: new Set(),
-        airq: new Set(),
+    const [selectedTopics, setSelectedTopics] = useState(() => new Set(REPORT_TOPICS));
+    const [selSensors, setSelSensors] = useState(() => {
+        const initial = {};
+        REPORT_TOPICS.forEach((topic) => {
+            initial[topic] = new Set();
+        });
+        return initial;
     });
 
     const systems = useMemo(
@@ -101,6 +111,46 @@ export function ReportsFiltersProvider({ children }) {
         () => Array.from(new Set(filteredDeviceRows.map((d) => d.deviceId))).sort(),
         [filteredDeviceRows],
     );
+
+    const availableTopicSensors = useMemo(() => {
+        const sensorsMap = new Map();
+        REPORT_TOPICS.forEach((topic) => {
+            sensorsMap.set(topic, new Map());
+        });
+
+        Object.values(deviceData || {}).forEach((systemEntry) => {
+            if (!systemEntry || typeof systemEntry !== "object") return;
+            Object.entries(systemEntry).forEach(([topicKey, devices]) => {
+                if (!REPORT_TOPICS.includes(topicKey)) return;
+                const topicSensors = sensorsMap.get(topicKey);
+                Object.values(devices || {}).forEach((device) => {
+                    (device?.sensors || []).forEach((sensor) => {
+                        const rawLabel =
+                            ensureString(sensor?.sensorType) ||
+                            ensureString(sensor?.valueType) ||
+                            ensureString(sensor?.sensorName) ||
+                            ensureString(sensor?.name);
+                        if (!rawLabel) return;
+                        const normalized = rawLabel.toLowerCase();
+                        if (!topicSensors.has(normalized)) {
+                            topicSensors.set(normalized, {
+                                id: normalized,
+                                label: rawLabel,
+                                topic: topicKey,
+                            });
+                        }
+                    });
+                });
+            });
+        });
+
+        const result = {};
+        sensorsMap.forEach((topicSet, topicKey) => {
+            const sensors = Array.from(topicSet.values()).sort((a, b) => a.label.localeCompare(b.label));
+            result[topicKey] = sensors;
+        });
+        return result;
+    }, [deviceData]);
 
     useEffect(() => {
         if (!isReportsRoute) return;
@@ -152,18 +202,20 @@ export function ReportsFiltersProvider({ children }) {
         setSelCompositeIds(new Set(compositeIds));
     }, []);
 
-    const updateSensorGroup = useCallback((group, updater) => {
+    const updateTopicSensors = useCallback((topic, updater) => {
+        if (!topic) return;
         setSelSensors((prev) => {
-            const nextGroup = new Set(prev[group] || []);
-            updater(nextGroup);
-            return { ...prev, [group]: nextGroup };
+            const existing = prev[topic] || new Set();
+            const nextSet = new Set(existing);
+            updater(nextSet);
+            return { ...prev, [topic]: nextSet };
         });
     }, []);
 
     const toggleSensor = useCallback(
-        (group, key) => {
-            if (!group || !key) return;
-            updateSensorGroup(group, (set) => {
+        (topic, key) => {
+            if (!topic || !key) return;
+            updateTopicSensors(topic, (set) => {
                 if (set.has(key)) {
                     set.delete(key);
                 } else {
@@ -171,27 +223,54 @@ export function ReportsFiltersProvider({ children }) {
                 }
             });
         },
-        [updateSensorGroup],
+        [updateTopicSensors],
     );
 
     const setAllSensors = useCallback(
-        (group, keys = []) => {
-            updateSensorGroup(group, (set) => {
+        (topic, keys = []) => {
+            if (!topic) return;
+            const labels = Array.isArray(keys) ? keys : [];
+            updateTopicSensors(topic, (set) => {
                 set.clear();
-                keys.forEach((k) => set.add(k));
+                labels.forEach((k) => {
+                    const value = typeof k === "string" ? k : k?.label;
+                    if (value) set.add(value);
+                });
             });
         },
-        [updateSensorGroup],
+        [updateTopicSensors],
     );
 
     const clearSensors = useCallback(
-        (group) => {
-            updateSensorGroup(group, (set) => {
+        (topic) => {
+            if (!topic) return;
+            updateTopicSensors(topic, (set) => {
                 set.clear();
             });
         },
-        [updateSensorGroup],
+        [updateTopicSensors],
     );
+
+    const toggleTopicSelection = useCallback((topic) => {
+        if (!topic) return;
+        setSelectedTopics((prev) => {
+            const next = new Set(prev);
+            if (next.has(topic)) {
+                next.delete(topic);
+            } else {
+                next.add(topic);
+            }
+            return next;
+        });
+    }, []);
+
+    const setAllTopics = useCallback(() => {
+        setSelectedTopics(new Set(REPORT_TOPICS));
+    }, []);
+
+    const clearTopics = useCallback(() => {
+        setSelectedTopics(new Set());
+    }, []);
 
     const handleSystemChange = useCallback(
         (e) => {
@@ -256,12 +335,13 @@ export function ReportsFiltersProvider({ children }) {
         setSelDevices(new Set());
         setSelCIDs(new Set());
         setSelCompositeIds(new Set());
-        setSelSensors({
-            water: new Set(),
-            light: new Set(),
-            blue: new Set(),
-            red: new Set(),
-            airq: new Set(),
+        setSelectedTopics(new Set(REPORT_TOPICS));
+        setSelSensors(() => {
+            const reset = {};
+            REPORT_TOPICS.forEach((topic) => {
+                reset[topic] = new Set();
+            });
+            return reset;
         });
     }, []);
 
@@ -270,13 +350,7 @@ export function ReportsFiltersProvider({ children }) {
     const onAddCompare = useCallback(() => {
         if (!selectedCIDs.length) return;
         const autoBucket = pickBucket(fromDate, toDate);
-        const sensorsSelected = [
-            ...selSensors.water,
-            ...selSensors.light,
-            ...selSensors.blue,
-            ...selSensors.red,
-            ...selSensors.airq,
-        ];
+        const sensorsSelected = Array.from(selectedTopics).flatMap((topic) => Array.from(selSensors[topic] || []));
         setCompareItems((prev) => [
             ...prev,
             {
@@ -287,7 +361,7 @@ export function ReportsFiltersProvider({ children }) {
                 sensors: sensorsSelected,
             },
         ]);
-    }, [fromDate, toDate, selSensors, selectedCIDs]);
+    }, [fromDate, toDate, selSensors, selectedTopics, selectedCIDs]);
 
     const onRemoveCompare = useCallback((id) => {
         setCompareItems((prev) => prev.filter((item) => item.id !== id));
@@ -333,6 +407,11 @@ export function ReportsFiltersProvider({ children }) {
             onClearCompare,
             compareItems,
             selSensors,
+            selectedTopics,
+            toggleTopicSelection,
+            setAllTopics,
+            clearTopics,
+            availableTopicSensors,
             toggleSensor,
             setAllSensors,
             clearSensors,
@@ -359,6 +438,11 @@ export function ReportsFiltersProvider({ children }) {
             onClearCompare,
             compareItems,
             selSensors,
+            selectedTopics,
+            toggleTopicSelection,
+            setAllTopics,
+            clearTopics,
+            availableTopicSensors,
             toggleSensor,
             setAllSensors,
             clearSensors,

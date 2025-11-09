@@ -1,9 +1,9 @@
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ReportFiltersCompare from '../src/pages/Reports/components/ReportFiltersCompare.jsx';
 
-test('enables only sensors for selected device', async () => {
+test('sensors for selected topic are enabled', () => {
   render(
     <ReportFiltersCompare
       fromDate=""
@@ -11,30 +11,13 @@ test('enables only sensors for selected device', async () => {
       onFromDateChange={() => {}}
       onToDateChange={() => {}}
       rangeLabel=""
-      catalog={{
-        systems: [{ id: 'S1' }],
-        devices: [
-          { systemId: 'S1', layerId: 'L1', deviceId: 'D1', sensors: [{ sensorName: 'dissolvedTemp' }] },
-          { systemId: 'S1', layerId: 'L1', deviceId: 'D2', sensors: [{ sensorName: 'temperature' }] },
-        ],
-      }}
-      water={{ options: [], values: [] }}
+      topics={[{ id: 'growSensors', label: 'Grow Sensors' }]}
+      topicSensors={{ growSensors: [{ label: 'dissolvedTemp' }, { label: 'temperature' }] }}
+      selectedTopics={['growSensors']}
+      selectedTopicSensors={{ growSensors: [] }}
     />
   );
-  fireEvent.click(screen.getByRole('button', { name: /expand systems list/i }));
-  const d1 = await screen.findByLabelText('D1');
-  const dissolved = screen.getByLabelText('dissolvedTemp');
-  const temperature = screen.getByLabelText('temperature');
 
-  // initially both disabled
-  expect(dissolved).toBeDisabled();
-  expect(temperature).toBeDisabled();
-
-  // select first device
-  d1.click();
-
-  await waitFor(() => {
-    expect(dissolved).not.toBeDisabled();
-  });
-  expect(temperature).toBeDisabled();
+  expect(screen.getByLabelText('dissolvedTemp')).toBeEnabled();
+  expect(screen.getByLabelText('temperature')).toBeEnabled();
 });
