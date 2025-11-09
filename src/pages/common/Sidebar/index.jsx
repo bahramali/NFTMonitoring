@@ -34,6 +34,11 @@ export default function Sidebar() {
         onRemoveCompare,
         compareItems,
         selSensors,
+        selectedTopics,
+        toggleTopicSelection,
+        setAllTopics,
+        clearTopics,
+        availableTopicSensors,
         toggleSensor,
         setAllSensors,
         clearSensors,
@@ -64,19 +69,28 @@ export default function Sidebar() {
     const linkClass = ({ isActive }) =>
         `${styles.menuItem} ${isActive ? styles.active : ""}`;
 
-    const sensorValues = useMemo(
-        () => ({
-            water: Array.from(selSensors.water),
-            light: Array.from(selSensors.light),
-            blue: Array.from(selSensors.blue),
-            red: Array.from(selSensors.red),
-            airq: Array.from(selSensors.airq),
-        }),
-        [selSensors],
-    );
+    const topicList = useMemo(() => {
+        const entries = Object.entries(availableTopicSensors || {});
+        return entries.map(([id, sensors]) => ({
+            id,
+            label: id
+                .replace(/([A-Z])/g, " $1")
+                .replace(/[_-]/g, " ")
+                .replace(/^\s+|\s+$/g, "")
+                .replace(/^./, (ch) => ch.toUpperCase()),
+            sensors,
+        }));
+    }, [availableTopicSensors]);
 
-    const toLabels = (keys = []) =>
-        keys.map((item) => (typeof item === "string" ? item : item?.label)).filter(Boolean);
+    const selectedSensorsByTopic = useMemo(() => {
+        const map = {};
+        Object.entries(selSensors || {}).forEach(([topic, values]) => {
+            map[topic] = Array.from(values || []);
+        });
+        return map;
+    }, [selSensors]);
+
+    const selectedTopicIds = useMemo(() => Array.from(selectedTopics || []), [selectedTopics]);
 
     const rangeLabel = useMemo(() => {
         if (!fromDate || !toDate) return "";
@@ -171,26 +185,16 @@ export default function Sidebar() {
                             compareItems={compareItems}
                             onClearCompare={onClearCompare}
                             onRemoveCompare={onRemoveCompare}
-                            water={{ values: sensorValues.water }}
-                            light={{ values: sensorValues.light }}
-                            blue={{ values: sensorValues.blue }}
-                            red={{ values: sensorValues.red }}
-                            airq={{ values: sensorValues.airq }}
-                            onToggleWater={(key) => toggleSensor("water", key)}
-                            onToggleLight={(key) => toggleSensor("light", key)}
-                            onToggleBlue={(key) => toggleSensor("blue", key)}
-                            onToggleRed={(key) => toggleSensor("red", key)}
-                            onToggleAirq={(key) => toggleSensor("airq", key)}
-                            onAllWater={(keys) => setAllSensors("water", toLabels(keys))}
-                            onNoneWater={() => clearSensors("water")}
-                            onAllLight={(keys) => setAllSensors("light", toLabels(keys))}
-                            onNoneLight={() => clearSensors("light")}
-                            onAllBlue={(keys) => setAllSensors("blue", toLabels(keys))}
-                            onNoneBlue={() => clearSensors("blue")}
-                            onAllRed={(keys) => setAllSensors("red", toLabels(keys))}
-                            onNoneRed={() => clearSensors("red")}
-                            onAllAirq={(keys) => setAllSensors("airq", toLabels(keys))}
-                            onNoneAirq={() => clearSensors("airq")}
+                            topics={topicList}
+                            selectedTopics={selectedTopicIds}
+                            onTopicToggle={toggleTopicSelection}
+                            onAllTopics={setAllTopics}
+                            onNoneTopics={clearTopics}
+                            topicSensors={availableTopicSensors}
+                            selectedTopicSensors={selectedSensorsByTopic}
+                            onToggleTopicSensor={(topic, key) => toggleSensor(topic, key)}
+                            onAllTopicSensors={(topic, keys) => setAllSensors(topic, keys)}
+                            onNoneTopicSensors={(topic) => clearSensors(topic)}
                         />
                         {selectedCIDs.length <= 1 ? null : (
                             <div className={styles.selectionHint}>

@@ -1,57 +1,44 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ReportFiltersCompare from '../src/pages/Reports/components/ReportFiltersCompare.jsx';
 
-test('selecting multiple devices enables union of sensors', async () => {
-  render(
-    <ReportFiltersCompare
-      fromDate=""
-      toDate=""
-      onFromDateChange={() => {}}
-      onToDateChange={() => {}}
-      rangeLabel=""
-      catalog={{
-        systems: [{ id: 'S1' }, { id: 'S2' }],
-        devices: [
-          {
-            systemId: 'S1',
-            layerId: 'L1',
-            deviceId: 'D1',
-            sensors: [{ sensorName: 'humidity' }],
-          },
-          {
-            systemId: 'S2',
-            layerId: 'L2',
-            deviceId: 'D2',
-            sensors: [{ sensorName: 'temperature' }],
-          },
-        ],
-      }}
-    />
-  );
+test('topics determine which sensors are displayed', () => {
+  const baseProps = {
+    fromDate: '',
+    toDate: '',
+    onFromDateChange: () => {},
+    onToDateChange: () => {},
+    rangeLabel: '',
+    catalog: { systems: [], devices: [] },
+    topics: [
+      { id: 'growSensors', label: 'Grow Sensors' },
+      { id: 'waterTank', label: 'Water Tank' },
+    ],
+    topicSensors: {
+      growSensors: [{ label: 'temperature' }, { label: 'humidity' }],
+      waterTank: [{ label: 'ph' }],
+    },
+    selectedTopicSensors: {
+      growSensors: ['temperature'],
+    },
+    selectedTopics: [],
+  };
 
-  const humidity = await screen.findByLabelText('humidity');
-  const temperature = await screen.findByLabelText('temperature');
+  const { rerender } = render(<ReportFiltersCompare {...baseProps} />);
 
-  expect(humidity).toBeDisabled();
-  expect(temperature).toBeDisabled();
+  expect(screen.getByText(/choose a topic/i)).toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole('button', { name: /expand systems list/i }));
+  rerender(<ReportFiltersCompare {...baseProps} selectedTopics={['growSensors']} />);
 
-  const firstDevice = await screen.findByLabelText('D1');
-  fireEvent.click(firstDevice);
+  expect(screen.getAllByText('Grow Sensors').length).toBeGreaterThan(0);
+  expect(screen.getByLabelText('temperature')).toBeChecked();
+  expect(screen.queryByLabelText('ph')).not.toBeInTheDocument();
 
-  await waitFor(() => {
-    expect(humidity).not.toBeDisabled();
-  });
-  expect(temperature).toBeDisabled();
+  rerender(<ReportFiltersCompare {...baseProps} selectedTopics={['waterTank']} />);
 
-  const secondDevice = await screen.findByLabelText('D2');
-  fireEvent.click(secondDevice);
-
-  await waitFor(() => {
-    expect(temperature).not.toBeDisabled();
-  });
+  expect(screen.getAllByText('Water Tank').length).toBeGreaterThan(0);
+  expect(screen.getByLabelText('ph')).toBeInTheDocument();
+  expect(screen.queryByLabelText('temperature')).not.toBeInTheDocument();
 });
 

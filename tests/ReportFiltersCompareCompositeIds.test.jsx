@@ -1,92 +1,58 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 import ReportFiltersCompare from '../src/pages/Reports/components/ReportFiltersCompare.jsx';
 
-const catalog = {
-  systems: [
-    { id: 'S01', compositeIds: ['S01-L01-D1'] },
-    { id: 'S02', compositeIds: ['S02-L02-D2'] },
+const baseProps = {
+  fromDate: '',
+  toDate: '',
+  onFromDateChange: () => {},
+  onToDateChange: () => {},
+  onApply: () => {},
+  onReset: () => {},
+  onAddCompare: () => {},
+  onExportCsv: () => {},
+  rangeLabel: '',
+  topics: [
+    { id: 'growSensors', label: 'Grow Sensors' },
   ],
-  devices: [
-    { systemId: 'S01', layerId: 'L01', deviceId: 'D1', deviceName: 'Device 1' },
-    { systemId: 'S02', layerId: 'L02', deviceId: 'D2', deviceName: 'Device 2' },
-  ],
+  topicSensors: {
+    growSensors: [{ label: 'temperature' }, { label: 'humidity' }],
+  },
+  selectedTopics: ['growSensors'],
+  selectedTopicSensors: {
+    growSensors: ['temperature'],
+  },
 };
 
-test('location tree is collapsed by default and expands on demand', async () => {
+test('sensor checkbox reflects selection and fires toggle callback', () => {
+  const onToggleTopicSensor = vi.fn();
   render(
     <ReportFiltersCompare
-      fromDate=""
-      toDate=""
-      onFromDateChange={() => {}}
-      onToDateChange={() => {}}
-      rangeLabel=""
-      catalog={catalog}
+      {...baseProps}
+      onToggleTopicSensor={onToggleTopicSensor}
     />
   );
 
-  expect(screen.queryByText('S01')).not.toBeInTheDocument();
+  const temperature = screen.getByLabelText('temperature');
+  expect(temperature).toBeChecked();
 
-  fireEvent.click(screen.getByRole('button', { name: /expand systems list/i }));
+  fireEvent.click(temperature);
 
-  expect(await screen.findByText('S01')).toBeInTheDocument();
-  expect(screen.getByLabelText('Device 1')).toBeInTheDocument();
+  expect(onToggleTopicSensor).toHaveBeenCalledWith('growSensors', 'temperature');
 });
 
-test('selecting a device updates summary and triggers apply handler', async () => {
-  const onApply = vi.fn();
-
+test('None action requests clearing sensors for topic', () => {
+  const onNoneTopicSensors = vi.fn();
   render(
     <ReportFiltersCompare
-      fromDate=""
-      toDate=""
-      onFromDateChange={() => {}}
-      onToDateChange={() => {}}
-      rangeLabel=""
-      catalog={catalog}
-      onApply={onApply}
+      {...baseProps}
+      onNoneTopicSensors={onNoneTopicSensors}
     />
   );
 
-  fireEvent.click(screen.getByRole('button', { name: /expand systems list/i }));
+  fireEvent.click(screen.getByLabelText('None', { selector: 'input[name="topic-growSensors"]' }));
 
-  fireEvent.click(await screen.findByLabelText('Device 1'));
-
-  await waitFor(() => {
-    expect(onApply).toHaveBeenCalled();
-  });
-
-  const labels = await screen.findAllByText('Device 1');
-  expect(labels.length).toBeGreaterThan(0);
-});
-
-test('collapsing a system hides its layers and devices', async () => {
-  render(
-    <ReportFiltersCompare
-      fromDate=""
-      toDate=""
-      onFromDateChange={() => {}}
-      onToDateChange={() => {}}
-      rangeLabel=""
-      catalog={catalog}
-    />
-  );
-
-  fireEvent.click(screen.getByRole('button', { name: /expand systems list/i }));
-
-  const collapseButton = await screen.findByRole('button', { name: /collapse s01/i });
-
-  expect(screen.queryByLabelText('S01')).not.toBeInTheDocument();
-
-  fireEvent.click(collapseButton);
-
-  await waitFor(() => {
-    expect(screen.queryByText('Device 1')).not.toBeInTheDocument();
-  });
-
-  fireEvent.click(screen.getByRole('button', { name: /expand s01/i }));
-
-  expect(await screen.findByText('Device 1')).toBeInTheDocument();
+  expect(onNoneTopicSensors).toHaveBeenCalledWith('growSensors');
 });
