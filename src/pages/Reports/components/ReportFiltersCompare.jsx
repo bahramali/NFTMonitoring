@@ -81,8 +81,6 @@ export default function ReportFiltersCompare(props) {
         autoRefreshValue = 'Off',
         onAutoRefreshValueChange = () => {},
 
-        systems: systemsProp = [],
-        layers:  layersProp  = [],
         devices: devicesProp = [],
 
         onSystemChange, onLayerChange, onDeviceChange,
@@ -307,99 +305,7 @@ export default function ReportFiltersCompare(props) {
         return { systems, compositeIds, compositeMeta };
     }, [catalog, devicesProp]);
 
-    const { systems: locationSystems, compositeIds, compositeMeta } = locationData;
-
-    useEffect(() => {
-        setCollapsedSystems(prev => {
-            if (!prev.size) return prev;
-            const validSystemIds = new Set(locationSystems.map(system => system.id));
-            let changed = false;
-            const next = new Set();
-            prev.forEach(id => {
-                if (validSystemIds.has(id)) next.add(id);
-                else changed = true;
-            });
-            return changed ? next : prev;
-        });
-
-        setCollapsedLayers(prev => {
-            if (!prev.size) return prev;
-            const validLayerKeys = new Set();
-            locationSystems.forEach(system => {
-                system.layers.forEach(layer => {
-                    validLayerKeys.add(`${system.id}::${layer.id}`);
-                });
-            });
-            let changed = false;
-            const next = new Set();
-            prev.forEach(key => {
-                if (validLayerKeys.has(key)) next.add(key);
-                else changed = true;
-            });
-            return changed ? next : prev;
-        });
-    }, [locationSystems]);
-
-    const [legacySelectedSystems, setLegacySelectedSystems] = useState([]);
-    const [legacySelectedLayers, setLegacySelectedLayers] = useState([]);
-    const [legacySelectedDevices, setLegacySelectedDevices] = useState([]);
-    const [isTreeCollapsed, setIsTreeCollapsed] = useState(true);
-
-    const legacySystems = useMemo(() => {
-        if (systemsProp.length) return systemsProp;
-        const fromCatalog = (catalog?.systems || []).map(s => ensureString(s.id)).filter(Boolean);
-        return Array.from(new Set(fromCatalog));
-    }, [systemsProp, catalog]);
-
-    const legacyLayers = useMemo(() => {
-        if (layersProp.length) return layersProp;
-        const fromCatalog = (catalog?.devices || []).map(d => ensureString(d.layerId ?? d.layer?.id)).filter(Boolean);
-        return Array.from(new Set(fromCatalog));
-    }, [layersProp, catalog]);
-
-    const legacyDevices = useMemo(() => {
-        if (devicesProp.length) return devicesProp;
-        const fromCatalog = (catalog?.devices || []).map(d => ensureString(d.deviceId ?? d.id ?? d.device?.id)).filter(Boolean);
-        return Array.from(new Set(fromCatalog));
-    }, [devicesProp, catalog]);
-
-    const toggleIn = (arr, v) => (arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]);
-
-    const handleLegacySystemToggle = (id) => {
-        setLegacySelectedSystems(prev => toggleIn(prev, id));
-    };
-
-    const handleLegacyLayerToggle = (id) => {
-        setLegacySelectedLayers(prev => toggleIn(prev, id));
-    };
-
-    const handleLegacyDeviceToggle = (id) => {
-        setLegacySelectedDevices(prev => toggleIn(prev, id));
-    };
-
-    const handleLegacyAllSystems = () => {
-        setLegacySelectedSystems([...legacySystems]);
-    };
-
-    const handleLegacyNoneSystems = () => {
-        setLegacySelectedSystems([]);
-    };
-
-    const handleLegacyAllLayers = () => {
-        setLegacySelectedLayers([...legacyLayers]);
-    };
-
-    const handleLegacyNoneLayers = () => {
-        setLegacySelectedLayers([]);
-    };
-
-    const handleLegacyAllDevices = () => {
-        setLegacySelectedDevices([...legacyDevices]);
-    };
-
-    const handleLegacyNoneDevices = () => {
-        setLegacySelectedDevices([]);
-    };
+    const { compositeIds, compositeMeta } = locationData;
 
     const [selectedCompositeIds, setSelectedCompositeIds] = useState(
         () => new Set(Array.isArray(selectedCompositeIdsProp) ? selectedCompositeIdsProp : [])
@@ -437,11 +343,6 @@ export default function ReportFiltersCompare(props) {
             onCompositeSelectionChange(Array.from(selectedCompositeIds));
         }
     }, [selectedCompositeIds, onCompositeSelectionChange]);
-    const [collapsedSystems, setCollapsedSystems] = useState(() => new Set());
-    const [collapsedLayers, setCollapsedLayers] = useState(() => new Set());
-
-    const isLegacyMode = locationSystems.length === 0;
-
     const selectedSummary = useMemo(() => {
         const sysSet = new Set();
         const laySet = new Set();
@@ -464,10 +365,6 @@ export default function ReportFiltersCompare(props) {
     const selectedLayers  = selectedSummary.layers;
     const selectedDevices = selectedSummary.devices;
 
-    const activeSelectedSystems = isLegacyMode ? legacySelectedSystems : selectedSystems;
-    const activeSelectedLayers  = isLegacyMode ? legacySelectedLayers  : selectedLayers;
-    const activeSelectedDevices = isLegacyMode ? legacySelectedDevices : selectedDevices;
-
     const syncParentSelection = (prev = [], next = [], handler) => {
         if (typeof handler !== 'function') return;
         const prevSet = new Set(prev);
@@ -480,48 +377,28 @@ export default function ReportFiltersCompare(props) {
         });
     };
 
-    const prevSystemsRef = useRef(activeSelectedSystems);
+    const prevSystemsRef = useRef(selectedSystems);
     useEffect(() => {
-        syncParentSelection(prevSystemsRef.current, activeSelectedSystems, onSystemChange);
-        prevSystemsRef.current = activeSelectedSystems;
-    }, [activeSelectedSystems, onSystemChange]);
+        syncParentSelection(prevSystemsRef.current, selectedSystems, onSystemChange);
+        prevSystemsRef.current = selectedSystems;
+    }, [selectedSystems, onSystemChange]);
 
-    const prevLayersRef = useRef(activeSelectedLayers);
+    const prevLayersRef = useRef(selectedLayers);
     useEffect(() => {
-        syncParentSelection(prevLayersRef.current, activeSelectedLayers, onLayerChange);
-        prevLayersRef.current = activeSelectedLayers;
-    }, [activeSelectedLayers, onLayerChange]);
+        syncParentSelection(prevLayersRef.current, selectedLayers, onLayerChange);
+        prevLayersRef.current = selectedLayers;
+    }, [selectedLayers, onLayerChange]);
 
-    const prevDevicesRef = useRef(activeSelectedDevices);
+    const prevDevicesRef = useRef(selectedDevices);
     useEffect(() => {
-        syncParentSelection(prevDevicesRef.current, activeSelectedDevices, onDeviceChange);
-        prevDevicesRef.current = activeSelectedDevices;
-    }, [activeSelectedDevices, onDeviceChange]);
+        syncParentSelection(prevDevicesRef.current, selectedDevices, onDeviceChange);
+        prevDevicesRef.current = selectedDevices;
+    }, [selectedDevices, onDeviceChange]);
 
     const mutateCompositeSelection = (mutator) => {
-        setSelectedCompositeIds(prev => {
+        setSelectedCompositeIds((prev) => {
             const next = new Set(prev);
             mutator(next, prev);
-            return next;
-        });
-    };
-
-    const toggleSystemCollapse = (systemId) => {
-        if (!systemId) return;
-        setCollapsedSystems(prev => {
-            const next = new Set(prev);
-            if (next.has(systemId)) next.delete(systemId);
-            else next.add(systemId);
-            return next;
-        });
-    };
-
-    const toggleLayerCollapse = (layerKey) => {
-        if (!layerKey) return;
-        setCollapsedLayers(prev => {
-            const next = new Set(prev);
-            if (next.has(layerKey)) next.delete(layerKey);
-            else next.add(layerKey);
             return next;
         });
     };
@@ -562,27 +439,11 @@ export default function ReportFiltersCompare(props) {
         syncCompositeSelection([]);
     };
 
-    // filtered catalog devices according to location selection
-    const filteredCatalogDevices = useMemo(() => {
-        const all = catalog?.devices || [];
-        return all.filter(d => {
-            const systemId = ensureString(d.systemId ?? d.system?.id);
-            const layerId = ensureString(d.layerId ?? d.layer?.id);
-            const deviceId = ensureString(d.deviceId ?? d.id ?? d.device?.id);
-            const sysOk = !activeSelectedSystems.length || activeSelectedSystems.includes(systemId);
-            const layOk = !activeSelectedLayers.length  || activeSelectedLayers.includes(layerId);
-            const devOk = !activeSelectedDevices.length || activeSelectedDevices.includes(deviceId);
-            return sysOk && layOk && devOk;
-        });
-    }, [catalog, activeSelectedSystems, activeSelectedLayers, activeSelectedDevices]);
-
     // composite checkbox state derived from location selection
     const isCompositeChecked = (cid) => selectedCompositeIds.has(cid);
 
 
     // sensors: before any location selection, everything disabled (tests expect this)
-    const hasAnyLocationSelection = selectedCompositeIds.size > 0;
-    const baseDevicesForUnion = hasAnyLocationSelection ? filteredCatalogDevices : [];
 
     const selectedCompositeCount = selectedCompositeIds.size;
     const totalCompositeCount = selectedTopicId ? (topicDevices[selectedTopicId] || []).length : compositeIds.length;

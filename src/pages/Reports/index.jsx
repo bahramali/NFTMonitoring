@@ -8,12 +8,57 @@ import { useReportsFilters } from "../../context/ReportsFiltersContext.jsx";
 
 const AUTO_REFRESH_MS = { "30s": 30_000, "1m": 60_000, "5m": 300_000 };
 
-const EMPTY_CHART_DATA = {
-    tempByCid: {},
-    rangeByCid: {},
-    phByCid: {},
-    ecTdsByCid: {},
-    doByCid: {},
+const createEmptyChartState = () => ({
+    tempByCid: Object.create(null),
+    rangeByCid: Object.create(null),
+    phByCid: Object.create(null),
+    ecTdsByCid: Object.create(null),
+    doByCid: Object.create(null),
+});
+
+const collectSelectedSensors = (topics, sensorsByTopic) => {
+    const aggregated = new Set();
+    topics.forEach((topic) => {
+        (sensorsByTopic[topic] || new Set()).forEach((label) => aggregated.add(label));
+    });
+    return Array.from(aggregated);
+};
+
+const extractValue = (reading) => reading?.value ?? 0;
+
+const buildChartSeries = (sensorsPayload = []) => {
+    const range = [];
+    const temperature = [];
+    const ph = [];
+    const ecTds = [];
+    const dissolvedOxygen = [];
+
+    transformAggregatedData({ sensors: sensorsPayload }).forEach((entry) => {
+        const time = entry.timestamp;
+        const withLux = { ...entry, time, lux: extractValue(entry.lux) };
+        range.push(withLux);
+        temperature.push({
+            time,
+            temperature: extractValue(entry.temperature),
+            humidity: extractValue(entry.humidity),
+        });
+        ph.push({ time, ph: extractValue(entry.ph) });
+        ecTds.push({
+            time,
+            ec: extractValue(entry.ec),
+            tds: extractValue(entry.tds),
+        });
+        dissolvedOxygen.push({ time, do: extractValue(entry.do) });
+    });
+
+    return { range, temperature, ph, ecTds, dissolvedOxygen };
+};
+
+const createHistoryUrl = (cid, params, selectedSensors) => {
+    const search = new URLSearchParams(params);
+    search.set("compositeId", cid);
+    selectedSensors.forEach((sensor) => search.append("sensorType", sensor));
+    return `${API_BASE}/api/records/history/aggregated?${search.toString()}`;
 };
 
 export default function Reports() {
@@ -27,36 +72,43 @@ export default function Reports() {
         registerApplyHandler,
     } = useReportsFilters();
 
-    const [chartData, setChartData] = useState(EMPTY_CHART_DATA);
+    const [chartData, setChartData] = useState(() => createEmptyChartState());
     const [error, setError] = useState("");
     const abortRef = useRef(null);
 
+    const selectedSensors = useMemo(
+        () => collectSelectedSensors(selectedTopics, selSensors),
+        [selectedTopics, selSensors],
+    );
+
+    const resetAbortController = useCallback(() => {
+        if (abortRef.current) {
+            abortRef.current.abort();
+        }
+        const controller = new AbortController();
+        abortRef.current = controller;
+        return controller;
+    }, []);
+
     const fetchReportData = useCallback(async () => {
+        if (!selectedCIDs.length) {
+            if (abortRef.current) {
+                abortRef.current.abort();
+            }
+            setChartData(createEmptyChartState());
+            return;
+        }
+
         try {
             setError("");
-            if (abortRef.current) abortRef.current.abort();
-            abortRef.current = new AbortController();
-            const { signal } = abortRef.current;
-            if (!selectedCIDs.length) {
-                setChartData(EMPTY_CHART_DATA);
-                return;
-            }
+            const { signal } = resetAbortController();
 
-            const sensorsSelected = Array.from(selectedTopics).reduce((acc, topic) => {
-                const topicSensors = selSensors[topic] || new Set();
-                topicSensors.forEach((label) => acc.add(label));
-                return acc;
-            }, new Set());
-            const selectedSensorList = Array.from(sensorsSelected);
             const autoBucket = pickBucket(fromDate, toDate);
             const baseParams = { from: toISOSeconds(fromDate), to: toISOSeconds(toDate), bucket: autoBucket };
 
             const requests = selectedCIDs.map((cid) => {
-                const params = new URLSearchParams(baseParams);
-                params.set("compositeId", cid);
-                if (selectedSensorList.length) selectedSensorList.forEach((s) => params.append("sensorType", s));
-                const url = `${API_BASE}/api/records/history/aggregated?${params.toString()}`;
                 return (async () => {
+                    const url = createHistoryUrl(cid, baseParams, selectedSensors);
                     const res = await fetch(url, { signal });
                     if (!res.ok) {
                         const txt = await res.text().catch(() => "");
@@ -69,30 +121,24 @@ export default function Reports() {
 
             const results = await Promise.all(requests);
 
-            const tempByCid = {}, rangeByCid = {}, phByCid = {}, ecTdsByCid = {}, doByCid = {};
-            for (const { cid, data } of results) {
-                const entries = transformAggregatedData({ sensors: data.sensors || [] });
-                const processed = entries.map((d) => ({ time: d.timestamp, ...d, lux: d.lux?.value ?? 0 }));
-                rangeByCid[cid] = processed;
+            const chartState = results.reduce((state, { cid, data }) => {
+                const { range, temperature, ph, ecTds, dissolvedOxygen } = buildChartSeries(data.sensors);
+                state.rangeByCid[cid] = range;
+                state.tempByCid[cid] = temperature;
+                state.phByCid[cid] = ph;
+                state.ecTdsByCid[cid] = ecTds;
+                state.doByCid[cid] = dissolvedOxygen;
+                return state;
+            }, createEmptyChartState());
 
-                tempByCid[cid] = processed.map((d) => ({
-                    time: d.time,
-                    temperature: d.temperature?.value ?? 0,
-                    humidity: d.humidity?.value ?? 0,
-                }));
-                phByCid[cid] = processed.map((d) => ({ time: d.time, ph: d.ph?.value ?? 0 }));
-                ecTdsByCid[cid] = processed.map((d) => ({ time: d.time, ec: d.ec?.value ?? 0, tds: d.tds?.value ?? 0 }));
-                doByCid[cid] = processed.map((d) => ({ time: d.time, do: d.do?.value ?? 0 }));
-            }
-
-            setChartData({ tempByCid, rangeByCid, phByCid, ecTdsByCid, doByCid });
+            setChartData(chartState);
         } catch (e) {
             if (e.name !== "AbortError") {
                 console.error(e);
                 setError(String(e.message || e));
             }
         }
-    }, [fromDate, toDate, selectedCIDs, selSensors, selectedTopics]);
+    }, [fromDate, toDate, selectedCIDs, selectedSensors, resetAbortController]);
 
     useEffect(() => {
         fetchReportData();
@@ -103,9 +149,12 @@ export default function Reports() {
         return () => registerApplyHandler(undefined);
     }, [registerApplyHandler, fetchReportData]);
 
-    useEffect(() => () => {
-        if (abortRef.current) abortRef.current.abort();
-    }, []);
+    useEffect(
+        () => () => {
+            if (abortRef.current) abortRef.current.abort();
+        },
+        [],
+    );
 
     useEffect(() => {
         const ms = AUTO_REFRESH_MS[autoRefreshValue];
@@ -117,12 +166,18 @@ export default function Reports() {
     }, [autoRefreshValue, fetchReportData]);
 
     const xDomain = useMemo(() => {
-        const start = new Date(fromDate).getTime();
-        const end = new Date(toDate).getTime();
+        const start = Date.parse(fromDate);
+        const end = Date.parse(toDate);
+        if (Number.isNaN(start) || Number.isNaN(end)) {
+            return undefined;
+        }
         return [start, end];
     }, [fromDate, toDate]);
 
-    const selectedDeviceLabel = selectedCIDs.length === 1 ? selectedCIDs[0] : "";
+    const selectedDeviceLabel = useMemo(
+        () => (selectedCIDs.length === 1 ? selectedCIDs[0] : ""),
+        [selectedCIDs],
+    );
 
     return (
         <div>
@@ -138,13 +193,7 @@ export default function Reports() {
                         ecTdsByCid={chartData.ecTdsByCid}
                         doByCid={chartData.doByCid}
                         selectedDevice={selectedDeviceLabel}
-                        selectedSensors={Array.from(selectedTopics).reduce((acc, topic) => {
-                            const topicSensors = selSensors[topic] || new Set();
-                            topicSensors.forEach((label) => {
-                                if (!acc.includes(label)) acc.push(label);
-                            });
-                            return acc;
-                        }, [])}
+                        selectedSensors={selectedSensors}
                         xDomain={xDomain}
                     />
                 </div>
