@@ -1,8 +1,12 @@
 // pages/Cameras/index.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
 import styles from "./Cameras.module.css";
-import { getCameraErrorMessage, DEFAULT_CAMERA_ERROR_MESSAGE } from "./errorMessages";
+import {
+    getCameraErrorMessage,
+    DEFAULT_CAMERA_ERROR_MESSAGE,
+    shouldAutoReloadForError,
+} from "./errorMessages";
 
 const DEFAULT_CAMERA_SOURCES = [
     {
@@ -191,6 +195,7 @@ function CameraPreview({ camera, isActive, onSelect }) {
 export default function Cameras() {
     const videoRef = useRef(null);
     const hlsRef = useRef(null); // keep instance for cleanup
+    const retryTimeoutRef = useRef(null);
     const [selectedCameraId, setSelectedCameraId] = useState(
         () => CAMERA_SOURCES[0]?.id ?? null,
     );
@@ -214,6 +219,13 @@ export default function Cameras() {
     }));
     const [reloadKey, setReloadKey] = useState(0);
 
+    const clearRetryTimeout = useCallback(() => {
+        if (retryTimeoutRef.current) {
+            clearTimeout(retryTimeoutRef.current);
+            retryTimeoutRef.current = null;
+        }
+    }, []);
+
     useEffect(() => {
         if (!selectedCamera) {
             setStatus({
@@ -230,6 +242,8 @@ export default function Cameras() {
         const video = videoRef.current;
         if (!video) return undefined;
 
+        clearRetryTimeout();
+
         if (!selectedCamera?.streamUrl) {
             setStatus({
                 state: "error",
@@ -243,6 +257,14 @@ export default function Cameras() {
                 state,
                 message: message || getStatusMessage(state, selectedCamera),
             });
+        };
+
+        const scheduleAutoReload = (delayMs = 3000) => {
+            clearRetryTimeout();
+            retryTimeoutRef.current = setTimeout(() => {
+                setState("loading", "Stream issue detected. Reconnecting…");
+                setReloadKey((key) => key + 1);
+            }, delayMs);
         };
 
         const cleanupHls = () => {
@@ -287,13 +309,17 @@ export default function Cameras() {
 
         const onVideoPlaying = () => setState("playing");
         const onVideoError = () => {
+            const rawErrorMessage = video?.error?.message;
             const errorMessage = getCameraErrorMessage({
                 errorCode: video?.error?.code,
-                errorMessage: video?.error?.message,
+                errorMessage: rawErrorMessage,
                 streamUrl: selectedCamera?.streamUrl,
                 pageProtocol: typeof window !== "undefined" ? window.location?.protocol : undefined,
             });
             setState("error", errorMessage);
+            if (shouldAutoReloadForError(rawErrorMessage)) {
+                scheduleAutoReload();
+            }
         };
 
         video.addEventListener("playing", onVideoPlaying);
@@ -307,6 +333,7 @@ export default function Cameras() {
             video.addEventListener("loadedmetadata", onLoaded, { once: true });
 
             return () => {
+                clearRetryTimeout();
                 video.removeEventListener("loadedmetadata", onLoaded);
                 video.removeEventListener("playing", onVideoPlaying);
                 video.removeEventListener("error", onVideoError);
@@ -376,6 +403,7 @@ export default function Cameras() {
             hls.on(Hls.Events.ERROR, onHlsError);
 
             return () => {
+                clearRetryTimeout();
                 video.removeEventListener("playing", onVideoPlaying);
                 video.removeEventListener("error", onVideoError);
                 try {
@@ -399,6 +427,7 @@ export default function Cameras() {
         video.addEventListener("loadedmetadata", onLoaded, { once: true });
 
         return () => {
+            clearRetryTimeout();
             video.removeEventListener("loadedmetadata", onLoaded);
             video.removeEventListener("playing", onVideoPlaying);
             video.removeEventListener("error", onVideoError);
@@ -406,9 +435,10 @@ export default function Cameras() {
             video.removeAttribute("src");
             video.load();
         };
-    }, [reloadKey, selectedCamera]);
+    }, [reloadKey, selectedCamera, clearRetryTimeout]);
 
     const handleReload = () => {
+        clearRetryTimeout();
         setReloadKey((key) => key + 1);
     };
 
