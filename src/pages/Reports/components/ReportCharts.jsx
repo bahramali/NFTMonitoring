@@ -22,18 +22,12 @@ const withDevice = (title, selectedDevice) =>
 
 const hasData = (series = []) => series.some((s) => Array.isArray(s.data) && s.data.length);
 
-const BLUE_SERIES_KEYS = ["405nm", "425nm", "450nm", "475nm", "515nm"];
-const RED_SERIES_KEYS = ["550nm", "555nm", "600nm", "640nm", "690nm", "745nm", "NIR855"];
-const BLUE_SELECTION_KEYS = new Set(BLUE_SERIES_KEYS.map((key) => key.toLowerCase()));
-const RED_SELECTION_KEYS = new Set(RED_SERIES_KEYS.map((key) => key.toLowerCase()));
-const BLUE_ALIAS_KEYS = new Set(["blue", "bluelight", "bluespectrum"]);
-const RED_ALIAS_KEYS = new Set(["red", "redlight", "redspectrum"]);
+const AIR_KEYS = new Set(["temperature", "humidity"]);
+const WATER_KEYS = new Set(["ph", "dissolvedec", "dissolvedtds", "dissolvedoxygen", "dissolvedtemp"]);
+const LIGHT_KEYS = new Set(["light", "lux", "vis1", "vis2", "nir855"]);
+const BLUE_KEYS = new Set(["405nm", "425nm", "450nm", "475nm", "515nm"]);
+const RED_KEYS = new Set(["550nm", "555nm", "600nm", "640nm", "690nm", "745nm"]);
 
-const toSelectionKey = (label) =>
-    String(label ?? "")
-        .trim()
-        .toLowerCase()
-        .replace(/[\s_-]+/g, "");
 
 export default function ReportCharts({
                                          tempByCid,
@@ -49,27 +43,72 @@ export default function ReportCharts({
         () =>
             (selectedSensors || []).map((label) => ({
                 label,
-                key: toSelectionKey(label),
+                key: String(label || "").trim().toLowerCase(),
             })),
         [selectedSensors],
     );
 
     const selectedKeys = useMemo(() => new Set(sensorEntries.map((entry) => entry.key)), [sensorEntries]);
 
-    const hasBlueSelection = useMemo(
-        () => sensorEntries.some(({ key }) => BLUE_SELECTION_KEYS.has(key) || BLUE_ALIAS_KEYS.has(key)),
-        [sensorEntries],
-    );
+    const categorized = useMemo(() => {
+        const buckets = {
+            air: [],
+            water: [],
+            light: [],
+            blue: [],
+            red: [],
+            other: [],
+        };
+        sensorEntries.forEach((entry) => {
+            if (BLUE_KEYS.has(entry.key)) {
+                buckets.blue.push(entry.label);
+            } else if (RED_KEYS.has(entry.key)) {
+                buckets.red.push(entry.label);
+            } else if (WATER_KEYS.has(entry.key)) {
+                buckets.water.push(entry.label);
+            } else if (AIR_KEYS.has(entry.key)) {
+                buckets.air.push(entry.label);
+            } else if (LIGHT_KEYS.has(entry.key)) {
+                buckets.light.push(entry.label);
+            } else {
+                buckets.other.push(entry.label);
+            }
+        });
+        return buckets;
+    }, [sensorEntries]);
 
-    const hasRedSelection = useMemo(
-        () => sensorEntries.some(({ key }) => RED_SELECTION_KEYS.has(key) || RED_ALIAS_KEYS.has(key)),
-        [sensorEntries],
-    );
+    const deviceLabel = selectedDevice || "Multiple devices";
 
-    const hasLuxSelection = useMemo(
-        () => selectedKeys.has("light") || selectedKeys.has("lux"),
-        [selectedKeys],
-    );
+    const timelineLabel = useMemo(() => {
+        if (!Array.isArray(xDomain) || xDomain.length !== 2) {
+            return "Latest data window";
+        }
+        const [start, end] = xDomain;
+        if (!start || !end) return "Latest data window";
+        const fmt = new Intl.DateTimeFormat("en-US", {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+        return `${fmt.format(new Date(start))} — ${fmt.format(new Date(end))}`;
+    }, [xDomain]);
+
+    const sensorSummary = useMemo(() => {
+        const entries = [
+            { key: "air", label: "Air", value: categorized.air },
+            { key: "water", label: "Water", value: categorized.water },
+            { key: "light", label: "Light", value: categorized.light },
+            { key: "blue", label: "Blue Spectrum", value: categorized.blue },
+            { key: "red", label: "Red Spectrum", value: categorized.red },
+            { key: "other", label: "Other", value: categorized.other },
+        ];
+        return entries
+            .map((entry) => ({ ...entry, count: entry.value.length }))
+            .filter((entry) => entry.count > 0);
+    }, [categorized]);
+
+    const totalSensorsSelected = sensorEntries.length;
 
     const chartSections = [
         {
@@ -90,23 +129,23 @@ export default function ReportCharts({
         },
         {
             id: "blueSpectrum",
-            visible: hasBlueSelection,
+            visible: categorized.blue.length > 0,
             title: withDevice("Blue Spectrum", selectedDevice),
             description: "Review short-wavelength intensity to understand structural development.",
-            series: toSpectrumSeries(rangeByCid, BLUE_SERIES_KEYS),
+            series: toSpectrumSeries(rangeByCid, categorized.blue),
             yLabel: "Intensity",
         },
         {
             id: "redSpectrum",
-            visible: hasRedSelection,
+            visible: categorized.red.length > 0,
             title: withDevice("Red Spectrum", selectedDevice),
             description: "Balance the bloom spectrum to drive flowering without wasting energy.",
-            series: toSpectrumSeries(rangeByCid, RED_SERIES_KEYS),
+            series: toSpectrumSeries(rangeByCid, categorized.red),
             yLabel: "Intensity",
         },
         {
             id: "lux",
-            visible: hasLuxSelection,
+            visible: categorized.light.some((label) => label.toLowerCase() === "light"),
             title: withDevice("Lux", selectedDevice),
             description: "Watch overall light levels to tune daily light integral (DLI).",
             series: toSeries(rangeByCid, "lux"),
@@ -122,7 +161,7 @@ export default function ReportCharts({
         },
         {
             id: "ec",
-            visible: selectedKeys.has("dissolvedec") || selectedKeys.has("ec"),
+            visible: selectedKeys.has("dissolvedec"),
             title: withDevice("Electrical Conductivity", selectedDevice),
             description: "Spot dilution or concentration trends before EC drifts too far.",
             series: toSeries(ecTdsByCid, "ec"),
@@ -130,7 +169,7 @@ export default function ReportCharts({
         },
         {
             id: "tds",
-            visible: selectedKeys.has("dissolvedtds") || selectedKeys.has("tds"),
+            visible: selectedKeys.has("dissolvedtds"),
             title: withDevice("Total Dissolved Solids", selectedDevice),
             description: "Confirm nutrient dosing by tracking dissolved solids over time.",
             series: toSeries(ecTdsByCid, "tds"),
@@ -138,7 +177,7 @@ export default function ReportCharts({
         },
         {
             id: "do",
-            visible: selectedKeys.has("dissolvedoxygen") || selectedKeys.has("do"),
+            visible: selectedKeys.has("dissolvedoxygen"),
             title: withDevice("Dissolved Oxygen", selectedDevice),
             description: "Protect root health with enough oxygenation in the solution.",
             series: toSeries(doByCid, "do"),
@@ -146,8 +185,45 @@ export default function ReportCharts({
         },
     ].filter((section) => section.visible);
 
+    const metricsDisplayed = chartSections.length;
+
     return (
         <div className={styles.reportsContent}>
+            <section className={styles.hero}>
+                <div className={styles.heroCopy}>
+                    <span className={styles.eyebrow}>Sensor insights</span>
+                    <h2 className={styles.heroTitle}>Time-series performance overview</h2>
+                    <p className={styles.heroSubtitle}>
+                        Visualize how each metric behaves across the selected timeframe to keep your grow stable.
+                    </p>
+                </div>
+                <div className={styles.heroMeta}>
+                    <div className={styles.metaCard}>
+                        <span className={styles.metaLabel}>Device</span>
+                        <span className={styles.metaValue}>{deviceLabel}</span>
+                    </div>
+                    <div className={styles.metaCard}>
+                        <span className={styles.metaLabel}>Time range</span>
+                        <span className={styles.metaValue}>{timelineLabel}</span>
+                    </div>
+                    <div className={styles.metaCard}>
+                        <span className={styles.metaLabel}>Metrics shown</span>
+                        <span className={styles.metaValue}>{metricsDisplayed}</span>
+                    </div>
+                </div>
+            </section>
+
+            {sensorSummary.length > 0 && (
+                <div className={styles.sensorChips}>
+                    {sensorSummary.map((entry) => (
+                        <span key={entry.key} className={styles.sensorChip}>
+                            {entry.label} · {entry.count}
+                        </span>
+                    ))}
+                    <span className={styles.sensorChipMuted}>Total sensors · {totalSensorsSelected}</span>
+                </div>
+            )}
+
             {chartSections.length > 0 ? (
                 <div className={styles.metricsGrid}>
                     {chartSections.map(({ id, title, description, series, yLabel }) => (
