@@ -197,6 +197,7 @@ export default function Reports() {
             const requests = selectedCIDs.map((cid) => {
                 return (async () => {
                     const url = createHistoryUrl(cid, baseParams, selectedSensors);
+                    console.info("Fetching aggregated history", url);
                     const res = await fetch(url, { signal });
                     if (!res.ok) {
                         const txt = await res.text().catch(() => "");

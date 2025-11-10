@@ -386,6 +386,12 @@ export function ReportsFiltersProvider({ children }) {
         setSelCompositeIds(new Set(compositeIds));
     }, []);
 
+    const extractSensorKey = useCallback((sensor) => {
+        if (!sensor) return "";
+        if (typeof sensor === "string") return ensureString(sensor);
+        return ensureString(sensor.id || sensor.value || sensor.label);
+    }, []);
+
     const updateTopicSensors = useCallback((topic, updater) => {
         if (!topic) return;
         setSelSensors((prev) => {
@@ -417,12 +423,12 @@ export function ReportsFiltersProvider({ children }) {
             updateTopicSensors(topic, (set) => {
                 set.clear();
                 labels.forEach((k) => {
-                    const value = typeof k === "string" ? k : k?.label;
+                    const value = extractSensorKey(k);
                     if (value) set.add(value);
                 });
             });
         },
-        [updateTopicSensors],
+        [updateTopicSensors, extractSensorKey],
     );
 
     const clearSensors = useCallback(

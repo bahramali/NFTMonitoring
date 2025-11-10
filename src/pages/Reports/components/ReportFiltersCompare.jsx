@@ -17,21 +17,29 @@ function AllNone({name, onAll, onNone}) {
     );
 }
 
+const resolveOptionValue = (opt) => {
+    if (opt === null || opt === undefined) return "";
+    if (typeof opt === "string") return opt;
+    return opt.value ?? opt.id ?? opt.label ?? "";
+};
+
 function Checklist({options = [], values = [], onToggle}) {
     return (
         <div className={styles.checklist}>
             {options.map((opt) => {
-                const label = typeof opt === 'string' ? opt : opt.label;
+                const value = resolveOptionValue(opt);
+                if (!value) return null;
+                const label = typeof opt === 'string' ? opt : opt.label ?? value;
                 const disabled = typeof opt === 'string' ? false : !!opt.disabled;
-                const checked = values.includes(label);
+                const checked = values.includes(value);
                 return (
-                    <label key={label} className={`${styles.item} ${disabled ? styles.disabled : ''}`}>
+                    <label key={value} className={`${styles.item} ${disabled ? styles.disabled : ''}`}>
                         <input
                             type="checkbox"
                             disabled={disabled}
                             checked={onToggle ? checked : undefined}
                             defaultChecked={!onToggle ? checked : undefined}
-                            onChange={() => onToggle && onToggle(label)}
+                            onChange={() => onToggle && onToggle(value)}
                         />
                         {label}
                     </label>
@@ -116,7 +124,17 @@ export default function ReportFiltersCompare(props) {
         const map = {};
         topics.forEach((topic) => {
             const arr = Array.isArray(topicSensorsProp?.[topic.id]) ? topicSensorsProp[topic.id] : [];
-            map[topic.id] = arr.map((item) => (typeof item === "string" ? item : item?.label)).filter(Boolean);
+            map[topic.id] = arr
+                .map((item) => {
+                    if (!item) return null;
+                    if (typeof item === "string") {
+                        return { label: item, value: item };
+                    }
+                    const value = resolveOptionValue(item);
+                    if (!value) return null;
+                    return { label: item.label ?? value, value };
+                })
+                .filter(Boolean);
         });
         return map;
     }, [topics, topicSensorsProp]);
