@@ -28,5 +28,9 @@ test('All selects all sensors for the chosen topic', () => {
 
   fireEvent.click(screen.getByLabelText('All', { selector: 'input[name="topic-growSensors"]' }));
 
-  expect(onAllTopicSensors).toHaveBeenCalledWith('growSensors', ['temperature', 'humidity']);
+  expect(onAllTopicSensors).toHaveBeenCalledTimes(1);
+  expect(onAllTopicSensors).toHaveBeenCalledWith('growSensors', [
+    { label: 'temperature', value: 'temperature' },
+    { label: 'humidity', value: 'humidity' },
+  ]);
 });
