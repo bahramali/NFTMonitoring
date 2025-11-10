@@ -1,6 +1,6 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import styles from './ReportFiltersCompare.module.css';
-import {normalizeDeviceCatalog} from '../utils/catalog';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import styles from "./ReportFiltersCompare.module.css";
+import { normalizeDeviceCatalog } from "../utils/catalog";
 
 const ensureString = (value, fallback = '') => {
     if (value === undefined || value === null) return fallback;
@@ -101,6 +101,8 @@ export default function ReportFiltersCompare(props) {
 
         rangeLabel,
         compareItems = [], onClearCompare, onRemoveCompare,
+        onReset,
+        onAddCompare,
         catalog: catalogProp,
     } = props;
 
@@ -483,15 +485,60 @@ export default function ReportFiltersCompare(props) {
         }
     }, [selectedCompositeIds, onApply]);
 
+    const handleResetClick = useCallback(() => {
+        if (typeof onReset === "function") {
+            onReset();
+        }
+    }, [onReset]);
+
+    const handleAddCompareClick = useCallback(() => {
+        if (typeof onAddCompare === "function") {
+            onAddCompare();
+        }
+    }, [onAddCompare]);
+
+    const handleApplyClick = useCallback(() => {
+        if (typeof onApply === "function") {
+            onApply();
+        }
+    }, [onApply]);
+
     const containerClassName = [
         styles.rf,
         variant === "sidebar" ? styles.rfSidebar : "",
+        variant === "page" ? styles.rfPage : "",
         className || "",
-    ].filter(Boolean).join(" ");
+    ]
+        .filter(Boolean)
+        .join(" ");
 
     return (
         <div className={containerClassName}>
-            <div className={styles.title}>Filters</div>
+            <div className={styles.titleRow}>
+                <div className={styles.title}>Filters</div>
+                {variant !== "sidebar" && (
+                    <div className={`${styles.actionsBlock} ${styles.titleActions}`}>
+                        <button type="button" className={styles.btn} onClick={handleResetClick}>
+                            Reset
+                        </button>
+                        <button
+                            type="button"
+                            className={`${styles.btn} ${styles.primary}`}
+                            onClick={handleApplyClick}
+                        >
+                            Refresh data
+                        </button>
+                        <button
+                            type="button"
+                            className={styles.btn}
+                            onClick={handleAddCompareClick}
+                            disabled={selectedCompositeCount === 0}
+                        >
+                            Add to compare
+                        </button>
+                    </div>
+                )}
+            </div>
             <div className={styles.layout}>
                 <aside className={styles.sidebar}>
                     <div className={styles.block}>
