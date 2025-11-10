@@ -15,7 +15,11 @@ export const MIXED_CONTENT_MESSAGE =
 const TECHNICAL_ERROR_MESSAGE_MAP = {
     DEMUXER_ERROR_DETECTED: MEDIA_ERROR_MESSAGES[3],
     DEMUXER_ERROR_DETECTED_HLS: MEDIA_ERROR_MESSAGES[3],
+    "PipelineStatus::DEMUXER_ERROR_COULD_NOT_PARSE":
+        "The camera stream data could not be parsed. Retrying automatically…",
 };
+
+const AUTO_RELOAD_ERROR_PATTERNS = ["PipelineStatus::DEMUXER_ERROR_COULD_NOT_PARSE"];
 
 export function getCameraErrorMessage({
     errorCode,
@@ -43,5 +47,16 @@ export function getCameraErrorMessage({
     }
 
     return DEFAULT_CAMERA_ERROR_MESSAGE;
+}
+
+export function shouldAutoReloadForError(errorMessage) {
+    if (!errorMessage) return false;
+
+    const normalizedMessage =
+        typeof errorMessage === "string" ? errorMessage.trim() : String(errorMessage || "");
+
+    if (!normalizedMessage) return false;
+
+    return AUTO_RELOAD_ERROR_PATTERNS.some((pattern) => normalizedMessage.includes(pattern));
 }
 
