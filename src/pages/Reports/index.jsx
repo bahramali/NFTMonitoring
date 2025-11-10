@@ -1,21 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReportCharts from "./components/ReportCharts";
-import ReportFiltersCompare from "./components/ReportFiltersCompare";
 import { transformAggregatedData } from "../../utils.js";
 import Header from "../common/Header";
 import { API_BASE } from "./utils/catalog";
 import { pickBucket, toISOSeconds } from "./utils/datetime";
 import { useReportsFilters } from "../../context/ReportsFiltersContext.jsx";
-import styles from "./ReportsPage.module.css";
 
 const AUTO_REFRESH_MS = { "30s": 30_000, "1m": 60_000, "5m": 300_000 };
-
-const formatTopicLabel = (id) =>
-    String(id || "")
-        .replace(/([A-Z])/g, " $1")
-        .replace(/[_-]/g, " ")
-        .replace(/^\s+|\s+$/g, "")
-        .replace(/^./, (ch) => ch.toUpperCase());
 
 const createEmptyChartState = () => ({
     tempByCid: Object.create(null),
@@ -72,93 +63,14 @@ const createHistoryUrl = (cid, params, selectedSensors) => {
 
 export default function Reports() {
     const {
-        deviceMeta,
         fromDate,
-        setFromDate,
         toDate,
-        setToDate,
         autoRefreshValue,
-        setAutoRefreshValue,
-        systems,
-        layers,
-        deviceIds,
-        handleSystemChange,
-        handleLayerChange,
-        handleDeviceChange,
-        onReset,
-        onAddCompare,
-        onClearCompare,
-        onRemoveCompare,
-        compareItems,
+        selectedCIDs,
         selSensors,
         selectedTopics,
-        toggleTopicSelection,
-        setAllTopics,
-        clearTopics,
-        availableTopicSensors,
-        availableTopicDevices,
-        toggleSensor,
-        setAllSensors,
-        clearSensors,
-        selectedCIDs,
-        selectedCompositeIds,
-        handleCompositeSelectionChange,
         registerApplyHandler,
-        triggerApply,
     } = useReportsFilters();
-
-    const topicList = useMemo(() => {
-        const entries = Object.entries(availableTopicSensors || {});
-        return entries.map(([id, sensors]) => ({ id, label: formatTopicLabel(id), sensors }));
-    }, [availableTopicSensors]);
-
-    const topicDeviceOptions = useMemo(() => {
-        const entries = Object.entries(availableTopicDevices || {});
-        return entries.reduce((acc, [topic, devices]) => {
-            acc[topic] = Array.isArray(devices) ? devices : [];
-            return acc;
-        }, {});
-    }, [availableTopicDevices]);
-
-    const selectedSensorsByTopic = useMemo(() => {
-        const map = {};
-        Object.entries(selSensors || {}).forEach(([topic, values]) => {
-            map[topic] = Array.from(values || []);
-        });
-        return map;
-    }, [selSensors]);
-
-    const selectedTopicIds = useMemo(() => Array.from(selectedTopics || []), [selectedTopics]);
-
-    const handleFromDateChange = useCallback(
-        ({ target }) => setFromDate(target.value),
-        [setFromDate],
-    );
-
-    const handleToDateChange = useCallback(
-        ({ target }) => setToDate(target.value),
-        [setToDate],
-    );
-
-    const handleAutoRefreshChange = useCallback(
-        ({ target }) => setAutoRefreshValue(target.value),
-        [setAutoRefreshValue],
-    );
-
-    const handleTopicSensorToggle = useCallback(
-        (topic, key) => toggleSensor(topic, key),
-        [toggleSensor],
-    );
-
-    const handleAllTopicSensors = useCallback(
-        (topic, keys) => setAllSensors(topic, keys),
-        [setAllSensors],
-    );
-
-    const handleNoneTopicSensors = useCallback(
-        (topic) => clearSensors(topic),
-        [clearSensors],
-    );
 
     const [chartData, setChartData] = useState(() => createEmptyChartState());
     const [error, setError] = useState("");
@@ -267,91 +179,13 @@ export default function Reports() {
         [selectedCIDs],
     );
 
-    const rangeLabel = useMemo(() => {
-        if (!fromDate || !toDate) return "";
-        const fromTime = Date.parse(fromDate);
-        const toTime = Date.parse(toDate);
-        if (Number.isNaN(fromTime) || Number.isNaN(toTime)) return "";
-        const formatter = new Intl.DateTimeFormat(undefined, {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-        return `${formatter.format(fromTime)} — ${formatter.format(toTime)}`;
-    }, [fromDate, toDate]);
-
-    const selectionBadgeLabel = useMemo(() => {
-        const count = selectedCIDs.length;
-        if (!count) return "No devices selected yet";
-        return `${count} device${count === 1 ? "" : "s"} selected`;
-    }, [selectedCIDs]);
-
-    const autoRefreshLabel = useMemo(() => {
-        if (!autoRefreshValue || autoRefreshValue === "Off") return "Auto refresh off";
-        return `Auto refresh ${autoRefreshValue}`;
-    }, [autoRefreshValue]);
-
     return (
-        <div className={styles.page}>
+        <div>
             <Header title="Reports" />
-            <div className={styles.content}>
-                <section className={styles.filtersSection}>
-                    <div className={styles.filtersIntro}>
-                        <div>
-                            <h2>Filter your telemetry</h2>
-                            <p>
-                                Choose the timeframe, devices, and sensor topics to explore performance trends
-                                across your hydroponic systems.
-                            </p>
-                        </div>
-                        <div className={styles.filtersBadges}>
-                            <span className={styles.badge}>{rangeLabel || "Select a time range"}</span>
-                            <span className={`${styles.badge} ${styles.badgeMuted}`}>{selectionBadgeLabel}</span>
-                            <span className={`${styles.badge} ${styles.badgeMuted}`}>{autoRefreshLabel}</span>
-                        </div>
-                    </div>
-                    <ReportFiltersCompare
-                        variant="page"
-                        catalog={deviceMeta}
-                        fromDate={fromDate}
-                        toDate={toDate}
-                        onFromDateChange={handleFromDateChange}
-                        onToDateChange={handleToDateChange}
-                        onApply={triggerApply}
-                        autoRefreshValue={autoRefreshValue}
-                        onAutoRefreshValueChange={handleAutoRefreshChange}
-                        systems={systems}
-                        layers={layers}
-                        devices={deviceIds}
-                        onSystemChange={handleSystemChange}
-                        onLayerChange={handleLayerChange}
-                        onDeviceChange={handleDeviceChange}
-                        onCompositeSelectionChange={handleCompositeSelectionChange}
-                        onReset={onReset}
-                        onAddCompare={onAddCompare}
-                        rangeLabel={rangeLabel}
-                        compareItems={compareItems}
-                        onClearCompare={onClearCompare}
-                        onRemoveCompare={onRemoveCompare}
-                        topics={topicList}
-                        selectedTopics={selectedTopicIds}
-                        onTopicToggle={toggleTopicSelection}
-                        onAllTopics={setAllTopics}
-                        onNoneTopics={clearTopics}
-                        topicSensors={availableTopicSensors}
-                        topicDevices={topicDeviceOptions}
-                        selectedTopicSensors={selectedSensorsByTopic}
-                        onToggleTopicSensor={handleTopicSensorToggle}
-                        onAllTopicSensors={handleAllTopicSensors}
-                        onNoneTopicSensors={handleNoneTopicSensors}
-                        selectedCompositeIds={selectedCompositeIds}
-                    />
-                </section>
+            <div style={{ padding: 16 }}>
+                {error && <div style={{ color: "#b91c1c", marginTop: 8, fontSize: 14 }}>{error}</div>}
 
-                <section className={styles.chartsSection}>
-                    {error && <div className={styles.errorMessage}>{error}</div>}
+                <div style={{ marginTop: 16 }}>
                     <ReportCharts
                         tempByCid={chartData.tempByCid}
                         rangeByCid={chartData.rangeByCid}
@@ -362,7 +196,7 @@ export default function Reports() {
                         selectedSensors={selectedSensors}
                         xDomain={xDomain}
                     />
-                </section>
+                </div>
             </div>
         </div>
     );
