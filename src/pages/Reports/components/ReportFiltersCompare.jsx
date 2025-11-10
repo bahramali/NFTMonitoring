@@ -520,12 +520,6 @@ export default function ReportFiltersCompare(props) {
         return preview;
     }, [selectedDeviceNames]);
 
-    useEffect(() => {
-        if (typeof onApply === 'function' && selectedCompositeIds.size > 0) {
-            onApply();
-        }
-    }, [selectedCompositeIds, onApply]);
-
     const handleResetClick = useCallback(() => {
         if (typeof onReset === "function") {
             onReset();
