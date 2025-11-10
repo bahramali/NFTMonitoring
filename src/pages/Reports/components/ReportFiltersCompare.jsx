@@ -479,6 +479,29 @@ export default function ReportFiltersCompare(props) {
         return Array.from(names);
     }, [selectedCompositeIds, deviceLabelMap]);
 
+    const selectedTopicLabel = useMemo(() => {
+        if (!selectedTopicId) return "No topic selected";
+        const topic = topics.find((entry) => entry.id === selectedTopicId);
+        return topic?.label || selectedTopicId;
+    }, [selectedTopicId, topics]);
+
+    const dateSummary = useMemo(() => {
+        if (ensureString(rangeLabel)) return rangeLabel;
+        const from = ensureString(fromDate) || "—";
+        const to = ensureString(toDate) || "—";
+        return `${from} → ${to}`;
+    }, [fromDate, toDate, rangeLabel]);
+
+    const devicePreview = useMemo(() => {
+        if (!selectedDeviceNames.length) return [];
+        const preview = selectedDeviceNames.slice(0, 3);
+        const remainder = selectedDeviceNames.length - preview.length;
+        if (remainder > 0) {
+            preview.push(`+${remainder} more`);
+        }
+        return preview;
+    }, [selectedDeviceNames]);
+
     useEffect(() => {
         if (typeof onApply === 'function' && selectedCompositeIds.size > 0) {
             onApply();
@@ -502,6 +525,11 @@ export default function ReportFiltersCompare(props) {
             onApply();
         }
     }, [onApply]);
+
+    const selectionCountText = useMemo(() => {
+        const total = totalCompositeCount || 0;
+        return `${selectedCompositeCount} of ${total}`;
+    }, [selectedCompositeCount, totalCompositeCount]);
 
     const containerClassName = [
         styles.rf,
@@ -538,6 +566,38 @@ export default function ReportFiltersCompare(props) {
                         </button>
                     </div>
                 )}
+            </div>
+            <div className={styles.summaryBar}>
+                <div className={styles.summaryItem}>
+                    <span className={styles.summaryLabel}>Date range</span>
+                    <span className={styles.summaryValue}>{dateSummary}</span>
+                </div>
+                <div className={styles.summaryItem}>
+                    <span className={styles.summaryLabel}>Topic</span>
+                    <span className={styles.summaryValue}>{selectedTopicLabel}</span>
+                </div>
+                <div className={styles.summaryItem}>
+                    <span className={styles.summaryLabel}>Device IDs</span>
+                    <span className={styles.summaryValue}>{selectionCountText}</span>
+                </div>
+                <div className={styles.summaryItem}>
+                    <span className={styles.summaryLabel}>Auto refresh</span>
+                    <span className={styles.summaryValue}>{ensureString(autoRefreshValue) || "Off"}</span>
+                </div>
+                <div className={`${styles.summaryItem} ${styles.summaryDevices}`}>
+                    <span className={styles.summaryLabel}>Selected devices</span>
+                    {devicePreview.length ? (
+                        <div className={styles.summaryChips}>
+                            {devicePreview.map((chip) => (
+                                <span key={chip} className={styles.summaryChip} title={chip}>
+                                    {chip}
+                                </span>
+                            ))}
+                        </div>
+                    ) : (
+                        <span className={styles.summaryMuted}>No device selected</span>
+                    )}
+                </div>
             </div>
             <div className={styles.layout}>
                 <aside className={styles.sidebar}>
@@ -656,27 +716,6 @@ export default function ReportFiltersCompare(props) {
                                 })()}
                             </div>
                         )}
-                    </div>
-
-                    <div className={styles.summaryCard}>
-                        <div className={styles.summaryRow}>
-                            <span className={styles.rangeLabel}>{rangeLabel}</span>
-                            <span className={styles.selectionCount}>
-                                {selectedCompositeCount} / {totalCompositeCount || 0} device IDs selected
-                            </span>
-                        </div>
-                        {selectedDeviceNames.length > 0 ? (
-                            <div className={styles.selectedDevicesRow}>
-                                <span className={styles.summaryLabel}>Selected devices</span>
-                                <span className={styles.selectedDevicesValue}>{selectedDeviceNames.join(', ')}</span>
-                            </div>
-                        ) : (
-                            <div className={styles.selectedDevicesRow}>
-                                <span className={styles.summaryLabel}>Selected devices</span>
-                                <span className={styles.noDeviceSelected}>No device selected</span>
-                            </div>
-                        )}
-                        <div className={styles.summaryMeta}>Auto refresh: {autoRefreshValue}</div>
                     </div>
 
                     {compareItems?.length > 0 && (
