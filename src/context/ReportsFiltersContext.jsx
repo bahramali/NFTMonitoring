@@ -119,7 +119,6 @@ export function ReportsFiltersProvider({ children }) {
     }, [reportTopics]);
 
     useEffect(() => {
-        const previousTopics = prevReportTopicsRef.current || [];
         const topicSet = new Set(reportTopics);
 
         setSelectedTopics((prev) => {
@@ -646,6 +645,7 @@ export function ReportsFiltersProvider({ children }) {
     );
 }
 
+/* eslint-disable-next-line react-refresh/only-export-components */
 export function useReportsFilters() {
     const context = useContext(ReportsFiltersContext);
     if (!context) {

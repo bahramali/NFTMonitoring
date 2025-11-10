@@ -1,17 +1,40 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { NavLink } from "react-router-dom";
 import styles from "./Sidebar.module.css";
 import ReportFiltersCompare from "../../Reports/components/ReportFiltersCompare";
 import { useReportsFilters } from "../../../context/ReportsFiltersContext.jsx";
 
-const getWindowWidth = () => (typeof window === "undefined" ? 1024 : window.innerWidth);
+const DEFAULT_VIEWPORT_WIDTH = 1024;
+const BREAKPOINTS = { mobile: 768, collapse: 1024 };
+
+const getWindowWidth = () => (typeof window === "undefined" ? DEFAULT_VIEWPORT_WIDTH : window.innerWidth);
+
+const NAV_ITEMS = [
+    { to: "/overview", icon: "🏠", label: "Overview" },
+    { to: "/control-panel", icon: "💡", label: "Control Panel" },
+    { to: "/live", icon: "📡", label: "NFT Channels" },
+    { to: "/germination", icon: "🌱", label: "Germination" },
+    { to: "/cameras", icon: "📷", label: "Cameras" },
+    { to: "/reports", icon: "📈", label: "Reports" },
+    { to: "/note", icon: "📝", label: "Note" },
+    { to: "/sensor-config", icon: "⚙️", label: "Sensor Config" },
+];
+
+const NOOP = () => {};
+
+const formatTopicLabel = (id) =>
+    String(id || "")
+        .replace(/([A-Z])/g, " $1")
+        .replace(/[_-]/g, " ")
+        .replace(/^\s+|\s+$/g, "")
+        .replace(/^./, (ch) => ch.toUpperCase());
 
 export default function Sidebar() {
-    const [isMobile, setIsMobile] = useState(() => getWindowWidth() < 768);
+    const [isMobile, setIsMobile] = useState(() => getWindowWidth() < BREAKPOINTS.mobile);
     const [collapsed, setCollapsed] = useState(() => {
         const width = getWindowWidth();
-        if (width < 768) return false;
-        return width < 1024;
+        if (width < BREAKPOINTS.mobile) return false;
+        return width < BREAKPOINTS.collapse;
     });
     const {
         isReportsRoute,
@@ -49,39 +72,33 @@ export default function Sidebar() {
         triggerApply,
     } = useReportsFilters();
 
+    const handleResize = useCallback(() => {
+        const width = getWindowWidth();
+        setIsMobile(width < BREAKPOINTS.mobile);
+
+        if (width < BREAKPOINTS.mobile) {
+            setCollapsed(false);
+        } else if (width < BREAKPOINTS.collapse) {
+            setCollapsed(true);
+        } else {
+            setCollapsed(false);
+        }
+    }, []);
+
     useEffect(() => {
-        const handleResize = () => {
-            const width = getWindowWidth();
-            setIsMobile(width < 768);
-
-            if (width < 768) {
-                setCollapsed(false);
-            } else if (width < 1024) {
-                setCollapsed(true);
-            } else {
-                setCollapsed(false);
-            }
-        };
-
         handleResize();
         window.addEventListener("resize", handleResize);
         return () => window.removeEventListener("resize", handleResize);
-    }, []);
+    }, [handleResize]);
 
-    const linkClass = ({ isActive }) =>
-        `${styles.menuItem} ${isActive ? styles.active : ""}`;
+    const linkClass = useCallback(
+        ({ isActive }) => `${styles.menuItem} ${isActive ? styles.active : ""}`,
+        [],
+    );
 
     const topicList = useMemo(() => {
         const entries = Object.entries(availableTopicSensors || {});
-        return entries.map(([id, sensors]) => ({
-            id,
-            label: id
-                .replace(/([A-Z])/g, " $1")
-                .replace(/[_-]/g, " ")
-                .replace(/^\s+|\s+$/g, "")
-                .replace(/^./, (ch) => ch.toUpperCase()),
-            sensors,
-        }));
+        return entries.map(([id, sensors]) => ({ id, label: formatTopicLabel(id), sensors }));
     }, [availableTopicSensors]);
 
     const topicDeviceOptions = useMemo(() => {
@@ -102,22 +119,65 @@ export default function Sidebar() {
 
     const selectedTopicIds = useMemo(() => Array.from(selectedTopics || []), [selectedTopics]);
 
+    const handleToggleCollapsed = useCallback(() => {
+        setCollapsed((prev) => !prev);
+    }, []);
+
+    const handleFromDateChange = useCallback(
+        ({ target }) => setFromDate(target.value),
+        [setFromDate],
+    );
+
+    const handleToDateChange = useCallback(
+        ({ target }) => setToDate(target.value),
+        [setToDate],
+    );
+
+    const handleAutoRefreshChange = useCallback(
+        ({ target }) => setAutoRefreshValue(target.value),
+        [setAutoRefreshValue],
+    );
+
+    const handleTopicSensorToggle = useCallback(
+        (topic, key) => toggleSensor(topic, key),
+        [toggleSensor],
+    );
+
+    const handleAllTopicSensors = useCallback(
+        (topic, keys) => setAllSensors(topic, keys),
+        [setAllSensors],
+    );
+
+    const handleNoneTopicSensors = useCallback(
+        (topic) => clearSensors(topic),
+        [clearSensors],
+    );
+
     const rangeLabel = useMemo(() => {
         if (!fromDate || !toDate) return "";
-        const from = new Date(fromDate);
-        const to = new Date(toDate);
-        if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return "";
-        return `From: ${from.toLocaleString()} until: ${to.toLocaleString()}`;
+        const fromTime = Date.parse(fromDate);
+        const toTime = Date.parse(toDate);
+        if (Number.isNaN(fromTime) || Number.isNaN(toTime)) return "";
+        const formatter = new Intl.DateTimeFormat(undefined, {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+        return `${formatter.format(fromTime)} — ${formatter.format(toTime)}`;
     }, [fromDate, toDate]);
 
-    const sidebarClassName = [
-        styles.sidebar,
-        collapsed ? styles.collapsed : "",
-        isMobile ? styles.mobile : "",
-        isMobile && collapsed ? styles.mobileCollapsed : "",
-    ]
-        .filter(Boolean)
-        .join(" ");
+    const sidebarClassName = useMemo(() => {
+        return [
+            styles.sidebar,
+            collapsed ? styles.collapsed : "",
+            isMobile ? styles.mobile : "",
+            isMobile && collapsed ? styles.mobileCollapsed : "",
+        ]
+            .filter(Boolean)
+            .join(" ");
+    }, [collapsed, isMobile]);
 
     return (
         <aside className={sidebarClassName}>
@@ -126,45 +186,19 @@ export default function Sidebar() {
                 {(!collapsed || isMobile) && <div className={styles.brand}>HydroLeaf</div>}
                 <button
                     className={`${styles.toggle} ${collapsed ? styles.rotated : ""}`}
-                    onClick={() => setCollapsed(c => !c)}
+                    onClick={handleToggleCollapsed}
                     aria-label="Toggle sidebar"
                 />
             </div>
 
             {/* Main menu */}
             <nav className={styles.menu}>
-                <NavLink to="/overview" className={linkClass}>
-                    <span className={styles.icon}>🏠</span>
-                    {!collapsed && <span className={styles.text}>Overview</span>}
-                </NavLink>
-                <NavLink to="/control-panel" className={linkClass}>
-                    <span className={styles.icon}>💡</span>
-                    {!collapsed && <span className={styles.text}>Control Panel</span>}
-                </NavLink>
-                <NavLink to="/live" className={linkClass}>
-                    <span className={styles.icon}>📡</span>
-                    {!collapsed && <span className={styles.text}>NFT Channels</span>}
-                </NavLink>
-                <NavLink to="/germination" className={linkClass}>
-                    <span className={styles.icon}>🌱</span>
-                    {!collapsed && <span className={styles.text}>Germination</span>}
-                </NavLink>
-                <NavLink to="/cameras" className={linkClass}>
-                    <span className={styles.icon}>📷</span>
-                    {!collapsed && <span className={styles.text}>Cameras</span>}
-                </NavLink>
-                <NavLink to="/reports" className={linkClass}>
-                    <span className={styles.icon}>📈</span>
-                    {!collapsed && <span className={styles.text}>Reports</span>}
-                </NavLink>
-                <NavLink to="/note" className={linkClass}>
-                    <span className={styles.icon}>📝</span>
-                    {!collapsed && <span className={styles.text}>Note</span>}
-                </NavLink>
-                <NavLink to="/sensor-config" className={linkClass}>
-                    <span className={styles.icon}>⚙️</span>
-                    {!collapsed && <span className={styles.text}>Sensor Config</span>}
-                </NavLink>
+                {NAV_ITEMS.map(({ to, icon, label }) => (
+                    <NavLink key={to} to={to} className={linkClass}>
+                        <span className={styles.icon}>{icon}</span>
+                        {!collapsed && <span className={styles.text}>{label}</span>}
+                    </NavLink>
+                ))}
             </nav>
 
             {isReportsRoute && !collapsed && (
@@ -176,11 +210,11 @@ export default function Sidebar() {
                             catalog={deviceMeta}
                             fromDate={fromDate}
                             toDate={toDate}
-                            onFromDateChange={(e) => setFromDate(e.target.value)}
-                            onToDateChange={(e) => setToDate(e.target.value)}
+                            onFromDateChange={handleFromDateChange}
+                            onToDateChange={handleToDateChange}
                             onApply={triggerApply}
                             autoRefreshValue={autoRefreshValue}
-                            onAutoRefreshValueChange={(e) => setAutoRefreshValue(e.target.value)}
+                            onAutoRefreshValueChange={handleAutoRefreshChange}
                             systems={systems}
                             layers={layers}
                             devices={deviceIds}
@@ -190,7 +224,7 @@ export default function Sidebar() {
                             onCompositeSelectionChange={handleCompositeSelectionChange}
                             onReset={onReset}
                             onAddCompare={onAddCompare}
-                            onExportCsv={() => {}}
+                            onExportCsv={NOOP}
                             rangeLabel={rangeLabel}
                             compareItems={compareItems}
                             onClearCompare={onClearCompare}
@@ -203,9 +237,9 @@ export default function Sidebar() {
                             topicSensors={availableTopicSensors}
                             topicDevices={topicDeviceOptions}
                             selectedTopicSensors={selectedSensorsByTopic}
-                            onToggleTopicSensor={(topic, key) => toggleSensor(topic, key)}
-                            onAllTopicSensors={(topic, keys) => setAllSensors(topic, keys)}
-                            onNoneTopicSensors={(topic) => clearSensors(topic)}
+                            onToggleTopicSensor={handleTopicSensorToggle}
+                            onAllTopicSensors={handleAllTopicSensors}
+                            onNoneTopicSensors={handleNoneTopicSensors}
                             selectedCompositeIds={selectedCompositeIds}
                         />
                         {selectedCIDs.length <= 1 ? null : (
