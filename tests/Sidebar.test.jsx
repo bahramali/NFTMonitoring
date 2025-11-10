@@ -59,7 +59,7 @@ test('renders Note link', () => {
     expect(noteLink).toHaveAttribute('href', '/note');
 });
 
-test('shows report filters when reports route is active', () => {
+test('does not render report filters in the sidebar on reports route', () => {
     mockLocation.pathname = '/reports';
     render(
         <MemoryRouter>
@@ -69,7 +69,7 @@ test('shows report filters when reports route is active', () => {
         </MemoryRouter>
     );
 
-    expect(screen.getByText(/filters/i)).toBeInTheDocument();
-    expect(screen.getByText(/timing/i)).toBeInTheDocument();
+    expect(screen.queryByText(/filters/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/timing/i)).not.toBeInTheDocument();
 });
 

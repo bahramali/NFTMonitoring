@@ -56,7 +56,7 @@ test('renders reports charts with basic context data', async () => {
 
   await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
 
-  expect(screen.getByText('Time-series performance overview')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /filter your telemetry/i })).toBeInTheDocument();
   expect(contextValue.registerApplyHandler).toHaveBeenCalled();
   const registeredHandler = contextValue.registerApplyHandler.mock.calls[0][0];
   expect(typeof registeredHandler).toBe('function');
