@@ -260,6 +260,25 @@
     gap: 0.5rem;
 }
 
+.deviceFooter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.deviceFooter .btn {
+    flex: 0 0 auto;
+    min-width: 9rem;
+}
+
+.applyHint {
+    flex: 1 1 12rem;
+    font-size: 0.75rem;
+    color: var(--rf-text-muted);
+}
+
 .deviceOption {
     display: flex;
     align-items: flex-start;

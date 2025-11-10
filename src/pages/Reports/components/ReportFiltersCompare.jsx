@@ -705,6 +705,19 @@ export default function ReportFiltersCompare(props) {
                                         );
                                     })}
                                 </div>
+                                <div className={styles.deviceFooter}>
+                                    <span className={styles.applyHint}>
+                                        Confirm to update charts with the current selection.
+                                    </span>
+                                    <button
+                                        type="button"
+                                        className={`${styles.btn} ${styles.primary}`}
+                                        onClick={handleApplyClick}
+                                        disabled={selectedCompositeCount === 0}
+                                    >
+                                        Show charts
+                                    </button>
+                                </div>
                             </>
                         )}
                     </div>
