@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
@@ -54,12 +54,18 @@ test('renders reports charts with basic context data', async () => {
 
   render(<Reports />);
 
-  await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
-
   expect(screen.getByRole('heading', { name: /filter your telemetry/i })).toBeInTheDocument();
   expect(contextValue.registerApplyHandler).toHaveBeenCalled();
   const registeredHandler = contextValue.registerApplyHandler.mock.calls[0][0];
   expect(typeof registeredHandler).toBe('function');
+
+  expect(global.fetch).not.toHaveBeenCalled();
+
+  await act(async () => {
+    await registeredHandler();
+  });
+
+  await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
 });
 
 test('includes selected sensor types in history query params', async () => {
@@ -74,6 +80,11 @@ test('includes selected sensor types in history query params', async () => {
   useReportsFilters.mockReturnValue(contextValue);
 
   render(<Reports />);
+
+  const registeredHandler = contextValue.registerApplyHandler.mock.calls[0][0];
+  await act(async () => {
+    await registeredHandler();
+  });
 
   await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
 

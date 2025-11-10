@@ -162,6 +162,7 @@ export default function Reports() {
 
     const [chartData, setChartData] = useState(() => createEmptyChartState());
     const [error, setError] = useState("");
+    const [hasAppliedFilters, setHasAppliedFilters] = useState(false);
     const abortRef = useRef(null);
 
     const selectedSensors = useMemo(
@@ -229,14 +230,15 @@ export default function Reports() {
         }
     }, [fromDate, toDate, selectedCIDs, selectedSensors, resetAbortController]);
 
-    useEffect(() => {
-        fetchReportData();
+    const handleApply = useCallback(() => {
+        setHasAppliedFilters(true);
+        return fetchReportData();
     }, [fetchReportData]);
 
     useEffect(() => {
-        registerApplyHandler(fetchReportData);
+        registerApplyHandler(handleApply);
         return () => registerApplyHandler(undefined);
-    }, [registerApplyHandler, fetchReportData]);
+    }, [registerApplyHandler, handleApply]);
 
     useEffect(
         () => () => {
@@ -246,13 +248,14 @@ export default function Reports() {
     );
 
     useEffect(() => {
+        if (!hasAppliedFilters) return undefined;
         const ms = AUTO_REFRESH_MS[autoRefreshValue];
         if (!ms) return undefined;
         const interval = setInterval(() => {
             fetchReportData();
         }, ms);
         return () => clearInterval(interval);
-    }, [autoRefreshValue, fetchReportData]);
+    }, [autoRefreshValue, fetchReportData, hasAppliedFilters]);
 
     const xDomain = useMemo(() => {
         const start = Date.parse(fromDate);
