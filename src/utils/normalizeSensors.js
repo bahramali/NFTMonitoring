@@ -14,8 +14,8 @@ const fixSubs = (s) => String(s).replace(/[₀₁₂₃₄₅₆₇₈₉]/g, (d
 export function canonKey(raw) {
   const t = fixSubs(String(raw || '')).toLowerCase().replace(/[\s_]/g, '');
   if (!t) return null;
-  if (['temperature','temp','airtemp','airtemperature'].includes(t)) return 'temperature';
-  if (['humidity','rh','relativehumidity'].includes(t)) return 'humidity';
+  if (['temperature','temp','airtemp','airtemperature','atemp','atempc'].includes(t)) return 'temperature';
+  if (['humidity','rh','relativehumidity','arh','arhc'].includes(t)) return 'humidity';
   if (['light','lux','illumination'].includes(t)) return 'lux';
   if (['tds','tdsppm','dissolvedtds'].includes(t)) return 'tds';
   if (['ec','electricalconductivity','dissolvedec'].includes(t)) return 'ec';

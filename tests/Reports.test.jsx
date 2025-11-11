@@ -7,12 +7,12 @@ vi.mock('../src/components/HistoryChart', () => ({
   default: () => <div data-testid="history-chart" />,
 }));
 
-vi.mock('../src/context/ReportsFiltersContext.jsx', () => ({
+vi.mock('../src/pages/Reports/context/ReportsFiltersContext.jsx', () => ({
   useReportsFilters: vi.fn(),
 }));
 
 import Reports from '../src/pages/Reports/index.jsx';
-import { useReportsFilters } from '../src/context/ReportsFiltersContext.jsx';
+import { useReportsFilters } from '../src/pages/Reports/context/ReportsFiltersContext.jsx';
 
 const originalFetch = global.fetch;
 
@@ -71,7 +71,7 @@ test('renders reports charts with basic context data', async () => {
 test('includes selected sensor types in history query params', async () => {
   const contextValue = buildContext({
     selSensors: {
-      growSensors: new Set(['temperature']),
+      growSensors: new Set(['A_Temp_C']),
       germinationTopic: new Set(),
       waterTank: new Set(),
     },
@@ -90,5 +90,5 @@ test('includes selected sensor types in history query params', async () => {
 
   const requestUrl = global.fetch.mock.calls[0][0];
   const parsed = new URL(requestUrl, 'http://localhost');
-  expect(parsed.searchParams.getAll('sensorType')).toContain('temperature');
+  expect(parsed.searchParams.getAll('sensorType')).toContain('A_Temp_C');
 });

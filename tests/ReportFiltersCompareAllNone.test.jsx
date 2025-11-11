@@ -21,7 +21,7 @@ test('topic All/None triggers callbacks', () => {
       onExportCsv={() => {}}
       rangeLabel=""
       topics={[{ id: 'growSensors', label: 'Grow Sensors' }]}
-      topicSensors={{ growSensors: [{ label: 'temperature' }] }}
+      topicSensors={{ growSensors: [{ label: 'A_Temp_C' }] }}
       selectedTopicSensors={{ growSensors: [] }}
       selectedTopics={['growSensors']}
       onAllTopics={onAllTopics}

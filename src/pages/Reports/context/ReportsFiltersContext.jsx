@@ -8,10 +8,10 @@ import React, {
     useState,
 } from "react";
 import { useLocation } from "react-router-dom";
-import { fetchDeviceCatalog } from "../pages/Reports/utils/catalog";
-import { pickBucket, toISOSeconds, toLocalInputValue } from "../pages/Reports/utils/datetime";
-import { useLiveDevices } from "../pages/common/useLiveDevices";
-import { fetchTopicSensors } from "../api/topics.js";
+import { fetchDeviceCatalog } from "../utils/catalog";
+import { pickBucket, toISOSeconds, toLocalInputValue } from "../utils/datetime";
+import { useLiveDevices } from "../../common/useLiveDevices";
+import { fetchTopicSensors } from "../../../api/topics.js";
 
 const ReportsFiltersContext = createContext(null);
 const toCID = (d) => `${d.systemId}-${d.layerId}-${d.deviceId}`;

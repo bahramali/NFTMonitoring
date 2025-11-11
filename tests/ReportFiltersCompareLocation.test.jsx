@@ -16,11 +16,11 @@ test('topics determine which sensors are displayed', () => {
       { id: 'waterTank', label: 'Water Tank' },
     ],
     topicSensors: {
-      growSensors: [{ label: 'temperature' }, { label: 'humidity' }],
+      growSensors: [{ label: 'A_Temp_C' }, { label: 'A_RH_C' }],
       waterTank: [{ label: 'ph' }],
     },
     selectedTopicSensors: {
-      growSensors: ['temperature'],
+      growSensors: ['A_Temp_C'],
     },
     selectedTopics: [],
   };
@@ -32,13 +32,13 @@ test('topics determine which sensors are displayed', () => {
   rerender(<ReportFiltersCompare {...baseProps} selectedTopics={['growSensors']} />);
 
   expect(screen.getAllByText('Grow Sensors').length).toBeGreaterThan(0);
-  expect(screen.getByLabelText('temperature')).toBeChecked();
+  expect(screen.getByLabelText('A_Temp_C')).toBeChecked();
   expect(screen.queryByLabelText('ph')).not.toBeInTheDocument();
 
   rerender(<ReportFiltersCompare {...baseProps} selectedTopics={['waterTank']} />);
 
   expect(screen.getAllByText('Water Tank').length).toBeGreaterThan(0);
   expect(screen.getByLabelText('ph')).toBeInTheDocument();
-  expect(screen.queryByLabelText('temperature')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('A_Temp_C')).not.toBeInTheDocument();
 });
 

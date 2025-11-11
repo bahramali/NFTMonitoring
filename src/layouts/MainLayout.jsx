@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet } from "react-router-dom";
 import Sidebar from "../pages/common/Sidebar";
-import { ReportsFiltersProvider } from "../context/ReportsFiltersContext.jsx";
+import { ReportsFiltersProvider } from "../pages/Reports/context/ReportsFiltersContext.jsx";
 import styles from "./MainLayout.module.css";
 
 export default function MainLayout() {

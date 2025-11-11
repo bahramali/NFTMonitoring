@@ -4,8 +4,8 @@ import { vi } from 'vitest';
 export function mockSensorConfigApi() {
   // حالت ساده: در حافظه نگه می‌داریم
   const db = {
-    'temperature@@/topic/growSensors': {
-      sensorType: 'temperature@@/topic/growSensors',
+    'A_Temp_C@@/topic/growSensors': {
+      sensorType: 'A_Temp_C@@/topic/growSensors',
       topic: '/topic/growSensors',
       minValue: 20,
       maxValue: 30,

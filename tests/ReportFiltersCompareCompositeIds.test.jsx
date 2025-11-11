@@ -18,11 +18,11 @@ const baseProps = {
     { id: 'growSensors', label: 'Grow Sensors' },
   ],
   topicSensors: {
-    growSensors: [{ label: 'temperature' }, { label: 'humidity' }],
+    growSensors: [{ label: 'A_Temp_C' }, { label: 'A_RH_C' }],
   },
   selectedTopics: ['growSensors'],
   selectedTopicSensors: {
-    growSensors: ['temperature'],
+    growSensors: ['A_Temp_C'],
   },
 };
 
@@ -35,12 +35,12 @@ test('sensor checkbox reflects selection and fires toggle callback', () => {
     />
   );
 
-  const temperature = screen.getByLabelText('temperature');
+  const temperature = screen.getByLabelText('A_Temp_C');
   expect(temperature).toBeChecked();
 
   fireEvent.click(temperature);
 
-  expect(onToggleTopicSensor).toHaveBeenCalledWith('growSensors', 'temperature');
+  expect(onToggleTopicSensor).toHaveBeenCalledWith('growSensors', 'A_Temp_C');
 });
 
 test('None action requests clearing sensors for topic', () => {

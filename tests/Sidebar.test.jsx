@@ -27,7 +27,7 @@ vi.mock('../src/api/topics.js', () => ({
 
 import { MemoryRouter } from 'react-router-dom';
 import Sidebar from '../src/pages/common/Sidebar';
-import { ReportsFiltersProvider } from '../src/context/ReportsFiltersContext.jsx';
+import { ReportsFiltersProvider } from '../src/pages/Reports/context/ReportsFiltersContext.jsx';
 
 test('renders NFT Channels link', () => {
     mockLocation.pathname = '/';

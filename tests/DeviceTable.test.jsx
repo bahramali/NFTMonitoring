@@ -11,8 +11,8 @@ import { vi } from 'vitest';
 const devices = {
   dev1: {
     sensors: [
-      { sensorName: 'SHT3x', sensorType: 'temperature', value: 22.5, unit: '°C' },
-      { sensorName: 'SHT3x', sensorType: 'humidity', value: 55, unit: '%' },
+      { sensorName: 'SHT3x', sensorType: 'A_Temp_C', value: 22.5, unit: '°C' },
+      { sensorName: 'SHT3x', sensorType: 'A_RH_C', value: 55, unit: '%' },
       { sensorName: 'VEML7700', sensorType: 'light', value: 1200, unit: 'lux' },
       { sensorName: 'HailegeTDS', sensorType: 'tds', value: 800, unit: 'ppm' },
       { sensorName: 'HailegeTDS', sensorType: 'ec', value: 1.5, unit: 'mS/cm' },
@@ -57,8 +57,8 @@ test('renders all sensor models at least once', () => {
 
 test('displays measurement labels correctly', () => {
   renderWithProvider(<DeviceTable devices={devices} topic="/topic/growSensors" />);
-  expect(screen.getByText('temperature')).toBeInTheDocument();
-  expect(screen.getByText('humidity')).toBeInTheDocument();
+  expect(screen.getByText('A_Temp_C')).toBeInTheDocument();
+  expect(screen.getByText('A_RH_C')).toBeInTheDocument();
   expect(screen.getByText('ph')).toBeInTheDocument();
 });
 
@@ -66,7 +66,7 @@ test('shows raw humidity label when model is unknown', () => {
   const growDevices = {
     dev1: {
       sensors: [
-        { sensorName: 'GenericGrowSensor', sensorType: 'humidity', value: 51.2, unit: '%' }
+        { sensorName: 'GenericGrowSensor', sensorType: 'A_RH_C', value: 51.2, unit: '%' }
       ],
       health: {}
     }
@@ -74,7 +74,7 @@ test('shows raw humidity label when model is unknown', () => {
 
   renderWithProvider(<DeviceTable devices={growDevices} topic="/topic/growSensors" />);
   const row = screen.getByText('GenericGrowSensor').closest('tr');
-  expect(within(row).getByText('humidity')).toBeInTheDocument();
+  expect(within(row).getByText('A_RH_C')).toBeInTheDocument();
 });
 
 test('shows raw temperature label for DS18B20 on water topic', () => {
@@ -206,7 +206,7 @@ test('renders sensor values with correct units', () => {
 
 test('displays configured min and max values', async () => {
   renderWithProvider(<DeviceTable devices={devices} topic="/topic/growSensors" />);
-  const tempRow = screen.getByText('temperature').closest('tr');
+  const tempRow = screen.getByText('A_Temp_C').closest('tr');
   const spectralRow = screen.getByText('415nm').closest('tr');
   await waitFor(() => {
     expect(within(tempRow).getByText('20')).toBeInTheDocument();
@@ -262,7 +262,7 @@ test('shows green indicator when health keys are lowercase', () => {
   const devicesLower = {
     dev1: {
       sensors: [
-        { sensorName: 'SHT3x', sensorType: 'temperature', value: 22.5, unit: '°C' }
+        { sensorName: 'SHT3x', sensorType: 'A_Temp_C', value: 22.5, unit: '°C' }
       ],
       health: { sht3x: true }
     }
