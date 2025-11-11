@@ -10,7 +10,7 @@ const RAW_DEFINITIONS = [
     id: "temperature",
     overviewLabel: "Temp",
     liveLabel: "Temp",
-    typeAliases: ["temperature", "temp", "airtemp", "airtemperature"],
+    typeAliases: ["temperature", "temp", "airtemp", "airtemperature", "A_Temp", "A_Temp_C"],
     contextOverrides: [
       {
         topics: ["/topic/germinationTopic", "germinationTopic"],
@@ -33,7 +33,7 @@ const RAW_DEFINITIONS = [
     id: "humidity",
     overviewLabel: "RH",
     liveLabel: "RH",
-    typeAliases: ["humidity", "rh", "relativehumidity"],
+    typeAliases: ["humidity", "rh", "relativehumidity", "A_RH", "A_RH_C"],
     topicOverrides: [
       { match: ["/topic/growSensors", "growSensors"], label: "A_RH" },
       { match: ["/topic/germinationTopic", "germinationTopic"], label: "G_RH" },

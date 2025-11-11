@@ -19,7 +19,7 @@ test('All selects all sensors for the chosen topic', () => {
       rangeLabel=""
       topics={[{ id: 'growSensors', label: 'Grow Sensors' }]}
       selectedTopics={['growSensors']}
-      topicSensors={{ growSensors: [{ label: 'temperature' }, { label: 'humidity' }] }}
+      topicSensors={{ growSensors: [{ label: 'A_Temp_C' }, { label: 'A_RH_C' }] }}
       selectedTopicSensors={{ growSensors: [] }}
       onAllTopicSensors={onAllTopicSensors}
       onNoneTopicSensors={() => {}}
@@ -30,7 +30,7 @@ test('All selects all sensors for the chosen topic', () => {
 
   expect(onAllTopicSensors).toHaveBeenCalledTimes(1);
   expect(onAllTopicSensors).toHaveBeenCalledWith('growSensors', [
-    { label: 'temperature', value: 'temperature' },
-    { label: 'humidity', value: 'humidity' },
+    { label: 'A_Temp_C', value: 'A_Temp_C' },
+    { label: 'A_RH_C', value: 'A_RH_C' },
   ]);
 });

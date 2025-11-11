@@ -12,7 +12,7 @@ test('renders message when no topic is selected', () => {
       onToDateChange={() => {}}
       rangeLabel=""
       topics={[{ id: 'growSensors', label: 'Grow Sensors' }]}
-      topicSensors={{ growSensors: [{ label: 'humidity' }] }}
+      topicSensors={{ growSensors: [{ label: 'A_RH_C' }] }}
       selectedTopics={[]}
       selectedTopicSensors={{ growSensors: [] }}
     />

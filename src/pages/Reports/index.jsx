@@ -5,7 +5,7 @@ import { transformAggregatedData } from "../../utils.js";
 import Header from "../common/Header";
 import { API_BASE } from "./utils/catalog";
 import { pickBucket, toISOSeconds } from "./utils/datetime";
-import { useReportsFilters } from "../../context/ReportsFiltersContext.jsx";
+import { useReportsFilters } from "./context/ReportsFiltersContext.jsx";
 import styles from "./ReportsPage.module.css";
 
 const AUTO_REFRESH_MS = { "30s": 30_000, "1m": 60_000, "5m": 300_000 };

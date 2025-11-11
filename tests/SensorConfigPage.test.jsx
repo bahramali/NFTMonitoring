@@ -33,7 +33,7 @@ test('create a config (assert Saved)', async () => {
     target: { value: '/topic/growSensors' },
   });
   fireEvent.change(screen.getByLabelText(/^Metric:?$/i), {
-    target: { value: 'humidity' },
+    target: { value: 'A_RH_C' },
   });
   fireEvent.change(screen.getByLabelText(/^Min:?$/i), {
     target: { name: 'minValue', value: '40' },
@@ -50,7 +50,7 @@ test('create a config (assert Saved)', async () => {
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({
-          sensorType: 'humidity@@/topic/growSensors',
+          sensorType: 'A_RH_C@@/topic/growSensors',
           topic: '/topic/growSensors',
           minValue: 40,
           maxValue: 60,
@@ -63,7 +63,7 @@ test('create a config (assert Saved)', async () => {
 test('update a config via top form (assert Saved)', async () => {
   renderWithProviders(<SensorConfig />);
 
-  const row = await findRow('temperature', '/topic/growSensors');
+  const row = await findRow('A_Temp_C', '/topic/growSensors');
 
   // pick the exact top-form edit button to avoid ambiguity
   const editTopBtn = within(row).getByTitle('Edit in form');
@@ -80,7 +80,7 @@ test('update a config via top form (assert Saved)', async () => {
   expect(await screen.findByText(savedOrUpdated)).toBeInTheDocument();
 
   expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/sensor-config/temperature%40%40%2Ftopic%2FgrowSensors'),
+      expect.stringContaining('/api/sensor-config/A_Temp_C%40%40%2Ftopic%2FgrowSensors'),
       expect.objectContaining({
         method: 'PUT',
         headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
@@ -92,7 +92,7 @@ test('update a config via top form (assert Saved)', async () => {
 test('update a config via inline edit (assert Saved)', async () => {
   renderWithProviders(<SensorConfig />);
 
-  const row = await findRow('temperature', '/topic/growSensors');
+  const row = await findRow('A_Temp_C', '/topic/growSensors');
 
   // pick the exact inline edit button (✎)
   const inlineBtn = within(row).getByTitle('Inline edit');
@@ -110,7 +110,7 @@ test('update a config via inline edit (assert Saved)', async () => {
   expect(await screen.findByText(savedOrUpdated)).toBeInTheDocument();
 
   expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/sensor-config/temperature%40%40%2Ftopic%2FgrowSensors'),
+      expect.stringContaining('/api/sensor-config/A_Temp_C%40%40%2Ftopic%2FgrowSensors'),
       expect.objectContaining({
         method: 'PUT',
         headers: expect.objectContaining({ 'Content-Type': 'application/json' }),

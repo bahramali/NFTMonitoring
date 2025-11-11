@@ -12,12 +12,12 @@ test('displays sensor labels provided via topic data', () => {
       onToDateChange={() => {}}
       rangeLabel=""
       topics={[{ id: 'growSensors', label: 'Grow Sensors' }]}
-      topicSensors={{ growSensors: [{ label: 'CO2' }, { label: 'temperature' }] }}
+      topicSensors={{ growSensors: [{ label: 'CO2' }, { label: 'A_Temp_C' }] }}
       selectedTopics={['growSensors']}
       selectedTopicSensors={{ growSensors: [] }}
     />
   );
 
   expect(screen.getByLabelText('CO2')).toBeInTheDocument();
-  expect(screen.getByLabelText('temperature')).toBeInTheDocument();
+  expect(screen.getByLabelText('A_Temp_C')).toBeInTheDocument();
 });
