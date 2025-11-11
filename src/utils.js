@@ -1,4 +1,4 @@
-import { normalizeSensors as baseNormalizeSensors } from './utils/normalizeSensors.js';
+import { normalizeSensors as baseNormalizeSensors, canonKey } from './utils/normalizeSensors.js';
 
 // Removes old entries older than maxAgeMs from the dataset
 export function trimOldEntries(data, now, maxAgeMs = 24 * 60 * 60 * 1000) {
@@ -51,9 +51,18 @@ export function transformAggregatedData(data) {
     for (const sensor of data.sensors) {
         const rawType = sensor.sensorType || sensor.valueType;
         const unit = sensor.unit || '';
-        const sensorType = typeof rawType === 'string' ? rawType.replace(/\s+/g, '') : rawType;
+        const canonicalKey = typeof rawType === 'string' ? canonKey(rawType) : undefined;
         const normalizedKey =
             typeof rawType === 'string' ? rawType.trim().toLowerCase() : undefined;
+        const sensorType =
+            typeof canonicalKey === 'string' && canonicalKey
+                ? canonicalKey.replace(/\s+/g, '')
+                : typeof rawType === 'string'
+                    ? rawType.replace(/\s+/g, '')
+                    : rawType;
+        const aliasKeys = new Set();
+        if (typeof canonicalKey === 'string' && canonicalKey) aliasKeys.add(canonicalKey);
+        if (typeof normalizedKey === 'string' && normalizedKey) aliasKeys.add(normalizedKey);
 
         for (const entry of sensor.data || []) {
             const ts = Date.parse(entry.timestamp);
@@ -86,6 +95,7 @@ export function transformAggregatedData(data) {
                     out[sensorType] = {value: Number(val), unit};
                     break;
                 case 'light':
+                case 'lux':
                     out.lux = {value: Number(val), unit};
                     break;
                 case 'tds':
@@ -169,12 +179,15 @@ export function transformAggregatedData(data) {
                     out['745nm'] = Number(val);
                     break;
                 case 'VIS1':
+                case 'vis1':
                     out.VIS1 = Number(val);
                     break;
                 case 'VIS2':
+                case 'vis2':
                     out.VIS2 = Number(val);
                     break;
                 case 'NIR855':
+                case 'nir855':
                     out.NIR855 = Number(val);
                     break;
                 case 'clear':
@@ -185,16 +198,17 @@ export function transformAggregatedData(data) {
                     break;
             }
 
-            if (normalizedKey && !(normalizedKey in out)) {
+            for (const key of aliasKeys) {
+                if (!key || key in out) continue;
                 if (val && typeof val === 'object' && 'value' in val) {
                     const numeric = Number(val.value);
-                    out[normalizedKey] = {
+                    out[key] = {
                         value: Number.isFinite(numeric) ? numeric : null,
                         unit: val.unit ?? unit,
                     };
                 } else {
                     const numeric = Number(val);
-                    out[normalizedKey] = {
+                    out[key] = {
                         value: Number.isFinite(numeric) ? numeric : null,
                         unit,
                     };
