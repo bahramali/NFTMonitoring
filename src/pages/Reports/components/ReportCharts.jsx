@@ -29,11 +29,15 @@ const RED_SELECTION_KEYS = new Set(RED_SERIES_KEYS.map((key) => key.toLowerCase(
 const BLUE_ALIAS_KEYS = new Set(["blue", "bluelight", "bluespectrum"]);
 const RED_ALIAS_KEYS = new Set(["red", "redlight", "redspectrum"]);
 
-const toSelectionKey = (label) =>
-    String(label ?? "")
-        .trim()
-        .toLowerCase()
-        .replace(/[\s_-]+/g, "");
+const toSelectionKey = (label) => {
+    const normalized = String(label ?? "").trim().toLowerCase();
+    if (!normalized) return "";
+
+    const segments = normalized.split(/[./]/).filter(Boolean);
+    const base = segments.length ? segments[segments.length - 1] : normalized;
+
+    return base.replace(/[^a-z0-9]+/g, "");
+};
 
 export default function ReportCharts({
                                          tempByCid,
