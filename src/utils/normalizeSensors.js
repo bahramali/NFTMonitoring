@@ -11,7 +11,7 @@ const nmToBand = {
 
 const fixSubs = (s) => String(s).replace(/[₀₁₂₃₄₅₆₇₈₉]/g, (d) => '0123456789'["₀₁₂₃₄₅₆₇₈₉".indexOf(d)]);
 
-function canonKey(raw) {
+export function canonKey(raw) {
   const t = fixSubs(String(raw || '')).toLowerCase().replace(/[\s_]/g, '');
   if (!t) return null;
   if (['temperature','temp','airtemp','airtemperature'].includes(t)) return 'temperature';

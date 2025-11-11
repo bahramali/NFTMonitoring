@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import HistoryChart from "../../../components/HistoryChart";
 import spectralColors from "../../../spectralColors";
+import { canonKey } from "../../../utils/normalizeSensors.js";
 import styles from "./ReportCharts.module.css";
 
 // English comments: helper to convert {cid: data[]} to multi-series spec
@@ -30,6 +31,11 @@ const BLUE_ALIAS_KEYS = new Set(["blue", "bluelight", "bluespectrum"]);
 const RED_ALIAS_KEYS = new Set(["red", "redlight", "redspectrum"]);
 
 const toSelectionKey = (label) => {
+    const canonical = canonKey(label);
+    if (canonical) {
+        return String(canonical).replace(/[^a-z0-9]+/g, "");
+    }
+
     const normalized = String(label ?? "").trim().toLowerCase();
     if (!normalized) return "";
 
