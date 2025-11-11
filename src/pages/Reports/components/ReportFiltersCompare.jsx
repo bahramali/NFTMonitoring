@@ -1,12 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import styles from "./ReportFiltersCompare.module.css";
 import { normalizeDeviceCatalog } from "../utils/catalog";
-
-const ensureString = (value, fallback = '') => {
-    if (value === undefined || value === null) return fallback;
-    const str = String(value).trim();
-    return str.length ? str : fallback;
-};
+import { ensureString } from "../utils/strings";
 
 function AllNone({name, onAll, onNone}) {
     return (
@@ -84,7 +79,6 @@ const parseCompositeId = (cid) => {
 export default function ReportFiltersCompare(props) {
     const {
         className,
-        variant = "default",
         fromDate, toDate, onFromDateChange, onToDateChange, onApply,
         autoRefreshValue = 'Off',
         onAutoRefreshValueChange = () => {},
@@ -165,10 +159,9 @@ export default function ReportFiltersCompare(props) {
     );
 
     const locationData = useMemo(() => {
-        const systemMap = new Map();
         const compositeMeta = new Map();
 
-        const addDevice = ({
+        const recordDevice = ({
             systemId,
             systemLabel,
             layerId,
@@ -178,10 +171,13 @@ export default function ReportFiltersCompare(props) {
             compositeId,
         }) => {
             const cid = ensureString(compositeId);
-            const sysId = ensureString(systemId);
-            const layId = ensureString(layerId);
-            const devId = ensureString(deviceId);
-            if (!cid || !sysId || !layId || !devId) return;
+            if (!cid) return;
+
+            const parsed = parseCompositeId(cid);
+            const sysId = ensureString(systemId, parsed.systemId);
+            const layId = ensureString(layerId, parsed.layerId);
+            const devId = ensureString(deviceId, parsed.deviceId || cid);
+            if (!sysId || !layId || !devId) return;
 
             if (!compositeMeta.has(cid)) {
                 compositeMeta.set(cid, {
@@ -195,72 +191,71 @@ export default function ReportFiltersCompare(props) {
                     },
                 });
             }
-
-            let systemEntry = systemMap.get(sysId);
-            if (!systemEntry) {
-                systemEntry = { id: sysId, label: ensureString(systemLabel, sysId), layers: new Map() };
-                systemMap.set(sysId, systemEntry);
-            }
-
-            let layerEntry = systemEntry.layers.get(layId);
-            if (!layerEntry) {
-                layerEntry = { id: layId, label: ensureString(layerLabel, layId), devices: [] };
-                systemEntry.layers.set(layId, layerEntry);
-            }
-
-            if (!layerEntry.devices.some(dev => dev.compositeId === cid)) {
-                layerEntry.devices.push({
-                    id: devId,
-                    label: ensureString(deviceLabel, devId),
-                    compositeId: cid,
-                });
-            }
         };
 
         const catalogDevices = Array.isArray(catalog?.devices) ? catalog.devices : [];
-        catalogDevices.forEach(device => {
+        catalogDevices.forEach((device) => {
             const systemId = ensureString(device.systemId ?? device.system?.id);
             const layerId = ensureString(device.layerId ?? device.layer?.id);
             const deviceId = ensureString(device.deviceId ?? device.id ?? device.device?.id);
-            const compositeId = ensureString(device.compositeId ?? toFallbackComposite(systemId, layerId, deviceId));
-            const systemLabel = ensureString(device.systemName ?? device.system?.name, systemId);
-            const layerLabel = ensureString(device.layerName ?? device.layer?.name, layerId);
-            const deviceLabel = ensureString(device.deviceName ?? device.name ?? device.label, deviceId);
-            addDevice({
+            const compositeId = ensureString(
+                device.compositeId ?? toFallbackComposite(systemId, layerId, deviceId),
+            );
+
+            recordDevice({
                 systemId,
-                systemLabel,
+                systemLabel: ensureString(device.systemName ?? device.system?.name, systemId),
                 layerId,
-                layerLabel,
+                layerLabel: ensureString(device.layerName ?? device.layer?.name, layerId),
                 deviceId,
-                deviceLabel,
+                deviceLabel: ensureString(device.deviceName ?? device.name ?? device.label, deviceId),
                 compositeId,
             });
         });
 
-        if (!systemMap.size) {
+        if (!compositeMeta.size) {
             const catalogSystems = Array.isArray(catalog?.systems) ? catalog.systems : [];
-            catalogSystems.forEach(system => {
-                const systemId = ensureString(system.id);
+            catalogSystems.forEach((system) => {
+                const systemId = ensureString(
+                    system.id ?? system.systemId ?? system.code ?? system.key,
+                );
                 if (!systemId) return;
-                const systemLabel = ensureString(system.name, systemId);
+                const systemLabel = ensureString(
+                    system.name ?? system.systemName ?? system.label,
+                    systemId,
+                );
 
                 if (Array.isArray(system.layers)) {
-                    system.layers.forEach(layer => {
-                        const layerId = ensureString(layer.id);
-                        const layerLabel = ensureString(layer.name, layerId);
+                    system.layers.forEach((layer) => {
+                        const layerId = ensureString(
+                            layer.id ?? layer.layerId ?? layer.code ?? layer.key,
+                        );
+                        const layerLabel = ensureString(
+                            layer.name ?? layer.layerName ?? layer.label,
+                            layerId,
+                        );
                         const devices = Array.isArray(layer.devices) ? layer.devices : [];
-                        devices.forEach(dev => {
-                            const parsed = parseCompositeId(dev.compositeId ?? dev.id);
-                            const deviceId = ensureString(dev.deviceId ?? dev.id ?? parsed.deviceId);
-                            const compositeId = ensureString(dev.compositeId ?? dev.id ?? toFallbackComposite(systemId, layerId || parsed.layerId, deviceId));
-                            const resolvedLayerId = ensureString(layerId || parsed.layerId);
-                            addDevice({
+                        devices.forEach((device) => {
+                            const parsed = parseCompositeId(device.compositeId ?? device.id);
+                            const deviceId = ensureString(
+                                device.deviceId ?? device.id ?? parsed.deviceId,
+                            );
+                            const compositeId = ensureString(
+                                device.compositeId ??
+                                    device.id ??
+                                    toFallbackComposite(
+                                        systemId,
+                                        layerId || parsed.layerId,
+                                        deviceId,
+                                    ),
+                            );
+                            recordDevice({
                                 systemId,
                                 systemLabel,
-                                layerId: resolvedLayerId,
-                                layerLabel: ensureString(layerLabel, resolvedLayerId),
+                                layerId: layerId || parsed.layerId,
+                                layerLabel: ensureString(layerLabel, layerId || parsed.layerId),
                                 deviceId,
-                                deviceLabel: ensureString(dev.name ?? dev.label, deviceId),
+                                deviceLabel: ensureString(device.name ?? device.label, deviceId),
                                 compositeId,
                             });
                         });
@@ -268,61 +263,44 @@ export default function ReportFiltersCompare(props) {
                 }
 
                 const compositeCandidates = [
-                    ...(Array.isArray(system.deviceCompositeIds) ? system.deviceCompositeIds : []),
+                    ...(Array.isArray(system.deviceCompositeIds)
+                        ? system.deviceCompositeIds
+                        : []),
                     ...(Array.isArray(system.compositeIds) ? system.compositeIds : []),
                 ];
-                compositeCandidates.forEach(cid => {
+                compositeCandidates.forEach((cid) => {
                     const parsed = parseCompositeId(cid);
-                    const layerId = ensureString(parsed.layerId || '');
-                    const deviceId = ensureString(parsed.deviceId || cid);
-                    addDevice({
+                    recordDevice({
                         systemId,
                         systemLabel,
-                        layerId: layerId || 'Layer',
-                        layerLabel: ensureString(parsed.layerId, layerId || 'Layer'),
-                        deviceId,
-                        deviceLabel: deviceId,
-                        compositeId: ensureString(cid),
+                        layerId: parsed.layerId || "Layer",
+                        layerLabel: ensureString(parsed.layerId, parsed.layerId || "Layer"),
+                        deviceId: parsed.deviceId || cid,
+                        deviceLabel: parsed.deviceId || cid,
+                        compositeId: cid,
                     });
                 });
             });
         }
 
-        if (!systemMap.size && devicesProp.length) {
-            devicesProp.forEach(raw => {
+        if (!compositeMeta.size && Array.isArray(devicesProp) && devicesProp.length) {
+            devicesProp.forEach((raw) => {
                 const cid = ensureString(raw);
-                if (!cid || !cid.includes('-')) return;
+                if (!cid || !cid.includes("-")) return;
                 const parsed = parseCompositeId(cid);
-                const systemId = ensureString(parsed.systemId || 'System');
-                const layerId = ensureString(parsed.layerId || 'Layer');
-                const deviceId = ensureString(parsed.deviceId || cid);
-                addDevice({
-                    systemId,
-                    systemLabel: systemId,
-                    layerId,
-                    layerLabel: layerId,
-                    deviceId,
-                    deviceLabel: deviceId,
+                recordDevice({
+                    systemId: parsed.systemId || "System",
+                    systemLabel: parsed.systemId || "System",
+                    layerId: parsed.layerId || "Layer",
+                    layerLabel: parsed.layerId || "Layer",
+                    deviceId: parsed.deviceId || cid,
+                    deviceLabel: parsed.deviceId || cid,
                     compositeId: cid,
                 });
             });
         }
 
-        const systems = Array.from(systemMap.values()).map(system => ({
-            id: system.id,
-            label: system.label,
-            layers: Array.from(system.layers.values()).map(layer => ({
-                id: layer.id,
-                label: layer.label,
-                devices: layer.devices.sort((a, b) =>
-                    a.label.localeCompare(b.label) || a.compositeId.localeCompare(b.compositeId)
-                ),
-            })).sort((a, b) => a.label.localeCompare(b.label) || a.id.localeCompare(b.id)),
-        })).sort((a, b) => a.label.localeCompare(b.label) || a.id.localeCompare(b.id));
-
-        const compositeIds = Array.from(compositeMeta.keys()).sort();
-
-        return { systems, compositeIds, compositeMeta };
+        return { compositeIds: Array.from(compositeMeta.keys()).sort(), compositeMeta };
     }, [catalog, devicesProp]);
 
     const { compositeIds, compositeMeta } = locationData;
@@ -543,12 +521,7 @@ export default function ReportFiltersCompare(props) {
         return `${selectedCompositeCount} of ${total}`;
     }, [selectedCompositeCount, totalCompositeCount]);
 
-    const containerClassName = [
-        styles.rf,
-        variant === "sidebar" ? styles.rfSidebar : "",
-        variant === "page" ? styles.rfPage : "",
-        className || "",
-    ]
+    const containerClassName = [styles.rf, styles.rfPage, className || ""]
         .filter(Boolean)
         .join(" ");
 
@@ -556,28 +529,26 @@ export default function ReportFiltersCompare(props) {
         <div className={containerClassName}>
             <div className={styles.titleRow}>
                 <div className={styles.title}>Filters</div>
-                {variant !== "sidebar" && (
-                    <div className={`${styles.actionsBlock} ${styles.titleActions}`}>
-                        <button type="button" className={styles.btn} onClick={handleResetClick}>
-                            Reset
-                        </button>
-                        <button
-                            type="button"
-                            className={`${styles.btn} ${styles.primary}`}
-                            onClick={handleApplyClick}
-                        >
-                            Refresh data
-                        </button>
-                        <button
-                            type="button"
-                            className={styles.btn}
-                            onClick={handleAddCompareClick}
-                            disabled={selectedCompositeCount === 0}
-                        >
-                            Add to compare
-                        </button>
-                    </div>
-                )}
+                <div className={`${styles.actionsBlock} ${styles.titleActions}`}>
+                    <button type="button" className={styles.btn} onClick={handleResetClick}>
+                        Reset
+                    </button>
+                    <button
+                        type="button"
+                        className={`${styles.btn} ${styles.primary}`}
+                        onClick={handleApplyClick}
+                    >
+                        Refresh data
+                    </button>
+                    <button
+                        type="button"
+                        className={styles.btn}
+                        onClick={handleAddCompareClick}
+                        disabled={selectedCompositeCount === 0}
+                    >
+                        Add to compare
+                    </button>
+                </div>
             </div>
             <div className={styles.summaryBar}>
                 <div className={styles.summaryItem}>

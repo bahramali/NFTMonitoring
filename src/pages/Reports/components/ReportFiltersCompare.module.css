@@ -29,34 +29,6 @@
     gap: 0.875rem;
 }
 
-.rfSidebar {
-    --rf-surface: #0f1a2b;
-    --rf-surface-subtle: #132132;
-    --rf-surface-strong: #0c1523;
-    --rf-border: #1f2d44;
-    --rf-border-soft: #253753;
-    --rf-card-surface: #152338;
-    --rf-text-strong: #f1f5f9;
-    --rf-text-muted: #9ab0ce;
-    --rf-text-accent: #c3dafe;
-    --rf-text-secondary: #b9cae4;
-    --rf-text-tertiary: #93a9c7;
-    --rf-chip-bg: rgba(99, 179, 237, 0.22);
-    --rf-btn-bg: rgba(15, 26, 43, 0.75);
-    --rf-btn-border: #263852;
-    --rf-btn-text: #e2e8f0;
-    --rf-btn-primary-border: #60a5fa;
-    --rf-btn-primary-text: #60a5fa;
-    --rf-error: #fca5a5;
-    --rf-calendar-filter: invert(0.9);
-
-    background: var(--rf-surface);
-    box-shadow: none;
-    color: var(--rf-text-strong);
-    padding: 1rem 0.75rem 1.25rem;
-    border-radius: 0;
-}
-
 .rfPage {
     background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 45%, #eef2ff 100%);
     border: 0.0625rem solid var(--rf-border-soft);
@@ -74,47 +46,6 @@
 
 .rfPage .content {
     flex: 1 1 26rem;
-}
-
-.rfSidebar .title {
-    color: var(--rf-text-accent);
-    margin-bottom: 0.75rem;
-}
-
-.rfSidebar .layout {
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.rfSidebar .sidebar,
-.rfSidebar .content {
-    flex: 1 1 auto;
-    width: 100%;
-}
-
-.rfSidebar .block,
-.rfSidebar .group,
-.rfSidebar .treeCard,
-.rfSidebar .checklist {
-    background: var(--rf-card-surface);
-    border-color: var(--rf-border);
-    box-shadow: none;
-}
-
-.rfSidebar .groupTitle,
-.rfSidebar .title {
-    color: var(--rf-text-accent);
-}
-
-.rfSidebar input[type="datetime-local"],
-.rfSidebar select {
-    background: var(--rf-btn-bg);
-    border-color: var(--rf-btn-border);
-    color: var(--rf-btn-text);
-}
-
-.rfSidebar .item {
-    color: var(--rf-btn-text);
 }
 
 .titleRow {
@@ -302,6 +233,17 @@
     gap: 0.25rem;
 }
 
+.deviceLabel {
+    color: var(--rf-text-secondary);
+    font-weight: 500;
+}
+
+.deviceCid {
+    font-size: 0.75rem;
+    color: var(--rf-text-muted);
+    word-break: break-all;
+}
+
 /* section blocks */
 .block {
     background: var(--rf-surface-subtle);
@@ -431,171 +373,6 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     opacity: 0.5;
 }
 
-.locationSection {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-/* location tree */
-.treeCard {
-    background: var(--rf-card-surface);
-    border: 0.0625rem solid var(--rf-border);
-    border-radius: 0.625rem;
-    padding: 0.625rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.treeHead {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.treeActions {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-}
-
-.collapseToggle {
-    border: 0.0625rem solid var(--rf-border);
-    background: var(--rf-btn-bg);
-    color: var(--rf-text-accent);
-    border-radius: 0.5rem;
-    padding: 0.25rem 0.6rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s ease, color 0.2s ease;
-}
-
-.collapseToggle:hover,
-.collapseToggle:focus-visible {
-    background: var(--rf-text-accent);
-    color: #fff;
-}
-
-.treeCollapsed .treeList {
-    display: none;
-}
-
-.treeList {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    max-height: 20rem;
-    overflow: auto;
-    padding-right: 0.25rem;
-}
-
-.systemRow {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    border-bottom: 0.0625rem solid var(--rf-border-soft);
-    padding-bottom: 0.5rem;
-}
-
-.systemRow:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-}
-
-.systemLabel {
-    font-weight: 600;
-    color: var(--rf-text-strong);
-    flex: 1;
-}
-
-.systemHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    background: var(--rf-btn-bg);
-    border: 0.0625rem solid var(--rf-border-soft);
-    border-radius: 0.5rem;
-    padding: 0.375rem 0.5rem;
-}
-
-.systemInfo {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex: 1;
-}
-
-.layerList {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding-left: 0.75rem;
-}
-
-.layerRow {
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-}
-
-.layerLabel {
-    color: var(--rf-text-tertiary);
-    flex: 1;
-}
-
-.layerHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    background: var(--rf-btn-bg);
-    border: 0.0625rem solid var(--rf-border-soft);
-    border-radius: 0.5rem;
-    padding: 0.3125rem 0.5rem;
-}
-
-.layerInfo {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex: 1;
-}
-
-.deviceList {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3125rem;
-    padding-left: 1.5rem;
-}
-
-.deviceItem {
-    background: var(--rf-btn-bg);
-    border: 0.0625rem solid var(--rf-border-soft);
-    border-radius: 0.5rem;
-    padding: 0.25rem 0.5rem;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 0.25rem;
-}
-
-.deviceLabel {
-    color: var(--rf-text-secondary);
-    font-weight: 500;
-}
-
-.deviceCid {
-    font-size: 0.75rem;
-    color: var(--rf-text-muted);
-    word-break: break-all;
-}
-
-.compositeGroup {
-    flex: 1 1 auto;
-}
-
 .emptyState {
     color: var(--rf-text-muted);
     font-size: 0.8125rem;
@@ -640,16 +417,6 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
-}
-
-.muted {
-    color: var(--rf-text-muted);
-    font-size: 0.75rem;
-}
-
-.errorText {
-    color: var(--rf-error);
-    font-size: 0.75rem;
 }
 
 .summaryLabel {
