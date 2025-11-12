@@ -10,13 +10,6 @@ import styles from "./ReportsPage.module.css";
 
 const AUTO_REFRESH_MS = { "30s": 30_000, "1m": 60_000, "5m": 300_000 };
 
-const formatTopicLabel = (id) =>
-    String(id || "")
-        .replace(/([A-Z])/g, " $1")
-        .replace(/[_-]/g, " ")
-        .replace(/^\s+|\s+$/g, "")
-        .replace(/^./, (ch) => ch.toUpperCase());
-
 const createEmptyChartState = () => ({
     tempByCid: Object.create(null),
     rangeByCid: Object.create(null),
@@ -24,14 +17,6 @@ const createEmptyChartState = () => ({
     ecTdsByCid: Object.create(null),
     doByCid: Object.create(null),
 });
-
-const collectSelectedSensors = (topics, sensorsByTopic) => {
-    const aggregated = new Set();
-    topics.forEach((topic) => {
-        (sensorsByTopic[topic] || new Set()).forEach((label) => aggregated.add(label));
-    });
-    return Array.from(aggregated);
-};
 
 const extractValue = (reading) => reading?.value ?? 0;
 
@@ -90,8 +75,10 @@ export default function Reports() {
         onClearCompare,
         onRemoveCompare,
         compareItems,
-        selSensors,
-        selectedTopics,
+        topics,
+        selectedTopicIds,
+        selectedTopicSensors,
+        selectedSensorTypes,
         toggleTopicSelection,
         setAllTopics,
         clearTopics,
@@ -106,29 +93,6 @@ export default function Reports() {
         registerApplyHandler,
         triggerApply,
     } = useReportsFilters();
-
-    const topicList = useMemo(() => {
-        const entries = Object.entries(availableTopicSensors || {});
-        return entries.map(([id, sensors]) => ({ id, label: formatTopicLabel(id), sensors }));
-    }, [availableTopicSensors]);
-
-    const topicDeviceOptions = useMemo(() => {
-        const entries = Object.entries(availableTopicDevices || {});
-        return entries.reduce((acc, [topic, devices]) => {
-            acc[topic] = Array.isArray(devices) ? devices : [];
-            return acc;
-        }, {});
-    }, [availableTopicDevices]);
-
-    const selectedSensorsByTopic = useMemo(() => {
-        const map = {};
-        Object.entries(selSensors || {}).forEach(([topic, values]) => {
-            map[topic] = Array.from(values || []);
-        });
-        return map;
-    }, [selSensors]);
-
-    const selectedTopicIds = useMemo(() => Array.from(selectedTopics || []), [selectedTopics]);
 
     const handleFromDateChange = useCallback(
         ({ target }) => setFromDate(target.value),
@@ -165,11 +129,6 @@ export default function Reports() {
     const [hasAppliedFilters, setHasAppliedFilters] = useState(false);
     const abortRef = useRef(null);
 
-    const selectedSensors = useMemo(
-        () => collectSelectedSensors(selectedTopics, selSensors),
-        [selectedTopics, selSensors],
-    );
-
     const resetAbortController = useCallback(() => {
         if (abortRef.current) {
             abortRef.current.abort();
@@ -197,7 +156,7 @@ export default function Reports() {
 
             const requests = selectedCIDs.map((cid) => {
                 return (async () => {
-                    const url = createHistoryUrl(cid, baseParams, selectedSensors);
+                    const url = createHistoryUrl(cid, baseParams, selectedSensorTypes);
                     const res = await fetch(url, { signal });
                     if (!res.ok) {
                         const txt = await res.text().catch(() => "");
@@ -227,7 +186,7 @@ export default function Reports() {
                 setError(String(e.message || e));
             }
         }
-    }, [fromDate, toDate, selectedCIDs, selectedSensors, resetAbortController]);
+    }, [fromDate, toDate, selectedCIDs, selectedSensorTypes, resetAbortController]);
 
     const handleApply = useCallback(() => {
         setHasAppliedFilters(true);
@@ -338,14 +297,14 @@ export default function Reports() {
                         compareItems={compareItems}
                         onClearCompare={onClearCompare}
                         onRemoveCompare={onRemoveCompare}
-                        topics={topicList}
+                        topics={topics}
                         selectedTopics={selectedTopicIds}
                         onTopicToggle={toggleTopicSelection}
                         onAllTopics={setAllTopics}
                         onNoneTopics={clearTopics}
                         topicSensors={availableTopicSensors}
-                        topicDevices={topicDeviceOptions}
-                        selectedTopicSensors={selectedSensorsByTopic}
+                        topicDevices={availableTopicDevices}
+                        selectedTopicSensors={selectedTopicSensors}
                         onToggleTopicSensor={handleTopicSensorToggle}
                         onAllTopicSensors={handleAllTopicSensors}
                         onNoneTopicSensors={handleNoneTopicSensors}
@@ -362,7 +321,7 @@ export default function Reports() {
                         ecTdsByCid={chartData.ecTdsByCid}
                         doByCid={chartData.doByCid}
                         selectedDevice={selectedDeviceLabel}
-                        selectedSensors={selectedSensors}
+                        selectedSensors={selectedSensorTypes}
                         xDomain={xDomain}
                     />
                 </section>
