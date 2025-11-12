@@ -12,6 +12,15 @@ function AllNone({name, onAll, onNone}) {
     );
 }
 
+const BLUE_SENSOR_VALUES = new Set(["405nm", "425nm", "450nm", "475nm", "515nm"]);
+const RED_SENSOR_VALUES = new Set(["550nm", "555nm", "600nm", "640nm", "690nm", "745nm", "855nm", "NIR855"]);
+
+const resolveSensorLabel = (value, fallback) => {
+    if (BLUE_SENSOR_VALUES.has(value)) return "blue light";
+    if (RED_SENSOR_VALUES.has(value)) return "red light";
+    return fallback;
+};
+
 const resolveOptionValue = (opt) => {
     if (opt === null || opt === undefined) return "";
     if (typeof opt === "string") return opt;
@@ -24,7 +33,8 @@ function Checklist({options = [], values = [], onToggle}) {
             {options.map((opt) => {
                 const value = resolveOptionValue(opt);
                 if (!value) return null;
-                const label = typeof opt === 'string' ? opt : opt.label ?? value;
+                const fallbackLabel = typeof opt === 'string' ? opt : opt.label ?? value;
+                const label = resolveSensorLabel(value, fallbackLabel);
                 const disabled = typeof opt === 'string' ? false : !!opt.disabled;
                 const checked = values.includes(value);
                 return (
@@ -122,11 +132,11 @@ export default function ReportFiltersCompare(props) {
                 .map((item) => {
                     if (!item) return null;
                     if (typeof item === "string") {
-                        return { label: item, value: item };
+                        return { label: resolveSensorLabel(item, item), value: item };
                     }
                     const value = resolveOptionValue(item);
                     if (!value) return null;
-                    return { label: item.label ?? value, value };
+                    return { label: resolveSensorLabel(value, item.label ?? value), value };
                 })
                 .filter(Boolean);
         });
