@@ -62,6 +62,8 @@ const buildContext = (overrides = {}) => ({
   availableTopicDevices: { growSensors: [] },
   toggleSensor: vi.fn(),
   setAllSensors: vi.fn(),
+  addSensors: vi.fn(),
+  removeSensors: vi.fn(),
   clearSensors: vi.fn(),
   selectedCIDs: ['SYS-LAYER-DEVICE'],
   selectedCompositeIds: [],
