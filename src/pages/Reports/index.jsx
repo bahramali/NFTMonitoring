@@ -86,6 +86,8 @@ export default function Reports() {
         availableTopicDevices,
         toggleSensor,
         setAllSensors,
+        addSensors,
+        removeSensors,
         clearSensors,
         selectedCIDs,
         selectedCompositeIds,
@@ -110,8 +112,21 @@ export default function Reports() {
     );
 
     const handleTopicSensorToggle = useCallback(
-        (topic, key) => toggleSensor(topic, key),
-        [toggleSensor],
+        (topic, payload) => {
+            if (!topic || !payload) return;
+            if (typeof payload === "object" && payload.type === "group") {
+                const sensors = Array.isArray(payload.values) ? payload.values : [];
+                if (!sensors.length) return;
+                if (payload.shouldSelect) {
+                    addSensors(topic, sensors);
+                } else {
+                    removeSensors(topic, sensors);
+                }
+                return;
+            }
+            toggleSensor(topic, payload);
+        },
+        [addSensors, removeSensors, toggleSensor],
     );
 
     const handleAllTopicSensors = useCallback(

@@ -474,8 +474,57 @@ export function ReportsFiltersProvider({ children }) {
             updateTopicSensors(topic, (set) => {
                 set.clear();
                 labels.forEach((k) => {
-                    const value = extractSensorKey(k);
-                    if (value) set.add(value);
+                    if (k && Array.isArray(k?.sensorValues) && k.sensorValues.length) {
+                        k.sensorValues.forEach((sensor) => {
+                            const value = extractSensorKey(sensor);
+                            if (value) set.add(value);
+                        });
+                    } else {
+                        const value = extractSensorKey(k);
+                        if (value) set.add(value);
+                    }
+                });
+            });
+        },
+        [updateTopicSensors, extractSensorKey],
+    );
+
+    const addSensors = useCallback(
+        (topic, keys = []) => {
+            if (!topic) return;
+            const labels = Array.isArray(keys) ? keys : [];
+            updateTopicSensors(topic, (set) => {
+                labels.forEach((k) => {
+                    if (k && Array.isArray(k?.sensorValues) && k.sensorValues.length) {
+                        k.sensorValues.forEach((sensor) => {
+                            const value = extractSensorKey(sensor);
+                            if (value) set.add(value);
+                        });
+                    } else {
+                        const value = extractSensorKey(k);
+                        if (value) set.add(value);
+                    }
+                });
+            });
+        },
+        [updateTopicSensors, extractSensorKey],
+    );
+
+    const removeSensors = useCallback(
+        (topic, keys = []) => {
+            if (!topic) return;
+            const labels = Array.isArray(keys) ? keys : [];
+            updateTopicSensors(topic, (set) => {
+                labels.forEach((k) => {
+                    if (k && Array.isArray(k?.sensorValues) && k.sensorValues.length) {
+                        k.sensorValues.forEach((sensor) => {
+                            const value = extractSensorKey(sensor);
+                            if (value) set.delete(value);
+                        });
+                    } else {
+                        const value = extractSensorKey(k);
+                        if (value) set.delete(value);
+                    }
                 });
             });
         },
@@ -670,6 +719,8 @@ export function ReportsFiltersProvider({ children }) {
             availableTopicDevices,
             toggleSensor,
             setAllSensors,
+            addSensors,
+            removeSensors,
             clearSensors,
             selectedCIDs,
             selectedCompositeIds,
@@ -707,6 +758,8 @@ export function ReportsFiltersProvider({ children }) {
             availableTopicDevices,
             toggleSensor,
             setAllSensors,
+            addSensors,
+            removeSensors,
             clearSensors,
             selectedCIDs,
             selectedCompositeIds,

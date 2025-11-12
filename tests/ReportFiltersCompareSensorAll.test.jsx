@@ -30,7 +30,7 @@ test('All selects all sensors for the chosen topic', () => {
 
   expect(onAllTopicSensors).toHaveBeenCalledTimes(1);
   expect(onAllTopicSensors).toHaveBeenCalledWith('growSensors', [
-    { label: 'A_Temp_C', value: 'A_Temp_C' },
-    { label: 'A_RH_C', value: 'A_RH_C' },
+    expect.objectContaining({ label: 'A_Temp_C', value: 'A_Temp_C' }),
+    expect.objectContaining({ label: 'A_RH_C', value: 'A_RH_C' }),
   ]);
 });

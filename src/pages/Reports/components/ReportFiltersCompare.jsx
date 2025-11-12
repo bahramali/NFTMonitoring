@@ -12,11 +12,144 @@ function AllNone({name, onAll, onNone}) {
     );
 }
 
+const SENSOR_GROUPS = [
+    {
+        id: "blue",
+        label: "blue light",
+        values: ["405nm", "425nm", "450nm", "475nm", "515nm"],
+    },
+    {
+        id: "red",
+        label: "red light",
+        values: ["550nm", "555nm", "600nm", "640nm", "690nm", "745nm", "855nm", "NIR855"],
+    },
+];
+
+const SENSOR_GROUPS_BY_ID = new Map(SENSOR_GROUPS.map((group) => [group.id, group]));
+
+const SENSOR_GROUP_BY_VALUE = (() => {
+    const lookup = new Map();
+    SENSOR_GROUPS.forEach((group) => {
+        group.values.forEach((value) => {
+            lookup.set(value, group);
+        });
+    });
+    return lookup;
+})();
+
+const resolveSensorGroupLabel = (value) => {
+    const group = SENSOR_GROUP_BY_VALUE.get(value);
+    return group?.label ?? null;
+};
+
+const resolveSensorLabel = (value, fallback) => resolveSensorGroupLabel(value) ?? fallback;
+
 const resolveOptionValue = (opt) => {
     if (opt === null || opt === undefined) return "";
     if (typeof opt === "string") return opt;
     return opt.value ?? opt.id ?? opt.label ?? "";
 };
+
+const normalizeSensorOptions = (options) => {
+    const result = [];
+    const groupEntries = new Map();
+
+    options.forEach((opt) => {
+        if (!opt) return;
+        const value = resolveOptionValue(opt);
+        const normalized = ensureString(value);
+        if (!normalized) return;
+
+        const sourceLabel = typeof opt === "string" ? opt : opt.label ?? normalized;
+        const disabled = typeof opt === "string" ? false : !!opt.disabled;
+        const group = SENSOR_GROUP_BY_VALUE.get(normalized);
+
+        if (group) {
+            if (!groupEntries.has(group.id)) {
+                groupEntries.set(group.id, {
+                    type: "group",
+                    groupId: group.id,
+                    label: group.label,
+                    value: group.label,
+                    presentValues: new Set(),
+                    disabledCount: 0,
+                    total: 0,
+                });
+                result.push(groupEntries.get(group.id));
+            }
+            const entry = groupEntries.get(group.id);
+            entry.presentValues.add(normalized);
+            entry.total += 1;
+            if (disabled) {
+                entry.disabledCount += 1;
+            }
+            return;
+        }
+
+        result.push({ label: sourceLabel, value: normalized, disabled });
+    });
+
+    return result.map((opt) => {
+        if (opt?.type === "group") {
+            const group = SENSOR_GROUPS_BY_ID.get(opt.groupId);
+            const values = group?.values ?? Array.from(opt.presentValues);
+            const uniqueValues = Array.from(new Set(values.map((v) => ensureString(v)).filter(Boolean)));
+            return {
+                label: group?.label ?? opt.label,
+                value: group?.label ?? opt.value,
+                sensorValues: uniqueValues,
+                disabled: opt.total > 0 ? opt.disabledCount >= opt.total : false,
+            };
+        }
+        return opt;
+    });
+};
+
+function ChecklistItem({ option, values = [], onToggle }) {
+    const checkboxRef = useRef(null);
+    const list = Array.isArray(values) ? values : [];
+    const value = resolveOptionValue(option);
+    const label = typeof option === "string" ? option : option.label ?? value;
+    const disabled = typeof option === "string" ? false : !!option.disabled;
+    const sensorValues = Array.isArray(option?.sensorValues) ? option.sensorValues : null;
+    const isGroup = Array.isArray(sensorValues) && sensorValues.length > 0;
+    const allSelected = isGroup ? sensorValues.every((sensor) => list.includes(sensor)) : list.includes(value);
+    const partiallySelected =
+        isGroup && !allSelected && sensorValues.some((sensor) => list.includes(sensor));
+
+    useEffect(() => {
+        if (checkboxRef.current) {
+            checkboxRef.current.indeterminate = partiallySelected;
+        }
+    }, [partiallySelected]);
+
+    const handleChange = () => {
+        if (!onToggle) return;
+        if (isGroup) {
+            onToggle({ type: "group", values: sensorValues, shouldSelect: !allSelected });
+        } else {
+            onToggle(value);
+        }
+    };
+
+    const checkedProp = onToggle ? allSelected : undefined;
+    const defaultCheckedProp = !onToggle ? allSelected : undefined;
+
+    return (
+        <label className={`${styles.item} ${disabled ? styles.disabled : ""}`}>
+            <input
+                ref={checkboxRef}
+                type="checkbox"
+                disabled={disabled}
+                aria-checked={partiallySelected ? "mixed" : undefined}
+                checked={checkedProp}
+                defaultChecked={defaultCheckedProp}
+                onChange={handleChange}
+            />
+            {label}
+        </label>
+    );
+}
 
 function Checklist({options = [], values = [], onToggle}) {
     return (
@@ -24,21 +157,13 @@ function Checklist({options = [], values = [], onToggle}) {
             {options.map((opt) => {
                 const value = resolveOptionValue(opt);
                 if (!value) return null;
-                const label = typeof opt === 'string' ? opt : opt.label ?? value;
-                const disabled = typeof opt === 'string' ? false : !!opt.disabled;
-                const checked = values.includes(value);
-                return (
-                    <label key={value} className={`${styles.item} ${disabled ? styles.disabled : ''}`}>
-                        <input
-                            type="checkbox"
-                            disabled={disabled}
-                            checked={onToggle ? checked : undefined}
-                            defaultChecked={!onToggle ? checked : undefined}
-                            onChange={() => onToggle && onToggle(value)}
-                        />
-                        {label}
-                    </label>
-                );
+                const normalizedLabel = typeof opt === 'string' ? opt : opt.label ?? value;
+                const label = resolveSensorLabel(value, normalizedLabel);
+                const option =
+                    typeof opt === 'object' && opt !== null
+                        ? { ...opt, label }
+                        : { label, value };
+                return <ChecklistItem key={value} option={option} values={values} onToggle={onToggle}/>;
             })}
         </div>
     );
@@ -46,11 +171,15 @@ function Checklist({options = [], values = [], onToggle}) {
 
 function Group({title, name, options = [], values = [], onAll, onNone, onToggle}) {
     const handleAll = () => onAll && onAll(options);
+    const handleToggle = (payload) => {
+        if (!onToggle) return;
+        onToggle(payload);
+    };
     return (
         <div className={styles.group}>
             <div className={styles.groupTitle}>{title}</div>
             <AllNone name={name} onAll={handleAll} onNone={onNone}/>
-            <Checklist options={options} values={values} onToggle={onToggle}/>
+            <Checklist options={options} values={values} onToggle={handleToggle}/>
         </div>
     );
 }
@@ -118,17 +247,19 @@ export default function ReportFiltersCompare(props) {
         const map = {};
         topics.forEach((topic) => {
             const arr = Array.isArray(topicSensorsProp?.[topic.id]) ? topicSensorsProp[topic.id] : [];
-            map[topic.id] = arr
-                .map((item) => {
-                    if (!item) return null;
-                    if (typeof item === "string") {
-                        return { label: item, value: item };
-                    }
-                    const value = resolveOptionValue(item);
-                    if (!value) return null;
-                    return { label: item.label ?? value, value };
-                })
-                .filter(Boolean);
+            map[topic.id] = normalizeSensorOptions(
+                arr
+                    .map((item) => {
+                        if (!item) return null;
+                        if (typeof item === "string") {
+                            return { label: resolveSensorLabel(item, item), value: item };
+                        }
+                        const value = resolveOptionValue(item);
+                        if (!value) return null;
+                        return { label: resolveSensorLabel(value, item.label ?? value), value, disabled: item.disabled };
+                    })
+                    .filter(Boolean),
+            );
         });
         return map;
     }, [topics, topicSensorsProp]);
@@ -706,7 +837,9 @@ export default function ReportFiltersCompare(props) {
                                             values={values}
                                             onAll={(opts) => onAllTopicSensors && onAllTopicSensors(selectedTopicId, opts)}
                                             onNone={() => onNoneTopicSensors && onNoneTopicSensors(selectedTopicId)}
-                                            onToggle={(label) => onToggleTopicSensor && onToggleTopicSensor(selectedTopicId, label)}
+                                            onToggle={(payload) =>
+                                                onToggleTopicSensor && onToggleTopicSensor(selectedTopicId, payload)
+                                            }
                                         />
                                     );
                                 })()}
