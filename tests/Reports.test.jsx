@@ -24,18 +24,50 @@ const makeFetchSuccess = () =>
     }),
   );
 
+const noop = () => {};
+
 const buildContext = (overrides = {}) => ({
+  deviceMeta: { devices: [] },
   fromDate: '2024-01-01T00:00',
   toDate: '2024-01-01T06:00',
+  setFromDate: vi.fn(),
+  setToDate: vi.fn(),
   autoRefreshValue: 'Off',
-  selectedCIDs: ['SYS-LAYER-DEVICE'],
+  setAutoRefreshValue: vi.fn(),
+  systems: [],
+  layers: [],
+  deviceIds: [],
+  handleSystemChange: vi.fn(),
+  handleLayerChange: vi.fn(),
+  handleDeviceChange: vi.fn(),
+  onReset: vi.fn(),
+  onAddCompare: vi.fn(),
+  onClearCompare: vi.fn(),
+  onRemoveCompare: vi.fn(),
+  compareItems: [],
+  topics: [{ id: 'growSensors', label: 'Grow Sensors' }],
   selSensors: {
     growSensors: new Set(),
     germinationTopic: new Set(),
     waterTank: new Set(),
   },
   selectedTopics: new Set(['growSensors']),
+  selectedTopicIds: ['growSensors'],
+  selectedTopicSensors: { growSensors: [] },
+  selectedSensorTypes: [],
+  toggleTopicSelection: vi.fn(),
+  setAllTopics: vi.fn(),
+  clearTopics: vi.fn(),
+  availableTopicSensors: { growSensors: [] },
+  availableTopicDevices: { growSensors: [] },
+  toggleSensor: vi.fn(),
+  setAllSensors: vi.fn(),
+  clearSensors: vi.fn(),
+  selectedCIDs: ['SYS-LAYER-DEVICE'],
+  selectedCompositeIds: [],
+  handleCompositeSelectionChange: vi.fn(),
   registerApplyHandler: vi.fn(),
+  triggerApply: noop,
   ...overrides,
 });
 
@@ -70,12 +102,8 @@ test('renders reports charts with basic context data', async () => {
 
 test('includes selected sensor types in history query params', async () => {
   const contextValue = buildContext({
-    selSensors: {
-      growSensors: new Set(['A_Temp_C']),
-      germinationTopic: new Set(),
-      waterTank: new Set(),
-    },
-    selectedTopics: new Set(['growSensors']),
+    selectedSensorTypes: ['A_Temp_C'],
+    selectedTopicSensors: { growSensors: ['A_Temp_C'] },
   });
   useReportsFilters.mockReturnValue(contextValue);
 

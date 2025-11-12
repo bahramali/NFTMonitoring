@@ -15,8 +15,152 @@ import { fetchTopicSensors } from "../../../api/topics.js";
 import { ensureString } from "../utils/strings";
 
 const ReportsFiltersContext = createContext(null);
-const toCID = (d) => `${d.systemId}-${d.layerId}-${d.deviceId}`;
+
 const DEFAULT_REPORT_TOPICS = ["growSensors", "germinationTopic", "waterTank"];
+
+const formatTopicLabel = (id) =>
+    String(id || "")
+        .replace(/([A-Z])/g, " $1")
+        .replace(/[_-]/g, " ")
+        .replace(/^\s+|\s+$/g, "")
+        .replace(/^./, (ch) => ch.toUpperCase());
+
+const toCID = (d) => `${d.systemId}-${d.layerId}-${d.deviceId}`;
+
+const dedupeTopics = (defaults, apiTopics) => {
+    const seen = new Set();
+    const ordered = [];
+    const add = (topic) => {
+        const id = ensureString(topic);
+        if (!id || seen.has(id)) return;
+        seen.add(id);
+        ordered.push(id);
+    };
+    defaults.forEach(add);
+    apiTopics.forEach(add);
+    if (ordered.length) {
+        return ordered;
+    }
+    return defaults.slice();
+};
+
+const createSensorSelectionState = (topics, source = {}) => {
+    const next = {};
+    topics.forEach((topic) => {
+        const existing = source[topic];
+        if (existing instanceof Set) {
+            next[topic] = new Set(existing);
+        } else if (Array.isArray(existing)) {
+            next[topic] = new Set(existing);
+        } else {
+            next[topic] = new Set();
+        }
+    });
+    return next;
+};
+
+const toggleValue = (values, value) => {
+    if (values.includes(value)) {
+        return values.filter((v) => v !== value);
+    }
+    return [...values, value];
+};
+
+const buildTopicSensorMap = (topics, apiTopicSensors, deviceData) => {
+    const sensorsByTopic = new Map();
+    topics.forEach((topic) => {
+        sensorsByTopic.set(topic, new Map());
+    });
+
+    Object.entries(apiTopicSensors || {}).forEach(([topic, sensors]) => {
+        if (!sensorsByTopic.has(topic)) {
+            sensorsByTopic.set(topic, new Map());
+        }
+        const topicMap = sensorsByTopic.get(topic);
+        (sensors || []).forEach((sensor) => {
+            const rawLabel = ensureString(sensor?.label, sensor?.id, sensor);
+            if (!rawLabel) return;
+            const id = ensureString(sensor?.id, rawLabel.toLowerCase());
+            if (!topicMap.has(id)) {
+                topicMap.set(id, {
+                    id,
+                    label: rawLabel,
+                    topic,
+                });
+            }
+        });
+    });
+
+    Object.values(deviceData || {}).forEach((systemEntry) => {
+        Object.entries(systemEntry || {}).forEach(([topic, devices]) => {
+            if (!sensorsByTopic.has(topic)) {
+                sensorsByTopic.set(topic, new Map());
+            }
+            const topicMap = sensorsByTopic.get(topic);
+            Object.values(devices || {}).forEach((device) => {
+                (device?.sensors || []).forEach((sensor) => {
+                    const rawLabel =
+                        ensureString(sensor?.sensorType) ||
+                        ensureString(sensor?.valueType) ||
+                        ensureString(sensor?.sensorName) ||
+                        ensureString(sensor?.name);
+                    if (!rawLabel) return;
+                    const id = rawLabel.toLowerCase();
+                    if (!topicMap.has(id)) {
+                        topicMap.set(id, {
+                            id,
+                            label: rawLabel,
+                            topic,
+                        });
+                    }
+                });
+            });
+        });
+    });
+
+    const result = {};
+    sensorsByTopic.forEach((topicMap, topic) => {
+        result[topic] = Array.from(topicMap.values()).sort((a, b) => a.label.localeCompare(b.label));
+    });
+    return result;
+};
+
+const buildTopicDeviceMap = (topics, deviceData) => {
+    const devicesByTopic = new Map();
+    topics.forEach((topic) => {
+        devicesByTopic.set(topic, new Map());
+    });
+
+    Object.values(deviceData || {}).forEach((systemEntry) => {
+        Object.entries(systemEntry || {}).forEach(([topic, devices]) => {
+            if (!devicesByTopic.has(topic)) {
+                devicesByTopic.set(topic, new Map());
+            }
+            const topicMap = devicesByTopic.get(topic);
+            Object.values(devices || {}).forEach((device) => {
+                const compositeId = ensureString(device?.compositeId);
+                if (!compositeId || topicMap.has(compositeId)) return;
+                topicMap.set(compositeId, {
+                    id: compositeId,
+                    compositeId,
+                    deviceId: ensureString(device?.deviceId, compositeId),
+                    label: ensureString(device?.deviceId || device?.compositeId, compositeId),
+                    layerId: ensureString(device?.layer),
+                });
+            });
+        });
+    });
+
+    const result = {};
+    devicesByTopic.forEach((topicMap, topic) => {
+        result[topic] = Array.from(topicMap.values()).sort(
+            (a, b) => a.label.localeCompare(b.label) || a.compositeId.localeCompare(b.compositeId),
+        );
+    });
+    return result;
+};
+
+const arraysEqual = (a, b) => a.length === b.length && a.every((value) => b.includes(value));
 
 export function ReportsFiltersProvider({ children }) {
     const location = useLocation();
@@ -24,8 +168,31 @@ export function ReportsFiltersProvider({ children }) {
     const isReportsRoute = normalizedPath === "/reports";
 
     const [deviceMeta, setDeviceMeta] = useState({ devices: [] });
-    const [reportTopics, setReportTopics] = useState(DEFAULT_REPORT_TOPICS);
-    const { deviceData } = useLiveDevices(reportTopics);
+    const [topicIds, setTopicIds] = useState(() => DEFAULT_REPORT_TOPICS.slice());
+    const { deviceData } = useLiveDevices(topicIds);
+
+    const [fromDate, setFromDate] = useState(() => {
+        const d = new Date();
+        d.setHours(d.getHours() - 6);
+        return toLocalInputValue(d);
+    });
+    const [toDate, setToDate] = useState(() => toLocalInputValue(new Date()));
+    const [autoRefreshValue, setAutoRefreshValue] = useState("Off");
+
+    const [apiTopicSensors, setApiTopicSensors] = useState({});
+    const [selectedTopics, setSelectedTopics] = useState(() =>
+        topicIds.length ? [topicIds[0]] : [],
+    );
+    const [sensorSelections, setSensorSelections] = useState(() =>
+        createSensorSelectionState(topicIds),
+    );
+    const [locationFilters, setLocationFilters] = useState({
+        systems: [],
+        layers: [],
+        devices: [],
+    });
+    const [selectedCompositeIds, setSelectedCompositeIds] = useState([]);
+    const [compareItems, setCompareItems] = useState([]);
 
     useEffect(() => {
         if (!isReportsRoute) return undefined;
@@ -59,101 +226,6 @@ export function ReportsFiltersProvider({ children }) {
         };
     }, [isReportsRoute]);
 
-    const deviceRows = useMemo(() => deviceMeta?.devices || [], [deviceMeta]);
-
-    const [fromDate, setFromDate] = useState(() => {
-        const d = new Date();
-        d.setHours(d.getHours() - 6);
-        return toLocalInputValue(d);
-    });
-    const [toDate, setToDate] = useState(() => toLocalInputValue(new Date()));
-    const [autoRefreshValue, setAutoRefreshValue] = useState("Off");
-
-    const [selSystems, setSelSystems] = useState(new Set());
-    const [selLayers, setSelLayers] = useState(new Set());
-    const [selDevices, setSelDevices] = useState(new Set());
-    const [selCIDs, setSelCIDs] = useState(new Set());
-    const [selCompositeIds, setSelCompositeIds] = useState(new Set());
-    const [apiTopicSensors, setApiTopicSensors] = useState({});
-
-    const [selectedTopics, setSelectedTopics] = useState(
-        () => new Set(DEFAULT_REPORT_TOPICS.length ? [DEFAULT_REPORT_TOPICS[0]] : [])
-    );
-    const prevReportTopicsRef = useRef(reportTopics);
-    const [selSensors, setSelSensors] = useState(() => {
-        const initial = {};
-        DEFAULT_REPORT_TOPICS.forEach((topic) => {
-            initial[topic] = new Set();
-        });
-        return initial;
-    });
-
-    useEffect(() => {
-        setSelSensors((prev) => {
-            const topicSet = new Set(reportTopics);
-            let changed = false;
-            const next = {};
-
-            reportTopics.forEach((topic) => {
-                if (prev[topic]) {
-                    next[topic] = prev[topic];
-                } else {
-                    next[topic] = new Set();
-                    changed = true;
-                }
-            });
-
-            Object.keys(prev).forEach((topic) => {
-                if (!topicSet.has(topic)) {
-                    changed = true;
-                }
-            });
-
-            return changed ? next : prev;
-        });
-    }, [reportTopics]);
-
-    useEffect(() => {
-        const topicSet = new Set(reportTopics);
-
-        setSelectedTopics((prev) => {
-            const current = prev && prev.size ? Array.from(prev)[0] : undefined;
-            if (current && topicSet.has(current)) {
-                return prev.size === 1 ? prev : new Set([current]);
-            }
-            const fallback = reportTopics[0];
-            if (!fallback) return new Set();
-            return new Set([fallback]);
-        });
-
-        prevReportTopicsRef.current = reportTopics;
-    }, [reportTopics]);
-
-    const systems = useMemo(
-        () => Array.from(new Set(deviceRows.map((d) => d.systemId))).sort(),
-        [deviceRows],
-    );
-
-    const layers = useMemo(() => {
-        const filtered = deviceRows.filter((d) => (selSystems.size ? selSystems.has(d.systemId) : true));
-        return Array.from(new Set(filtered.map((d) => d.layerId))).sort();
-    }, [deviceRows, selSystems]);
-
-    const filteredDeviceRows = useMemo(
-        () =>
-            deviceRows.filter(
-                (d) =>
-                    (selSystems.size ? selSystems.has(d.systemId) : true) &&
-                    (selLayers.size ? selLayers.has(d.layerId) : true),
-            ),
-        [deviceRows, selSystems, selLayers],
-    );
-
-    const deviceIds = useMemo(
-        () => Array.from(new Set(filteredDeviceRows.map((d) => d.deviceId))).sort(),
-        [filteredDeviceRows],
-    );
-
     useEffect(() => {
         if (!isReportsRoute) return undefined;
 
@@ -166,14 +238,12 @@ export function ReportsFiltersProvider({ children }) {
                 if (cancelled) return;
 
                 if (Array.isArray(topicEntries) && topicEntries.length) {
-                    const next = {};
+                    const nextSensors = {};
                     const apiTopics = [];
                     topicEntries.forEach((entry) => {
                         const topicId = ensureString(entry?.topic);
                         if (!topicId) return;
-
                         apiTopics.push(topicId);
-
                         const sensorList = Array.isArray(entry?.sensorTypes) ? entry.sensorTypes : [];
                         const deduped = new Map();
                         sensorList.forEach((sensor) => {
@@ -188,30 +258,23 @@ export function ReportsFiltersProvider({ children }) {
                                 });
                             }
                         });
-                        next[topicId] = Array.from(deduped.values());
+                        nextSensors[topicId] = Array.from(deduped.values());
                     });
-                    const dedupedTopics = [];
-                    const seenTopics = new Set();
-                    const addTopic = (topic) => {
-                        if (!topic || seenTopics.has(topic)) return;
-                        seenTopics.add(topic);
-                        dedupedTopics.push(topic);
-                    };
-                    DEFAULT_REPORT_TOPICS.forEach(addTopic);
-                    apiTopics.forEach(addTopic);
 
-                    setReportTopics((prev) => {
+                    setApiTopicSensors(nextSensors);
+                    setTopicIds((prev) => {
+                        const deduped = dedupeTopics(DEFAULT_REPORT_TOPICS, apiTopics);
                         if (
-                            prev.length === dedupedTopics.length &&
-                            prev.every((topic, index) => topic === dedupedTopics[index])
+                            prev.length === deduped.length &&
+                            prev.every((topic, index) => topic === deduped[index])
                         ) {
                             return prev;
                         }
-                        return dedupedTopics;
+                        return deduped;
                     });
-                    setApiTopicSensors(next);
                 } else {
                     setApiTopicSensors({});
+                    setTopicIds(DEFAULT_REPORT_TOPICS.slice());
                 }
 
                 if (error) {
@@ -221,6 +284,7 @@ export function ReportsFiltersProvider({ children }) {
                 if (cancelled || err?.name === "AbortError") return;
                 console.error("Unable to load topic sensors", err);
                 setApiTopicSensors({});
+                setTopicIds(DEFAULT_REPORT_TOPICS.slice());
             }
         };
 
@@ -232,169 +296,161 @@ export function ReportsFiltersProvider({ children }) {
         };
     }, [isReportsRoute]);
 
-    const availableTopicSensors = useMemo(() => {
-        const sensorsMap = new Map();
-        reportTopics.forEach((topic) => {
-            sensorsMap.set(topic, new Map());
-        });
-
-        Object.entries(apiTopicSensors || {}).forEach(([topicKey, sensors]) => {
-            if (!sensorsMap.has(topicKey)) {
-                sensorsMap.set(topicKey, new Map());
-            }
-            const topicSensors = sensorsMap.get(topicKey);
-            (sensors || []).forEach((sensor) => {
-                if (!sensor?.label) return;
-                const id = ensureString(sensor?.id, sensor.label.toLowerCase());
-                if (!topicSensors.has(id)) {
-                    topicSensors.set(id, {
-                        id,
-                        label: sensor.label,
-                        topic: topicKey,
-                    });
-                }
-            });
-        });
-
-        Object.values(deviceData || {}).forEach((systemEntry) => {
-            if (!systemEntry || typeof systemEntry !== "object") return;
-            Object.entries(systemEntry).forEach(([topicKey, devices]) => {
-                if (!sensorsMap.has(topicKey)) {
-                    sensorsMap.set(topicKey, new Map());
-                }
-                const topicSensors = sensorsMap.get(topicKey);
-                Object.values(devices || {}).forEach((device) => {
-                    (device?.sensors || []).forEach((sensor) => {
-                        const rawLabel =
-                            ensureString(sensor?.sensorType) ||
-                            ensureString(sensor?.valueType) ||
-                            ensureString(sensor?.sensorName) ||
-                            ensureString(sensor?.name);
-                        if (!rawLabel) return;
-                        const normalized = rawLabel.toLowerCase();
-                        if (!topicSensors.has(normalized)) {
-                            topicSensors.set(normalized, {
-                                id: normalized,
-                                label: rawLabel,
-                                topic: topicKey,
-                            });
-                        }
-                    });
-                });
-            });
-        });
-
-        const result = {};
-        sensorsMap.forEach((topicSet, topicKey) => {
-            const sensors = Array.from(topicSet.values()).sort((a, b) => a.label.localeCompare(b.label));
-            result[topicKey] = sensors;
-        });
-        return result;
-    }, [apiTopicSensors, deviceData, reportTopics]);
-
-    const availableTopicDevices = useMemo(() => {
-        const devicesMap = new Map();
-        reportTopics.forEach((topic) => {
-            devicesMap.set(topic, new Map());
-        });
-
-        Object.values(deviceData || {}).forEach((systemEntry) => {
-            if (!systemEntry || typeof systemEntry !== "object") return;
-            Object.entries(systemEntry).forEach(([topicKey, devices]) => {
-                if (!devicesMap.has(topicKey)) {
-                    devicesMap.set(topicKey, new Map());
-                }
-                const topicDevices = devicesMap.get(topicKey);
-                Object.values(devices || {}).forEach((device) => {
-                    const compositeId = ensureString(device?.compositeId);
-                    if (!compositeId) return;
-                    if (!topicDevices.has(compositeId)) {
-                        topicDevices.set(compositeId, {
-                            id: compositeId,
-                            compositeId,
-                            deviceId: ensureString(device?.deviceId, compositeId),
-                            label: ensureString(device?.deviceId || device?.compositeId, compositeId),
-                            layerId: ensureString(device?.layer),
-                        });
+    useEffect(() => {
+        setSensorSelections((prev) => {
+            const next = createSensorSelectionState(topicIds, prev);
+            const keys = Object.keys(next);
+            const same =
+                keys.length === Object.keys(prev).length &&
+                keys.every((key) => {
+                    const current = prev[key];
+                    const proposed = next[key];
+                    if (!current || current.size !== proposed.size) return false;
+                    for (const value of current) {
+                        if (!proposed.has(value)) return false;
                     }
+                    return true;
                 });
-            });
+            return same ? prev : next;
         });
-
-        const result = {};
-        devicesMap.forEach((topicSet, topicKey) => {
-            const devices = Array.from(topicSet.values()).sort((a, b) =>
-                a.label.localeCompare(b.label) || a.compositeId.localeCompare(b.compositeId)
-            );
-            result[topicKey] = devices;
-        });
-        return result;
-    }, [deviceData, reportTopics]);
+    }, [topicIds]);
 
     useEffect(() => {
-        if (!isReportsRoute) return;
-        const filtered = deviceRows.filter(
-            (d) =>
-                (selSystems.size ? selSystems.has(d.systemId) : true) &&
-                (selLayers.size ? selLayers.has(d.layerId) : true) &&
-                (selDevices.size ? selDevices.has(d.deviceId) : true),
-        );
-        setSelCIDs(new Set(filtered.map(toCID)));
-    }, [isReportsRoute, deviceRows, selSystems, selLayers, selDevices]);
-
-    useEffect(() => {
-        const valid = new Set(deviceRows.map(toCID));
-        setSelCompositeIds((prev) => {
-            if (!prev.size) return prev;
-            let changed = false;
-            const next = new Set();
-            prev.forEach((cid) => {
-                if (valid.has(cid)) {
-                    next.add(cid);
-                } else {
-                    changed = true;
-                }
-            });
-            return changed ? next : prev;
+        setSelectedTopics((prev) => {
+            const valid = prev.filter((topic) => topicIds.includes(topic));
+            if (valid.length) return valid;
+            return topicIds.length ? [topicIds[0]] : [];
         });
+    }, [topicIds]);
+
+    const deviceRows = useMemo(
+        () => (Array.isArray(deviceMeta?.devices) ? deviceMeta.devices : []),
+        [deviceMeta],
+    );
+
+    const systems = useMemo(() => {
+        const ids = new Set();
+        deviceRows.forEach((row) => {
+            if (row?.systemId) ids.add(row.systemId);
+        });
+        return Array.from(ids).sort();
     }, [deviceRows]);
+
+    const layers = useMemo(() => {
+        const ids = new Set();
+        deviceRows.forEach((row) => {
+            if (locationFilters.systems.length && !locationFilters.systems.includes(row.systemId)) return;
+            if (row?.layerId) ids.add(row.layerId);
+        });
+        return Array.from(ids).sort();
+    }, [deviceRows, locationFilters.systems]);
+
+    const deviceIds = useMemo(() => {
+        const ids = new Set();
+        deviceRows.forEach((row) => {
+            if (locationFilters.systems.length && !locationFilters.systems.includes(row.systemId)) return;
+            if (locationFilters.layers.length && !locationFilters.layers.includes(row.layerId)) return;
+            if (row?.deviceId) ids.add(row.deviceId);
+        });
+        return Array.from(ids).sort();
+    }, [deviceRows, locationFilters.systems, locationFilters.layers]);
+
+    useEffect(() => {
+        setLocationFilters((prev) => {
+            const nextSystems = prev.systems.filter((id) => systems.includes(id));
+            const nextLayers = prev.layers.filter((id) => layers.includes(id));
+            const nextDevices = prev.devices.filter((id) => deviceIds.includes(id));
+            if (
+                arraysEqual(nextSystems, prev.systems) &&
+                arraysEqual(nextLayers, prev.layers) &&
+                arraysEqual(nextDevices, prev.devices)
+            ) {
+                return prev;
+            }
+            return { systems: nextSystems, layers: nextLayers, devices: nextDevices };
+        });
+    }, [systems, layers, deviceIds]);
+
+    const filteredDeviceRows = useMemo(
+        () =>
+            deviceRows.filter((row) => {
+                const matchSystem =
+                    !locationFilters.systems.length || locationFilters.systems.includes(row.systemId);
+                const matchLayer =
+                    !locationFilters.layers.length || locationFilters.layers.includes(row.layerId);
+                const matchDevice =
+                    !locationFilters.devices.length || locationFilters.devices.includes(row.deviceId);
+                return matchSystem && matchLayer && matchDevice;
+            }),
+        [deviceRows, locationFilters],
+    );
+
+    const availableTopicSensors = useMemo(
+        () => buildTopicSensorMap(topicIds, apiTopicSensors, deviceData),
+        [topicIds, apiTopicSensors, deviceData],
+    );
+
+    const availableTopicDevices = useMemo(
+        () => buildTopicDeviceMap(topicIds, deviceData),
+        [topicIds, deviceData],
+    );
+
+    const knownCompositeIds = useMemo(() => {
+        const set = new Set();
+        Object.values(availableTopicDevices || {}).forEach((devices) => {
+            (devices || []).forEach((device) => {
+                if (device?.compositeId) set.add(device.compositeId);
+            });
+        });
+        return set;
+    }, [availableTopicDevices]);
+
+    useEffect(() => {
+        setSelectedCompositeIds((prev) => {
+            if (!prev.length) return prev;
+            const filtered = prev.filter((cid) => knownCompositeIds.has(cid));
+            return filtered.length === prev.length ? prev : filtered;
+        });
+    }, [knownCompositeIds]);
 
     useEffect(() => {
         if (isReportsRoute) return;
-        setSelCompositeIds(new Set());
+        setSelectedCompositeIds([]);
     }, [isReportsRoute]);
 
     const selectedCIDs = useMemo(() => {
-        const compositeArr = Array.from(selCompositeIds);
-        if (compositeArr.length) return compositeArr;
-
-        const arr = Array.from(selCIDs);
-        if (arr.length) return arr;
-        return Array.from(new Set(filteredDeviceRows.map(toCID)));
-    }, [selCompositeIds, selCIDs, filteredDeviceRows]);
+        if (selectedCompositeIds.length) return selectedCompositeIds;
+        const uniques = new Set();
+        filteredDeviceRows.forEach((row) => {
+            uniques.add(toCID(row));
+        });
+        return Array.from(uniques);
+    }, [selectedCompositeIds, filteredDeviceRows]);
 
     const handleCompositeSelectionChange = useCallback((compositeIds = []) => {
         if (!Array.isArray(compositeIds) || compositeIds.length === 0) {
-            setSelCompositeIds(new Set());
+            setSelectedCompositeIds([]);
             return;
         }
-        setSelCompositeIds(new Set(compositeIds));
+        const unique = Array.from(new Set(compositeIds.filter(Boolean)));
+        setSelectedCompositeIds(unique);
+    }, []);
+
+    const updateTopicSensors = useCallback((topic, updater) => {
+        if (!topic) return;
+        setSensorSelections((prev) => {
+            const next = { ...prev };
+            const current = next[topic] instanceof Set ? new Set(next[topic]) : new Set();
+            updater(current);
+            next[topic] = current;
+            return next;
+        });
     }, []);
 
     const extractSensorKey = useCallback((sensor) => {
         if (!sensor) return "";
         if (typeof sensor === "string") return ensureString(sensor);
         return ensureString(sensor.id || sensor.value || sensor.label);
-    }, []);
-
-    const updateTopicSensors = useCallback((topic, updater) => {
-        if (!topic) return;
-        setSelSensors((prev) => {
-            const existing = prev[topic] || new Set();
-            const nextSet = new Set(existing);
-            updater(nextSet);
-            return { ...prev, [topic]: nextSet };
-        });
     }, []);
 
     const toggleSensor = useCallback(
@@ -436,103 +492,97 @@ export function ReportsFiltersProvider({ children }) {
         [updateTopicSensors],
     );
 
-    const toggleTopicSelection = useCallback((topic) => {
-        if (!topic) return;
-        setSelectedTopics((prev) => {
-            if (prev.size === 1 && prev.has(topic)) {
-                return prev;
-            }
-            return new Set([topic]);
+    const topicOptions = useMemo(
+        () =>
+            topicIds.map((topic) => ({
+                id: topic,
+                label: formatTopicLabel(topic),
+            })),
+        [topicIds],
+    );
+
+    const selectedTopicIds = useMemo(() => [...selectedTopics], [selectedTopics]);
+    const selectedTopicsSet = useMemo(() => new Set(selectedTopicIds), [selectedTopicIds]);
+
+    const selectedTopicSensors = useMemo(() => {
+        const map = {};
+        topicIds.forEach((topic) => {
+            map[topic] = Array.from(sensorSelections[topic] || []);
         });
-    }, []);
+        return map;
+    }, [topicIds, sensorSelections]);
 
-    const setAllTopics = useCallback(() => {
-        setSelectedTopics(new Set(reportTopics));
-    }, [reportTopics]);
-
-    const clearTopics = useCallback(() => {
-        setSelectedTopics(new Set());
-    }, []);
+    const selectedSensorTypes = useMemo(() => {
+        const types = new Set();
+        selectedTopicIds.forEach((topic) => {
+            (selectedTopicSensors[topic] || []).forEach((sensor) => {
+                if (sensor) types.add(sensor);
+            });
+        });
+        return Array.from(types);
+    }, [selectedTopicIds, selectedTopicSensors]);
 
     const handleSystemChange = useCallback(
         (e) => {
-            const v = e.target.value;
-            if (v === "ALL") {
-                setSelSystems(new Set(systems));
-            } else if (v === "") {
-                setSelSystems(new Set());
-            } else {
-                setSelSystems((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(v)) next.delete(v);
-                    else next.add(v);
-                    return next;
-                });
-            }
+            const value = e.target.value;
+            setLocationFilters((prev) => {
+                if (value === "ALL") {
+                    return { ...prev, systems: systems.slice() };
+                }
+                if (value === "") {
+                    return { ...prev, systems: [] };
+                }
+                return { ...prev, systems: toggleValue(prev.systems, value) };
+            });
         },
         [systems],
     );
 
     const handleLayerChange = useCallback(
         (e) => {
-            const v = e.target.value;
-            if (v === "ALL") {
-                setSelLayers(new Set(layers));
-            } else if (v === "") {
-                setSelLayers(new Set());
-            } else {
-                setSelLayers((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(v)) next.delete(v);
-                    else next.add(v);
-                    return next;
-                });
-            }
+            const value = e.target.value;
+            setLocationFilters((prev) => {
+                if (value === "ALL") {
+                    return { ...prev, layers: layers.slice() };
+                }
+                if (value === "") {
+                    return { ...prev, layers: [] };
+                }
+                return { ...prev, layers: toggleValue(prev.layers, value) };
+            });
         },
         [layers],
     );
 
     const handleDeviceChange = useCallback(
         (e) => {
-            const v = e.target.value;
-            if (v === "ALL") {
-                setSelDevices(new Set(deviceIds));
-            } else if (v === "") {
-                setSelDevices(new Set());
-            } else {
-                setSelDevices((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(v)) next.delete(v);
-                    else next.add(v);
-                    return next;
-                });
-            }
+            const value = e.target.value;
+            setLocationFilters((prev) => {
+                if (value === "ALL") {
+                    return { ...prev, devices: deviceIds.slice() };
+                }
+                if (value === "") {
+                    return { ...prev, devices: [] };
+                }
+                return { ...prev, devices: toggleValue(prev.devices, value) };
+            });
         },
         [deviceIds],
     );
 
     const onReset = useCallback(() => {
-        setSelSystems(new Set());
-        setSelLayers(new Set());
-        setSelDevices(new Set());
-        setSelCIDs(new Set());
-        setSelCompositeIds(new Set());
-        setSelectedTopics(new Set(reportTopics.length ? [reportTopics[0]] : []));
-        setSelSensors(() => {
-            const reset = {};
-            reportTopics.forEach((topic) => {
-                reset[topic] = new Set();
-            });
-            return reset;
-        });
-    }, [reportTopics]);
-
-    const [compareItems, setCompareItems] = useState([]);
+        setLocationFilters({ systems: [], layers: [], devices: [] });
+        setSelectedCompositeIds([]);
+        setSelectedTopics(topicIds.length ? [topicIds[0]] : []);
+        setSensorSelections(createSensorSelectionState(topicIds));
+    }, [topicIds]);
 
     const onAddCompare = useCallback(() => {
         if (!selectedCIDs.length) return;
         const autoBucket = pickBucket(fromDate, toDate);
-        const sensorsSelected = Array.from(selectedTopics).flatMap((topic) => Array.from(selSensors[topic] || []));
+        const sensorsSelected = selectedTopicIds.flatMap((topic) =>
+            Array.from(sensorSelections[topic] || []),
+        );
         setCompareItems((prev) => [
             ...prev,
             {
@@ -543,7 +593,7 @@ export function ReportsFiltersProvider({ children }) {
                 sensors: sensorsSelected,
             },
         ]);
-    }, [fromDate, toDate, selSensors, selectedTopics, selectedCIDs]);
+    }, [fromDate, toDate, sensorSelections, selectedTopicIds, selectedCIDs]);
 
     const onRemoveCompare = useCallback((id) => {
         setCompareItems((prev) => prev.filter((item) => item.id !== id));
@@ -551,6 +601,25 @@ export function ReportsFiltersProvider({ children }) {
 
     const onClearCompare = useCallback(() => {
         setCompareItems([]);
+    }, []);
+
+    const toggleTopicSelection = useCallback((topic) => {
+        if (!topic) return;
+        setSelectedTopics((prev) => {
+            if (prev.includes(topic)) {
+                if (prev.length === 1) return prev;
+                return prev.filter((id) => id !== topic);
+            }
+            return [topic];
+        });
+    }, []);
+
+    const setAllTopics = useCallback(() => {
+        setSelectedTopics(topicIds.slice());
+    }, [topicIds]);
+
+    const clearTopics = useCallback(() => {
+        setSelectedTopics([]);
     }, []);
 
     const applyHandlerRef = useRef(() => {});
@@ -588,8 +657,12 @@ export function ReportsFiltersProvider({ children }) {
             onRemoveCompare,
             onClearCompare,
             compareItems,
-            selSensors,
-            selectedTopics,
+            topics: topicOptions,
+            selSensors: sensorSelections,
+            selectedTopics: selectedTopicsSet,
+            selectedTopicIds,
+            selectedTopicSensors,
+            selectedSensorTypes,
             toggleTopicSelection,
             setAllTopics,
             clearTopics,
@@ -599,7 +672,7 @@ export function ReportsFiltersProvider({ children }) {
             setAllSensors,
             clearSensors,
             selectedCIDs,
-            selectedCompositeIds: Array.from(selCompositeIds),
+            selectedCompositeIds,
             handleCompositeSelectionChange,
             registerApplyHandler,
             triggerApply,
@@ -621,8 +694,12 @@ export function ReportsFiltersProvider({ children }) {
             onRemoveCompare,
             onClearCompare,
             compareItems,
-            selSensors,
-            selectedTopics,
+            topicOptions,
+            sensorSelections,
+            selectedTopicsSet,
+            selectedTopicIds,
+            selectedTopicSensors,
+            selectedSensorTypes,
             toggleTopicSelection,
             setAllTopics,
             clearTopics,
@@ -632,18 +709,14 @@ export function ReportsFiltersProvider({ children }) {
             setAllSensors,
             clearSensors,
             selectedCIDs,
-            selCompositeIds,
+            selectedCompositeIds,
             handleCompositeSelectionChange,
             registerApplyHandler,
             triggerApply,
         ],
     );
 
-    return (
-        <ReportsFiltersContext.Provider value={value}>
-            {children}
-        </ReportsFiltersContext.Provider>
-    );
+    return <ReportsFiltersContext.Provider value={value}>{children}</ReportsFiltersContext.Provider>;
 }
 
 /* eslint-disable-next-line react-refresh/only-export-components */
