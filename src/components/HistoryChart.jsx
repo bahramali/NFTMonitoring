@@ -56,7 +56,7 @@ const HistoryChart = ({
                     type="number"
                     scale="time"
                     domain={xDomain ?? ["auto", "auto"]}
-                    tick={{ fontSize: 12, fill: "#f7f9ff", fontWeight: 500 }}
+                    tick={{ fontSize: 12, fill: "#1f2d4d", fontWeight: 500 }}
                     stroke="#2b3c5c"
                     tickFormatter={(val) => {
                         const d = new Date(val);
@@ -72,7 +72,7 @@ const HistoryChart = ({
                     allowDataOverflow
                 />
                 <YAxis
-                    tick={{ fontSize: 12, fill: "#f7f9ff", fontWeight: 500 }}
+                    tick={{ fontSize: 12, fill: "#1f2d4d", fontWeight: 500 }}
                     stroke="#2b3c5c"
                     tickLine={{ stroke: "#2b3c5c" }}
                 >
@@ -81,7 +81,7 @@ const HistoryChart = ({
                             value={yLabel}
                             angle={-90}
                             position="insideLeft"
-                            style={{ textAnchor: "middle", fill: "#f0f4ff", fontSize: 12, fontWeight: 500 }}
+                            style={{ textAnchor: "middle", fill: "#22345c", fontSize: 12, fontWeight: 500 }}
                         />
                     )}
                 </YAxis>
