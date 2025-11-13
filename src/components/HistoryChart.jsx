@@ -43,6 +43,23 @@ const HistoryChart = ({
         return Array.from(pointMap.values()).sort((a, b) => a[xDataKey] - b[xDataKey]);
     }, [series, xDataKey]);
 
+    const formatXAxisTick = useMemo(() => {
+        const formatter = new Intl.DateTimeFormat("en-US", {
+            month: "numeric",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+        });
+
+        return (value) => {
+            if (value === undefined || value === null) return "";
+            const input = value instanceof Date ? value : new Date(value);
+            if (Number.isNaN(input.getTime())) return "";
+            return formatter.format(input);
+        };
+    }, []);
+
     return (
         <ResponsiveContainer width="100%" height={height} debounce={200}>
             <LineChart
@@ -58,17 +75,7 @@ const HistoryChart = ({
                     domain={xDomain ?? ["auto", "auto"]}
                     tick={{ fontSize: 12, fill: "#1f2d4d", fontWeight: 500 }}
                     stroke="#2b3c5c"
-                    tickFormatter={(val) => {
-                        const d = new Date(val);
-                        const formatOptions = {
-                            month: "numeric",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            hour12: false,
-                        };
-                        return new Intl.DateTimeFormat("en-US", formatOptions).format(d);
-                    }}
+                    tickFormatter={formatXAxisTick}
                     allowDataOverflow
                 />
                 <YAxis
