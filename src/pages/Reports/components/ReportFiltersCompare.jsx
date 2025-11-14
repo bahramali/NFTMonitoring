@@ -493,6 +493,7 @@ export default function ReportFiltersCompare(props) {
     const selectedSystems = selectedSummary.systems;
     const selectedLayers  = selectedSummary.layers;
     const selectedDevices = selectedSummary.devices;
+    const isApplyDisabled = selectedCompositeCount === 0;
 
     const syncParentSelection = (prev = [], next = [], handler) => {
         if (typeof handler !== 'function') return;
@@ -712,6 +713,17 @@ export default function ReportFiltersCompare(props) {
                         <span className={styles.summaryMuted}>No device selected</span>
                     )}
                 </div>
+                <div className={`${styles.summaryItem} ${styles.summaryActions}`}>
+                    <span className={styles.summaryHint}>Confirm to update charts with the current selection.</span>
+                    <button
+                        type="button"
+                        className={`${styles.btn} ${styles.primary}`}
+                        onClick={handleApplyClick}
+                        disabled={isApplyDisabled}
+                    >
+                        Show charts
+                    </button>
+                </div>
             </div>
             <div className={styles.layout}>
                 <aside className={styles.sidebar}>
@@ -800,19 +812,6 @@ export default function ReportFiltersCompare(props) {
                                             </label>
                                         );
                                     })}
-                                </div>
-                                <div className={styles.deviceFooter}>
-                                    <span className={styles.applyHint}>
-                                        Confirm to update charts with the current selection.
-                                    </span>
-                                    <button
-                                        type="button"
-                                        className={`${styles.btn} ${styles.primary}`}
-                                        onClick={handleApplyClick}
-                                        disabled={selectedCompositeCount === 0}
-                                    >
-                                        Show charts
-                                    </button>
                                 </div>
                             </>
                         )}
