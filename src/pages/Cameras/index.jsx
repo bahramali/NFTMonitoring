@@ -483,33 +483,6 @@ export default function Cameras() {
     return (
         <div className={styles.page}>
             <div className={styles.layout}>
-                <aside className={styles.sidebar}>
-                    <div className={styles.selectorHeader}>
-                        <h2 className={styles.selectorTitle}>Available Cameras</h2>
-                        <p className={styles.selectorHint}>Select a feed to view it below.</p>
-                    </div>
-                    {hasCameraSources ? (
-                        <ul className={styles.cameraList}>
-                            {CAMERA_SOURCES.map((camera) => {
-                                const isActive = camera.id === selectedCamera?.id;
-                                return (
-                                    <li key={camera.id}>
-                                        <CameraPreview
-                                            camera={camera}
-                                            isActive={isActive}
-                                            onSelect={handleCameraSelect}
-                                        />
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    ) : (
-                        <p className={styles.emptySelectorMessage}>
-                            No camera feeds configured yet.
-                        </p>
-                    )}
-                </aside>
-
                 <section className={styles.viewer}>
                     <div className={styles.videoHeader}>
                         <div>
@@ -574,6 +547,33 @@ export default function Cameras() {
                             {status.message || STATUS_MESSAGES[status.state] || ""}
                         </p>
                     </div>
+                </section>
+
+                <section className={styles.selectorPanel}>
+                    <div className={styles.selectorHeader}>
+                        <h2 className={styles.selectorTitle}>Available Cameras</h2>
+                        <p className={styles.selectorHint}>Select a feed to view it below.</p>
+                    </div>
+                    {hasCameraSources ? (
+                        <ul className={styles.cameraList}>
+                            {CAMERA_SOURCES.map((camera) => {
+                                const isActive = camera.id === selectedCamera?.id;
+                                return (
+                                    <li key={camera.id}>
+                                        <CameraPreview
+                                            camera={camera}
+                                            isActive={isActive}
+                                            onSelect={handleCameraSelect}
+                                        />
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    ) : (
+                        <p className={styles.emptySelectorMessage}>
+                            No camera feeds configured yet.
+                        </p>
+                    )}
                 </section>
             </div>
         </div>

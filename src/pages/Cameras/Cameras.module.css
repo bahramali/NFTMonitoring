@@ -15,27 +15,22 @@
 .layout {
   width: min(1640px, 100%);
   display: flex;
-  gap: 1.5rem;
-  align-items: stretch;
+  flex-direction: column;
+  gap: 1.75rem;
   min-height: calc(100vh - clamp(2rem, 6vw, 4rem));
 }
 
-.sidebar {
-  flex: 0 0 clamp(180px, 16vw, 220px);
-  max-width: 100%;
+.selectorPanel {
+  width: 100%;
   background: linear-gradient(160deg, rgba(14, 26, 48, 0.88), rgba(9, 18, 34, 0.92));
   border: 1px solid rgba(76, 120, 188, 0.45);
   border-radius: 18px;
-  padding: 1.35rem;
+  padding: clamp(1.35rem, 2vw, 1.75rem);
   box-shadow: 0 24px 48px rgba(4, 10, 24, 0.45);
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
-  overflow-y: auto;
-  max-height: calc(100vh - clamp(3.5rem, 7vw, 5rem));
   backdrop-filter: blur(6px);
-  position: sticky;
-  top: clamp(1rem, 3vw, 2rem);
 }
 
 .selectorHeader {
@@ -62,14 +57,15 @@
   list-style: none;
   padding: 0;
   margin: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
 }
 
 .cameraList li {
   width: 100%;
   display: flex;
+  height: 100%;
 }
 
 .emptySelectorMessage {
@@ -88,6 +84,7 @@
   cursor: pointer;
   display: flex;
   flex-direction: column;
+  height: 100%;
   overflow: hidden;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, filter 0.2s ease;
   color: inherit;
@@ -318,19 +315,14 @@
     padding: 1.2rem;
   }
 
-  .layout {
-    flex-direction: column;
-    min-height: auto;
-  }
-
-  .sidebar {
-    flex: 1 1 auto;
-    max-height: none;
-    position: static;
-  }
-
   .video {
     min-height: clamp(280px, 50vh, 520px);
+  }
+}
+
+@media (max-width: 720px) {
+  .cameraList {
+    grid-template-columns: 1fr;
   }
 }
 
