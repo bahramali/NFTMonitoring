@@ -494,6 +494,12 @@ export default function ReportFiltersCompare(props) {
     const selectedLayers  = selectedSummary.layers;
     const selectedDevices = selectedSummary.devices;
 
+    const selectedCompositeCount = selectedCompositeIds.size;
+    const totalCompositeCount = selectedTopicId
+        ? (topicDevices[selectedTopicId] || []).length
+        : compositeIds.length;
+    const isSelectionEmpty = selectedCompositeCount === 0;
+
     const syncParentSelection = (prev = [], next = [], handler) => {
         if (typeof handler !== 'function') return;
         const prevSet = new Set(prev);
@@ -571,11 +577,6 @@ export default function ReportFiltersCompare(props) {
     // composite checkbox state derived from location selection
     const isCompositeChecked = (cid) => selectedCompositeIds.has(cid);
 
-
-    // sensors: before any location selection, everything disabled (tests expect this)
-
-    const selectedCompositeCount = selectedCompositeIds.size;
-    const totalCompositeCount = selectedTopicId ? (topicDevices[selectedTopicId] || []).length : compositeIds.length;
 
     const deviceLabelMap = useMemo(() => {
         const map = new Map();
@@ -675,7 +676,7 @@ export default function ReportFiltersCompare(props) {
                         type="button"
                         className={styles.btn}
                         onClick={handleAddCompareClick}
-                        disabled={selectedCompositeCount === 0}
+                        disabled={isSelectionEmpty}
                     >
                         Add to compare
                     </button>
@@ -711,6 +712,17 @@ export default function ReportFiltersCompare(props) {
                     ) : (
                         <span className={styles.summaryMuted}>No device selected</span>
                     )}
+                </div>
+                <div className={`${styles.summaryItem} ${styles.summaryActions}`}>
+                    <span className={styles.summaryHint}>Confirm to update charts with the current selection.</span>
+                    <button
+                        type="button"
+                        className={`${styles.btn} ${styles.primary}`}
+                        onClick={handleApplyClick}
+                        disabled={isSelectionEmpty}
+                    >
+                        Show charts
+                    </button>
                 </div>
             </div>
             <div className={styles.layout}>
@@ -800,19 +812,6 @@ export default function ReportFiltersCompare(props) {
                                             </label>
                                         );
                                     })}
-                                </div>
-                                <div className={styles.deviceFooter}>
-                                    <span className={styles.applyHint}>
-                                        Confirm to update charts with the current selection.
-                                    </span>
-                                    <button
-                                        type="button"
-                                        className={`${styles.btn} ${styles.primary}`}
-                                        onClick={handleApplyClick}
-                                        disabled={selectedCompositeCount === 0}
-                                    >
-                                        Show charts
-                                    </button>
                                 </div>
                             </>
                         )}
