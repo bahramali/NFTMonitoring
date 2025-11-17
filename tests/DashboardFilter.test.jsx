@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { act } from 'react';
 import '@testing-library/jest-dom';
 import FilterBar from '../src/pages/common/FilterBar';
 import { SensorConfigProvider } from '../src/context/SensorConfigContext.jsx';
@@ -57,12 +58,14 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-test('filters layers and systems based on selections', () => {
-  render(
-    <SensorConfigProvider>
-      <TestDashboard />
-    </SensorConfigProvider>
-  );
+test('filters layers and systems based on selections', async () => {
+  await act(async () => {
+    render(
+      <SensorConfigProvider>
+        <TestDashboard />
+      </SensorConfigProvider>
+    );
+  });
   expect(screen.getByTestId('layer-S01-L01')).toBeInTheDocument();
   fireEvent.click(screen.getByLabelText('S01-L01'));
   expect(screen.queryByTestId('layer-S01-L01')).not.toBeInTheDocument();
