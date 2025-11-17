@@ -493,6 +493,21 @@ export default function ReportFiltersCompare(props) {
     const selectedSystems = selectedSummary.systems;
     const selectedLayers  = selectedSummary.layers;
     const selectedDevices = selectedSummary.devices;
+    const isApplyDisabled = selectedCompositeCount === 0;
+
+    const selectedCompositeCount = selectedCompositeIds.size;
+    const totalCompositeCount = selectedTopicId
+        ? (topicDevices[selectedTopicId] || []).length
+        : compositeIds.length;
+
+    const isApplyDisabled = selectedCompositeCount === 0;
+
+    const selectedCompositeCount = selectedCompositeIds.size;
+    const totalCompositeCount = selectedTopicId
+        ? (topicDevices[selectedTopicId] || []).length
+        : compositeIds.length;
+
+    const isShowChartsDisabled = selectedCompositeCount === 0;
 
     const selectedCompositeCount = selectedCompositeIds.size;
     const totalCompositeCount = selectedTopicId
