@@ -493,6 +493,53 @@ export default function ReportFiltersCompare(props) {
     const selectedSystems = selectedSummary.systems;
     const selectedLayers  = selectedSummary.layers;
     const selectedDevices = selectedSummary.devices;
+    const isApplyDisabled = selectedCompositeCount === 0;
+
+    const selectedCompositeCount = selectedCompositeIds.size;
+    const totalCompositeCount = selectedTopicId
+        ? (topicDevices[selectedTopicId] || []).length
+        : compositeIds.length;
+
+    const isApplyDisabled = selectedCompositeCount === 0;
+
+    const selectedCompositeCount = selectedCompositeIds.size;
+    const totalCompositeCount = selectedTopicId
+        ? (topicDevices[selectedTopicId] || []).length
+        : compositeIds.length;
+
+    const isShowChartsDisabled = selectedCompositeCount === 0;
+
+    const selectedCompositeCount = selectedCompositeIds.size;
+    const totalCompositeCount = selectedTopicId
+        ? (topicDevices[selectedTopicId] || []).length
+        : compositeIds.length;
+
+    const isSelectionEmpty = selectedCompositeCount === 0;
+
+    const selectionMetrics = useMemo(() => {
+        const count = selectedCompositeIds.size;
+        const total = selectedTopicId
+            ? (topicDevices[selectedTopicId] || []).length
+            : compositeIds.length;
+
+        return {
+            selectedCompositeCount: count,
+            totalCompositeCount: total,
+            isSelectionEmpty: count === 0,
+        };
+    }, [selectedCompositeIds, selectedTopicId, topicDevices, compositeIds]);
+
+    const {
+        selectedCompositeCount,
+        totalCompositeCount,
+        isSelectionEmpty,
+    } = selectionMetrics;
+
+    const selectedCompositeCount = selectedCompositeIds.size;
+    const totalCompositeCount = selectedTopicId
+        ? (topicDevices[selectedTopicId] || []).length
+        : compositeIds.length;
+    const isSelectionEmpty = selectedCompositeCount === 0;
 
     const selectionMetrics = useMemo(() => {
         const selectedCompositeCount = selectedCompositeIds.size;
