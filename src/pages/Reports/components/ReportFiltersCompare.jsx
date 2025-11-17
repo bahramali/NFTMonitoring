@@ -535,6 +535,12 @@ export default function ReportFiltersCompare(props) {
         isSelectionEmpty,
     } = selectionMetrics;
 
+    const selectedCompositeCount = selectedCompositeIds.size;
+    const totalCompositeCount = selectedTopicId
+        ? (topicDevices[selectedTopicId] || []).length
+        : compositeIds.length;
+    const isSelectionEmpty = selectedCompositeCount === 0;
+
     const syncParentSelection = (prev = [], next = [], handler) => {
         if (typeof handler !== 'function') return;
         const prevSet = new Set(prev);
