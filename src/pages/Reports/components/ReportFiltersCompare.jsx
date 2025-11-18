@@ -105,26 +105,6 @@ const normalizeSensorOptions = (options) => {
     });
 };
 
-const useSelectionMetrics = (
-    selectedCompositeIds,
-    selectedTopicId,
-    topicDevices,
-    compositeIds,
-) => {
-    return useMemo(() => {
-        const selectedCount = selectedCompositeIds.size;
-        const totalCount = selectedTopicId
-            ? (topicDevices[selectedTopicId] || []).length
-            : compositeIds.length;
-
-        return {
-            selectedCompositeCount: selectedCount,
-            totalCompositeCount: totalCount,
-            isSelectionEmpty: selectedCount === 0,
-        };
-    }, [selectedCompositeIds, selectedTopicId, topicDevices, compositeIds]);
-};
-
 function ChecklistItem({ option, values = [], onToggle }) {
     const checkboxRef = useRef(null);
     const list = Array.isArray(values) ? values : [];
@@ -584,13 +564,6 @@ export default function ReportFiltersCompare(props) {
             isSelectionEmpty: computedSelectedCompositeCount === 0,
         };
     }, [selectedCompositeIds, selectedTopicId, topicDevices, compositeIds]);
-
-    const selectionMetrics = useSelectionMetrics(
-        selectedCompositeIds,
-        selectedTopicId,
-        topicDevices,
-        compositeIds,
-    );
 
     const syncParentSelection = (prev = [], next = [], handler) => {
         if (typeof handler !== 'function') return;
