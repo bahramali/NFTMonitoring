@@ -541,18 +541,6 @@ export default function ReportFiltersCompare(props) {
         : compositeIds.length;
     const isSelectionEmpty = selectedCompositeCount === 0;
 
-    const selectionMetrics = useMemo(() => {
-        const selectedCompositeCount = selectedCompositeIds.size;
-        const totalCompositeCount = selectedTopicId
-            ? (topicDevices[selectedTopicId] || []).length
-            : compositeIds.length;
-        return {
-            selectedCompositeCount,
-            totalCompositeCount,
-            isSelectionEmpty: selectedCompositeCount === 0,
-        };
-    }, [selectedCompositeIds, selectedTopicId, topicDevices, compositeIds]);
-
     const syncParentSelection = (prev = [], next = [], handler) => {
         if (typeof handler !== 'function') return;
         const prevSet = new Set(prev);
@@ -702,9 +690,9 @@ export default function ReportFiltersCompare(props) {
     }, [onApply]);
 
     const selectionCountText = useMemo(() => {
-        const total = selectionMetrics.totalCompositeCount || 0;
-        return `${selectionMetrics.selectedCompositeCount} of ${total}`;
-    }, [selectionMetrics]);
+        const total = totalCompositeCount || 0;
+        return `${selectedCompositeCount} of ${total}`;
+    }, [selectedCompositeCount, totalCompositeCount]);
 
     const containerClassName = [styles.rf, styles.rfPage, className || ""]
         .filter(Boolean)
@@ -729,7 +717,7 @@ export default function ReportFiltersCompare(props) {
                         type="button"
                         className={styles.btn}
                         onClick={handleAddCompareClick}
-                        disabled={selectionMetrics.isSelectionEmpty}
+                        disabled={isSelectionEmpty}
                     >
                         Add to compare
                     </button>
@@ -772,7 +760,7 @@ export default function ReportFiltersCompare(props) {
                         type="button"
                         className={`${styles.btn} ${styles.primary}`}
                         onClick={handleApplyClick}
-                        disabled={selectionMetrics.isSelectionEmpty}
+                        disabled={isSelectionEmpty}
                     >
                         Show charts
                     </button>
