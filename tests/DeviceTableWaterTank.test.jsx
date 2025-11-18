@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { act } from 'react';
 import '@testing-library/jest-dom';
 import { DeviceTable } from '../src/pages/Live/LiveDashboard.jsx';
 import { SensorConfigProvider } from '../src/context/SensorConfigContext.jsx';
@@ -18,9 +19,15 @@ const devices = {
   }
 };
 
-const renderWithProvider = (ui) => render(
-  <SensorConfigProvider>{ui}</SensorConfigProvider>
-);
+const renderWithProvider = async (ui) => {
+  let renderResult;
+  await act(async () => {
+    renderResult = render(
+      <SensorConfigProvider>{ui}</SensorConfigProvider>
+    );
+  });
+  return renderResult;
+};
 
 beforeEach(() => {
   mockSensorConfigApi();
@@ -30,15 +37,15 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-test('renders sensor models from sensors array', () => {
-  renderWithProvider(<DeviceTable devices={devices} topic="/topic/waterTank" />);
+test('renders sensor models from sensors array', async () => {
+  await renderWithProvider(<DeviceTable devices={devices} topic="/topic/waterTank" />);
   expect(screen.getAllByText('HailegeTDS').length).toBeGreaterThan(0);
   expect(screen.getByText('DS18B20')).toBeInTheDocument();
   expect(screen.getByText('DFROBOT')).toBeInTheDocument();
 });
 
-test('renders sensor values correctly', () => {
-  renderWithProvider(<DeviceTable devices={devices} topic="/topic/waterTank" />);
+test('renders sensor values correctly', async () => {
+  await renderWithProvider(<DeviceTable devices={devices} topic="/topic/waterTank" />);
   expect(screen.getByText('500.0 ppm')).toBeInTheDocument();
   expect(screen.getByText('0.8 mS/cm')).toBeInTheDocument();
   expect(screen.getByText('24.3 °C')).toBeInTheDocument();

@@ -5,7 +5,7 @@ import { mockSensorConfigApi } from './mocks/sensorConfigApi';
 
 beforeEach(() => { mockSensorConfigApi(); });
 
-test('renders App component', () => {
-    const { container } = renderWithProviders(<App />);
+test('renders App component', async () => {
+    const { container } = await renderWithProviders(<App />);
     expect(container).toBeDefined();
 });
