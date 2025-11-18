@@ -803,16 +803,9 @@ export default function ReportFiltersCompare(props) {
                                 </div>
                                 <div className={styles.deviceFooter}>
                                     <span className={styles.applyHint}>
-                                        Confirm to update charts with the current selection.
+                                        Confirm your device selection and use the Show charts button below to update the
+                                        dashboard.
                                     </span>
-                                    <button
-                                        type="button"
-                                        className={`${styles.btn} ${styles.primary}`}
-                                        onClick={handleApplyClick}
-                                        disabled={selectedCompositeCount === 0}
-                                    >
-                                        Show charts
-                                    </button>
                                 </div>
                             </>
                         )}
@@ -875,6 +868,20 @@ export default function ReportFiltersCompare(props) {
                         </div>
                     )}
                 </section>
+            </div>
+            <div className={styles.applyBar}>
+                <span className={styles.applyMessage}>
+                    Once you finish choosing the timeframe, topic, devices, and sensors, click the button to update the
+                    charts.
+                </span>
+                <button
+                    type="button"
+                    className={`${styles.btn} ${styles.primary}`}
+                    onClick={handleApplyClick}
+                    disabled={selectedCompositeCount === 0}
+                >
+                    Show charts
+                </button>
             </div>
         </div>
     );
