@@ -502,13 +502,6 @@ export default function ReportFiltersCompare(props) {
 
     const isApplyDisabled = selectedCompositeCount === 0;
 
-    const selectedCompositeCount = selectedCompositeIds.size;
-    const totalCompositeCount = selectedTopicId
-        ? (topicDevices[selectedTopicId] || []).length
-        : compositeIds.length;
-
-    const isShowChartsDisabled = selectedCompositeCount === 0;
-
     const syncParentSelection = (prev = [], next = [], handler) => {
         if (typeof handler !== 'function') return;
         const prevSet = new Set(prev);
@@ -728,7 +721,7 @@ export default function ReportFiltersCompare(props) {
                         type="button"
                         className={`${styles.btn} ${styles.primary}`}
                         onClick={handleApplyClick}
-                        disabled={isShowChartsDisabled}
+                        disabled={isApplyDisabled}
                     >
                         Show charts
                     </button>
