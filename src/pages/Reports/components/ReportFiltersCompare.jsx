@@ -516,25 +516,6 @@ export default function ReportFiltersCompare(props) {
 
     const isSelectionEmpty = selectedCompositeCount === 0;
 
-    const selectionMetrics = useMemo(() => {
-        const count = selectedCompositeIds.size;
-        const total = selectedTopicId
-            ? (topicDevices[selectedTopicId] || []).length
-            : compositeIds.length;
-
-        return {
-            selectedCompositeCount: count,
-            totalCompositeCount: total,
-            isSelectionEmpty: count === 0,
-        };
-    }, [selectedCompositeIds, selectedTopicId, topicDevices, compositeIds]);
-
-    const {
-        selectedCompositeCount,
-        totalCompositeCount,
-        isSelectionEmpty,
-    } = selectionMetrics;
-
     const syncParentSelection = (prev = [], next = [], handler) => {
         if (typeof handler !== 'function') return;
         const prevSet = new Set(prev);
