@@ -1,6 +1,5 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { act } from 'react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
@@ -30,39 +29,45 @@ import { MemoryRouter } from 'react-router-dom';
 import Sidebar from '../src/pages/common/Sidebar';
 import { ReportsFiltersProvider } from '../src/pages/Reports/context/ReportsFiltersContext.jsx';
 
-const renderSidebar = async () => {
-    await act(async () => {
-        render(
-            <MemoryRouter>
-                <ReportsFiltersProvider>
-                    <Sidebar />
-                </ReportsFiltersProvider>
-            </MemoryRouter>
-        );
-    });
-};
-
-test('renders NFT Channels link', async () => {
+test('renders NFT Channels link', () => {
     mockLocation.pathname = '/';
-    await renderSidebar();
+    render(
+        <MemoryRouter>
+            <ReportsFiltersProvider>
+                <Sidebar />
+            </ReportsFiltersProvider>
+        </MemoryRouter>
+    );
 
     const nftLink = screen.getByRole('link', { name: /nft channels/i });
     expect(nftLink).toBeInTheDocument();
     expect(nftLink).toHaveAttribute('href', '/live');
 });
 
-test('renders Note link', async () => {
+test('renders Note link', () => {
     mockLocation.pathname = '/';
-    await renderSidebar();
+    render(
+        <MemoryRouter>
+            <ReportsFiltersProvider>
+                <Sidebar />
+            </ReportsFiltersProvider>
+        </MemoryRouter>
+    );
 
     const noteLink = screen.getByRole('link', { name: /note/i });
     expect(noteLink).toBeInTheDocument();
     expect(noteLink).toHaveAttribute('href', '/note');
 });
 
-test('does not render report filters in the sidebar on reports route', async () => {
+test('does not render report filters in the sidebar on reports route', () => {
     mockLocation.pathname = '/reports';
-    await renderSidebar();
+    render(
+        <MemoryRouter>
+            <ReportsFiltersProvider>
+                <Sidebar />
+            </ReportsFiltersProvider>
+        </MemoryRouter>
+    );
 
     expect(screen.queryByText(/filters/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/timing/i)).not.toBeInTheDocument();

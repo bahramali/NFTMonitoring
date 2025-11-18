@@ -27,26 +27,18 @@ async function findRow(sensorType, topicLabel) {
 }
 
 test('create a config (assert Saved)', async () => {
-  await renderWithProviders(<SensorConfig />);
+  renderWithProviders(<SensorConfig />);
 
-  const topicInput = document.querySelector('input[name="topic"]');
-  const metricInput = document.querySelector('input[name="metric"]');
-  const minInput = document.querySelector('input[name="minValue"]');
-  const maxInput = document.querySelector('input[name="maxValue"]');
-  if (!topicInput || !metricInput || !minInput || !maxInput) {
-    throw new Error('Form inputs not found');
-  }
-
-  fireEvent.change(topicInput, {
+  fireEvent.change(screen.getByLabelText(/^Topic:?$/i), {
     target: { value: '/topic/growSensors' },
   });
-  fireEvent.change(metricInput, {
+  fireEvent.change(screen.getByLabelText(/^Metric:?$/i), {
     target: { value: 'A_RH_C' },
   });
-  fireEvent.change(minInput, {
+  fireEvent.change(screen.getByLabelText(/^Min:?$/i), {
     target: { name: 'minValue', value: '40' },
   });
-  fireEvent.change(maxInput, {
+  fireEvent.change(screen.getByLabelText(/^Max:?$/i), {
     target: { name: 'maxValue', value: '60' },
   });
   fireEvent.click(screen.getByRole('button', { name: /create/i }));
@@ -69,7 +61,7 @@ test('create a config (assert Saved)', async () => {
 });
 
 test('update a config via top form (assert Saved)', async () => {
-  await renderWithProviders(<SensorConfig />);
+  renderWithProviders(<SensorConfig />);
 
   const row = await findRow('A_Temp_C', '/topic/growSensors');
 
@@ -77,12 +69,10 @@ test('update a config via top form (assert Saved)', async () => {
   const editTopBtn = within(row).getByTitle('Edit in form');
   fireEvent.click(editTopBtn);
 
-  const minInput = document.querySelector('input[name="minValue"]');
-  fireEvent.change(minInput, {
+  fireEvent.change(screen.getByLabelText(/^Min:?$/i), {
     target: { name: 'minValue', value: '15' },
   });
-  const maxInput = document.querySelector('input[name="maxValue"]');
-  fireEvent.change(maxInput, {
+  fireEvent.change(screen.getByLabelText(/^Max:?$/i), {
     target: { name: 'maxValue', value: '30' },
   });
   fireEvent.click(screen.getByRole('button', { name: /update/i }));
@@ -100,7 +90,7 @@ test('update a config via top form (assert Saved)', async () => {
 });
 
 test('update a config via inline edit (assert Saved)', async () => {
-  await renderWithProviders(<SensorConfig />);
+  renderWithProviders(<SensorConfig />);
 
   const row = await findRow('A_Temp_C', '/topic/growSensors');
 
