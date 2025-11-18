@@ -495,13 +495,6 @@ export default function ReportFiltersCompare(props) {
     const selectedDevices = selectedSummary.devices;
     const isApplyDisabled = selectedCompositeCount === 0;
 
-    const selectedCompositeCount = selectedCompositeIds.size;
-    const totalCompositeCount = selectedTopicId
-        ? (topicDevices[selectedTopicId] || []).length
-        : compositeIds.length;
-
-    const isApplyDisabled = selectedCompositeCount === 0;
-
     const syncParentSelection = (prev = [], next = [], handler) => {
         if (typeof handler !== 'function') return;
         const prevSet = new Set(prev);
@@ -579,6 +572,11 @@ export default function ReportFiltersCompare(props) {
     // composite checkbox state derived from location selection
     const isCompositeChecked = (cid) => selectedCompositeIds.has(cid);
 
+
+    // sensors: before any location selection, everything disabled (tests expect this)
+
+    const selectedCompositeCount = selectedCompositeIds.size;
+    const totalCompositeCount = selectedTopicId ? (topicDevices[selectedTopicId] || []).length : compositeIds.length;
 
     const deviceLabelMap = useMemo(() => {
         const map = new Map();
