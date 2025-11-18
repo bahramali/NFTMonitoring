@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import styles from "./ReportFiltersCompare.module.css";
 import { normalizeDeviceCatalog } from "../utils/catalog";
 import { ensureString } from "../utils/strings";
+import { useSelectionMetrics } from "../hooks/useSelectionMetrics";
 
 function AllNone({name, onAll, onNone}) {
     return (
@@ -584,6 +585,13 @@ export default function ReportFiltersCompare(props) {
             isSelectionEmpty: computedSelectedCompositeCount === 0,
         };
     }, [selectedCompositeIds, selectedTopicId, topicDevices, compositeIds]);
+
+    const selectionMetrics = useSelectionMetrics(
+        selectedCompositeIds,
+        selectedTopicId,
+        topicDevices,
+        compositeIds,
+    );
 
     const selectionMetrics = useSelectionMetrics(
         selectedCompositeIds,
