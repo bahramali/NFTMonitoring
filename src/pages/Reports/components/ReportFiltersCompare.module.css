@@ -199,11 +199,6 @@
     justify-content: space-between;
 }
 
-.deviceFooter .btn {
-    flex: 0 0 auto;
-    min-width: 9rem;
-}
-
 .applyHint {
     flex: 1 1 12rem;
     font-size: 0.75rem;
@@ -412,6 +407,30 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .actionsBlock .btn {
     flex: 0 1 auto;
     min-width: 8rem;
+}
+
+.applyBar {
+    margin-top: 0.5rem;
+    background: var(--rf-surface-subtle);
+    border: 0.0625rem solid var(--rf-border);
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.applyBar .btn {
+    min-width: 10rem;
+    flex: 0 0 auto;
+}
+
+.applyMessage {
+    flex: 1 1 15rem;
+    font-size: 0.85rem;
+    color: var(--rf-text-secondary);
 }
 
 .btn:disabled {
