@@ -553,6 +553,18 @@ export default function ReportFiltersCompare(props) {
         };
     }, [selectedCompositeIds, selectedTopicId, topicDevices, compositeIds]);
 
+    const selectionMetrics = useMemo(() => {
+        const computedSelectedCompositeCount = selectedCompositeIds.size;
+        const computedTotalCompositeCount = selectedTopicId
+            ? (topicDevices[selectedTopicId] || []).length
+            : compositeIds.length;
+        return {
+            selectedCompositeCount: computedSelectedCompositeCount,
+            totalCompositeCount: computedTotalCompositeCount,
+            isSelectionEmpty: computedSelectedCompositeCount === 0,
+        };
+    }, [selectedCompositeIds, selectedTopicId, topicDevices, compositeIds]);
+
     const syncParentSelection = (prev = [], next = [], handler) => {
         if (typeof handler !== 'function') return;
         const prevSet = new Set(prev);
