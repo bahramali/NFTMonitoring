@@ -105,6 +105,26 @@ const normalizeSensorOptions = (options) => {
     });
 };
 
+const useSelectionMetrics = (
+    selectedCompositeIds,
+    selectedTopicId,
+    topicDevices,
+    compositeIds,
+) => {
+    return useMemo(() => {
+        const selectedCount = selectedCompositeIds.size;
+        const totalCount = selectedTopicId
+            ? (topicDevices[selectedTopicId] || []).length
+            : compositeIds.length;
+
+        return {
+            selectedCompositeCount: selectedCount,
+            totalCompositeCount: totalCount,
+            isSelectionEmpty: selectedCount === 0,
+        };
+    }, [selectedCompositeIds, selectedTopicId, topicDevices, compositeIds]);
+};
+
 function ChecklistItem({ option, values = [], onToggle }) {
     const checkboxRef = useRef(null);
     const list = Array.isArray(values) ? values : [];
@@ -494,6 +514,13 @@ export default function ReportFiltersCompare(props) {
     const selectedLayers  = selectedSummary.layers;
     const selectedDevices = selectedSummary.devices;
 
+    const selectionMetrics = useSelectionMetrics(
+        selectedCompositeIds,
+        selectedTopicId,
+        topicDevices,
+        compositeIds,
+    );
+
     const syncParentSelection = (prev = [], next = [], handler) => {
         if (typeof handler !== 'function') return;
         const prevSet = new Set(prev);
@@ -572,11 +599,6 @@ export default function ReportFiltersCompare(props) {
     const isCompositeChecked = (cid) => selectedCompositeIds.has(cid);
 
 
-    // sensors: before any location selection, everything disabled (tests expect this)
-
-    const selectedCompositeCount = selectedCompositeIds.size;
-    const totalCompositeCount = selectedTopicId ? (topicDevices[selectedTopicId] || []).length : compositeIds.length;
-
     const deviceLabelMap = useMemo(() => {
         const map = new Map();
         Object.values(topicDevices).forEach((devices = []) => {
@@ -648,9 +670,9 @@ export default function ReportFiltersCompare(props) {
     }, [onApply]);
 
     const selectionCountText = useMemo(() => {
-        const total = totalCompositeCount || 0;
-        return `${selectedCompositeCount} of ${total}`;
-    }, [selectedCompositeCount, totalCompositeCount]);
+        const total = selectionMetrics.totalCompositeCount || 0;
+        return `${selectionMetrics.selectedCompositeCount} of ${total}`;
+    }, [selectionMetrics]);
 
     const containerClassName = [styles.rf, styles.rfPage, className || ""]
         .filter(Boolean)
@@ -675,7 +697,7 @@ export default function ReportFiltersCompare(props) {
                         type="button"
                         className={styles.btn}
                         onClick={handleAddCompareClick}
-                        disabled={selectedCompositeCount === 0}
+                        disabled={selectionMetrics.isSelectionEmpty}
                     >
                         Add to compare
                     </button>
@@ -711,6 +733,17 @@ export default function ReportFiltersCompare(props) {
                     ) : (
                         <span className={styles.summaryMuted}>No device selected</span>
                     )}
+                </div>
+                <div className={`${styles.summaryItem} ${styles.summaryActions}`}>
+                    <span className={styles.summaryHint}>Confirm to update charts with the current selection.</span>
+                    <button
+                        type="button"
+                        className={`${styles.btn} ${styles.primary}`}
+                        onClick={handleApplyClick}
+                        disabled={selectionMetrics.isSelectionEmpty}
+                    >
+                        Show charts
+                    </button>
                 </div>
             </div>
             <div className={styles.layout}>
@@ -800,19 +833,6 @@ export default function ReportFiltersCompare(props) {
                                             </label>
                                         );
                                     })}
-                                </div>
-                                <div className={styles.deviceFooter}>
-                                    <span className={styles.applyHint}>
-                                        Confirm to update charts with the current selection.
-                                    </span>
-                                    <button
-                                        type="button"
-                                        className={`${styles.btn} ${styles.primary}`}
-                                        onClick={handleApplyClick}
-                                        disabled={selectedCompositeCount === 0}
-                                    >
-                                        Show charts
-                                    </button>
                                 </div>
                             </>
                         )}
