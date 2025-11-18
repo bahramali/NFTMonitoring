@@ -120,6 +120,23 @@
     grid-column: 1 / -1;
 }
 
+.summaryActions {
+    grid-column: 1 / -1;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.summaryHint {
+    font-size: 0.8125rem;
+    color: var(--rf-text-muted);
+    text-align: right;
+}
+
+.summaryActions .btn {
+    min-width: 9rem;
+}
+
 .layout {
     display: grid;
     grid-template-columns: minmax(15rem, 0.95fr) minmax(18rem, 1.05fr);
@@ -191,24 +208,6 @@
     gap: 0.5rem;
 }
 
-.deviceFooter {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.deviceFooter .btn {
-    flex: 0 0 auto;
-    min-width: 9rem;
-}
-
-.applyHint {
-    flex: 1 1 12rem;
-    font-size: 0.75rem;
-    color: var(--rf-text-muted);
-}
 
 .deviceOption {
     display: flex;

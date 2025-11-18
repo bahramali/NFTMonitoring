@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { act } from 'react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
@@ -29,45 +30,39 @@ import { MemoryRouter } from 'react-router-dom';
 import Sidebar from '../src/pages/common/Sidebar';
 import { ReportsFiltersProvider } from '../src/pages/Reports/context/ReportsFiltersContext.jsx';
 
-test('renders NFT Channels link', () => {
+const renderSidebar = async () => {
+    await act(async () => {
+        render(
+            <MemoryRouter>
+                <ReportsFiltersProvider>
+                    <Sidebar />
+                </ReportsFiltersProvider>
+            </MemoryRouter>
+        );
+    });
+};
+
+test('renders NFT Channels link', async () => {
     mockLocation.pathname = '/';
-    render(
-        <MemoryRouter>
-            <ReportsFiltersProvider>
-                <Sidebar />
-            </ReportsFiltersProvider>
-        </MemoryRouter>
-    );
+    await renderSidebar();
 
     const nftLink = screen.getByRole('link', { name: /nft channels/i });
     expect(nftLink).toBeInTheDocument();
     expect(nftLink).toHaveAttribute('href', '/live');
 });
 
-test('renders Note link', () => {
+test('renders Note link', async () => {
     mockLocation.pathname = '/';
-    render(
-        <MemoryRouter>
-            <ReportsFiltersProvider>
-                <Sidebar />
-            </ReportsFiltersProvider>
-        </MemoryRouter>
-    );
+    await renderSidebar();
 
     const noteLink = screen.getByRole('link', { name: /note/i });
     expect(noteLink).toBeInTheDocument();
     expect(noteLink).toHaveAttribute('href', '/note');
 });
 
-test('does not render report filters in the sidebar on reports route', () => {
+test('does not render report filters in the sidebar on reports route', async () => {
     mockLocation.pathname = '/reports';
-    render(
-        <MemoryRouter>
-            <ReportsFiltersProvider>
-                <Sidebar />
-            </ReportsFiltersProvider>
-        </MemoryRouter>
-    );
+    await renderSidebar();
 
     expect(screen.queryByText(/filters/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/timing/i)).not.toBeInTheDocument();
