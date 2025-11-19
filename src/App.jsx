@@ -10,10 +10,10 @@ import UserInfo from './pages/UserInfo';
 import SensorConfig from './pages/SensorConfig';
 import Note from './pages/Note';
 import ControlPanel from './pages/ControlPanel';
+import { resolveBasePath } from './utils/resolveBasePath.js';
 
 function App() {
-    const rawBase = import.meta?.env?.BASE_URL || '/';
-    const base = rawBase === './' || rawBase === '/./' ? '/' : rawBase;
+    const base = resolveBasePath();
 
     return (
         <BrowserRouter basename={base}>

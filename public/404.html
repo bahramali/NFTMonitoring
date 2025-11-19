@@ -4,9 +4,22 @@
   <meta charset="UTF-8" />
   <title>HydroLeaf</title>
   <script>
-    const redirect = window.location.pathname + window.location.search + window.location.hash;
-    sessionStorage.redirect = redirect;
-    window.location.replace('/');
+    (function () {
+      const redirect = window.location.pathname + window.location.search + window.location.hash;
+      sessionStorage.redirect = redirect;
+
+      const hostname = window.location.hostname?.toLowerCase?.() ?? '';
+      let basePath = '/';
+
+      if (hostname.endsWith('.github.io')) {
+        const segments = window.location.pathname.split('/').filter(Boolean);
+        if (segments.length > 0) {
+          basePath = `/${segments[0]}/`;
+        }
+      }
+
+      window.location.replace(basePath);
+    })();
   </script>
 </head>
 <body></body>
