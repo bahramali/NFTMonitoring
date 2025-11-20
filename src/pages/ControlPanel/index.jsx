@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { sendLedCommand } from "../../api/actuators";
 import Header from "../common/Header";
 import styles from "./ControlPanel.module.css";
 
@@ -116,6 +117,16 @@ function ControlPanel() {
     const [zones, setZones] = useState(initialZones);
     const [activity, setActivity] = useState(initialActivity);
     const [activeScene, setActiveScene] = useState("custom");
+    const [ledCommand, setLedCommand] = useState({
+        system: "S01",
+        layer: "L01",
+        deviceId: "R01",
+        controller: "ledController",
+        command: "AUTO",
+        durationSec: "1800",
+    });
+    const [sendingCommand, setSendingCommand] = useState(false);
+    const [commandState, setCommandState] = useState({ status: "idle", message: "" });
 
     const poweredZones = useMemo(() => zones.filter((zone) => zone.isOn), [zones]);
     const fixturesTotal = useMemo(() => zones.reduce((sum, zone) => sum + zone.fixtures, 0), [zones]);
@@ -134,6 +145,47 @@ function ControlPanel() {
             { id: `act-${Date.now()}`, message, timestamp: new Date() },
             ...prev,
         ].slice(0, 8));
+    };
+
+    const buildLedPayload = (commandOverride, { forceDuration } = {}) => {
+        const payload = {
+            system: ledCommand.system.trim() || "S01",
+            layer: ledCommand.layer.trim() || "L01",
+            deviceId: ledCommand.deviceId.trim() || "R01",
+            controller: ledCommand.controller.trim() || "ledController",
+            command: (commandOverride ?? ledCommand.command ?? "AUTO").toUpperCase(),
+        };
+
+        if (payload.command === "ON") {
+            const parsedDuration = Number.parseInt(ledCommand.durationSec, 10);
+            if (Number.isFinite(parsedDuration) && parsedDuration > 0) {
+                payload.durationSec = parsedDuration;
+            } else if (forceDuration) {
+                payload.durationSec = 1800;
+            }
+        }
+
+        return payload;
+    };
+
+    const commandPreview = useMemo(() => buildLedPayload(), [ledCommand]);
+
+    const handleSendCommand = async ({ commandOverride, forceDuration } = {}) => {
+        const payload = buildLedPayload(commandOverride, { forceDuration });
+        setSendingCommand(true);
+        setCommandState({ status: "pending", message: "Sending command..." });
+
+        try {
+            const response = await sendLedCommand(payload);
+            setCommandState({ status: "success", message: response?.message ?? "Command accepted", payload });
+            logAction(
+                `LED ${payload.command}${payload.durationSec ? ` (${payload.durationSec}s)` : ""} command sent to ${payload.deviceId}.`
+            );
+        } catch (error) {
+            setCommandState({ status: "error", message: error?.message ?? "Failed to send command" });
+        } finally {
+            setSendingCommand(false);
+        }
     };
 
     const toggleZone = (id) => {
@@ -211,6 +263,168 @@ function ControlPanel() {
     return (
         <div className={styles.page}>
             <Header title="Control Panel" />
+
+            <section className={styles.commandPanel}>
+                <div className={styles.commandHeader}>
+                    <div>
+                        <p className={styles.commandEyebrow}>LED actuator via MQTT</p>
+                        <h2 className={styles.commandTitle}>Send LED commands</h2>
+                        <p className={styles.commandDescription}>
+                            Dispatch ON / OFF / AUTO requests to <code>actuator/led/cmd</code>. Use <strong>duration</strong> (seconds)
+                            to send temporary overrides that fall back to AUTO.
+                        </p>
+                    </div>
+                    <div className={styles.topicBadge}>Topic: actuator/led/cmd</div>
+                </div>
+
+                <div className={styles.commandGrid}>
+                    <div className={styles.commandForm}>
+                        <div className={styles.fieldRow}>
+                            <label className={styles.field}>
+                                <span className={styles.fieldLabel}>System</span>
+                                <input
+                                    type="text"
+                                    value={ledCommand.system}
+                                    className={styles.input}
+                                    onChange={(e) => setLedCommand((prev) => ({ ...prev, system: e.target.value }))}
+                                />
+                            </label>
+                            <label className={styles.field}>
+                                <span className={styles.fieldLabel}>Layer</span>
+                                <input
+                                    type="text"
+                                    value={ledCommand.layer}
+                                    className={styles.input}
+                                    onChange={(e) => setLedCommand((prev) => ({ ...prev, layer: e.target.value }))}
+                                />
+                            </label>
+                            <label className={styles.field}>
+                                <span className={styles.fieldLabel}>Device ID</span>
+                                <input
+                                    type="text"
+                                    value={ledCommand.deviceId}
+                                    className={styles.input}
+                                    onChange={(e) => setLedCommand((prev) => ({ ...prev, deviceId: e.target.value }))}
+                                />
+                            </label>
+                        </div>
+
+                        <div className={styles.fieldRow}>
+                            <label className={styles.field}>
+                                <span className={styles.fieldLabel}>Controller</span>
+                                <input
+                                    type="text"
+                                    value={ledCommand.controller}
+                                    className={styles.input}
+                                    onChange={(e) => setLedCommand((prev) => ({ ...prev, controller: e.target.value }))}
+                                />
+                            </label>
+                            <label className={styles.field}>
+                                <span className={styles.fieldLabel}>Command</span>
+                                <select
+                                    className={styles.input}
+                                    value={ledCommand.command}
+                                    onChange={(e) => setLedCommand((prev) => ({ ...prev, command: e.target.value }))}
+                                >
+                                    <option value="AUTO">AUTO</option>
+                                    <option value="ON">ON</option>
+                                    <option value="OFF">OFF</option>
+                                </select>
+                            </label>
+                            <label className={styles.field}>
+                                <span className={styles.fieldLabel}>Duration (sec)</span>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    inputMode="numeric"
+                                    className={styles.input}
+                                    value={ledCommand.durationSec}
+                                    onChange={(e) => setLedCommand((prev) => ({ ...prev, durationSec: e.target.value }))}
+                                />
+                                <span className={styles.fieldHint}>Only applied when command is ON</span>
+                            </label>
+                        </div>
+
+                        <button
+                            type="button"
+                            className={`${styles.actionButton} ${styles.actionPrimary} ${styles.commandSubmit}`}
+                            onClick={() => handleSendCommand({ commandOverride: ledCommand.command })}
+                            disabled={sendingCommand}
+                        >
+                            {sendingCommand ? "Sending..." : "Send selected command"}
+                        </button>
+                    </div>
+
+                    <div className={styles.commandActions}>
+                        <div className={styles.quickActionsHeader}>Quick actions</div>
+                        <div className={styles.quickActionButtons}>
+                            <button
+                                type="button"
+                                className={`${styles.pillButton} ${styles.pillSecondary}`}
+                                onClick={() => handleSendCommand({ commandOverride: "OFF" })}
+                                disabled={sendingCommand}
+                            >
+                                Manual OFF
+                            </button>
+                            <button
+                                type="button"
+                                className={`${styles.pillButton} ${styles.pillPrimary}`}
+                                onClick={() => handleSendCommand({ commandOverride: "ON" })}
+                                disabled={sendingCommand}
+                            >
+                                Manual ON
+                            </button>
+                            <button
+                                type="button"
+                                className={`${styles.pillButton} ${styles.pillPrimary}`}
+                                onClick={() => handleSendCommand({ commandOverride: "ON", forceDuration: true })}
+                                disabled={sendingCommand}
+                            >
+                                Timed ON (defaults 1800s)
+                            </button>
+                            <button
+                                type="button"
+                                className={`${styles.pillButton} ${styles.pillSecondary}`}
+                                onClick={() => handleSendCommand({ commandOverride: "AUTO" })}
+                                disabled={sendingCommand}
+                            >
+                                Return to AUTO
+                            </button>
+                        </div>
+
+                        <div
+                            className={`${styles.statusBox} ${
+                                commandState.status === "success"
+                                    ? styles.statusSuccess
+                                    : commandState.status === "error"
+                                    ? styles.statusError
+                                    : ""
+                            }`}
+                        >
+                            <div className={styles.statusLabel}>Status</div>
+                            <div className={styles.statusMessage}>
+                                {commandState.status === "idle" && "Awaiting command"}
+                                {commandState.status === "pending" && "Sending to MQTT bridge..."}
+                                {commandState.status === "success" && commandState.message}
+                                {commandState.status === "error" && commandState.message}
+                            </div>
+                            {commandState?.payload && (
+                                <div className={styles.statusMeta}>
+                                    {commandState.payload.command}
+                                    {commandState.payload.durationSec ? ` • ${commandState.payload.durationSec}s` : ""} →
+                                    {" "}
+                                    {commandState.payload.deviceId}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className={styles.previewBox}>
+                            <div className={styles.statusLabel}>Payload preview</div>
+                            <pre className={styles.previewContent}>{JSON.stringify(commandPreview, null, 2)}</pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <section className={styles.summary}>
                 <div className={styles.summaryCard}>
