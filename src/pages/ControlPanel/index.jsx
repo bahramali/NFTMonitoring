@@ -121,9 +121,9 @@ function ControlPanel() {
         system: "S01",
         layer: "L01",
         deviceId: "R01",
-        controller: "ledController",
+        controller: "white",
         command: "AUTO",
-        durationSec: "1800",
+        durationSec: "",
     });
     const [sendingCommand, setSendingCommand] = useState(false);
     const [commandState, setCommandState] = useState({ status: "idle", message: "" });
@@ -148,15 +148,19 @@ function ControlPanel() {
     };
 
     const buildLedPayload = (commandOverride, { forceDuration } = {}) => {
+        const normalizedCommand = (commandOverride ?? ledCommand.command ?? "AUTO").toUpperCase();
+        const safeCommand = ["ON", "OFF", "AUTO"].includes(normalizedCommand)
+            ? normalizedCommand
+            : "AUTO";
         const payload = {
             system: ledCommand.system.trim() || "S01",
-            layer: ledCommand.layer.trim() || "L01",
+            layer: (ledCommand.layer || "L01").trim().toUpperCase(),
             deviceId: ledCommand.deviceId.trim() || "R01",
-            controller: ledCommand.controller.trim() || "ledController",
-            command: (commandOverride ?? ledCommand.command ?? "AUTO").toUpperCase(),
+            controller: (ledCommand.controller || "white").trim().toLowerCase(),
+            command: safeCommand,
         };
 
-        if (payload.command === "ON") {
+        if (payload.command !== "AUTO") {
             const parsedDuration = Number.parseInt(ledCommand.durationSec, 10);
             if (Number.isFinite(parsedDuration) && parsedDuration > 0) {
                 payload.durationSec = parsedDuration;
@@ -179,7 +183,7 @@ function ControlPanel() {
             const response = await sendLedCommand(payload);
             setCommandState({ status: "success", message: response?.message ?? "Command accepted", payload });
             logAction(
-                `LED ${payload.command}${payload.durationSec ? ` (${payload.durationSec}s)` : ""} command sent to ${payload.deviceId}.`
+                `LED ${payload.command}${payload.durationSec ? ` (${payload.durationSec}s)` : ""} sent to ${payload.deviceId} • ${payload.layer}/${payload.controller}.`
             );
         } catch (error) {
             setCommandState({ status: "error", message: error?.message ?? "Failed to send command" });
@@ -270,8 +274,10 @@ function ControlPanel() {
                         <p className={styles.commandEyebrow}>LED actuator via MQTT</p>
                         <h2 className={styles.commandTitle}>Send LED commands</h2>
                         <p className={styles.commandDescription}>
-                            Dispatch ON / OFF / AUTO requests to <code>actuator/led/cmd</code>. Use <strong>duration</strong> (seconds)
-                            to send temporary overrides that fall back to AUTO.
+                            Dispatch ON / OFF / AUTO requests to <code>actuator/led/cmd</code> using the exact JSON structure expected
+                            by the ESP (<code>system</code>, <code>layer</code>, <code>deviceId</code>, <code>controller</code>,
+                            <code>command</code>, optional <code>durationSec</code>). Manual commands with <code>durationSec</code> revert
+                            to AUTO automatically.
                         </p>
                     </div>
                     <div className={styles.topicBadge}>Topic: actuator/led/cmd</div>
@@ -291,12 +297,14 @@ function ControlPanel() {
                             </label>
                             <label className={styles.field}>
                                 <span className={styles.fieldLabel}>Layer</span>
-                                <input
-                                    type="text"
-                                    value={ledCommand.layer}
+                                <select
                                     className={styles.input}
+                                    value={ledCommand.layer}
                                     onChange={(e) => setLedCommand((prev) => ({ ...prev, layer: e.target.value }))}
-                                />
+                                >
+                                    <option value="L01">L01 (Layer 1)</option>
+                                    <option value="L02">L02 (Layer 2)</option>
+                                </select>
                             </label>
                             <label className={styles.field}>
                                 <span className={styles.fieldLabel}>Device ID</span>
@@ -312,12 +320,14 @@ function ControlPanel() {
                         <div className={styles.fieldRow}>
                             <label className={styles.field}>
                                 <span className={styles.fieldLabel}>Controller</span>
-                                <input
-                                    type="text"
-                                    value={ledCommand.controller}
+                                <select
                                     className={styles.input}
+                                    value={ledCommand.controller}
                                     onChange={(e) => setLedCommand((prev) => ({ ...prev, controller: e.target.value }))}
-                                />
+                                >
+                                    <option value="white">white (per layer)</option>
+                                    <option value="bloom">bloom (per layer)</option>
+                                </select>
                             </label>
                             <label className={styles.field}>
                                 <span className={styles.fieldLabel}>Command</span>
@@ -341,7 +351,7 @@ function ControlPanel() {
                                     value={ledCommand.durationSec}
                                     onChange={(e) => setLedCommand((prev) => ({ ...prev, durationSec: e.target.value }))}
                                 />
-                                <span className={styles.fieldHint}>Only applied when command is ON</span>
+                                <span className={styles.fieldHint}>Optional for ON/OFF manual overrides (seconds)</span>
                             </label>
                         </div>
 
@@ -380,7 +390,7 @@ function ControlPanel() {
                                 onClick={() => handleSendCommand({ commandOverride: "ON", forceDuration: true })}
                                 disabled={sendingCommand}
                             >
-                                Timed ON (defaults 1800s)
+                                Timed ON (defaults 1800s then AUTO)
                             </button>
                             <button
                                 type="button"
@@ -411,9 +421,9 @@ function ControlPanel() {
                             {commandState?.payload && (
                                 <div className={styles.statusMeta}>
                                     {commandState.payload.command}
-                                    {commandState.payload.durationSec ? ` • ${commandState.payload.durationSec}s` : ""} →
-                                    {" "}
-                                    {commandState.payload.deviceId}
+                                    {commandState.payload.durationSec ? ` • ${commandState.payload.durationSec}s` : ""}
+                                    {` • ${commandState.payload.layer} / ${commandState.payload.controller}`}
+                                    {` → ${commandState.payload.deviceId}`}
                                 </div>
                             )}
                         </div>
