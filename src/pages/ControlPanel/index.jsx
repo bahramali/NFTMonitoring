@@ -121,7 +121,6 @@ function ControlPanel() {
         system: "S01",
         layer: "L01",
         deviceId: "R01",
-        controller: "white",
         command: "AUTO",
         durationSec: "",
     });
@@ -156,7 +155,6 @@ function ControlPanel() {
             system: ledCommand.system.trim() || "S01",
             layer: (ledCommand.layer || "L01").trim().toUpperCase(),
             deviceId: ledCommand.deviceId.trim() || "R01",
-            controller: (ledCommand.controller || "white").trim().toLowerCase(),
             command: safeCommand,
         };
 
@@ -183,7 +181,7 @@ function ControlPanel() {
             const response = await sendLedCommand(payload);
             setCommandState({ status: "success", message: response?.message ?? "Command accepted", payload });
             logAction(
-                `LED ${payload.command}${payload.durationSec ? ` (${payload.durationSec}s)` : ""} sent to ${payload.deviceId} • ${payload.layer}/${payload.controller}.`
+                `LED ${payload.command}${payload.durationSec ? ` (${payload.durationSec}s)` : ""} sent to ${payload.deviceId} • ${payload.layer}.`
             );
         } catch (error) {
             setCommandState({ status: "error", message: error?.message ?? "Failed to send command" });
@@ -274,10 +272,10 @@ function ControlPanel() {
                         <p className={styles.commandEyebrow}>LED actuator via MQTT</p>
                         <h2 className={styles.commandTitle}>Send LED commands</h2>
                         <p className={styles.commandDescription}>
-                            Dispatch ON / OFF / AUTO requests to <code>actuator/led/cmd</code> using the exact JSON structure expected
-                            by the ESP (<code>system</code>, <code>layer</code>, <code>deviceId</code>, <code>controller</code>,
-                            <code>command</code>, optional <code>durationSec</code>). Manual commands with <code>durationSec</code> revert
-                            to AUTO automatically.
+                            Dispatch ON / OFF / AUTO requests to <code>actuator/led/cmd</code> using the simplified JSON structure
+                            (<code>system</code>, <code>deviceId</code>, <code>layer</code>, <code>command</code>, optional
+                            <code>durationSec</code>). Four relays map directly to four layers: Relay 0 → L01, Relay 1 → L02, Relay 2 →
+                            L03, Relay 3 → L04. Manual overrides with <code>durationSec</code> return to AUTO after the timer expires.
                         </p>
                     </div>
                     <div className={styles.topicBadge}>Topic: actuator/led/cmd</div>
@@ -302,8 +300,10 @@ function ControlPanel() {
                                     value={ledCommand.layer}
                                     onChange={(e) => setLedCommand((prev) => ({ ...prev, layer: e.target.value }))}
                                 >
-                                    <option value="L01">L01 (Layer 1)</option>
-                                    <option value="L02">L02 (Layer 2)</option>
+                                    <option value="L01">L01 (Relay 0)</option>
+                                    <option value="L02">L02 (Relay 1)</option>
+                                    <option value="L03">L03 (Relay 2)</option>
+                                    <option value="L04">L04 (Relay 3)</option>
                                 </select>
                             </label>
                             <label className={styles.field}>
@@ -318,17 +318,6 @@ function ControlPanel() {
                         </div>
 
                         <div className={styles.fieldRow}>
-                            <label className={styles.field}>
-                                <span className={styles.fieldLabel}>Controller</span>
-                                <select
-                                    className={styles.input}
-                                    value={ledCommand.controller}
-                                    onChange={(e) => setLedCommand((prev) => ({ ...prev, controller: e.target.value }))}
-                                >
-                                    <option value="white">white (per layer)</option>
-                                    <option value="bloom">bloom (per layer)</option>
-                                </select>
-                            </label>
                             <label className={styles.field}>
                                 <span className={styles.fieldLabel}>Command</span>
                                 <select
@@ -422,7 +411,7 @@ function ControlPanel() {
                                 <div className={styles.statusMeta}>
                                     {commandState.payload.command}
                                     {commandState.payload.durationSec ? ` • ${commandState.payload.durationSec}s` : ""}
-                                    {` • ${commandState.payload.layer} / ${commandState.payload.controller}`}
+                                    {` • ${commandState.payload.layer}`}
                                     {` → ${commandState.payload.deviceId}`}
                                 </div>
                             )}
