@@ -146,6 +146,15 @@ function ControlPanel() {
         ].slice(0, 8));
     };
 
+    const schedulePayloadExample = {
+        system: "S01",
+        deviceId: "R01",
+        command: "SET_SCHEDULE",
+        onHour: 6,
+        onMinute: 30,
+        durationHours: 14,
+    };
+
     const buildLedPayload = (commandOverride, { forceDuration } = {}) => {
         const normalizedCommand = (commandOverride ?? ledCommand.command ?? "AUTO").toUpperCase();
         const safeCommand = ["ON", "OFF", "AUTO"].includes(normalizedCommand)
@@ -421,6 +430,22 @@ function ControlPanel() {
                             <div className={styles.statusLabel}>Payload preview</div>
                             <pre className={styles.previewContent}>{JSON.stringify(commandPreview, null, 2)}</pre>
                         </div>
+                    </div>
+                </div>
+
+                <div className={styles.scheduleBox}>
+                    <div>
+                        <div className={styles.statusLabel}>Global schedule JSON</div>
+                        <p className={styles.commandDescription}>
+                            برای تنظیم روشن و خاموش شدن خودکار تمام رله‌ها از دستور <code>SET_SCHEDULE</code> با فیلدهای زیر
+                            استفاده کنید: <code>onHour</code> و <code>onMinute</code> زمان شروع را مشخص می‌کنند و
+                            <code>durationHours</code> مدت زمان روشن بودن را (بر حسب ساعت) تعیین می‌کند. این پیام لایه را نمی‌خواهد
+                            و برای همه لایه‌ها اعمال می‌شود.
+                        </p>
+                    </div>
+                    <div className={styles.previewBox}>
+                        <div className={styles.statusLabel}>نمونه ساختار</div>
+                        <pre className={styles.previewContent}>{JSON.stringify(schedulePayloadExample, null, 2)}</pre>
                     </div>
                 </div>
             </section>
