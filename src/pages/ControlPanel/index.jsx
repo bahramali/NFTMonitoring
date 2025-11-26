@@ -4,10 +4,10 @@ import Header from "../common/Header";
 import styles from "./ControlPanel.module.css";
 
 const layerPresets = [
-    { id: "L01", name: "Grow Room A" },
-    { id: "L02", name: "Grow Room B" },
-    { id: "L03", name: "Grow Room C" },
-    { id: "L04", name: "Grow Room D" },
+    { id: "L01", name: "Layer 01" },
+    { id: "L02", name: "Layer 02" },
+    { id: "L03", name: "Layer 03" },
+    { id: "L04", name: "Layer 04" },
 ];
 
 const defaultSchedule = { start: "06:00", stop: "22:00" };
