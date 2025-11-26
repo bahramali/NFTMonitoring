@@ -106,10 +106,26 @@
 
 .modeBadge {
     padding: 8px 12px;
-    border-radius: 999px;
+    border-radius: 14px;
     font-size: 13px;
     font-weight: 700;
     color: #0b172a;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    text-align: right;
+}
+
+.modeBadgeLabel {
+    line-height: 1.1;
+}
+
+.modeBadgeMeta {
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0.85;
+    line-height: 1.1;
 }
 
 .on {

@@ -155,9 +155,16 @@ function ControlPanel() {
                                 <div className={styles.layerName}>{layer.name}</div>
                                 <div className={styles.layerId}>{layer.id}</div>
                             </div>
-                            <div className={`${styles.modeBadge} ${styles[layer.mode.toLowerCase()]}`}>
+                        <div className={`${styles.modeBadge} ${styles[layer.mode.toLowerCase()]}`}>
+                            <span className={styles.modeBadgeLabel}>
                                 {layer.mode === "AUTO" ? "Auto" : layer.mode === "ON" ? "On" : "Off"}
-                            </div>
+                            </span>
+                            {layer.mode === "AUTO" && (
+                                <span className={styles.modeBadgeMeta}>
+                                    {schedule.start} – {schedule.stop}
+                                </span>
+                            )}
+                        </div>
                         </div>
 
                         <div className={styles.actions}>
