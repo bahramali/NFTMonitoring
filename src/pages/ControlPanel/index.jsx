@@ -105,6 +105,7 @@ function ControlPanel() {
                 system: "S01",
                 deviceId: "R01",
                 command: "SET_SCHEDULE",
+                topic: "actuator/led/cmd",
                 onHour: start.hours,
                 onMinute: start.minutes,
                 durationHours,
