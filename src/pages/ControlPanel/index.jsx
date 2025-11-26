@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { sendLedCommand } from "../../api/actuators";
+import { sendLedCommand, sendLedSchedule } from "../../api/actuators";
 import Header from "../common/Header";
 import styles from "./ControlPanel.module.css";
 
@@ -105,12 +105,11 @@ function ControlPanel() {
                 system: "S01",
                 deviceId: "R01",
                 command: "SET_SCHEDULE",
-                topic: "actuator/led/cmd",
                 onHour: start.hours,
                 onMinute: start.minutes,
                 durationHours,
             };
-            const response = await sendLedCommand(payload);
+            const response = await sendLedSchedule(payload);
             setFeedback({
                 status: "success",
                 message: response?.message ?? "Lighting schedule saved.",
