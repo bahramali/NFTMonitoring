@@ -33,6 +33,12 @@
     font-size: 14px;
 }
 
+.subtitleSmall {
+    margin: 6px 0 0;
+    color: #94a3b8;
+    font-size: 12px;
+}
+
 .feedback {
     background: rgba(15, 23, 42, 0.65);
     border: 1px solid rgba(226, 232, 240, 0.16);
@@ -81,7 +87,7 @@
     border-radius: 16px;
     padding: 16px;
     display: grid;
-    gap: 12px;
+    gap: 14px;
     box-shadow: 0 14px 24px rgba(8, 47, 73, 0.28);
 }
 
@@ -122,6 +128,42 @@
 }
 
 .modeBadgeMeta {
+    font-size: 12px;
+    color: #0b172a;
+}
+
+.statusRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(226, 232, 240, 0.04);
+    border: 1px solid rgba(226, 232, 240, 0.08);
+    border-radius: 12px;
+}
+
+.statusLabel {
+    color: #94a3b8;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.statusValue {
+    color: #e2e8f0;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.statusMeta {
+    display: grid;
+    text-align: right;
+    color: #cbd5e1;
+    font-size: 13px;
+}
+
+.modeBadgeMeta {
     font-size: 11px;
     font-weight: 600;
     opacity: 0.85;
@@ -144,6 +186,21 @@
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+}
+
+.durationField {
+    display: grid;
+    gap: 6px;
+    color: #cbd5e1;
+    min-width: 180px;
+}
+
+.durationField input {
+    border-radius: 10px;
+    border: 1px solid rgba(226, 232, 240, 0.24);
+    padding: 8px 10px;
+    background: rgba(15, 23, 42, 0.6);
+    color: #e2e8f0;
 }
 
 .actionButton {
@@ -194,6 +251,10 @@
 .meta {
     color: #cbd5e1;
     font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .scheduleCard {
