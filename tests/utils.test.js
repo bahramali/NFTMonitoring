@@ -170,6 +170,16 @@ test('parseSensorJson fixes missing commas between sensor objects', () => {
     expect(parsed.sensors[1].sensorId).toBe('b');
 });
 
+test('parseSensorJson returns null when given non-string input', () => {
+    expect(parseSensorJson(undefined)).toBeNull();
+    expect(parseSensorJson(null)).toBeNull();
+    expect(parseSensorJson(42)).toBeNull();
+});
+
+test('parseSensorJson returns null if data remains invalid after cleanup', () => {
+    expect(parseSensorJson('{not-json')).toBeNull();
+});
+
 test('transformAggregatedData converts API response', () => {
     const raw = {
         sensors: [

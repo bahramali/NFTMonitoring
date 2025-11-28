@@ -36,11 +36,17 @@ export { baseNormalizeSensors as normalizeSensors };
 
 // Parses JSON string, fixes concatenated objects without commas
 export function parseSensorJson(str) {
+    if (typeof str !== "string") return null;
+
     try {
         return JSON.parse(str);
     } catch {
-        const fixed = str.replace(/}\s*{"sensorId":/g, '},{"sensorId":');
-        return JSON.parse(fixed);
+        try {
+            const fixed = str.replace(/}\s*{"sensorId":/g, '},{"sensorId":');
+            return JSON.parse(fixed);
+        } catch {
+            return null;
+        }
     }
 }
 
