@@ -8,7 +8,7 @@ import { pickBucket, toISOSeconds } from "./utils/datetime";
 import { useReportsFilters } from "./context/ReportsFiltersContext.jsx";
 import styles from "./ReportsPage.module.css";
 
-const AUTO_REFRESH_MS = { "30s": 30_000, "1m": 60_000, "5m": 300_000 };
+const AUTO_REFRESH_MS = { "5s": 5_000, "30s": 30_000, "1m": 60_000, "5m": 300_000 };
 
 const createEmptyChartState = () => ({
     tempByCid: Object.create(null),
