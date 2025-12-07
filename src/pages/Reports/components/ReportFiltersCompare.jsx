@@ -729,7 +729,7 @@ export default function ReportFiltersCompare(props) {
                             <div className={styles.field}>
                                 <span className={styles.label}>Auto refresh</span>
                                 <select value={autoRefreshValue} onChange={onAutoRefreshValueChange}>
-                                    {['Off','30s','1m','5m'].map(v => (
+                                    {['Off','5s','30s','1m','5m'].map(v => (
                                         <option key={v} value={v}>{v}</option>
                                     ))}
                                 </select>
