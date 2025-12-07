@@ -51,6 +51,7 @@ export default function ReportCharts({
                                          phByCid,
                                          ecTdsByCid,
                                          doByCid,
+                                         co2ByCid,
                                          selectedSensors = [],
                                          xDomain,
                                          selectedDevice
@@ -157,6 +158,14 @@ export default function ReportCharts({
                     series: toSeries(doByCid, "do"),
                     yLabel: "Dissolved Oxygen (mg/L)",
                 },
+                {
+                    id: "co2",
+                    visible: selectedKeys.has("co2"),
+                    title: withDevice("CO₂", selectedDevice),
+                    description: "Track CO₂ levels to optimize photosynthesis and growth.",
+                    series: toSeries(co2ByCid, "co2"),
+                    yLabel: "CO₂ (ppm)",
+                },
             ].filter((section) => section.visible),
         [
             doByCid,
@@ -164,6 +173,7 @@ export default function ReportCharts({
             hasBlueSelection,
             hasLuxSelection,
             hasRedSelection,
+            co2ByCid,
             phByCid,
             rangeByCid,
             selectedDevice,
