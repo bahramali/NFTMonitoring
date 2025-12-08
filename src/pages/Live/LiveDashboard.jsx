@@ -1,7 +1,7 @@
 import React, {useEffect, useMemo, useState} from "react";
 import Header from "../common/Header";
 import {useLiveDevices} from "../common/useLiveDevices.js";
-import {GERMINATION_TOPIC, WATER_FLOW_TOPIC, bandMap, knownFields, topics} from "../common/dashboard.constants.js";
+import {GERMINATION_TOPIC, bandMap, knownFields, topics} from "../common/dashboard.constants.js";
 import {AS7343_MODEL_KEY, makeMeasurementKey, sanitize} from "../common/measurementUtils.js";
 import {useSensorConfig} from "../../context/SensorConfigContext.jsx";
 import SpectrumBarChart from "./SpectrumBarChart.jsx";
@@ -12,112 +12,7 @@ import {getNftStageContext} from "./nftStages.js";
 
 const META_FIELDS = new Set(["timestamp", "deviceId", "compositeId", "layer"]);
 
-const WATER_STATUS_KEYS = [
-    "status",
-    "state",
-    "value",
-    "running",
-    "active",
-    "isActive",
-    "isOn",
-    "enabled",
-    "flow",
-    "waterFlow",
-];
-
-const ON_STRINGS = new Set(["on", "true", "enabled", "running", "active", "open", "flowing", "start", "started"]);
-const OFF_STRINGS = new Set(["off", "false", "disabled", "stopped", "inactive", "closed", "stopping", "stop"]);
 const METRIC_HISTORY_WINDOW_MS = 15 * 60 * 1000;
-
-function coerceWaterStatus(value) {
-    if (typeof value === "boolean") return value;
-    if (typeof value === "number") {
-        if (Number.isNaN(value)) return null;
-        return value !== 0;
-    }
-    if (typeof value === "string") {
-        const normalized = value.trim().toLowerCase();
-        if (!normalized) return null;
-        if (ON_STRINGS.has(normalized)) return true;
-        if (OFF_STRINGS.has(normalized)) return false;
-        if (!Number.isNaN(Number(normalized))) {
-            return Number(normalized) !== 0;
-        }
-    }
-    return null;
-}
-
-function extractWaterFlowStatus(device = {}) {
-    const extra = device.extra && typeof device.extra === "object" ? device.extra : null;
-    const controllers = Array.isArray(device.controllers) ? device.controllers : [];
-    const candidates = [];
-
-    if (extra) {
-        for (const key of WATER_STATUS_KEYS) {
-            if (extra[key] !== undefined) {
-                candidates.push(extra[key]);
-            }
-        }
-    }
-
-    for (const controller of controllers) {
-        if (!controller || typeof controller !== "object") continue;
-        for (const key of ["state", "status", "value"]) {
-            if (controller[key] !== undefined) {
-                candidates.push(controller[key]);
-            }
-        }
-    }
-
-    for (const candidate of candidates) {
-        const status = coerceWaterStatus(candidate);
-        if (status !== null) {
-            return {
-                isOn: status,
-                label: status ? "On" : "Off",
-                rawValue: candidate,
-                source: device.compositeId || device.deviceId || "",
-            };
-        }
-    }
-
-    return null;
-}
-
-function WaterFlowStatus({status}) {
-    const hasData = status && typeof status.isOn === "boolean";
-    const indicatorClassNames = [styles.statusDot];
-    if (hasData) {
-        indicatorClassNames.push(status.isOn ? styles.statusDotOn : styles.statusDotOff);
-    } else {
-        indicatorClassNames.push(styles.statusDotIdle);
-    }
-
-    const updatedLabel = (hasData && status.receivedAt)
-        ? new Date(status.receivedAt).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit", second: "2-digit"})
-        : null;
-
-    return (
-        <div className={styles.statusTile}>
-            <div className={styles.statusHeading}>
-                <span className={indicatorClassNames.join(" ")} aria-hidden="true"></span>
-                <span className={styles.statusLabel}>Water Flow</span>
-            </div>
-            <div className={styles.statusValue}>
-                {hasData ? status.label : "Waiting for data"}
-            </div>
-            {hasData && status.source && (
-                <div className={styles.statusSub}>Source: {status.source}</div>
-            )}
-            {updatedLabel && (
-                <div className={styles.statusMeta}>Updated {updatedLabel}</div>
-            )}
-            {hasData && status.rawValue !== status.label && status.rawValue !== undefined && (
-                <div className={styles.statusMeta}>Raw: {String(status.rawValue)}</div>
-            )}
-        </div>
-    );
-}
 
 function resolveStageRange(normalizedType, topic, rangeLookup) {
     if (!normalizedType || !rangeLookup) return null;
@@ -392,11 +287,10 @@ function DeviceMetricCard({topic, device, rangeLookup}) {
 
 function LiveDashboard() {
     const {deviceData, mergedDevices, sensorData} = useLiveDevices(topics);
-    const [dayNumber, setDayNumber] = useState(21);
     const [selectedCompositeId, setSelectedCompositeId] = useState("");
     const [selectedMetricKey, setSelectedMetricKey] = useState("");
     const [metricHistory, setMetricHistory] = useState({});
-    const stageContext = useMemo(() => getNftStageContext(dayNumber), [dayNumber]);
+    const stageContext = useMemo(() => getNftStageContext(21), []);
 
     const aggregatedTopics = useMemo(() => {
         const allTopics = {};
@@ -408,27 +302,9 @@ function LiveDashboard() {
         return allTopics;
     }, [deviceData]);
 
-    const waterFlowStatus = useMemo(() => {
-        const topicDevices = aggregatedTopics[WATER_FLOW_TOPIC];
-        if (!topicDevices) return null;
-
-        let latest = null;
-        for (const device of Object.values(topicDevices)) {
-            if (!device) continue;
-            const parsed = extractWaterFlowStatus(device);
-            if (!parsed) continue;
-            const receivedAt = Number.isFinite(device.receivedAt) ? device.receivedAt : Date.now();
-            if (!latest || receivedAt > latest.receivedAt) {
-                latest = {...parsed, receivedAt};
-            }
-        }
-
-        return latest;
-    }, [aggregatedTopics]);
-
     const filteredTopics = useMemo(() => {
         const entries = Object.entries(aggregatedTopics)
-            .filter(([topic]) => topic !== GERMINATION_TOPIC && topic !== WATER_FLOW_TOPIC);
+            .filter(([topic]) => topic !== GERMINATION_TOPIC);
         return Object.fromEntries(entries);
     }, [aggregatedTopics]);
 
@@ -592,44 +468,6 @@ function LiveDashboard() {
         <div className={styles.page}>
             <Header title="NFT Live Overview"/>
             <div className={styles.pageGrid}>
-                <section className={`${styles.sectionCard} ${styles.statusSection}`}>
-                    <div className={styles.sectionHeader}>Realtime status</div>
-                    <div className={styles.statusGrid}>
-                        <WaterFlowStatus status={waterFlowStatus}/>
-                        <div className={styles.statusTile}>
-                            <div className={styles.statusHeading}>Day after transplant</div>
-                            <div className={styles.dayRow}>
-                                <input
-                                    type="number"
-                                    min={1}
-                                    max={120}
-                                    value={dayNumber}
-                                    onChange={event => {
-                                        const value = Number(event.target.value);
-                                        setDayNumber(Number.isFinite(value) ? Math.max(1, value) : 1);
-                                    }}
-                                    className={styles.dayInput}
-                                />
-                                <div className={styles.statusMeta}>Adjust to update stage targets</div>
-                            </div>
-                        </div>
-                        <div className={styles.statusTile}>
-                            <div className={styles.statusHeading}>Stage summary</div>
-                            <div className={styles.stageSummaryGrid}>
-                                {stageContext.summaries.map((summary) => (
-                                    <div key={summary.groupId} className={styles.stageChip}>
-                                        <div className={styles.stageGroup}>{summary.groupLabel}</div>
-                                        <div className={styles.stageDescription}>{summary.description}</div>
-                                        {summary.daysLabel && (
-                                            <div className={styles.stageDays}>Target {summary.daysLabel}</div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
                 <section className={`${styles.sectionCard} ${styles.chartSection}`}>
                     <div className={styles.sectionHeader}>Live charts</div>
                     <div className={styles.selectorRow}>
