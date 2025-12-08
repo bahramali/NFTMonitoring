@@ -135,15 +135,15 @@
 
 .deviceGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 0.8rem;
 }
 
 .deviceCard {
     border-radius: 1rem;
     border: 1px solid rgba(92, 130, 204, 0.4);
     background: linear-gradient(165deg, rgba(17, 28, 55, 0.95), rgba(11, 19, 36, 0.95));
-    padding: 1rem 1.1rem;
+    padding: 0.85rem 0.95rem;
     box-shadow: 0 18px 36px rgba(4, 10, 30, 0.45);
     display: flex;
     flex-direction: column;
@@ -158,7 +158,7 @@
 }
 
 .deviceTopic {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: #7fb5ff;
@@ -166,14 +166,14 @@
 }
 
 .deviceId {
-    font-size: 1.05rem;
+    font-size: 0.95rem;
     font-weight: 700;
     color: #eaf2ff;
 }
 
 .deviceLayer {
     color: #9fb7ff;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 
 .deviceMetaBlock {
@@ -184,7 +184,7 @@
 }
 
 .deviceMeta {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #a9c1ff;
 }
 
@@ -193,38 +193,38 @@
     border-radius: 999px;
     border: 1px solid rgba(104, 166, 255, 0.35);
     background: rgba(38, 64, 112, 0.65);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: #d8e4ff;
 }
 
 .metricGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
-    gap: 0.65rem;
+    grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+    gap: 0.55rem;
 }
 
 .metricTile {
     border-radius: 0.75rem;
-    padding: 0.75rem 0.8rem;
+    padding: 0.65rem 0.7rem;
     border: 1px solid rgba(120, 156, 228, 0.35);
     background: linear-gradient(180deg, rgba(24, 36, 66, 0.95), rgba(18, 30, 56, 0.9));
     box-shadow: inset 0 0 0 1px rgba(30, 52, 96, 0.35);
 }
 
 .metricLabel {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #c6d8ff;
 }
 
 .metricValue {
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     font-weight: 700;
     color: #f4f7ff;
     margin-top: 0.2rem;
 }
 
 .metricRange {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: #a2b8eb;
     margin-top: 0.15rem;
 }
@@ -249,8 +249,8 @@
 
 .metaGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-    gap: 0.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    gap: 0.4rem;
     padding-top: 0.35rem;
     border-top: 1px dashed rgba(116, 158, 240, 0.35);
 }
