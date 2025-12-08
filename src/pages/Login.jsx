@@ -33,13 +33,13 @@ export default function Login() {
             <div className={styles.card}>
                 <h1 className={styles.title}>Sign in</h1>
                 <p className={styles.subtitle}>Access your dashboard by signing in.</p>
-                <form className={styles.form} onSubmit={handleSubmit}>
+                <form className={styles.form} onSubmit={handleSubmit} autoComplete="off">
                     <label className={styles.label} htmlFor="username">Username</label>
                     <input
                         id="username"
                         className={styles.input}
                         type="text"
-                        autoComplete="username"
+                        autoComplete="off"
                         value={username}
                         onChange={(event) => setUsername(event.target.value)}
                         required
@@ -49,7 +49,7 @@ export default function Login() {
                         id="password"
                         className={styles.input}
                         type="password"
-                        autoComplete="current-password"
+                        autoComplete="off"
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
                         required
