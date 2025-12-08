@@ -127,6 +127,22 @@ export default function ReportCharts({
                     yLabel: "Lux",
                 },
                 {
+                    id: "vis1",
+                    visible: selectedKeys.has("vis1"),
+                    title: withDevice("VIS1 / FD1", selectedDevice),
+                    description: "Track the primary VIS/FD1 photodiode to avoid saturation.",
+                    series: toSeries(rangeByCid, "VIS1"),
+                    yLabel: "VIS1",
+                },
+                {
+                    id: "vis2",
+                    visible: selectedKeys.has("vis2"),
+                    title: withDevice("VIS2", selectedDevice),
+                    description: "Monitor VIS2 intensity for supplemental spectrum coverage.",
+                    series: toSeries(rangeByCid, "VIS2"),
+                    yLabel: "VIS2",
+                },
+                {
                     id: "ph",
                     visible: selectedKeys.has("ph"),
                     title: withDevice("pH", selectedDevice),
