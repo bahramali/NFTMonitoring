@@ -108,8 +108,24 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
             return;
         }
 
-        let aborted = false;
+        let cancelled = false;
+        let retryTimer = null;
+        let retryDelay = RETRY_MIN;
+        let activeController = null;
+
+        const clearRetry = () => {
+            if (retryTimer) {
+                clearTimeout(retryTimer);
+                retryTimer = null;
+            }
+        };
+
         const fetchHistory = async () => {
+            clearRetry();
+            activeController?.abort();
+            activeController = new AbortController();
+            const {signal} = activeController;
+
             try {
                 setHistoryError("");
                 const params = new URLSearchParams({
@@ -118,9 +134,26 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
                     limit: String(MAX_POINTS),
                 });
                 const url = `${HISTORY_URL}?${params.toString()}`;
-                const response = await fetch(url);
+                const response = await fetch(url, {signal});
                 if (!response.ok) throw new Error(`History request failed (${response.status})`);
-                const payload = await response.json();
+
+                const rawBody = await response.text();
+                if (signal.aborted || cancelled) return;
+
+                if (!rawBody) {
+                    bufferRef.current.set(targetBufferKey, []);
+                    scheduleRender();
+                    retryDelay = RETRY_MIN;
+                    return;
+                }
+
+                let payload;
+                try {
+                    payload = JSON.parse(rawBody);
+                } catch (parseErr) {
+                    throw new Error("Received invalid history response");
+                }
+
                 const items = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : []);
                 const points = items
                     .map(normalizeMetricEvent)
@@ -130,18 +163,29 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
                     .sort((a, b) => a.timestamp - b.timestamp)
                     .map(event => ({timestamp: event.timestamp, value: event.value}));
 
-                if (aborted) return;
+                if (signal.aborted || cancelled) return;
+
                 bufferRef.current.set(targetBufferKey, points);
                 scheduleRender();
+                retryDelay = RETRY_MIN;
             } catch (err) {
-                if (!aborted) {
-                    setHistoryError(err?.message || "Unable to load history");
-                }
+                if (signal.aborted || cancelled) return;
+                const readableMessage = err?.message || "Unable to load history data";
+                setHistoryError(readableMessage);
+
+                retryTimer = setTimeout(() => {
+                    retryDelay = Math.min(retryDelay * 2, RETRY_MAX);
+                    fetchHistory();
+                }, retryDelay);
             }
         };
 
         fetchHistory();
-        return () => { aborted = true; };
+        return () => {
+            cancelled = true;
+            clearRetry();
+            activeController?.abort();
+        };
     }, [selectedCompositeId, selectedMetricKey, targetBufferKey]);
 
     useEffect(() => {
