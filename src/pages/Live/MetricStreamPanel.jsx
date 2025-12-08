@@ -108,8 +108,7 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
             return;
         }
 
-        const abortController = new AbortController();
-        const {signal} = abortController;
+        let aborted = false;
         const fetchHistory = async () => {
             try {
                 setHistoryError("");
@@ -119,17 +118,9 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
                     limit: String(MAX_POINTS),
                 });
                 const url = `${HISTORY_URL}?${params.toString()}`;
-                const response = await fetch(url, {signal});
+                const response = await fetch(url);
                 if (!response.ok) throw new Error(`History request failed (${response.status})`);
-
-                const rawBody = await response.text();
-                if (!rawBody) {
-                    bufferRef.current.set(targetBufferKey, []);
-                    scheduleRender();
-                    return;
-                }
-
-                const payload = JSON.parse(rawBody);
+                const payload = await response.json();
                 const items = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : []);
                 const points = items
                     .map(normalizeMetricEvent)
@@ -139,18 +130,18 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
                     .sort((a, b) => a.timestamp - b.timestamp)
                     .map(event => ({timestamp: event.timestamp, value: event.value}));
 
-                if (signal.aborted) return;
+                if (aborted) return;
                 bufferRef.current.set(targetBufferKey, points);
                 scheduleRender();
             } catch (err) {
-                if (!signal.aborted) {
-                    setHistoryError("Unable to load history data");
+                if (!aborted) {
+                    setHistoryError(err?.message || "Unable to load history");
                 }
             }
         };
 
         fetchHistory();
-        return () => abortController.abort();
+        return () => { aborted = true; };
     }, [selectedCompositeId, selectedMetricKey, targetBufferKey]);
 
     useEffect(() => {
