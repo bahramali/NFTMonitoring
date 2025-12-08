@@ -24,17 +24,17 @@ export default function Login() {
         if (result.success) {
             navigate('/overview', { replace: true });
         } else {
-            setError('نام کاربری یا رمز عبور اشتباه است.');
+            setError('Invalid username or password.');
         }
     };
 
     return (
         <div className={styles.page}>
             <div className={styles.card}>
-                <h1 className={styles.title}>ورود</h1>
-                <p className={styles.subtitle}>برای دسترسی به داشبورد لطفاً وارد شوید.</p>
+                <h1 className={styles.title}>Sign in</h1>
+                <p className={styles.subtitle}>Access your dashboard by signing in.</p>
                 <form className={styles.form} onSubmit={handleSubmit}>
-                    <label className={styles.label} htmlFor="username">نام کاربری</label>
+                    <label className={styles.label} htmlFor="username">Username</label>
                     <input
                         id="username"
                         className={styles.input}
@@ -42,10 +42,9 @@ export default function Login() {
                         autoComplete="username"
                         value={username}
                         onChange={(event) => setUsername(event.target.value)}
-                        placeholder="Azad_admin"
                         required
                     />
-                    <label className={styles.label} htmlFor="password">رمز عبور</label>
+                    <label className={styles.label} htmlFor="password">Password</label>
                     <input
                         id="password"
                         className={styles.input}
@@ -53,11 +52,10 @@ export default function Login() {
                         autoComplete="current-password"
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
-                        placeholder="Reza1!Reza1!"
                         required
                     />
                     {error && <div className={styles.error}>{error}</div>}
-                    <button className={styles.button} type="submit">ورود به سامانه</button>
+                    <button className={styles.button} type="submit">Sign in</button>
                 </form>
             </div>
         </div>
