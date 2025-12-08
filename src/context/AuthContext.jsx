@@ -5,6 +5,7 @@ const isTestEnv = (typeof import.meta !== 'undefined' && import.meta.env?.MODE =
 
 const defaultAuthValue = {
     isAuthenticated: isTestEnv,
+    user: isTestEnv ? { username: 'Test User' } : null,
     login: () => ({ success: false }),
     logout: () => {},
 };
@@ -27,11 +28,29 @@ export function AuthProvider({ children }) {
         return false;
     });
 
+    const [user, setUser] = useState(() => {
+        if (isTestEnv) {
+            return { username: 'Test User' };
+        }
+
+        if (typeof window !== 'undefined') {
+            const storedUsername = window.localStorage.getItem('authUser');
+            if (storedUsername) {
+                return { username: storedUsername };
+            }
+        }
+
+        return null;
+    });
+
     const login = (username, password) => {
-        if (username === VALID_USERNAME && password === VALID_PASSWORD) {
+        const trimmedUsername = username?.trim();
+        if (trimmedUsername === VALID_USERNAME && password === VALID_PASSWORD) {
             setIsAuthenticated(true);
+            setUser({ username: trimmedUsername });
             if (typeof window !== 'undefined') {
                 window.localStorage.setItem('authStatus', 'authenticated');
+                window.localStorage.setItem('authUser', trimmedUsername);
             }
             return { success: true };
         }
@@ -41,12 +60,17 @@ export function AuthProvider({ children }) {
 
     const logout = () => {
         setIsAuthenticated(false);
+        setUser(null);
         if (typeof window !== 'undefined') {
             window.localStorage.removeItem('authStatus');
+            window.localStorage.removeItem('authUser');
         }
     };
 
-    const value = useMemo(() => ({ isAuthenticated, login, logout }), [isAuthenticated]);
+    const value = useMemo(
+        () => ({ isAuthenticated, user, login, logout }),
+        [isAuthenticated, user],
+    );
 
     return (
         <AuthContext.Provider value={value}>
