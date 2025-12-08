@@ -16,6 +16,7 @@ const createEmptyChartState = () => ({
     phByCid: Object.create(null),
     ecTdsByCid: Object.create(null),
     doByCid: Object.create(null),
+    co2ByCid: Object.create(null),
 });
 
 const extractValue = (reading) => reading?.value ?? 0;
@@ -26,6 +27,7 @@ const buildChartSeries = (sensorsPayload = []) => {
     const ph = [];
     const ecTds = [];
     const dissolvedOxygen = [];
+    const co2 = [];
 
     transformAggregatedData({ sensors: sensorsPayload }).forEach((entry) => {
         const time = entry.timestamp;
@@ -43,9 +45,10 @@ const buildChartSeries = (sensorsPayload = []) => {
             tds: extractValue(entry.tds),
         });
         dissolvedOxygen.push({ time, do: extractValue(entry.do) });
+        co2.push({ time, co2: extractValue(entry.co2) });
     });
 
-    return { range, temperature, ph, ecTds, dissolvedOxygen };
+    return { range, temperature, ph, ecTds, dissolvedOxygen, co2 };
 };
 
 const createHistoryUrl = (cid, params, selectedSensors) => {
@@ -185,12 +188,13 @@ export default function Reports() {
             const results = await Promise.all(requests);
 
             const chartState = results.reduce((state, { cid, data }) => {
-                const { range, temperature, ph, ecTds, dissolvedOxygen } = buildChartSeries(data.sensors);
+                const { range, temperature, ph, ecTds, dissolvedOxygen, co2 } = buildChartSeries(data.sensors);
                 state.rangeByCid[cid] = range;
                 state.tempByCid[cid] = temperature;
                 state.phByCid[cid] = ph;
                 state.ecTdsByCid[cid] = ecTds;
                 state.doByCid[cid] = dissolvedOxygen;
+                state.co2ByCid[cid] = co2;
                 return state;
             }, createEmptyChartState());
 
@@ -335,6 +339,7 @@ export default function Reports() {
                         phByCid={chartData.phByCid}
                         ecTdsByCid={chartData.ecTdsByCid}
                         doByCid={chartData.doByCid}
+                        co2ByCid={chartData.co2ByCid}
                         selectedDevice={selectedDeviceLabel}
                         selectedSensors={selectedSensorTypes}
                         xDomain={xDomain}

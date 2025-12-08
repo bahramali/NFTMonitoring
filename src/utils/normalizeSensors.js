@@ -23,6 +23,7 @@ export function canonKey(raw) {
   if (['do','dissolvedoxygen'].includes(t)) return 'do';
   if (['co2','co₂','co2ppm'].includes(t)) return 'co2';
   if (['watertemp','watertemperature','water_temp','dissolvedtemp'].includes(t)) return 'waterTemp';
+  if (['fd1','fd_1'].includes(t)) return 'vis1';
   if (['vis1','vis_1'].includes(t)) return 'vis1';
   if (['vis2','vis_2'].includes(t)) return 'vis2';
   if (['nir855','nir','nir_855'].includes(t)) return 'nir855';

@@ -51,6 +51,7 @@ export default function ReportCharts({
                                          phByCid,
                                          ecTdsByCid,
                                          doByCid,
+                                         co2ByCid,
                                          selectedSensors = [],
                                          xDomain,
                                          selectedDevice
@@ -126,6 +127,22 @@ export default function ReportCharts({
                     yLabel: "Lux",
                 },
                 {
+                    id: "vis1",
+                    visible: selectedKeys.has("vis1"),
+                    title: withDevice("VIS1 / FD1", selectedDevice),
+                    description: "Track the primary VIS/FD1 photodiode to avoid saturation.",
+                    series: toSeries(rangeByCid, "VIS1"),
+                    yLabel: "VIS1",
+                },
+                {
+                    id: "vis2",
+                    visible: selectedKeys.has("vis2"),
+                    title: withDevice("VIS2", selectedDevice),
+                    description: "Monitor VIS2 intensity for supplemental spectrum coverage.",
+                    series: toSeries(rangeByCid, "VIS2"),
+                    yLabel: "VIS2",
+                },
+                {
                     id: "ph",
                     visible: selectedKeys.has("ph"),
                     title: withDevice("pH", selectedDevice),
@@ -157,6 +174,14 @@ export default function ReportCharts({
                     series: toSeries(doByCid, "do"),
                     yLabel: "Dissolved Oxygen (mg/L)",
                 },
+                {
+                    id: "co2",
+                    visible: selectedKeys.has("co2"),
+                    title: withDevice("CO₂", selectedDevice),
+                    description: "Track CO₂ levels to optimize photosynthesis and growth.",
+                    series: toSeries(co2ByCid, "co2"),
+                    yLabel: "CO₂ (ppm)",
+                },
             ].filter((section) => section.visible),
         [
             doByCid,
@@ -164,6 +189,7 @@ export default function ReportCharts({
             hasBlueSelection,
             hasLuxSelection,
             hasRedSelection,
+            co2ByCid,
             phByCid,
             rangeByCid,
             selectedDevice,

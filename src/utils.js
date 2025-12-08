@@ -83,6 +83,7 @@ export function transformAggregatedData(data) {
                     '515nm': 0, '550nm': 0, '555nm': 0, '600nm': 0,
                     '640nm': 0, '690nm': 0, '745nm': 0,
                     VIS1: 0, VIS2: 0, NIR855: 0,
+                    co2: { value: 0, unit: 'ppm' },
                     temperature: {value: 0, unit: '°C'},
                     humidity: {value: 0, unit: '%'},
                     lux: {value: 0, unit: 'lux'},
@@ -103,6 +104,9 @@ export function transformAggregatedData(data) {
                 case 'light':
                 case 'lux':
                     out.lux = {value: Number(val), unit};
+                    break;
+                case 'co2':
+                    out.co2 = { value: Number(val), unit };
                     break;
                 case 'tds':
                 case 'dissolvedTDS':
