@@ -1,0 +1,64 @@
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    height: 100%;
+}
+
+.statusRow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #c8d8ff;
+    font-weight: 600;
+}
+
+.statusDot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #65769b;
+    box-shadow: 0 0 0 4px rgba(101, 118, 155, 0.2);
+}
+
+.connecting {
+    background: #f2c94c;
+    box-shadow: 0 0 0 6px rgba(242, 201, 76, 0.18);
+}
+
+.open {
+    background: #33d69f;
+    box-shadow: 0 0 0 6px rgba(51, 214, 159, 0.2);
+}
+
+.reconnecting {
+    background: #f2994a;
+    box-shadow: 0 0 0 6px rgba(242, 153, 74, 0.2);
+}
+
+.statusText {
+    font-size: 0.95rem;
+}
+
+.statusSubdued {
+    color: #9fb7ff;
+    font-size: 0.9rem;
+}
+
+.errorBanner {
+    background: rgba(208, 87, 99, 0.12);
+    border: 1px solid rgba(208, 87, 99, 0.4);
+    color: #ffd6db;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.6rem;
+    font-size: 0.9rem;
+}
+
+.chartEmpty {
+    padding: 2rem 1rem;
+    color: #9fb7ff;
+    text-align: center;
+    background: rgba(16, 24, 48, 0.6);
+    border: 1px dashed rgba(100, 140, 210, 0.4);
+    border-radius: 0.8rem;
+}
