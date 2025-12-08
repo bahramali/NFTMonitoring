@@ -1,14 +1,16 @@
-import React, {useMemo, useState} from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import Header from "../common/Header";
 import {useLiveDevices} from "../common/useLiveDevices.js";
 import {GERMINATION_TOPIC, WATER_FLOW_TOPIC, bandMap, knownFields, topics} from "../common/dashboard.constants.js";
 import {AS7343_MODEL_KEY, makeMeasurementKey, sanitize} from "../common/measurementUtils.js";
-import spectralColors from "../../spectralColors";
 import {useSensorConfig} from "../../context/SensorConfigContext.jsx";
+import SpectrumBarChart from "./SpectrumBarChart.jsx";
+import spectralColors from "../../spectralColors";
 import styles from "./LiveDashboard.module.css";
 import {getNftStageContext} from "./nftStages.js";
 
 const META_FIELDS = new Set(["timestamp", "deviceId", "compositeId", "layer"]);
+
 const WATER_STATUS_KEYS = [
     "status",
     "state",
@@ -21,6 +23,7 @@ const WATER_STATUS_KEYS = [
     "flow",
     "waterFlow",
 ];
+
 const ON_STRINGS = new Set(["on", "true", "enabled", "running", "active", "open", "flowing", "start", "started"]);
 const OFF_STRINGS = new Set(["off", "false", "disabled", "stopped", "inactive", "closed", "stopping", "stop"]);
 
@@ -81,13 +84,6 @@ function extractWaterFlowStatus(device = {}) {
 
 function WaterFlowStatus({status}) {
     const hasData = status && typeof status.isOn === "boolean";
-    const cardClassNames = [styles.statusCard];
-    if (hasData) {
-        cardClassNames.push(status.isOn ? styles.statusCardOn : styles.statusCardOff);
-    } else {
-        cardClassNames.push(styles.statusCardIdle);
-    }
-
     const indicatorClassNames = [styles.statusDot];
     if (hasData) {
         indicatorClassNames.push(status.isOn ? styles.statusDotOn : styles.statusDotOff);
@@ -100,27 +96,65 @@ function WaterFlowStatus({status}) {
         : null;
 
     return (
-        <div className={styles.statusSection}>
-            <div className={cardClassNames.join(" ")}>
-                <div className={styles.statusHeader}>
-                    <span className={indicatorClassNames.join(" ")} aria-hidden="true"></span>
-                    <span className={styles.statusTitle}>Water Flow</span>
-                </div>
-                <div className={styles.statusValue}>
-                    {hasData ? status.label : "Waiting for data"}
-                </div>
-                {hasData && status.source && (
-                    <div className={styles.statusSource}>Source: {status.source}</div>
-                )}
-                {updatedLabel && (
-                    <div className={styles.statusTimestamp}>Last updated {updatedLabel}</div>
-                )}
-                {hasData && status.rawValue !== status.label && status.rawValue !== undefined && (
-                    <div className={styles.statusDetail}>Raw: {String(status.rawValue)}</div>
-                )}
+        <div className={styles.statusTile}>
+            <div className={styles.statusHeading}>
+                <span className={indicatorClassNames.join(" ")} aria-hidden="true"></span>
+                <span className={styles.statusLabel}>Water Flow</span>
             </div>
+            <div className={styles.statusValue}>
+                {hasData ? status.label : "Waiting for data"}
+            </div>
+            {hasData && status.source && (
+                <div className={styles.statusSub}>Source: {status.source}</div>
+            )}
+            {updatedLabel && (
+                <div className={styles.statusMeta}>Updated {updatedLabel}</div>
+            )}
+            {hasData && status.rawValue !== status.label && status.rawValue !== undefined && (
+                <div className={styles.statusMeta}>Raw: {String(status.rawValue)}</div>
+            )}
         </div>
     );
+}
+
+function resolveStageRange(normalizedType, topic, rangeLookup) {
+    if (!normalizedType || !rangeLookup) return null;
+    const {byTopic, global} = rangeLookup;
+    const topicKey = sanitize(topic);
+
+    if (topicKey && byTopic?.has(topicKey)) {
+        const topicMap = byTopic.get(topicKey);
+        if (topicMap?.has(normalizedType)) {
+            return topicMap.get(normalizedType);
+        }
+    }
+
+    if (global?.has(normalizedType)) {
+        return global.get(normalizedType);
+    }
+
+    return null;
+}
+
+function buildTopicList(systemTopics = {}) {
+    return Object.entries(systemTopics)
+        .filter(([, devices = {}]) => Object.keys(devices).length > 0);
+}
+
+function formatValue(value) {
+    if (value === undefined || value === null || Number.isNaN(value)) return "-";
+    if (typeof value === "number") {
+        const abs = Math.abs(value);
+        const decimals = abs >= 100 ? 0 : 1;
+        return value.toFixed(decimals);
+    }
+    return String(value);
+}
+
+function formatTimestamp(timestamp) {
+    if (!Number.isFinite(timestamp)) return "";
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit", second: "2-digit"});
 }
 
 function getSpectralBandKey(measurementType) {
@@ -144,76 +178,6 @@ function getCellColor(value, range) {
     const threshold = (range.max - range.min) * 0.1;
     if (value < range.min + threshold || value > range.max - threshold) return "#fff3cd";
     return "";
-}
-
-function buildTopicList(systemTopics = {}) {
-    return Object.entries(systemTopics)
-        .filter(([, devices = {}]) => Object.keys(devices).length > 0);
-}
-
-function NotesList({mergedDevices = {}, extraNotes = []}) {
-    const sensors = useMemo(() => {
-        const result = new Set();
-        for (const dev of Object.values(mergedDevices)) {
-            if (Array.isArray(dev?.sensors)) {
-                for (const sensor of dev.sensors) {
-                    const type = sensor && (sensor.sensorType || sensor.valueType);
-                    if (type) result.add(bandMap[type] || type);
-                }
-            }
-
-            for (const key of Object.keys(dev || {})) {
-                if (key === "health" || key === "sensors" || key === "controllers") continue;
-                if (META_FIELDS.has(key)) continue;
-                if (Array.isArray(dev?.sensors) && knownFields.has(key)) continue;
-                result.add(bandMap[key] || key);
-            }
-        }
-        return result;
-    }, [mergedDevices]);
-
-    const {findConfig} = useSensorConfig();
-    const notes = useMemo(() => {
-        const collected = [];
-        for (const key of sensors) {
-            const cfg = findConfig(key);
-            if (cfg?.description) collected.push(`${key}: ${cfg.description}`);
-        }
-        return collected;
-    }, [findConfig, sensors]);
-
-    const combinedNotes = [...notes, ...extraNotes];
-    if (!combinedNotes.length) return null;
-
-    return (
-        <div className={styles.noteBlock}>
-            <div className={styles.noteTitle}>Notes:</div>
-            <ul>
-                {combinedNotes.map((note, index) => (
-                    <li key={index}>{note}</li>
-                ))}
-            </ul>
-        </div>
-    );
-}
-
-function resolveStageRange(normalizedType, topic, rangeLookup) {
-    if (!normalizedType || !rangeLookup) return null;
-    const {byTopic, global} = rangeLookup;
-    const topicKey = sanitize(topic);
-
-    if (topicKey && byTopic?.has(topicKey)) {
-        const topicMap = byTopic.get(topicKey);
-        if (topicMap?.has(normalizedType)) {
-            return topicMap.get(normalizedType);
-        }
-    }
-
-    if (global?.has(normalizedType)) {
-        return global.get(normalizedType);
-    }
-
-    return null;
 }
 
 export function DeviceTable({devices = {}, topic, rangeLookup, sensorExtrema = {}}) {
@@ -248,7 +212,7 @@ export function DeviceTable({devices = {}, topic, rangeLookup, sensorExtrema = {
     if (measurementEntries.size === 0) {
         return (
             <div className={styles.tableWrapper}>
-                <div className={styles.emptyMessage}>No sensor data available.</div>
+                <div className={styles.metricEmpty}>No sensor data available.</div>
             </div>
         );
     }
@@ -345,88 +309,89 @@ export function DeviceTable({devices = {}, topic, rangeLookup, sensorExtrema = {
     );
 }
 
-function TopicGroups({systemTopics = {}, rangeLookup, sensorExtrema = {}}) {
-    const topics = useMemo(() => buildTopicList(systemTopics), [systemTopics]);
-    if (!topics.length) return null;
+function DeviceMetricCard({topic, device, rangeLookup}) {
+    const {findRange} = useSensorConfig();
+    const sensors = Array.isArray(device?.sensors) ? device.sensors : [];
+    const metrics = sensors.map((sensor, index) => {
+        const measurementType = sensor?.sensorType || sensor?.valueType || "Metric";
+        const normalizedType = sanitize(measurementType);
+        const sensorModel = sensor?.sensorName || sensor?.source || "";
+        const range = resolveStageRange(normalizedType, topic, rangeLookup)
+            || findRange(measurementType, {topic, sensorModel});
+        const numeric = typeof sensor?.value === "number" ? sensor.value : Number(sensor?.value);
+        const hasNumeric = Number.isFinite(numeric);
+        const inRange = range && hasNumeric
+            ? numeric >= range.min && numeric <= range.max
+            : true;
+        const statusClass = hasNumeric
+            ? (inRange ? styles.metricOk : styles.metricAlert)
+            : styles.metricIdle;
+        const valueDisplay = formatValue(hasNumeric ? numeric : sensor?.value);
+        const unit = sensor?.unit ? ` ${sensor.unit}` : "";
+        return {
+            key: `${measurementType}-${sensorModel || index}`,
+            label: measurementType,
+            valueDisplay: `${valueDisplay}${unit}`,
+            range,
+            statusClass,
+        };
+    });
+
+    const meta = [];
+    for (const [key, value] of Object.entries(device?.extra || {})) {
+        if (META_FIELDS.has(key)) continue;
+        meta.push({key, value});
+    }
 
     return (
-        <div className={styles.topicSection}>
-            {topics.map(([topic, devices]) => (
-                <div key={topic} className={styles.deviceGroup}>
-                    <h3 className={styles.topicTitle}>{topic}</h3>
-                    <DeviceTable topic={topic} devices={devices} rangeLookup={rangeLookup} sensorExtrema={sensorExtrema}/>
+        <div className={styles.deviceCard}>
+            <div className={styles.deviceCardHeader}>
+                <div>
+                    <div className={styles.deviceTopic}>{topic}</div>
+                    <div className={styles.deviceId}>{device?.compositeId || device?.deviceId || "Unknown"}</div>
+                    {device?.layer && <div className={styles.deviceLayer}>Layer {device.layer}</div>}
                 </div>
-            ))}
-        </div>
-    );
-}
-
-function StageSummary({dayNumber, onDayChange, summaries}) {
-    if (!summaries.length) return null;
-
-    return (
-        <div className={styles.stageSection}>
-            <div className={styles.stageControls}>
-                <label className={styles.dayInputLabel}>
-                    Day after transplant
-                    <input
-                        type="number"
-                        min={1}
-                        max={120}
-                        value={dayNumber}
-                        onChange={event => {
-                            const value = Number(event.target.value);
-                            onDayChange(Number.isFinite(value) ? Math.max(1, value) : 1);
-                        }}
-                        className={styles.dayInput}
-                    />
-                </label>
-                <div className={styles.stageHint}>Adjust the day to see target ranges per stage.</div>
+                <div className={styles.deviceMetaBlock}>
+                    {device?.receivedAt && (
+                        <span className={styles.deviceMeta}>Updated {formatTimestamp(device.receivedAt)}</span>
+                    )}
+                    {device?.health && Object.keys(device.health).length > 0 && (
+                        <span className={styles.deviceHealth}>{Object.values(device.health).every(Boolean) ? "Healthy" : "Attention"}</span>
+                    )}
+                </div>
             </div>
-            <div className={styles.stageSummaryGrid}>
-                {summaries.map((summary) => (
-                    <div key={summary.groupId} className={styles.stageCard}>
-                        <div className={styles.stageCardHeader}>
-                            <div className={styles.stageGroup}>{summary.groupLabel}</div>
-                            <div className={styles.stageDescription}>{summary.description}</div>
-                            {summary.daysLabel && (
-                                <div className={styles.stageDays}>Target window {summary.daysLabel}</div>
-                            )}
-                            {summary.isBeforeRange && (
-                                <div className={styles.stageStatus}>Before defined schedule</div>
-                            )}
-                            {summary.isBeyondRange && (
-                                <div className={styles.stageStatus}>Beyond defined schedule</div>
-                            )}
-                        </div>
-                        <ul className={styles.stageMetricList}>
-                            {summary.metrics.map((metric) => (
-                                <li key={`${summary.groupId}-${metric.label}`}>
-                                    <span className={styles.metricName}>{metric.label}</span>
-                                    <span className={styles.metricRange}>
-                                        {metric.range.min ?? "?"}–{metric.range.max ?? "?"}
-                                        {metric.range.unit ? ` ${metric.range.unit}` : ""}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-                        {summary.notes && summary.notes.length > 0 && (
-                            <div className={styles.stageNotes}>
-                                {summary.notes.map((note, index) => (
-                                    <div key={index}>{note}</div>
-                                ))}
-                            </div>
+            <div className={styles.metricGrid}>
+                {metrics.length === 0 && (
+                    <div className={styles.metricEmpty}>No live metrics yet</div>
+                )}
+                {metrics.map((metric) => (
+                    <div key={metric.key} className={`${styles.metricTile} ${metric.statusClass}`}>
+                        <div className={styles.metricLabel}>{metric.label}</div>
+                        <div className={styles.metricValue}>{metric.valueDisplay}</div>
+                        {metric.range && (
+                            <div className={styles.metricRange}>Target: {metric.range.min ?? "-"} – {metric.range.max ?? "-"}</div>
                         )}
                     </div>
                 ))}
             </div>
+            {meta.length > 0 && (
+                <div className={styles.metaGrid}>
+                    {meta.map(entry => (
+                        <div key={entry.key} className={styles.metaItem}>
+                            <div className={styles.metaLabel}>{entry.key}</div>
+                            <div className={styles.metaValue}>{String(entry.value)}</div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
 
 function LiveDashboard() {
-    const {deviceData, mergedDevices, sensorExtrema} = useLiveDevices(topics);
+    const {deviceData, mergedDevices, sensorData} = useLiveDevices(topics);
     const [dayNumber, setDayNumber] = useState(21);
+    const [selectedCompositeId, setSelectedCompositeId] = useState("");
     const stageContext = useMemo(() => getNftStageContext(dayNumber), [dayNumber]);
 
     const aggregatedTopics = useMemo(() => {
@@ -463,25 +428,117 @@ function LiveDashboard() {
         return Object.fromEntries(entries);
     }, [aggregatedTopics]);
 
+    const topicDevices = useMemo(() => buildTopicList(filteredTopics), [filteredTopics]);
+
+    const allDeviceEntries = useMemo(() => {
+        const list = [];
+        for (const [topic, devices] of topicDevices) {
+            for (const [id, device] of Object.entries(devices || {})) {
+                list.push({topic, id, device});
+            }
+        }
+        return list;
+    }, [topicDevices]);
+
+    useEffect(() => {
+        if (!selectedCompositeId && allDeviceEntries.length > 0) {
+            setSelectedCompositeId(allDeviceEntries[0].id);
+        }
+    }, [allDeviceEntries, selectedCompositeId]);
+
+    const selectedSensorData = selectedCompositeId ? sensorData[selectedCompositeId] : null;
+    const selectedDeviceInfo = allDeviceEntries.find(entry => entry.id === selectedCompositeId);
+
     return (
-        <div className={styles.dashboard}>
-            <Header title="NFT Channels"/>
-            <section className={styles.section}>
-                <div className={styles.sectionBody}>
-                    <WaterFlowStatus status={waterFlowStatus}/>
-                    <StageSummary
-                        dayNumber={dayNumber}
-                        onDayChange={setDayNumber}
-                        summaries={stageContext.summaries}
-                    />
-                    <NotesList mergedDevices={mergedDevices} extraNotes={stageContext.notes}/>
-                    <TopicGroups
-                        systemTopics={filteredTopics}
-                        rangeLookup={stageContext.rangeLookup}
-                        sensorExtrema={sensorExtrema}
-                    />
-                </div>
-            </section>
+        <div className={styles.page}>
+            <Header title="NFT Live Overview"/>
+            <div className={styles.pageGrid}>
+                <section className={`${styles.sectionCard} ${styles.statusSection}`}>
+                    <div className={styles.sectionHeader}>Realtime status</div>
+                    <div className={styles.statusGrid}>
+                        <WaterFlowStatus status={waterFlowStatus}/>
+                        <div className={styles.statusTile}>
+                            <div className={styles.statusHeading}>Day after transplant</div>
+                            <div className={styles.dayRow}>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    max={120}
+                                    value={dayNumber}
+                                    onChange={event => {
+                                        const value = Number(event.target.value);
+                                        setDayNumber(Number.isFinite(value) ? Math.max(1, value) : 1);
+                                    }}
+                                    className={styles.dayInput}
+                                />
+                                <div className={styles.statusMeta}>Adjust to update stage targets</div>
+                            </div>
+                        </div>
+                        <div className={styles.statusTile}>
+                            <div className={styles.statusHeading}>Stage summary</div>
+                            <div className={styles.stageSummaryGrid}>
+                                {stageContext.summaries.map((summary) => (
+                                    <div key={summary.groupId} className={styles.stageChip}>
+                                        <div className={styles.stageGroup}>{summary.groupLabel}</div>
+                                        <div className={styles.stageDescription}>{summary.description}</div>
+                                        {summary.daysLabel && (
+                                            <div className={styles.stageDays}>Target {summary.daysLabel}</div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section className={`${styles.sectionCard} ${styles.chartSection}`}>
+                    <div className={styles.sectionHeader}>Live spectrum</div>
+                    <div className={styles.selectorRow}>
+                        <label className={styles.selectorLabel}>
+                            Device
+                            <select
+                                value={selectedCompositeId}
+                                onChange={(event) => setSelectedCompositeId(event.target.value)}
+                                className={styles.deviceSelect}
+                            >
+                                <option value="" disabled>Select a device</option>
+                                {allDeviceEntries.map((entry) => (
+                                    <option key={entry.id} value={entry.id}>
+                                        {entry.topic} · {entry.device?.compositeId || entry.id}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        {selectedDeviceInfo?.device?.receivedAt && (
+                            <div className={styles.lastUpdated}>Last update {formatTimestamp(selectedDeviceInfo.device.receivedAt)}</div>
+                        )}
+                    </div>
+                    <div className={styles.chartWrapper}>
+                        {selectedSensorData ? (
+                            <SpectrumBarChart sensorData={selectedSensorData}/>
+                        ) : (
+                            <div className={styles.chartEmpty}>Select a device to view its latest spectrum</div>
+                        )}
+                    </div>
+                </section>
+
+                <section className={`${styles.sectionCard} ${styles.devicesSection}`}>
+                    <div className={styles.sectionHeader}>Metrics by device</div>
+                    <div className={styles.deviceGrid}>
+                        {allDeviceEntries.length === 0 && (
+                            <div className={styles.metricEmpty}>Waiting for devices to publish data...</div>
+                        )}
+                        {allDeviceEntries.map(({topic, id, device}) => (
+                            <DeviceMetricCard
+                                key={`${topic}-${id}`}
+                                topic={topic}
+                                device={mergedDevices[id] || device}
+                                rangeLookup={stageContext.rangeLookup}
+                            />
+                        ))}
+                    </div>
+                </section>
+            </div>
         </div>
     );
 }
