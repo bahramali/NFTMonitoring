@@ -10,15 +10,36 @@ import UserInfo from './pages/UserInfo';
 import SensorConfig from './pages/SensorConfig';
 import Note from './pages/Note';
 import ControlPanel from './pages/ControlPanel';
+import Login from './pages/Login.jsx';
+import { useAuth } from './context/AuthContext.jsx';
+
+function ProtectedRoute({ children }) {
+    const { isAuthenticated } = useAuth();
+
+    if (!isAuthenticated) {
+        return <Navigate to="/login" replace />;
+    }
+
+    return children;
+}
 
 function App() {
     const rawBase = import.meta?.env?.BASE_URL || '/';
     const base = rawBase === './' || rawBase === '/./' ? '/' : rawBase;
+    const { isAuthenticated } = useAuth();
 
     return (
         <BrowserRouter basename={base}>
             <Routes>
-                <Route path="/" element={<MainLayout />}> 
+                <Route path="/login" element={<Login />} />
+                <Route
+                    path="/"
+                    element={(
+                        <ProtectedRoute>
+                            <MainLayout />
+                        </ProtectedRoute>
+                    )}
+                >
                     <Route index element={<Navigate to="/overview" replace />} />
                     <Route path="overview" element={<Overview />} />
                     <Route path="live" element={<Live />} />
@@ -30,6 +51,10 @@ function App() {
                     <Route path="sensor-config" element={<SensorConfig />} />
                     <Route path="control-panel" element={<ControlPanel />} />
                 </Route>
+                <Route
+                    path="*"
+                    element={<Navigate to={isAuthenticated ? '/overview' : '/login'} replace />}
+                />
             </Routes>
         </BrowserRouter>
     );
