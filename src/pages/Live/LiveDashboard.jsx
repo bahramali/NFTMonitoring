@@ -5,6 +5,7 @@ import {GERMINATION_TOPIC, WATER_FLOW_TOPIC, bandMap, knownFields, topics} from 
 import {AS7343_MODEL_KEY, makeMeasurementKey, sanitize} from "../common/measurementUtils.js";
 import {useSensorConfig} from "../../context/SensorConfigContext.jsx";
 import SpectrumBarChart from "./SpectrumBarChart.jsx";
+import HistoryChart from "../../components/HistoryChart.jsx";
 import spectralColors from "../../spectralColors";
 import styles from "./LiveDashboard.module.css";
 import {getNftStageContext} from "./nftStages.js";
@@ -26,6 +27,7 @@ const WATER_STATUS_KEYS = [
 
 const ON_STRINGS = new Set(["on", "true", "enabled", "running", "active", "open", "flowing", "start", "started"]);
 const OFF_STRINGS = new Set(["off", "false", "disabled", "stopped", "inactive", "closed", "stopping", "stop"]);
+const METRIC_HISTORY_WINDOW_MS = 15 * 60 * 1000;
 
 function coerceWaterStatus(value) {
     if (typeof value === "boolean") return value;
@@ -392,6 +394,8 @@ function LiveDashboard() {
     const {deviceData, mergedDevices, sensorData} = useLiveDevices(topics);
     const [dayNumber, setDayNumber] = useState(21);
     const [selectedCompositeId, setSelectedCompositeId] = useState("");
+    const [selectedMetricKey, setSelectedMetricKey] = useState("");
+    const [metricHistory, setMetricHistory] = useState({});
     const stageContext = useMemo(() => getNftStageContext(dayNumber), [dayNumber]);
 
     const aggregatedTopics = useMemo(() => {
@@ -446,8 +450,143 @@ function LiveDashboard() {
         }
     }, [allDeviceEntries, selectedCompositeId]);
 
+    useEffect(() => {
+        if (Object.keys(mergedDevices).length === 0) return;
+
+        setMetricHistory((prev) => {
+            const next = {...prev};
+            let changed = false;
+
+            for (const [compositeId, device] of Object.entries(mergedDevices)) {
+                const sensors = Array.isArray(device?.sensors) ? device.sensors : [];
+                if (sensors.length === 0) continue;
+
+                const timestamp = Number.isFinite(device?.receivedAt) ? device.receivedAt : Date.now();
+                const deviceHistory = {...(next[compositeId] || {})};
+                let deviceChanged = false;
+
+                for (const sensor of sensors) {
+                    const measurementType = sensor?.sensorType || sensor?.valueType;
+                    const normalizedType = sanitize(measurementType);
+                    if (!normalizedType) continue;
+
+                    const sensorModel = sensor?.sensorName || sensor?.source || "";
+                    const normalizedModel = sanitize(sensorModel) || normalizedType;
+                    const measurementKey = makeMeasurementKey(normalizedType, normalizedModel);
+                    const value = Number(sensor?.value);
+
+                    if (!Number.isFinite(value)) continue;
+
+                    const history = deviceHistory[measurementKey] || [];
+                    const updatedHistory = [...history, {timestamp, value}]
+                        .filter(point => timestamp - point.timestamp <= METRIC_HISTORY_WINDOW_MS);
+
+                    deviceHistory[measurementKey] = updatedHistory;
+                    deviceChanged = true;
+                }
+
+                if (deviceChanged) {
+                    next[compositeId] = deviceHistory;
+                    changed = true;
+                }
+            }
+
+            return changed ? next : prev;
+        });
+    }, [mergedDevices]);
+
     const selectedSensorData = selectedCompositeId ? sensorData[selectedCompositeId] : null;
     const selectedDeviceInfo = allDeviceEntries.find(entry => entry.id === selectedCompositeId);
+
+    const selectedSensors = useMemo(() => {
+        const merged = selectedCompositeId ? mergedDevices[selectedCompositeId] : null;
+        if (Array.isArray(merged?.sensors)) return merged.sensors;
+        const fallback = selectedDeviceInfo?.device?.sensors;
+        return Array.isArray(fallback) ? fallback : [];
+    }, [mergedDevices, selectedCompositeId, selectedDeviceInfo]);
+
+    const metricOptions = useMemo(() => {
+        const seen = new Set();
+        const options = [];
+
+        for (const sensor of selectedSensors) {
+            const measurementType = sensor?.sensorType || sensor?.valueType;
+            const normalizedType = sanitize(measurementType);
+            if (!normalizedType) continue;
+
+            const sensorModel = sensor?.sensorName || sensor?.source || "";
+            const displayLabel = measurementType || "Metric";
+            const normalizedModel = sanitize(sensorModel) || normalizedType;
+            const measurementKey = makeMeasurementKey(normalizedType, normalizedModel);
+            if (seen.has(measurementKey)) continue;
+            seen.add(measurementKey);
+
+            const numericValue = Number(sensor?.value);
+            const hasNumeric = Number.isFinite(numericValue);
+
+            options.push({
+                key: measurementKey,
+                label: sensorModel ? `${displayLabel} • ${sensorModel}` : displayLabel,
+                unit: sensor?.unit || "",
+                hasNumeric,
+            });
+        }
+
+        return options.filter(option => option.hasNumeric);
+    }, [selectedSensors]);
+
+    useEffect(() => {
+        if (!selectedCompositeId) {
+            setSelectedMetricKey("");
+            return;
+        }
+
+        if (metricOptions.length === 0) {
+            setSelectedMetricKey("");
+            return;
+        }
+
+        if (!metricOptions.some(option => option.key === selectedMetricKey)) {
+            setSelectedMetricKey(metricOptions[0].key);
+        }
+    }, [metricOptions, selectedCompositeId, selectedMetricKey]);
+
+    const selectedMetricHistory = useMemo(() => {
+        if (!selectedCompositeId || !selectedMetricKey) return [];
+        return metricHistory[selectedCompositeId]?.[selectedMetricKey] || [];
+    }, [metricHistory, selectedCompositeId, selectedMetricKey]);
+
+    const selectedMetric = useMemo(
+        () => metricOptions.find(option => option.key === selectedMetricKey),
+        [metricOptions, selectedMetricKey]
+    );
+
+    const sortedMetricHistory = useMemo(
+        () => [...selectedMetricHistory].sort((a, b) => a.timestamp - b.timestamp),
+        [selectedMetricHistory]
+    );
+
+    const metricSeries = useMemo(() => {
+        if (!sortedMetricHistory.length) return [];
+        return [{
+            name: selectedMetric?.label || "Value",
+            data: sortedMetricHistory,
+            yDataKey: "value",
+            color: "#7fb5ff",
+        }];
+    }, [selectedMetric?.label, sortedMetricHistory]);
+
+    const metricDomain = useMemo(() => {
+        if (!sortedMetricHistory.length) return undefined;
+        const first = sortedMetricHistory[0]?.timestamp;
+        const last = sortedMetricHistory[sortedMetricHistory.length - 1]?.timestamp;
+        return Number.isFinite(first) && Number.isFinite(last) ? [first, last] : undefined;
+    }, [sortedMetricHistory]);
+
+    const metricYAxisLabel = useMemo(() => {
+        if (!selectedMetric) return "Value";
+        return selectedMetric.unit ? `${selectedMetric.label} (${selectedMetric.unit})` : selectedMetric.label;
+    }, [selectedMetric]);
 
     return (
         <div className={styles.page}>
@@ -492,7 +631,7 @@ function LiveDashboard() {
                 </section>
 
                 <section className={`${styles.sectionCard} ${styles.chartSection}`}>
-                    <div className={styles.sectionHeader}>Live spectrum</div>
+                    <div className={styles.sectionHeader}>Live charts</div>
                     <div className={styles.selectorRow}>
                         <label className={styles.selectorLabel}>
                             Device
@@ -513,12 +652,57 @@ function LiveDashboard() {
                             <div className={styles.lastUpdated}>Last update {formatTimestamp(selectedDeviceInfo.device.receivedAt)}</div>
                         )}
                     </div>
-                    <div className={styles.chartWrapper}>
-                        {selectedSensorData ? (
-                            <SpectrumBarChart sensorData={selectedSensorData}/>
-                        ) : (
-                            <div className={styles.chartEmpty}>Select a device to view its latest spectrum</div>
-                        )}
+                    <div className={styles.chartStack}>
+                        <div className={styles.chartBlock}>
+                            <div className={styles.subSectionHeader}>Spectrum snapshot</div>
+                            <div className={styles.chartWrapper}>
+                                {selectedSensorData ? (
+                                    <SpectrumBarChart sensorData={selectedSensorData}/>
+                                ) : (
+                                    <div className={styles.chartEmpty}>Select a device to view its latest spectrum</div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className={styles.chartBlock}>
+                            <div className={styles.subSectionHeader}>Metric trend</div>
+                            <div className={styles.metricSelectorRow}>
+                                <label className={styles.selectorLabel}>
+                                    Metric
+                                    <select
+                                        value={selectedMetricKey}
+                                        onChange={(event) => setSelectedMetricKey(event.target.value)}
+                                        className={styles.metricSelect}
+                                        disabled={metricOptions.length === 0}
+                                    >
+                                        {metricOptions.length === 0 && (
+                                            <option value="">No numeric metrics available</option>
+                                        )}
+                                        {metricOptions.map(option => (
+                                            <option key={option.key} value={option.key}>{option.label}</option>
+                                        ))}
+                                    </select>
+                                </label>
+                                {metricOptions.length > 1 && (
+                                    <div className={styles.selectorHint}>Each sensor is charted separately—pick a metric to stream live values.</div>
+                                )}
+                            </div>
+                            <div className={styles.chartWrapper}>
+                                {metricSeries.length > 0 ? (
+                                    <HistoryChart
+                                        xDataKey="timestamp"
+                                        series={metricSeries}
+                                        yLabel={metricYAxisLabel}
+                                        xDomain={metricDomain}
+                                        height={340}
+                                    />
+                                ) : (
+                                    <div className={styles.chartEmpty}>
+                                        {selectedCompositeId ? "Waiting for metric updates..." : "Select a device to begin streaming metrics"}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </section>
 
