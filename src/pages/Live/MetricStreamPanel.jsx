@@ -110,8 +110,12 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
 
         const abortController = new AbortController();
         const {signal} = abortController;
-
         const fetchHistory = async () => {
+            clearRetry();
+            activeController?.abort();
+            activeController = new AbortController();
+            const {signal} = activeController;
+
             try {
                 setHistoryError("");
                 const params = new URLSearchParams({
@@ -143,7 +147,7 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
                 if (signal.aborted) return;
                 bufferRef.current.set(targetBufferKey, points);
                 scheduleRender();
-                retryRef.current = RETRY_MIN;
+                retryDelay = RETRY_MIN;
             } catch (err) {
                 if (!signal.aborted) {
                     setHistoryError("Unable to load history data");
