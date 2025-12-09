@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import hydroleafLogo from '../assets/hydroleaf_logo.png';
 import styles from './Shop.module.css';
 
 const DASHBOARD_HOME = '/dashboard/overview';
@@ -68,7 +69,7 @@ export default function Shop() {
                 <nav className={styles.navbar}>
                     <div className={styles.brand}>
                         <img
-                            src="/hydroleaf_logo.png"
+                            src={hydroleafLogo}
                             alt="HydroLeaf Organic Products logo"
                             className={styles.brandLogo}
                         />
