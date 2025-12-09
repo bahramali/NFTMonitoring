@@ -2,7 +2,7 @@
 import { vi } from 'vitest';
 
 export function mockSensorConfigApi() {
-  // حالت ساده: در حافظه نگه می‌داریم
+  // Simple mode: keep data in memory
   const db = {
     'A_Temp_C@@/topic/growSensors': {
       sensorType: 'A_Temp_C@@/topic/growSensors',
