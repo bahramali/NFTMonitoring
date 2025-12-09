@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import hydroleafLogo from '../assets/hydroleaf_logo.png';
 import styles from './Navbar.module.css';
 
 const ADMIN_PAGES = [
@@ -31,7 +32,10 @@ export default function Navbar() {
     return (
         <header className={styles.header}>
             <div className={styles.brandRow}>
-                <Link to="/" className={styles.brand}>HydroLeaf Shop</Link>
+                <Link to="/" className={styles.brand}>
+                    <img src={hydroleafLogo} alt="HydroLeaf logo" className={styles.brandLogo} />
+                    <span className={styles.brandName}>HydroLeaf Shop</span>
+                </Link>
                 <nav className={styles.navLinks}>
                     <NavLink to="/" className={({ isActive }) => (isActive ? styles.active : '')}>
                         Home

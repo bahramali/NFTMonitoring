@@ -151,7 +151,7 @@ export function AuthProvider({ children }) {
         }
         if (normalizedRole === 'ADMIN') {
             const adminRecord = session.adminAssignments?.find(
-                (admin) => admin.username.toLowerCase() === trimmedUsername.toLowerCase(),
+                (admin) => admin.username.toLowerCase() === normalizedUsername,
             );
             resolvedPermissions = adminRecord?.permissions || [];
         }
