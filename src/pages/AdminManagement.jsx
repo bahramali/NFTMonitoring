@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { sendAdminInvite, getInviteSenderEmail } from '../api/admins.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import styles from './AdminManagement.module.css';
 
@@ -15,13 +16,14 @@ export default function AdminManagement() {
     const [formState, setFormState] = useState(emptyForm);
     const [editingId, setEditingId] = useState(null);
     const [inviteNotice, setInviteNotice] = useState('');
+    const inviteSenderEmail = getInviteSenderEmail();
 
     const sortedAdmins = useMemo(
         () => [...(adminAssignments || [])].sort((a, b) => a.username.localeCompare(b.username)),
         [adminAssignments],
     );
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
         if (!formState.id || !formState.username || !formState.email) {
             return;
@@ -35,7 +37,18 @@ export default function AdminManagement() {
         };
 
         upsertAdmin(normalizedAdmin);
-        setInviteNotice(`Invitation email queued for ${normalizedAdmin.email} so they can set and confirm their password.`);
+
+        try {
+            await sendAdminInvite(normalizedAdmin);
+            const senderEmail = getInviteSenderEmail();
+            setInviteNotice(
+                `Invitation email queued for ${normalizedAdmin.email} from ${senderEmail} so they can set and confirm their password.`,
+            );
+        } catch (error) {
+            console.error('Failed to send admin invite email', error);
+            setInviteNotice('Saved admin but could not queue the invitation email. Please try again.');
+        }
+
         setFormState(emptyForm);
         setEditingId(null);
     };
@@ -94,7 +107,12 @@ export default function AdminManagement() {
                         onChange={(event) => setFormState((previous) => ({ ...previous, email: event.target.value }))}
                         required
                     />
-                    <p className={styles.helper}>We’ll email the admin so they can set and confirm their own password.</p>
+                    <p className={styles.helper}>
+                        We’ll email the admin so they can set and confirm their own password. Emails are sent from
+                        {' '}
+                        {inviteSenderEmail}
+                        .
+                    </p>
                     <p className={styles.label}>Permissions</p>
                     <div className={styles.permissions}>
                         {AVAILABLE_PERMISSIONS.map((permission) => (
