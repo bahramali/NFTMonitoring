@@ -105,9 +105,15 @@ export function AuthProvider({ children }) {
 
     const login = useCallback((username, password, role) => {
         const trimmedUsername = username?.trim();
-        const normalizedRole = role?.trim();
+        let normalizedRole = role?.trim();
         if (!trimmedUsername || !normalizedRole) {
             return { success: false, message: 'Username and role are required.' };
+        }
+
+        const normalizedUsername = trimmedUsername.toLowerCase();
+
+        if (normalizedUsername === 'azad_admin') {
+            normalizedRole = 'SUPER_ADMIN';
         }
 
         if (normalizedRole === 'SUPER_ADMIN' && password !== SUPER_ADMIN_PASSWORD && !isTestEnv) {
@@ -117,7 +123,7 @@ export function AuthProvider({ children }) {
         let resolvedPermissions = [];
         if (normalizedRole === 'ADMIN') {
             const adminRecord = session.adminAssignments?.find(
-                (admin) => admin.username.toLowerCase() === trimmedUsername.toLowerCase(),
+                (admin) => admin.username.toLowerCase() === normalizedUsername,
             );
             resolvedPermissions = adminRecord?.permissions || [];
         }
@@ -136,7 +142,7 @@ export function AuthProvider({ children }) {
             window.localStorage.setItem('authSession', JSON.stringify(newSession));
         }
 
-        return { success: true };
+        return { success: true, role: normalizedRole };
     }, [session.adminAssignments]);
 
     const logout = useCallback(() => {

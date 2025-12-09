@@ -31,7 +31,8 @@ export default function Login() {
         event.preventDefault();
         const result = login(username, password, role);
         if (result.success) {
-            const redirect = location.state?.from?.pathname || ROLE_ROUTES[role] || '/';
+            const resolvedRole = result.role || role;
+            const redirect = location.state?.from?.pathname || ROLE_ROUTES[resolvedRole] || '/';
             navigate(redirect, { replace: true });
         } else {
             setError(result.message || 'Login failed. Please verify your credentials.');
