@@ -7,15 +7,17 @@ const BREAKPOINTS = { mobile: 768, collapse: 1024 };
 
 const getWindowWidth = () => (typeof window === "undefined" ? DEFAULT_VIEWPORT_WIDTH : window.innerWidth);
 
+const DASHBOARD_BASE = "/dashboard";
+
 const NAV_ITEMS = [
-    { to: "/overview", icon: "🏠", label: "Overview" },
-    { to: "/control-panel", icon: "💡", label: "Control Panel" },
-    { to: "/live", icon: "📡", label: "NFT Channels" },
-    { to: "/germination", icon: "🌱", label: "Germination" },
-    { to: "/cameras", icon: "📷", label: "Cameras" },
-    { to: "/reports", icon: "📈", label: "Reports" },
-    { to: "/note", icon: "📝", label: "Note" },
-    { to: "/sensor-config", icon: "⚙️", label: "Sensor Config" },
+    { to: `${DASHBOARD_BASE}/overview`, icon: "🏠", label: "Overview" },
+    { to: `${DASHBOARD_BASE}/control-panel`, icon: "💡", label: "Control Panel" },
+    { to: `${DASHBOARD_BASE}/live`, icon: "📡", label: "NFT Channels" },
+    { to: `${DASHBOARD_BASE}/germination`, icon: "🌱", label: "Germination" },
+    { to: `${DASHBOARD_BASE}/cameras`, icon: "📷", label: "Cameras" },
+    { to: `${DASHBOARD_BASE}/reports`, icon: "📈", label: "Reports" },
+    { to: `${DASHBOARD_BASE}/note`, icon: "📝", label: "Note" },
+    { to: `${DASHBOARD_BASE}/sensor-config`, icon: "⚙️", label: "Sensor Config" },
 ];
 
 export default function Sidebar() {
