@@ -17,7 +17,6 @@ export default function Login() {
 
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [role, setRole] = useState('SUPER_ADMIN');
     const [error, setError] = useState('');
 
     useEffect(() => {
@@ -29,9 +28,9 @@ export default function Login() {
 
     const handleSubmit = (event) => {
         event.preventDefault();
-        const result = login(username, password, role);
+        const result = login(username, password);
         if (result.success) {
-            const resolvedRole = result.role || role;
+            const resolvedRole = result.role || userRole;
             const redirect = location.state?.from?.pathname || ROLE_ROUTES[resolvedRole] || '/';
             navigate(redirect, { replace: true });
         } else {
@@ -44,7 +43,8 @@ export default function Login() {
             <div className={styles.card}>
                 <h1 className={styles.title}>Sign in</h1>
                 <p className={styles.subtitle}>
-                    Use the selector to choose your role. Super admins need the password "Reza1!Reza1!".
+                    Enter your username and password. We&apos;ll detect the correct role and route you to the
+                    right dashboard. Super admins still need the password "Reza1!Reza1!".
                 </p>
                 <form className={styles.form} onSubmit={handleSubmit} autoComplete="off">
                     <label className={styles.label} htmlFor="username">Username</label>
@@ -68,19 +68,6 @@ export default function Login() {
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
                     />
-
-                    <label className={styles.label} htmlFor="role">Role</label>
-                    <select
-                        id="role"
-                        className={styles.input}
-                        value={role}
-                        onChange={(event) => setRole(event.target.value)}
-                    >
-                        <option value="SUPER_ADMIN">SUPER_ADMIN</option>
-                        <option value="ADMIN">ADMIN</option>
-                        <option value="WORKER">WORKER</option>
-                        <option value="CUSTOMER">CUSTOMER</option>
-                    </select>
 
                     {error && <div className={styles.error}>{error}</div>}
 

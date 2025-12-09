@@ -123,51 +123,58 @@ export function AuthProvider({ children }) {
         return readStoredSession();
     });
 
-    const login = useCallback((username, password, role) => {
+    const login = useCallback((username, password) => {
         const trimmedUsername = username?.trim();
         const normalizedUsername = trimmedUsername?.toLowerCase();
-        const normalizedRoleInput = role?.trim()?.toUpperCase();
+        const normalizedPassword = password?.trim();
 
-        // Ensure azad_admin is always elevated to SUPER_ADMIN, even if the role argument is missing
-        // or lowercased.
-        const normalizedRole = normalizedUsername === 'azad_admin'
-            ? 'SUPER_ADMIN'
-            : normalizedRoleInput;
-
-        if (!trimmedUsername || !normalizedRole) {
-            return { success: false, role: normalizedRole || null, message: 'Username and role are required.' };
+        if (!trimmedUsername || !normalizedPassword) {
+            return { success: false, role: null, message: 'Username and password are required.' };
         }
 
-        const isValidSuperAdminPassword = SUPER_ADMIN_PASSWORDS.includes(password);
+        const isValidSuperAdminPassword = SUPER_ADMIN_PASSWORDS.includes(normalizedPassword);
 
-        if (normalizedRole === 'SUPER_ADMIN' && !isValidSuperAdminPassword && !isTestEnv) {
-            return { success: false, role: normalizedRole, message: 'Invalid super admin password.' };
-        }
-
+        let resolvedRole = normalizedUsername === 'azad_admin' ? 'SUPER_ADMIN' : null;
         let resolvedPermissions = [];
-        if (normalizedRole === 'CUSTOMER') {
-            const customerRecord = session.registeredCustomers?.find(
-                (customer) => customer.username.toLowerCase() === trimmedUsername.toLowerCase(),
-            );
-            if (!customerRecord) {
-                return { success: false, message: 'Account not found. Please register first.' };
-            }
 
-            if (customerRecord.password && customerRecord.password !== password) {
-                return { success: false, message: 'Incorrect password. Please try again.' };
-            }
+        if (!resolvedRole && (isValidSuperAdminPassword || isTestEnv)) {
+            resolvedRole = 'SUPER_ADMIN';
         }
-        if (normalizedRole === 'ADMIN') {
+
+        if (!resolvedRole) {
             const adminRecord = session.adminAssignments?.find(
                 (admin) => admin.username.toLowerCase() === normalizedUsername,
             );
-            resolvedPermissions = adminRecord?.permissions || [];
+            if (adminRecord) {
+                resolvedRole = 'ADMIN';
+                resolvedPermissions = adminRecord.permissions || [];
+            }
+        }
+
+        if (!resolvedRole) {
+            const customerRecord = session.registeredCustomers?.find(
+                (customer) => customer.username.toLowerCase() === trimmedUsername.toLowerCase(),
+            );
+            if (customerRecord) {
+                if (customerRecord.password && customerRecord.password !== normalizedPassword) {
+                    return { success: false, message: 'Incorrect password. Please try again.' };
+                }
+                resolvedRole = 'CUSTOMER';
+            }
+        }
+
+        if (!resolvedRole) {
+            resolvedRole = 'WORKER';
+        }
+
+        if (resolvedRole === 'SUPER_ADMIN' && !isValidSuperAdminPassword && !isTestEnv) {
+            return { success: false, role: resolvedRole, message: 'Invalid super admin password.' };
         }
 
         const newSession = {
             isAuthenticated: true,
             username: trimmedUsername,
-            userRole: normalizedRole,
+            userRole: resolvedRole,
             userPermissions: resolvedPermissions,
             adminAssignments: session.adminAssignments?.length ? session.adminAssignments : DEFAULT_ADMINS,
             registeredCustomers: session.registeredCustomers || [],
@@ -179,7 +186,7 @@ export function AuthProvider({ children }) {
             window.localStorage.setItem('authSession', JSON.stringify(newSession));
         }
 
-        return { success: true, role: normalizedRole };
+        return { success: true, role: resolvedRole };
     }, [session.adminAssignments, session.registeredCustomers]);
 
     const register = useCallback((username, password) => {
