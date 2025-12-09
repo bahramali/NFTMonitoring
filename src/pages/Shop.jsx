@@ -1,209 +1,212 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import hydroleafLogo from '../assets/hydroleaf_logo.png';
 import styles from './Shop.module.css';
 
-const DASHBOARD_HOME = '/dashboard/overview';
-
-const PRODUCT_LIST = [
+const HYDROPONIC_ITEMS = [
     {
-        name: 'NFT Channel Kit',
-        price: '$249',
-        description: 'Complete nutrient film technique channel kit with food-safe PVC and end caps.',
-        badges: ['Hydroponic Ready', 'DIY Friendly'],
+        title: 'کیت NFT خانگی ۱۲ ردیفه',
+        badge: 'آماده نصب',
+        description: 'برای شروع کشت ریحان بدون دردسر.',
+        points: ['پمپ کم‌صدا و مخزن ۶۰ لیتری', 'چراغ طیف کامل ۹۰ وات', 'راهنمای نصب ۱۵ دقیقه‌ای'],
     },
     {
-        name: 'Inline Pump 1200L/h',
-        price: '$89',
-        description: 'Energy-efficient circulation pump ideal for home grow racks and small greenhouses.',
-        badges: ['Low Noise', '24/7 Rated'],
+        title: 'کنترلر تغذیه و EC',
+        badge: 'پایش لحظه‌ای',
+        description: 'پایش و تنظیم اتوماتیک برای ثبات طعم.',
+        points: ['سنسور EC و pH کالیبره', 'هشدار تلگرامی و داشبورد', 'دوزینگ نرم و قابل تنظیم'],
     },
     {
-        name: 'Monitoring Starter',
-        price: '$149',
-        description: 'Core sensors (pH, EC, water temp) with quick-connect harness for rapid deployment.',
-        badges: ['Plug & Play', 'Calibrated'],
-    },
-    {
-        name: 'LED Grow Bar Duo',
-        price: '$199',
-        description: 'Balanced spectrum light bars with passive cooling for leafy greens and seedlings.',
-        badges: ['Full Spectrum', 'Dimmable'],
+        title: 'کیت نهال‌کاری و ریشه‌زایی',
+        badge: 'شتاب رشد',
+        description: 'برای قلمه‌گیری و آماده‌سازی بذر.',
+        points: ['۲۴ حفره با درپوش رطوبت', 'مهپاش اولتراسونیک کوچک', 'پک مواد مغذی هفته اول'],
     },
 ];
 
+const PACKAGING_BUNDLES = [
+    {
+        title: 'بسته ۵۰ گرمی کافه‌ای',
+        badge: 'پرفروش',
+        description: 'برای ارسال سریع سفارش آنلاین.',
+        points: ['سلفون مات با زیپ‌لاک', 'جای لیبل لوگوی شما', 'پایداری ۴۸ ساعته در سردخانه'],
+    },
+    {
+        title: 'بسته ۱۰۰ گرمی سوپرمارکت',
+        badge: 'نمایش قفسه‌ای',
+        description: 'ظاهر شفاف و آماده عرضه حضوری.',
+        points: ['پلمپ حرارتی و پانچ هوا', 'کارتریج بارکد/تاریخ', 'شلف لایف ۵ تا ۷ روز'],
+    },
+    {
+        title: 'جعبه هدیه ریحان',
+        badge: 'ویژه برندینگ',
+        description: 'برای فروش مستقیم و اشتراک هفتگی.',
+        points: ['مقوای ضد‌رطوبت با لاینر', 'پک یخ ژلی و تهویه مخفی', 'فضای بروشور نوشیدنی و سالاد'],
+    },
+];
+
+const SERVICE_POINTS = [
+    'زمان‌بندی برداشت و بسته‌بندی طبق سفارش شما',
+    'ارسال نمونه طراحی لیبل در کمتر از ۲۴ ساعت',
+    'هماهنگی لجستیک یخچال‌دار برای شهرهای مجاور',
+];
+
+function FeatureCard({ title, badge, description, points }) {
+    return (
+        <article className={styles.card}>
+            <div className={styles.cardHead}>
+                <div>
+                    <h3>{title}</h3>
+                    <p className={styles.cardDescription}>{description}</p>
+                </div>
+                {badge ? <span className={styles.badge}>{badge}</span> : null}
+            </div>
+            <ul className={styles.pointList}>
+                {points.map((point) => (
+                    <li key={point}>
+                        <span className={styles.pointDot} />
+                        <span>{point}</span>
+                    </li>
+                ))}
+            </ul>
+        </article>
+    );
+}
+
 export default function Shop() {
-    const { isAuthenticated, login } = useAuth();
+    const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
 
     useEffect(() => {
         if (isAuthenticated) {
-            navigate(DASHBOARD_HOME, { replace: true });
+            navigate('/dashboard/overview', { replace: true });
         }
     }, [isAuthenticated, navigate]);
-
-    const badgePalette = useMemo(
-        () => ['#e0f2fe', '#fef9c3', '#ecfccb', '#fce7f3'],
-        [],
-    );
-
-    const handleLogin = (event) => {
-        event.preventDefault();
-        setError('');
-        const result = login(username, password);
-
-        if (result.success) {
-            navigate(DASHBOARD_HOME, { replace: true });
-        } else {
-            setError('Incorrect username or password.');
-        }
-    };
 
     return (
         <div className={styles.page}>
             <header className={styles.hero}>
                 <nav className={styles.navbar}>
                     <div className={styles.brand}>
-                        <img
-                            src={hydroleafLogo}
-                            alt="HydroLeaf Organic Products logo"
-                            className={styles.brandLogo}
-                        />
+                        <img src={hydroleafLogo} alt="HydroLeaf" className={styles.brandLogo} />
+                        <span className={styles.brandName}>HydroLeaf Farm</span>
                     </div>
                     <div className={styles.links}>
-                        <a href="#products">Products</a>
-                        <a href="#about">Why us</a>
+                        <a href="#hydroponic">تجهیزات هیدروپونیک</a>
+                        <a href="#packaging">بسته‌بندی ریحان</a>
+                        <a href="#contact">پشتیبانی</a>
                     </div>
-                    {isAuthenticated ? (
-                        <button
-                            type="button"
-                            className={styles.dashboardButton}
-                            onClick={() => navigate(DASHBOARD_HOME)}
-                        >
-                            View dashboard
-                        </button>
-                    ) : (
-                        <form className={styles.inlineLogin} onSubmit={handleLogin}>
-                            <input
-                                className={styles.input}
-                                type="text"
-                                placeholder="Username"
-                                value={username}
-                                onChange={(event) => setUsername(event.target.value)}
-                                required
-                            />
-                            <input
-                                className={styles.input}
-                                type="password"
-                                placeholder="Password"
-                                value={password}
-                                onChange={(event) => setPassword(event.target.value)}
-                                required
-                            />
-                            <button className={styles.loginButton} type="submit">
-                                Admin login
-                            </button>
-                        </form>
-                    )}
+                    <button
+                        type="button"
+                        className={styles.navButton}
+                        onClick={() =>
+                            navigate(isAuthenticated ? '/dashboard/overview' : '/login', { replace: true })
+                        }
+                    >
+                        {isAuthenticated ? 'ورود به داشبورد' : 'ورود مدیر'}
+                    </button>
                 </nav>
 
                 <div className={styles.heroContent}>
                     <div>
-                        <p className={styles.kicker}>Official NFT hardware store</p>
-                        <h1 className={styles.title}>Browse products and only sign in when you need the dashboard</h1>
+                        <p className={styles.kicker}>تازه، معطر و آماده فروش</p>
+                        <h1 className={styles.title}>
+                            ریحان در بسته‌بندی‌های متنوع و تجهیزات کامل برای رشد هیدروپونیک
+                        </h1>
                         <p className={styles.subtitle}>
-                            View ready-to-ship products without signing in. With an admin login,
-                            you go directly to the control dashboard.
+                            فروش را به دو بخش تقسیم کردیم: تجهیزات کشت برای رشد یکنواخت و بسته‌بندی‌های
+                            آماده فروش تا محصول بدون دغدغه به دست مشتری برسد.
                         </p>
-                        <div className={styles.ctaRow}>
-                            <a className={styles.primaryCta} href="#products">View products</a>
-                            <div className={styles.secondaryCta}>
-                                <span className={styles.dot} />
-                                Secure dashboard connection is active for admins.
-                            </div>
+                        <div className={styles.pillRow}>
+                            <span className={styles.pill}>تحویل سریع در ۴۸ ساعت</span>
+                            <span className={styles.pill}>لیبل اختصاصی برای برند شما</span>
+                            <span className={styles.pill}>مشاوره رایگان بسته‌بندی</span>
                         </div>
-                        {error && <div className={styles.error}>{error}</div>}
                     </div>
                     <div className={styles.heroCard}>
-                        <div className={styles.heroBadge}>Built for smart greenhouses</div>
-                        <div className={styles.metricGrid}>
-                            <div>
-                                <div className={styles.metricLabel}>Online support</div>
-                                <div className={styles.metricValue}>24/7</div>
+                        <div className={styles.statGrid}>
+                            <div className={styles.statItem}>
+                                <div className={styles.statValue}>+18</div>
+                                <div className={styles.statLabel}>مدل بسته‌بندی آماده</div>
                             </div>
-                            <div>
-                                <div className={styles.metricLabel}>Warranty</div>
-                                <div className={styles.metricValue}>12 months</div>
+                            <div className={styles.statItem}>
+                                <div className={styles.statValue}>۲۴/۷</div>
+                                <div className={styles.statLabel}>پشتیبانی کشت و برداشت</div>
                             </div>
-                            <div>
-                                <div className={styles.metricLabel}>Fast shipping</div>
-                                <div className={styles.metricValue}>48 hours</div>
+                            <div className={styles.statItem}>
+                                <div className={styles.statValue}>۵ تا ۷ روز</div>
+                                <div className={styles.statLabel}>ماندگاری در سردخانه</div>
                             </div>
-                            <div>
-                                <div className={styles.metricLabel}>Parts supply</div>
-                                <div className={styles.metricValue}>Ongoing</div>
+                            <div className={styles.statItem}>
+                                <div className={styles.statValue}>داشبورد</div>
+                                <div className={styles.statLabel}>دسترسی بعد از ورود مدیر</div>
                             </div>
                         </div>
                         <p className={styles.heroNote}>
-                            Sign in with an admin account for precise management and monitoring. Otherwise, feel free to browse products openly.
+                            انتخاب کنید که الان فروش محصول را پیش ببرید یا تجهیزات هیدروپونیک را برای کشت
+                            پایدار تهیه کنید. ما دو مسیر جدا اما هماهنگ برای شما چیده‌ایم.
                         </p>
                     </div>
                 </div>
             </header>
 
-            <section id="products" className={styles.productsSection}>
+            <section id="hydroponic" className={styles.section}>
                 <div className={styles.sectionHeader}>
-                    <h2>Products ready to ship</h2>
-                    <p>Review specs and pricing without logging in.</p>
+                    <p className={styles.sectionKicker}>تجهیزات هیدروپونیک</p>
+                    <h2>همه چیز برای یک برداشت یکنواخت</h2>
+                    <p>کیت‌ها و کنترلرها کوچک و کاربردی هستند تا در فضای محدود هم جا شوند.</p>
                 </div>
-                <div className={styles.productGrid}>
-                    {PRODUCT_LIST.map((product, index) => (
-                        <article key={product.name} className={styles.productCard}>
-                            <div className={styles.cardHeader}>
-                                <h3>{product.name}</h3>
-                                <span className={styles.price}>{product.price}</span>
-                            </div>
-                            <p className={styles.description}>{product.description}</p>
-                            <div className={styles.badges}>
-                                {product.badges.map((badge, badgeIndex) => (
-                                    <span
-                                        key={badge}
-                                        className={styles.badge}
-                                        style={{ backgroundColor: badgePalette[(index + badgeIndex) % badgePalette.length] }}
-                                    >
-                                        {badge}
-                                    </span>
-                                ))}
-                            </div>
-                        </article>
+                <div className={styles.cardGrid}>
+                    {HYDROPONIC_ITEMS.map((item) => (
+                        <FeatureCard key={item.title} {...item} />
                     ))}
                 </div>
             </section>
 
-            <section id="about" className={styles.aboutSection}>
-                <div>
-                    <h2>Alongside the real-time monitoring dashboard</h2>
-                    <p>
-                        Every product is compatible with your sensors and monitoring system. With an admin login, you can
-                        access the Overview, Live, and other dashboard modules.
-                    </p>
+            <section id="packaging" className={styles.section}>
+                <div className={styles.sectionHeader}>
+                    <p className={styles.sectionKicker}>بسته‌بندی ریحان</p>
+                    <h2>معرفی بسته‌های فروش فوری</h2>
+                    <p>برای هر کانال فروش (آنلاین، سوپرمارکت یا هدیه) یک انتخاب جمع‌وجور آماده کرده‌ایم.</p>
                 </div>
-                <div className={styles.highlights}>
-                    <div className={styles.highlightCard}>
-                        <div className={styles.highlightTitle}>Secure admin login</div>
-                        <p>After entering your username and password, you’re taken to the admin dashboard.</p>
+                <div className={styles.cardGrid}>
+                    {PACKAGING_BUNDLES.map((item) => (
+                        <FeatureCard key={item.title} {...item} />
+                    ))}
+                </div>
+            </section>
+
+            <section id="contact" className={styles.section}>
+                <div className={styles.callout}>
+                    <div>
+                        <h3>هماهنگی فوری فروش</h3>
+                        <p className={styles.calloutText}>
+                            اطلاعات بسته‌بندی، لیبل اختصاصی و زمان‌بندی برداشت را با هم مرور می‌کنیم تا فروش بدون
+                            توقف جلو برود.
+                        </p>
+                        <ul className={styles.pointList}>
+                            {SERVICE_POINTS.map((point) => (
+                                <li key={point}>
+                                    <span className={styles.pointDot} />
+                                    <span>{point}</span>
+                                </li>
+                            ))}
+                        </ul>
                     </div>
-                    <div className={styles.highlightCard}>
-                        <div className={styles.highlightTitle}>Open product browsing</div>
-                        <p>All items and pricing stay visible without signing in.</p>
-                    </div>
-                    <div className={styles.highlightCard}>
-                        <div className={styles.highlightTitle}>Unified management</div>
-                        <p>In the dashboard, the control panel, reports, and sensor configuration are ready for you.</p>
+                    <div className={styles.calloutActions}>
+                        <a className={styles.primaryAction} href="tel:+989120000000">
+                            تماس برای مشاوره
+                        </a>
+                        <button
+                            type="button"
+                            className={styles.secondaryAction}
+                            onClick={() =>
+                                navigate(isAuthenticated ? '/dashboard/overview' : '/login', { replace: true })
+                            }
+                        >
+                            مشاهده داشبورد بعد از ورود
+                        </button>
                     </div>
                 </div>
             </section>
