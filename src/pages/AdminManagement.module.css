@@ -1,0 +1,119 @@
+.page {
+    padding: 24px;
+    background: #f8fafc;
+    min-height: calc(100vh - 64px);
+}
+
+.header {
+    margin-bottom: 20px;
+}
+
+.kicker {
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #0ea5e9;
+}
+
+.subtitle {
+    color: #475569;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+.card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.label {
+    display: block;
+    margin-top: 12px;
+    font-weight: 700;
+}
+
+.input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    margin-top: 6px;
+}
+
+.permissions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
+    margin: 8px 0 12px 0;
+}
+
+.checkboxRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8fafc;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.button {
+    margin-top: 12px;
+    background: #22c55e;
+    color: #0f172a;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.adminList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.adminList li {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.meta {
+    color: #475569;
+}
+
+.rowActions {
+    display: flex;
+    gap: 8px;
+}
+
+.rowActions button {
+    background: #e2e8f0;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.danger {
+    background: #ef4444;
+    color: #ffffff;
+}
+
+.empty {
+    color: #475569;
+}

@@ -1,7 +1,7 @@
 import React, {useEffect, useMemo, useState} from "react";
 import Header from "../common/Header";
 import {useLiveDevices} from "../common/useLiveDevices.js";
-import {GERMINATION_TOPIC, bandMap, knownFields, topics} from "../common/dashboard.constants.js";
+import {GERMINATION_TOPIC, topics} from "../common/dashboard.constants.js";
 import {AS7343_MODEL_KEY, makeMeasurementKey, sanitize} from "../common/measurementUtils.js";
 import {useSensorConfig} from "../../context/SensorConfigContext.jsx";
 import SpectrumBarChart from "./SpectrumBarChart.jsx";

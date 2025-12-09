@@ -1,0 +1,97 @@
+.header {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 12px 20px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.brandRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.brand {
+    font-weight: 700;
+    color: #e2e8f0;
+    text-decoration: none;
+    letter-spacing: 0.4px;
+}
+
+.navLinks {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.navLinks a {
+    color: #cbd5e1;
+    text-decoration: none;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.navLinks a:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.authSection {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.identity {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #cbd5e1;
+    font-size: 14px;
+}
+
+.roleBadge {
+    background: #1d4ed8;
+    color: #e2e8f0;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.username {
+    color: #e2e8f0;
+    font-weight: 600;
+}
+
+.button {
+    background: #22c55e;
+    color: #0f172a;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.button:hover {
+    background: #16a34a;
+}
+
+@media (max-width: 900px) {
+    .brandRow {
+        flex-wrap: wrap;
+    }
+
+    .navLinks {
+        flex-wrap: wrap;
+    }
+}

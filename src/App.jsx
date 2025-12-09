@@ -1,64 +1,91 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import MainLayout from './layouts/MainLayout';
-import Overview from './pages/Overview';
-import Live from './pages/Live';
-import Cameras from './pages/Cameras';
-import Germination from './pages/Germination';
-import Reports from './pages/Reports';
-import UserInfo from './pages/UserInfo';
-import SensorConfig from './pages/SensorConfig';
-import Note from './pages/Note';
-import ControlPanel from './pages/ControlPanel';
-import Shop from './pages/Shop.jsx';
+import Navbar from './components/Navbar.jsx';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
+import Home from './pages/Home.jsx';
 import Login from './pages/Login.jsx';
-import { useAuth } from './context/AuthContext.jsx';
-
-function ProtectedRoute({ children }) {
-    const { isAuthenticated } = useAuth();
-    
-    if (!isAuthenticated) {
-        return <Navigate to="/" replace />;
-    }
-
-    return children;
-}
+import NotAuthorized from './pages/NotAuthorized.jsx';
+import SuperAdminDashboard from './pages/SuperAdminDashboard.jsx';
+import AdminManagement from './pages/AdminManagement.jsx';
+import AdminDashboard from './pages/AdminDashboard.jsx';
+import AdminReports from './pages/AdminReports.jsx';
+import AdminTeam from './pages/AdminTeam.jsx';
+import WorkerDashboard from './pages/WorkerDashboard.jsx';
+import MyPage from './pages/MyPage.jsx';
 
 function App() {
     const rawBase = import.meta?.env?.BASE_URL || '/';
     const base = rawBase === './' || rawBase === '/./' ? '/' : rawBase;
-    const { isAuthenticated } = useAuth();
-    const dashboardBase = '/dashboard';
 
     return (
         <BrowserRouter basename={base}>
+            <Navbar />
             <Routes>
-                <Route path="/" element={<Login />} />
+                <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
-                <Route path="/shop" element={<Shop />} />
+                <Route path="/not-authorized" element={<NotAuthorized />} />
+
                 <Route
-                    path={dashboardBase}
+                    path="/super-admin"
                     element={(
-                        <ProtectedRoute>
-                            <MainLayout />
+                        <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                            <SuperAdminDashboard />
                         </ProtectedRoute>
                     )}
-                >
-                    <Route index element={<Navigate to={`${dashboardBase}/overview`} replace />} />
-                    <Route path="overview" element={<Overview />} />
-                    <Route path="live" element={<Live />} />
-                    <Route path="germination" element={<Germination />} />
-                    <Route path="cameras" element={<Cameras />} />
-                    <Route path="reports" element={<Reports />} />
-                    <Route path="note" element={<Note />} />
-                    <Route path="user" element={<UserInfo />} />
-                    <Route path="sensor-config" element={<SensorConfig />} />
-                    <Route path="control-panel" element={<ControlPanel />} />
-                </Route>
-                <Route
-                    path="*"
-                    element={<Navigate to={isAuthenticated ? `${dashboardBase}/overview` : '/'} replace />}
                 />
+                <Route
+                    path="/super-admin/admins"
+                    element={(
+                        <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                            <AdminManagement />
+                        </ProtectedRoute>
+                    )}
+                />
+
+                <Route
+                    path="/admin/dashboard"
+                    element={(
+                        <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermission="admin-dashboard">
+                            <AdminDashboard />
+                        </ProtectedRoute>
+                    )}
+                />
+                <Route
+                    path="/dashboard/reports"
+                    element={(
+                        <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermission="admin-reports">
+                            <AdminReports />
+                        </ProtectedRoute>
+                    )}
+                />
+                <Route
+                    path="/admin/team"
+                    element={(
+                        <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermission="admin-team">
+                            <AdminTeam />
+                        </ProtectedRoute>
+                    )}
+                />
+
+                <Route
+                    path="/worker"
+                    element={(
+                        <ProtectedRoute allowedRoles={["SUPER_ADMIN", "WORKER"]}>
+                            <WorkerDashboard />
+                        </ProtectedRoute>
+                    )}
+                />
+
+                <Route
+                    path="/my-page"
+                    element={(
+                        <ProtectedRoute allowedRoles={["SUPER_ADMIN", "CUSTOMER"]}>
+                            <MyPage />
+                        </ProtectedRoute>
+                    )}
+                />
+
+                <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </BrowserRouter>
     );

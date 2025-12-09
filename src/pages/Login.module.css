@@ -48,6 +48,13 @@
     font-weight: 600;
 }
 
+.labelHint {
+    color: #6b7280;
+    margin-left: 6px;
+    font-weight: 500;
+    font-size: 0.8rem;
+}
+
 .input {
     width: 100%;
     padding: 0.85rem 0.95rem;
@@ -92,4 +99,35 @@
 
 .button:active {
     transform: translateY(1px);
+}
+
+.helper {
+    margin-left: 18px;
+    max-width: 320px;
+    background: #0ea5e9;
+    color: #0b1220;
+    padding: 16px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(14, 165, 233, 0.2);
+}
+
+.helper h2 {
+    margin-top: 0;
+}
+
+.helper ul {
+    padding-left: 18px;
+    margin: 8px 0 0 0;
+    line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+    .page {
+        flex-direction: column;
+    }
+
+    .helper {
+        margin-left: 0;
+        margin-top: 16px;
+    }
 }
