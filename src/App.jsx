@@ -10,14 +10,14 @@ import UserInfo from './pages/UserInfo';
 import SensorConfig from './pages/SensorConfig';
 import Note from './pages/Note';
 import ControlPanel from './pages/ControlPanel';
-import Login from './pages/Login.jsx';
+import Shop from './pages/Shop.jsx';
 import { useAuth } from './context/AuthContext.jsx';
 
 function ProtectedRoute({ children }) {
     const { isAuthenticated } = useAuth();
-
+    
     if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/" replace />;
     }
 
     return children;
@@ -27,20 +27,22 @@ function App() {
     const rawBase = import.meta?.env?.BASE_URL || '/';
     const base = rawBase === './' || rawBase === '/./' ? '/' : rawBase;
     const { isAuthenticated } = useAuth();
+    const dashboardBase = '/dashboard';
 
     return (
         <BrowserRouter basename={base}>
             <Routes>
-                <Route path="/login" element={<Login />} />
+                <Route path="/" element={<Shop />} />
+                <Route path="/login" element={<Navigate to="/" replace />} />
                 <Route
-                    path="/"
+                    path={dashboardBase}
                     element={(
                         <ProtectedRoute>
                             <MainLayout />
                         </ProtectedRoute>
                     )}
                 >
-                    <Route index element={<Navigate to="/overview" replace />} />
+                    <Route index element={<Navigate to={`${dashboardBase}/overview`} replace />} />
                     <Route path="overview" element={<Overview />} />
                     <Route path="live" element={<Live />} />
                     <Route path="germination" element={<Germination />} />
@@ -53,7 +55,7 @@ function App() {
                 </Route>
                 <Route
                     path="*"
-                    element={<Navigate to={isAuthenticated ? '/overview' : '/login'} replace />}
+                    element={<Navigate to={isAuthenticated ? `${dashboardBase}/overview` : '/'} replace />}
                 />
             </Routes>
         </BrowserRouter>

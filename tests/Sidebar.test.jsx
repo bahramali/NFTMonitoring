@@ -41,7 +41,7 @@ test('renders NFT Channels link', () => {
 
     const nftLink = screen.getByRole('link', { name: /nft channels/i });
     expect(nftLink).toBeInTheDocument();
-    expect(nftLink).toHaveAttribute('href', '/live');
+    expect(nftLink).toHaveAttribute('href', '/dashboard/live');
 });
 
 test('renders Note link', () => {
@@ -56,11 +56,11 @@ test('renders Note link', () => {
 
     const noteLink = screen.getByRole('link', { name: /note/i });
     expect(noteLink).toBeInTheDocument();
-    expect(noteLink).toHaveAttribute('href', '/note');
+    expect(noteLink).toHaveAttribute('href', '/dashboard/note');
 });
 
 test('does not render report filters in the sidebar on reports route', () => {
-    mockLocation.pathname = '/reports';
+    mockLocation.pathname = '/dashboard/reports';
     render(
         <MemoryRouter>
             <ReportsFiltersProvider>
