@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="fa">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>راهنمای کدبیس NFT Monitoring</title>
+  <title>NFT Monitoring Codebase Guide</title>
   <style>
-    body { font-family: "Vazirmatn", "Segoe UI", sans-serif; line-height: 1.7; direction: rtl; padding: 2rem; background: #f8fafc; color: #0f172a; }
+    body { font-family: "Inter", "Segoe UI", sans-serif; line-height: 1.7; direction: ltr; padding: 2rem; background: #f8fafc; color: #0f172a; }
     h1, h2, h3 { color: #0f172a; }
     code { background: #e2e8f0; padding: 0.15rem 0.35rem; border-radius: 4px; }
     .card { background: #ffffff; border-radius: 12px; padding: 1.5rem; box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08); margin-bottom: 1.5rem; }
@@ -12,60 +12,60 @@
   </style>
 </head>
 <body>
-  <h1>راهنمای سریع برای تازه‌واردها</h1>
+  <h1>Quickstart Guide for New Contributors</h1>
 
   <div class="card">
-    <h2>هدف کلی</h2>
+    <h2>Overall Goal</h2>
     <p>
-      پروژه <strong>NFT Monitoring</strong> یک داشبورد مبتنی بر Vite/React است که داده‌های زنده سنسورهای سامانه هیدروپونیک را از طریق STOMP/WebSocket و API دریافت می‌کند و در صفحات مختلف (نمای کلی، زنده، گزارش‌ها، دوربین‌ها و پیکربندی سنسورها) نمایش می‌دهد.
+      The <strong>NFT Monitoring</strong> project is a Vite/React dashboard that consumes live hydroponic sensor data through STOMP/WebSocket and REST APIs. It renders the data across multiple pages (Overview, Live, Reports, Cameras, and Sensor Configuration).
     </p>
   </div>
 
   <div class="card">
-    <h2>ساختار و جریان اصلی</h2>
+    <h2>Structure and Main Flow</h2>
     <ul>
-      <li><strong>نقطه شروع:</strong> فایل <code>src/index.jsx</code> برنامه را با <code>ReactDOM</code> اجرا می‌کند و همه چیز را داخل <code>SensorConfigProvider</code> قرار می‌دهد تا مقادیر و محدودهٔ سنسورها قابل ویرایش باشد.</li>
-      <li><strong>مسیرها:</strong> فایل <code>src/App.jsx</code> مسیربندی را تعریف می‌کند؛ همهٔ مسیرها زیر <code>MainLayout</code> قرار می‌گیرند که سایدبار و <code>ReportsFiltersProvider</code> را در اختیار صفحات می‌گذارد و سپس با <code>&lt;Outlet /&gt;</code> محتوای صفحهٔ مربوطه را رندر می‌کند.</li>
-      <li><strong>صفحات:</strong> پوشهٔ <code>src/pages</code> کد هر صفحه را دارد (مثلاً Overview، Live، Reports). هر صفحه از کامپوننت‌های مشترک در <code>src/components</code> و ابزارهای <code>src/utils</code> استفاده می‌کند.</li>
-      <li><strong>دادهٔ زنده:</strong> هوک <code>src/hooks/useStomp.js</code> یک کلاینت STOMP اشتراکی می‌سازد، به‌صورت خودکار به موضوع‌ها سابسکرایب می‌شود و چرخهٔ اتصال/اتصال مجدد را مدیریت می‌کند تا هر صفحه فقط موضوع‌ها و هندلر پیام خودش را تعریف کند.</li>
-      <li><strong>پیکربندی و API:</strong> <code>src/context/SensorConfigContext.jsx</code> پیکربندی سنسورها را از طریق متدهای REST در <code>src/api/sensorConfig.js</code> بارگذاری/به‌روزرسانی می‌کند. مقادیر <code>VITE_API_BASE</code> و آدرس‌های WebSocket در <code>.env</code> تعیین می‌شوند.</li>
-      <li><strong>آزمایش‌ها:</strong> تست‌های Vitest در پوشهٔ <code>tests</code> هستند و از کمکی‌هایی مثل <code>tests/utils/renderWithProviders</code> برای رندر کامپوننت‌ها با کانتکست‌های لازم استفاده می‌کنند.</li>
+      <li><strong>Entry point:</strong> <code>src/index.jsx</code> boots the app with <code>ReactDOM</code> and wraps everything in <code>SensorConfigProvider</code> so sensor values and ranges remain editable.</li>
+      <li><strong>Routes:</strong> <code>src/App.jsx</code> defines routing; all pages live under <code>MainLayout</code>, which provides the sidebar and <code>ReportsFiltersProvider</code> before rendering content via <code>&lt;Outlet /&gt;</code>.</li>
+      <li><strong>Pages:</strong> The <code>src/pages</code> folder contains each page (e.g., Overview, Live, Reports). Pages reuse shared components in <code>src/components</code> and utilities in <code>src/utils</code>.</li>
+      <li><strong>Live data:</strong> The <code>src/hooks/useStomp.js</code> hook builds a shared STOMP client, auto-subscribes to topics, and manages connection/reconnection so each page only defines its topics and message handlers.</li>
+      <li><strong>Configuration and API:</strong> <code>src/context/SensorConfigContext.jsx</code> loads/updates sensor configuration through REST methods in <code>src/api/sensorConfig.js</code>. Values for <code>VITE_API_BASE</code> and WebSocket addresses are set in <code>.env</code>.</li>
+      <li><strong>Testing:</strong> Vitest specs live in <code>tests</code> and use helpers like <code>tests/utils/renderWithProviders</code> to render components with required contexts.</li>
     </ul>
   </div>
 
   <div class="card">
-    <h2>نکات مهم پیش از توسعه</h2>
+    <h2>Key Notes Before Development</h2>
     <ul>
-      <li>اغلب صفحات فرض می‌کنند در <code>MainLayout</code> قرار می‌گیرند تا سایدبار و فیلترهای گزارش در دسترس باشند.</li>
-      <li>هوک <code>useStomp</code> را قطع نکنید؛ اشتراک‌ها را با آرایهٔ موضوع‌ها کنترل کنید.</li>
-      <li>متغیرهای محیطی برای WebSocket و REST را در <code>.env</code> تنظیم کنید تا به سرور درست متصل شوید.</li>
-      <li>برای ساخت صفحات جدید، از کامپوننت‌های موجود در <code>src/components</code> و <code>src/pages/common</code> بهره بگیرید تا سبک و تجربهٔ کاربری یکدست بماند.</li>
+      <li>Most pages assume they are rendered inside <code>MainLayout</code> so the sidebar and report filters are available.</li>
+      <li>Do not bypass <code>useStomp</code>; control subscriptions through its topics array.</li>
+      <li>Set environment variables for WebSocket and REST in <code>.env</code> to target the correct server.</li>
+      <li>When creating new pages, leverage components in <code>src/components</code> and <code>src/pages/common</code> to keep style and UX consistent.</li>
     </ul>
   </div>
 
   <div class="card">
-    <h2>مسیرهای پیشنهادی برای یادگیری بیشتر</h2>
+    <h2>Suggested Paths for Learning More</h2>
     <ol>
-      <li><strong>نرمال‌سازی داده‌ها:</strong> ابزارهای <code>src/pages/Overview/utils</code> نشان می‌دهند داده‌های خام سنسور چگونه به کارت‌ها و نمودارها تبدیل می‌شوند.</li>
-      <li><strong>فیلترگذاری گزارش‌ها:</strong> به <code>src/pages/Reports/context/ReportsFiltersContext.jsx</code> و کامپوننت‌های مرتبط سر بزنید تا انتخاب بازه‌ها و شناسه‌های مرکب را ببینید.</li>
-      <li><strong>الگوهای تست:</strong> پوشهٔ <code>tests/mocks</code> و <code>tests/utils</code> نمونه‌های خوبی از شبیه‌سازی API و رندر با Providerها هستند.</li>
+      <li><strong>Data normalization:</strong> The helpers in <code>src/pages/Overview/utils</code> show how raw sensor data becomes cards and charts.</li>
+      <li><strong>Report filtering:</strong> Explore <code>src/pages/Reports/context/ReportsFiltersContext.jsx</code> and related components to see how ranges and composite IDs are selected.</li>
+      <li><strong>Testing patterns:</strong> The <code>tests/mocks</code> and <code>tests/utils</code> folders offer examples of API mocking and rendering with providers.</li>
     </ol>
   </div>
 
   <div class="card">
-    <h2>نمودار UML (جریان داده و لایه‌ها)</h2>
-    <p>برای رندر <code>mermaid</code> می‌توانید از افزونهٔ مرورگر یا ابزارهای آنلاین استفاده کنید.</p>
+    <h2>UML Diagram (Data Flow and Layers)</h2>
+    <p>You can render the <code>mermaid</code> diagram with a browser extension or online tool.</p>
     <div class="mermaid">
       graph TD
-        A[صفحه‌ها در src/pages] -->|می‌خوانند| B[کامپوننت‌های مشترک در src/components]
-        A -->|اشتراک دادهٔ زنده| C[هوک useStomp]
-        C -->|پیام‌های WebSocket/STOMP| D[(Broker)]
-        A -->|دریافت/ثبت پیکربندی| E[SensorConfigContext]
+        A[Pages in src/pages] -->|Render| B[Shared components in src/components]
+        A -->|Live data| C[useStomp hook]
+        C -->|WebSocket/STOMP messages| D[(Broker)]
+        A -->|Config read/write| E[SensorConfigContext]
         E -->|REST| F[sensorConfig.js]
         F -->|HTTP| G[(API Server)]
-        A -->|مسیربندی| H[App.jsx + MainLayout]
-        H --> I[سایدبار و فیلترهای گزارش]
-        J[تست‌ها در tests] -->|شبیه‌سازی Providerها| A
+        A -->|Routing| H[App.jsx + MainLayout]
+        H --> I[Sidebar and report filters]
+        J[Tests in tests] -->|Provider mocks| A
     </div>
   </div>
 </body>

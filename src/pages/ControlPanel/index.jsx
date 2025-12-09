@@ -83,7 +83,7 @@ function ControlPanel() {
 
     const loadDevices = async () => {
         setLoadingDevices(true);
-        setFeedback({ status: "pending", message: "در حال دریافت لیست دستگاه‌های Shelly..." });
+        setFeedback({ status: "pending", message: "Fetching Shelly devices..." });
 
         try {
             const list = await fetchShellyDevices();
@@ -102,12 +102,12 @@ function ControlPanel() {
             }));
 
             setDevices(hydrated);
-            setFeedback({ status: "success", message: "لیست دستگاه‌ها آماده است." });
+            setFeedback({ status: "success", message: "Device list is ready." });
 
             await Promise.all(hydrated.map((device) => refreshDeviceStatus(device.id)));
             setFeedback({ status: "idle", message: "" });
         } catch (error) {
-            setFeedback({ status: "error", message: error?.message ?? "دستگاه‌ها بارگذاری نشدند" });
+            setFeedback({ status: "error", message: error?.message ?? "Devices were not loaded." });
         } finally {
             setLoadingDevices(false);
         }
@@ -119,17 +119,17 @@ function ControlPanel() {
 
     const handleCommand = async (deviceId, command) => {
         setBusyDevice(deviceId);
-        setFeedback({ status: "pending", message: `${command} در حال ارسال است...` });
+        setFeedback({ status: "pending", message: `Sending ${command} command...` });
 
         try {
             if (command === "ON") await turnShellyOn(deviceId);
             else if (command === "OFF") await turnShellyOff(deviceId);
             else if (command === "TOGGLE") await toggleShellyDevice(deviceId);
 
-            setFeedback({ status: "success", message: `${deviceId} به حالت ${command} رفت.` });
+            setFeedback({ status: "success", message: `${deviceId} switched to ${command}.` });
             await refreshDeviceStatus(deviceId);
         } catch (error) {
-            setFeedback({ status: "error", message: error?.message ?? "دستور ارسال نشد." });
+            setFeedback({ status: "error", message: error?.message ?? "Command was not sent." });
         } finally {
             setBusyDevice(null);
         }
@@ -146,18 +146,18 @@ function ControlPanel() {
             payload.durationMinutes = Number.parseInt(device.schedule.durationMinutes, 10);
 
         if (!payload.turnOnAt && !payload.turnOffAt && !payload.durationMinutes) {
-            setFeedback({ status: "error", message: "حداقل یکی از زمان‌ها یا مدت را وارد کنید." });
+            setFeedback({ status: "error", message: "Enter at least one time or duration." });
             return;
         }
 
         setSchedulingDevice(deviceId);
-        setFeedback({ status: "pending", message: `${deviceId} در حال ثبت برنامه است...` });
+        setFeedback({ status: "pending", message: `Saving schedule for ${deviceId}...` });
 
         try {
             await scheduleShellyDevice(deviceId, payload);
-            setFeedback({ status: "success", message: `زمان‌بندی ${deviceId} ثبت شد.` });
+            setFeedback({ status: "success", message: `Schedule saved for ${deviceId}.` });
         } catch (error) {
-            setFeedback({ status: "error", message: error?.message ?? "برنامه ذخیره نشد." });
+            setFeedback({ status: "error", message: error?.message ?? "Schedule was not saved." });
         } finally {
             setSchedulingDevice(null);
         }
@@ -171,19 +171,18 @@ function ControlPanel() {
                 <div>
                     <h1 className={styles.title}>Shelly Lighting Control</h1>
                     <p className={styles.subtitle}>
-                        همه رله‌ها و لایه‌ها در این صفحه قابل مشاهده است. هر کارت یک دستگاه Shelly است که با
-                        شناسه ثبت‌شده (مثل PS01L02) شناخته می‌شود. برای هر دستگاه می‌توانید وضعیت را بخوانید،
-                        روشن/خاموش کنید یا زمان‌بندی روی/خاموش شدن را بفرستید.
+                        All relays and layers are visible here. Each card represents a Shelly device identified by the registry
+                        ID (for example, PS01L02). For every device you can read status, turn it on or off, or submit an on/off
+                        schedule.
                     </p>
                     <p className={styles.subtitleSmall}>
-                        Endpoints: GET/POST زیر مسیر <code>/api/shelly</code> برای وضعیت، on/off، toggle و schedule استفاده
-                        می‌شوند.
+                        Endpoints: GET/POST under <code>/api/shelly</code> handle status, on/off, toggle, and schedule.
                     </p>
                 </div>
                 <div className={`${styles.feedback} ${styles[feedback.status] || ""}`}>
-                    <span className={styles.feedbackLabel}>وضعیت</span>
+                    <span className={styles.feedbackLabel}>Status</span>
                     <p className={styles.feedbackMessage}>
-                        {feedback.status === "idle" && "آماده دریافت دستور جدید"}
+                        {feedback.status === "idle" && "Ready for the next command"}
                         {feedback.status === "pending" && feedback.message}
                         {feedback.status === "success" && feedback.message}
                         {feedback.status === "error" && feedback.message}
@@ -193,13 +192,13 @@ function ControlPanel() {
 
             <section className={styles.sectionHeader}>
                 <div>
-                    <h2 className={styles.sectionTitle}>کنترل سریع لایه‌ها</h2>
+                    <h2 className={styles.sectionTitle}>Quick layer control</h2>
                     <p className={styles.sectionHint}>
-                        روی صفحه هر لایه کلیک کنید تا به سرعت روشن/خاموش شود؛ برای دقت بیشتر از دکمه‌های پایین استفاده کنید.
+                        Click a layer plate to toggle it instantly; use the buttons below for precise commands.
                     </p>
                 </div>
                 <button type="button" className={styles.refreshButton} onClick={loadDevices} disabled={loadingDevices}>
-                    {loadingDevices ? "در حال به‌روزرسانی..." : "بازخوانی دستگاه‌ها"}
+                    {loadingDevices ? "Updating..." : "Reload devices"}
                 </button>
             </section>
 
@@ -215,7 +214,7 @@ function ControlPanel() {
                                 className={`${styles.modeBadge} ${styles[activeStatuses[device.id]?.toLowerCase?.() || "unknown"]}`}
                             >
                                 <span className={styles.modeBadgeLabel}>{activeStatuses[device.id] || "Unknown"}</span>
-                                <span className={styles.modeBadgeMeta}>آخرین بروزرسانی {formatDateTime(device.updatedAt)}</span>
+                                <span className={styles.modeBadgeMeta}>Last update {formatDateTime(device.updatedAt)}</span>
                             </div>
                         </div>
 
@@ -225,12 +224,12 @@ function ControlPanel() {
                             onClick={() => handleCommand(device.id, "TOGGLE")}
                             disabled={busyDevice === device.id}
                         >
-                            <span className={styles.layerPlateLabel}>برای تغییر وضعیت کلیک کنید</span>
+                            <span className={styles.layerPlateLabel}>Click to change state</span>
                             <span className={styles.layerPlateState}>{activeStatuses[device.id] || "UNKNOWN"}</span>
                         </button>
 
                         <div className={styles.actions}>
-                            {[{ label: "خاموش", value: "OFF", tone: "ghost" }, { label: "روشن", value: "ON", tone: "primary" }].map(
+                            {[{ label: "Turn Off", value: "OFF", tone: "ghost" }, { label: "Turn On", value: "ON", tone: "primary" }].map(
                                 (action) => (
                                     <button
                                         key={action.value}
@@ -251,7 +250,7 @@ function ControlPanel() {
                                 disabled={busyDevice === device.id}
                                 onClick={() => handleCommand(device.id, "TOGGLE")}
                             >
-                                تغییر وضعیت
+                                Toggle
                             </button>
                             <button
                                 type="button"
@@ -259,7 +258,7 @@ function ControlPanel() {
                                 disabled={busyDevice === device.id || loadingDevices}
                                 onClick={() => refreshDeviceStatus(device.id)}
                             >
-                                بروزرسانی وضعیت
+                                Refresh status
                             </button>
                         </div>
 
@@ -269,7 +268,7 @@ function ControlPanel() {
                             autoComplete="off"
                         >
                             <div className={styles.field}>
-                                <span>زمان روشن شدن (local)</span>
+                                <span>Turn on at (local)</span>
                                 <input
                                     type="datetime-local"
                                     value={device.schedule.turnOnAt}
@@ -282,7 +281,7 @@ function ControlPanel() {
                                 />
                             </div>
                             <div className={styles.field}>
-                                <span>زمان خاموش شدن (local)</span>
+                                <span>Turn off at (local)</span>
                                 <input
                                     type="datetime-local"
                                     value={device.schedule.turnOffAt}
@@ -295,11 +294,11 @@ function ControlPanel() {
                                 />
                             </div>
                             <div className={styles.field}>
-                                <span>مدت (دقیقه)</span>
+                                <span>Duration (minutes)</span>
                                 <input
                                     type="number"
                                     min="1"
-                                    placeholder="مثلا 90"
+                                    placeholder="e.g. 90"
                                     value={device.schedule.durationMinutes}
                                     onChange={(e) =>
                                         updateDevice(device.id, (prev) => ({
@@ -313,7 +312,7 @@ function ControlPanel() {
                                 className={styles.submitButton}
                                 disabled={schedulingDevice === device.id}
                             >
-                                {schedulingDevice === device.id ? "در حال ذخیره..." : "ثبت زمان‌بندی"}
+                                {schedulingDevice === device.id ? "Saving..." : "Submit schedule"}
                             </button>
                         </form>
 
