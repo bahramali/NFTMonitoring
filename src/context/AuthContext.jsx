@@ -105,19 +105,21 @@ export function AuthProvider({ children }) {
 
     const login = useCallback((username, password, role) => {
         const trimmedUsername = username?.trim();
-        let normalizedRole = role?.trim();
+        const normalizedUsername = trimmedUsername?.toLowerCase();
+        const normalizedRoleInput = role?.trim()?.toUpperCase();
+
+        // Ensure azad_admin is always elevated to SUPER_ADMIN, even if the role argument is missing
+        // or lowercased.
+        const normalizedRole = normalizedUsername === 'azad_admin'
+            ? 'SUPER_ADMIN'
+            : normalizedRoleInput;
+
         if (!trimmedUsername || !normalizedRole) {
-            return { success: false, message: 'Username and role are required.' };
-        }
-
-        const normalizedUsername = trimmedUsername.toLowerCase();
-
-        if (normalizedUsername === 'azad_admin') {
-            normalizedRole = 'SUPER_ADMIN';
+            return { success: false, role: normalizedRole || null, message: 'Username and role are required.' };
         }
 
         if (normalizedRole === 'SUPER_ADMIN' && password !== SUPER_ADMIN_PASSWORD && !isTestEnv) {
-            return { success: false, message: 'Invalid super admin password.' };
+            return { success: false, role: normalizedRole, message: 'Invalid super admin password.' };
         }
 
         let resolvedPermissions = [];
