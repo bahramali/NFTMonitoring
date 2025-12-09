@@ -9,10 +9,18 @@ import NotAuthorized from './pages/NotAuthorized.jsx';
 import SuperAdminDashboard from './pages/SuperAdminDashboard.jsx';
 import AdminManagement from './pages/AdminManagement.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
-import AdminReports from './pages/AdminReports.jsx';
 import AdminTeam from './pages/AdminTeam.jsx';
 import WorkerDashboard from './pages/WorkerDashboard.jsx';
 import MyPage from './pages/MyPage.jsx';
+import MainLayout from './layouts/MainLayout.jsx';
+import Overview from './pages/Overview/index.jsx';
+import ControlPanel from './pages/ControlPanel/index.jsx';
+import LiveDashboard from './pages/Live/index.jsx';
+import Germination from './pages/Germination/index.jsx';
+import Cameras from './pages/Cameras/index.jsx';
+import Reports from './pages/Reports/index.jsx';
+import Note from './pages/Note/index.jsx';
+import SensorConfig from './pages/SensorConfig/index.jsx';
 
 function App() {
     const rawBase = import.meta?.env?.BASE_URL || '/';
@@ -53,14 +61,6 @@ function App() {
                     )}
                 />
                 <Route
-                    path="/dashboard/reports"
-                    element={(
-                        <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermission="admin-reports">
-                            <AdminReports />
-                        </ProtectedRoute>
-                    )}
-                />
-                <Route
                     path="/admin/team"
                     element={(
                         <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermission="admin-team">
@@ -68,6 +68,35 @@ function App() {
                         </ProtectedRoute>
                     )}
                 />
+
+                <Route
+                    path="/dashboard/*"
+                    element={(
+                        <ProtectedRoute
+                            allowedRoles={["SUPER_ADMIN", "ADMIN"]}
+                            requiredPermission="admin-dashboard"
+                        >
+                            <MainLayout />
+                        </ProtectedRoute>
+                    )}
+                >
+                    <Route index element={<Navigate to="overview" replace />} />
+                    <Route path="overview" element={<Overview />} />
+                    <Route path="control-panel" element={<ControlPanel />} />
+                    <Route path="live" element={<LiveDashboard />} />
+                    <Route path="germination" element={<Germination />} />
+                    <Route path="cameras" element={<Cameras />} />
+                    <Route
+                        path="reports"
+                        element={(
+                            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermission="admin-reports">
+                                <Reports />
+                            </ProtectedRoute>
+                        )}
+                    />
+                    <Route path="note" element={<Note />} />
+                    <Route path="sensor-config" element={<SensorConfig />} />
+                </Route>
 
                 <Route
                     path="/worker"

@@ -6,7 +6,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import styles from "./MainLayout.module.css";
 
 export default function MainLayout() {
-    const { user, logout } = useAuth();
+    const { username, logout } = useAuth();
 
     return (
         <ReportsFiltersProvider>
@@ -16,7 +16,7 @@ export default function MainLayout() {
                     <div className={styles.userBar}>
                         <div className={styles.userDetails}>
                             <span className={styles.userLabel}>Signed in as</span>
-                            <span className={styles.username}>{user?.username || 'User'}</span>
+                            <span className={styles.username}>{username || 'User'}</span>
                         </div>
                         <button className={styles.logoutButton} type="button" onClick={logout}>
                             Log out
