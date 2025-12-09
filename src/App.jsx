@@ -11,6 +11,7 @@ import SensorConfig from './pages/SensorConfig';
 import Note from './pages/Note';
 import ControlPanel from './pages/ControlPanel';
 import Shop from './pages/Shop.jsx';
+import Login from './pages/Login.jsx';
 import { useAuth } from './context/AuthContext.jsx';
 
 function ProtectedRoute({ children }) {
@@ -32,8 +33,9 @@ function App() {
     return (
         <BrowserRouter basename={base}>
             <Routes>
-                <Route path="/" element={<Shop />} />
-                <Route path="/login" element={<Navigate to="/" replace />} />
+                <Route path="/" element={<Login />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/shop" element={<Shop />} />
                 <Route
                     path={dashboardBase}
                     element={(

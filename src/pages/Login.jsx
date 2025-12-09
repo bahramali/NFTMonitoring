@@ -12,7 +12,7 @@ export default function Login() {
 
     useEffect(() => {
         if (isAuthenticated) {
-            navigate('/overview', { replace: true });
+            navigate('/dashboard/overview', { replace: true });
         }
     }, [isAuthenticated, navigate]);
 
@@ -22,7 +22,7 @@ export default function Login() {
         const result = login(trimmedUsername, password);
 
         if (result.success) {
-            navigate('/overview', { replace: true });
+            navigate('/dashboard/overview', { replace: true });
         } else {
             setError('Invalid username or password.');
         }
