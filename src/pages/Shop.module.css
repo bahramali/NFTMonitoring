@@ -21,15 +21,9 @@
 }
 
 .brand {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.brandLogo {
-    height: 44px;
-    width: auto;
-    display: block;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #4338ca;
 }
 
 .links {
