@@ -6,7 +6,6 @@ import styles from './Navbar.module.css';
 
 const ADMIN_PAGES = [
     { path: '/admin/dashboard', label: 'Admin Dashboard', permission: 'admin-dashboard' },
-    { path: '/dashboard/reports', label: 'Admin Reports', permission: 'admin-reports' },
     { path: '/admin/team', label: 'Team', permission: 'admin-team' },
 ];
 
@@ -21,10 +20,21 @@ export default function Navbar() {
 
     const adminLinks = useMemo(() => {
         if (userRole === 'SUPER_ADMIN') {
-            return ADMIN_PAGES;
+            return [
+                { path: '/dashboard/overview', label: 'Monitoring Dashboard' },
+                ...ADMIN_PAGES,
+            ];
         }
+
         if (userRole === 'ADMIN') {
-            return ADMIN_PAGES.filter((page) => userPermissions?.includes(page.permission));
+            const monitoringLinks = userPermissions?.includes('admin-dashboard')
+                ? [{ path: '/dashboard/overview', label: 'Monitoring Dashboard' }]
+                : [];
+
+            return [
+                ...monitoringLinks,
+                ...ADMIN_PAGES.filter((page) => userPermissions?.includes(page.permission)),
+            ];
         }
         return [];
     }, [userPermissions, userRole]);
