@@ -1,221 +1,165 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { sendLedCommand, sendLedSchedule } from "../../api/actuators";
-import { fetchLayerStatus } from "../../api/status";
+import {
+    fetchShellyDeviceStatus,
+    fetchShellyDevices,
+    scheduleShellyDevice,
+    toggleShellyDevice,
+    turnShellyOff,
+    turnShellyOn,
+} from "../../api/shelly";
 import Header from "../common/Header";
 import styles from "./ControlPanel.module.css";
 
-const layerPresets = [
-    { id: "L01", name: "Layer 01" },
-    { id: "L02", name: "Layer 02" },
-    { id: "L03", name: "Layer 03" },
-    { id: "L04", name: "Layer 04" },
-];
+const defaultSchedule = { turnOnAt: "", turnOffAt: "", durationMinutes: "" };
 
-const defaultSchedule = { start: "07:00", durationHours: 12 };
-
-const parseTime = (value) => {
-    if (typeof value !== "string" || !value.includes(":")) return null;
-    const [hoursStr, minutesStr] = value.split(":");
-    const hours = Number.parseInt(hoursStr, 10);
-    const minutes = Number.parseInt(minutesStr, 10);
-
-    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
-    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
-
-    return { hours, minutes };
-};
-
-const formatTimestamp = (value) => {
-    if (!value) return "—";
-    const date = value instanceof Date ? value : new Date(value);
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-};
-
-const deriveLayerStatus = (payload) => {
-    if (!payload || typeof payload !== "object") {
-        return { state: "Unknown", raw: null, updatedAt: null };
-    }
-
+const normalizeStatus = (payload) => {
     const candidates = [
-        payload.status,
-        payload?.average?.status,
-        payload?.average?.value,
+        payload?.status,
+        payload?.state,
+        payload?.isOn,
+        payload?.on,
         payload?.value,
-        payload?.sensorValue,
+        payload,
     ];
 
     const found = candidates.find((candidate) => typeof candidate !== "undefined" && candidate !== null);
-    const normalized =
-        typeof found === "string"
-            ? found.toUpperCase()
-            : Number.isFinite(Number(found))
-                ? Number(found) > 0
-                    ? "ON"
-                    : "OFF"
-                : "Unknown";
 
-    const updatedAt = payload.timestamp ?? payload.time ?? payload.updatedAt ?? null;
+    if (typeof found === "string") {
+        return found.toUpperCase();
+    }
 
-    return { state: normalized, raw: payload, updatedAt };
+    if (typeof found === "boolean") {
+        return found ? "ON" : "OFF";
+    }
+
+    if (Number.isFinite(Number(found))) {
+        return Number(found) > 0 ? "ON" : "OFF";
+    }
+
+    return "UNKNOWN";
+};
+
+const formatDateTime = (value) => {
+    if (!value) return "—";
+    const date = value instanceof Date ? value : new Date(value);
+    return date.toLocaleString([], { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" });
+};
+
+const formatDateTimeForPayload = (value) => {
+    if (!value) return undefined;
+    const date = value instanceof Date ? value : new Date(value);
+    const pad = (unit) => String(unit).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(
+        date.getMinutes()
+    )}:${pad(date.getSeconds())}`;
 };
 
 function ControlPanel() {
-    const [layers, setLayers] = useState(
-        layerPresets.map((layer) => ({
-            ...layer,
-            mode: "AUTO",
-            updatedAt: null,
-            schedule: { ...defaultSchedule },
-            durationSec: "",
-            status: "Unknown",
-            statusUpdatedAt: null,
-        }))
-    );
-    const [busyLayer, setBusyLayer] = useState(null);
-    const [sendingSchedule, setSendingSchedule] = useState(false);
+    const [devices, setDevices] = useState([]);
     const [feedback, setFeedback] = useState({ status: "idle", message: "" });
+    const [busyDevice, setBusyDevice] = useState(null);
+    const [schedulingDevice, setSchedulingDevice] = useState(null);
+    const [loadingDevices, setLoadingDevices] = useState(false);
 
-    const activeModes = useMemo(
-        () => layers.reduce((map, layer) => ({ ...map, [layer.id]: layer.mode }), {}),
-        [layers]
+    const activeStatuses = useMemo(
+        () => devices.reduce((map, device) => ({ ...map, [device.id]: normalizeStatus(device.status) }), {}),
+        [devices]
     );
 
-    const updateLayer = (layerId, updater) => {
-        setLayers((prev) =>
-            prev.map((layer) => (layer.id === layerId ? { ...layer, ...updater(layer) } : layer))
-        );
+    const updateDevice = (deviceId, updater) => {
+        setDevices((prev) => prev.map((device) => (device.id === deviceId ? { ...device, ...updater(device) } : device)));
     };
 
-    const updateLayerMode = (layerId, mode) => {
-        updateLayer(layerId, (layer) => ({ mode, updatedAt: new Date(), status: mode }));
-    };
-
-    const refreshLayerStatus = async (layerId) => {
+    const refreshDeviceStatus = async (deviceId) => {
         try {
-            const response = await fetchLayerStatus({ system: "S01", layer: layerId });
-            const status = deriveLayerStatus(response);
-            updateLayer(layerId, () => ({
-                status: status.state,
-                statusUpdatedAt: status.updatedAt ? new Date(status.updatedAt) : new Date(),
-                updatedAt: status.updatedAt ? new Date(status.updatedAt) : new Date(),
-            }));
+            const response = await fetchShellyDeviceStatus(deviceId);
+            const status = normalizeStatus(response);
+            updateDevice(deviceId, () => ({ status, updatedAt: new Date(response?.timestamp ?? Date.now()) }));
         } catch (error) {
-            console.error(`Could not refresh status for ${layerId}`, error);
+            console.error(`Could not refresh status for ${deviceId}`, error);
+            setFeedback({ status: "error", message: error?.message ?? `Could not refresh ${deviceId}` });
+        }
+    };
+
+    const loadDevices = async () => {
+        setLoadingDevices(true);
+        setFeedback({ status: "pending", message: "Fetching Shelly devices..." });
+
+        try {
+            const list = await fetchShellyDevices();
+            const parsed = Array.isArray(list)
+                ? list
+                : Array.isArray(list?.devices)
+                    ? list.devices
+                    : [];
+
+            const hydrated = parsed.map((device) => ({
+                id: device.id ?? device.deviceId ?? device.name,
+                name: device.name ?? device.label ?? device.id ?? device.deviceId ?? "Unnamed device",
+                status: normalizeStatus(device.status ?? device.state),
+                updatedAt: device.updatedAt ? new Date(device.updatedAt) : null,
+                schedule: { ...defaultSchedule },
+            }));
+
+            setDevices(hydrated);
+            setFeedback({ status: "success", message: "Device list is ready." });
+
+            await Promise.all(hydrated.map((device) => refreshDeviceStatus(device.id)));
+            setFeedback({ status: "idle", message: "" });
+        } catch (error) {
+            setFeedback({ status: "error", message: error?.message ?? "Devices were not loaded." });
+        } finally {
+            setLoadingDevices(false);
         }
     };
 
     useEffect(() => {
-        const controller = new AbortController();
-        let cancelled = false;
-
-        async function loadLayerStatuses() {
-            setFeedback({ status: "pending", message: "Loading LED status..." });
-            try {
-                const results = await Promise.all(
-                    layerPresets.map((layer) =>
-                        fetchLayerStatus({ system: "S01", layer: layer.id, signal: controller.signal })
-                            .then((payload) => deriveLayerStatus(payload))
-                            .catch(() => ({ state: "Unknown", raw: null, updatedAt: null }))
-                    )
-                );
-
-                if (cancelled) return;
-
-                setLayers((prev) =>
-                    prev.map((layer, index) => ({
-                        ...layer,
-                        status: results[index].state,
-                        statusUpdatedAt: results[index].updatedAt
-                            ? new Date(results[index].updatedAt)
-                            : layer.statusUpdatedAt,
-                    }))
-                );
-                setFeedback({ status: "idle", message: "" });
-            } catch (error) {
-                if (error?.name === "AbortError") return;
-                setFeedback({ status: "error", message: "Could not load LED status." });
-            }
-        }
-
-        loadLayerStatuses();
-
-        return () => {
-            cancelled = true;
-            controller.abort();
-        };
+        loadDevices();
     }, []);
 
-    const handleLayerCommand = async (layerId, command) => {
-        setBusyLayer(layerId);
-        setFeedback({ status: "pending", message: "Sending command..." });
+    const handleCommand = async (deviceId, command) => {
+        setBusyDevice(deviceId);
+        setFeedback({ status: "pending", message: `Sending ${command} command...` });
 
         try {
-            const payload = {
-                system: "S01",
-                layer: layerId,
-                deviceId: "R01",
-                command,
-            };
-            const layer = layers.find((entry) => entry.id === layerId);
-            if (layer?.durationSec) {
-                payload.durationSec = Number(layer.durationSec);
-            }
-            const response = await sendLedCommand(payload);
-            setFeedback({
-                status: "success",
-                message: response?.message ?? `${command} command sent for ${layerId}`,
-            });
-            updateLayerMode(layerId, command);
-            await refreshLayerStatus(layerId);
+            if (command === "ON") await turnShellyOn(deviceId);
+            else if (command === "OFF") await turnShellyOff(deviceId);
+            else if (command === "TOGGLE") await toggleShellyDevice(deviceId);
+
+            setFeedback({ status: "success", message: `${deviceId} switched to ${command}.` });
+            await refreshDeviceStatus(deviceId);
         } catch (error) {
-            setFeedback({
-                status: "error",
-                message: error?.message ?? "Command could not be sent",
-            });
+            setFeedback({ status: "error", message: error?.message ?? "Command was not sent." });
         } finally {
-            setBusyLayer(null);
+            setBusyDevice(null);
         }
     };
 
-    const handleScheduleSubmit = async (event, layerId) => {
+    const handleScheduleSubmit = async (event, deviceId) => {
         event.preventDefault();
+        const device = devices.find((item) => item.id === deviceId);
+        const payload = {};
 
-        const layer = layers.find((item) => item.id === layerId);
-        const start = parseTime(layer?.schedule?.start);
+        if (device?.schedule?.turnOnAt) payload.turnOnAt = formatDateTimeForPayload(device.schedule.turnOnAt);
+        if (device?.schedule?.turnOffAt) payload.turnOffAt = formatDateTimeForPayload(device.schedule.turnOffAt);
+        if (device?.schedule?.durationMinutes)
+            payload.durationMinutes = Number.parseInt(device.schedule.durationMinutes, 10);
 
-        if (!start || !Number.isFinite(Number(layer?.schedule?.durationHours))) {
-            setFeedback({ status: "error", message: "Enter a valid start time and duration." });
+        if (!payload.turnOnAt && !payload.turnOffAt && !payload.durationMinutes) {
+            setFeedback({ status: "error", message: "Enter at least one time or duration." });
             return;
         }
 
-        const durationHours = Math.max(1, Math.round(Number(layer.schedule.durationHours)));
-
-        setSendingSchedule(true);
-        setFeedback({ status: "pending", message: `Sending lighting schedule for ${layerId}...` });
+        setSchedulingDevice(deviceId);
+        setFeedback({ status: "pending", message: `Saving schedule for ${deviceId}...` });
 
         try {
-            const payload = {
-                system: "S01",
-                deviceId: "R01",
-                layer: layerId,
-                command: "SET_SCHEDULE",
-                onHour: start.hours,
-                onMinute: start.minutes,
-                durationHours,
-            };
-            const response = await sendLedSchedule(payload);
-            setFeedback({
-                status: "success",
-                message: response?.message ?? `Lighting schedule saved for ${layerId}.`,
-            });
-            await refreshLayerStatus(layerId);
+            await scheduleShellyDevice(deviceId, payload);
+            setFeedback({ status: "success", message: `Schedule saved for ${deviceId}.` });
         } catch (error) {
-            setFeedback({
-                status: "error",
-                message: error?.message ?? "Could not save schedule.",
-            });
+            setFeedback({ status: "error", message: error?.message ?? "Schedule was not saved." });
         } finally {
-            setSendingSchedule(false);
+            setSchedulingDevice(null);
         }
     };
 
@@ -225,21 +169,20 @@ function ControlPanel() {
 
             <section className={styles.hero}>
                 <div>
-                    <h1 className={styles.title}>Layer Lighting Control</h1>
+                    <h1 className={styles.title}>Shelly Lighting Control</h1>
                     <p className={styles.subtitle}>
-                        One relay equals one layer (L01–L04). Send manual ON/OFF/AUTO commands with optional
-                        duration, or push a per-layer schedule to the command topic.
+                        All relays and layers are visible here. Each card represents a Shelly device identified by the registry
+                        ID (for example, PS01L02). For every device you can read status, turn it on or off, or submit an on/off
+                        schedule.
                     </p>
                     <p className={styles.subtitleSmall}>
-                        Commands: <code>actuator/led/cmd</code> • Status topics per layer: <code>
-                            actuator/led/status/LXX
-                        </code>
+                        Endpoints: GET/POST under <code>/api/shelly</code> handle status, on/off, toggle, and schedule.
                     </p>
                 </div>
                 <div className={`${styles.feedback} ${styles[feedback.status] || ""}`}>
                     <span className={styles.feedbackLabel}>Status</span>
                     <p className={styles.feedbackMessage}>
-                        {feedback.status === "idle" && "Waiting for new command"}
+                        {feedback.status === "idle" && "Ready for the next command"}
                         {feedback.status === "pending" && feedback.message}
                         {feedback.status === "success" && feedback.message}
                         {feedback.status === "error" && feedback.message}
@@ -247,115 +190,135 @@ function ControlPanel() {
                 </div>
             </section>
 
+            <section className={styles.sectionHeader}>
+                <div>
+                    <h2 className={styles.sectionTitle}>Quick layer control</h2>
+                    <p className={styles.sectionHint}>
+                        Click a layer plate to toggle it instantly; use the buttons below for precise commands.
+                    </p>
+                </div>
+                <button type="button" className={styles.refreshButton} onClick={loadDevices} disabled={loadingDevices}>
+                    {loadingDevices ? "Updating..." : "Reload devices"}
+                </button>
+            </section>
+
             <section className={styles.layerGrid}>
-                {layers.map((layer) => (
-                    <article key={layer.id} className={styles.layerCard}>
+                {devices.map((device) => (
+                    <article key={device.id} className={styles.layerCard}>
                         <div className={styles.layerHeader}>
                             <div>
-                                <div className={styles.layerName}>{layer.name}</div>
-                                <div className={styles.layerId}>{layer.id}</div>
+                                <div className={styles.layerName}>{device.name}</div>
+                                <div className={styles.layerId}>{device.id}</div>
                             </div>
-                            <div className={`${styles.modeBadge} ${styles[layer.mode.toLowerCase()]}`}>
-                                <span className={styles.modeBadgeLabel}>
-                                    {layer.mode === "AUTO" ? "Auto" : layer.mode === "ON" ? "On" : "Off"}
-                                </span>
-                                {layer.mode === "AUTO" && (
-                                    <span className={styles.modeBadgeMeta}>
-                                        Starts {layer.schedule.start}, runs {layer.schedule.durationHours}h
-                                    </span>
-                                )}
+                            <div
+                                className={`${styles.modeBadge} ${styles[activeStatuses[device.id]?.toLowerCase?.() || "unknown"]}`}
+                            >
+                                <span className={styles.modeBadgeLabel}>{activeStatuses[device.id] || "Unknown"}</span>
+                                <span className={styles.modeBadgeMeta}>Last update {formatDateTime(device.updatedAt)}</span>
                             </div>
                         </div>
 
-                        <div className={styles.statusRow}>
-                            <div>
-                                <div className={styles.statusLabel}>Current status</div>
-                                <div className={styles.statusValue}>{layer.status}</div>
-                            </div>
-                            <div className={styles.statusMeta}>
-                                <span>Last status</span>
-                                <strong>{formatTimestamp(layer.statusUpdatedAt || layer.updatedAt)}</strong>
-                            </div>
-                        </div>
+                        <button
+                            type="button"
+                            className={`${styles.layerPlate} ${activeStatuses[device.id] === "ON" ? styles.plateOn : ""}`}
+                            onClick={() => handleCommand(device.id, "TOGGLE")}
+                            disabled={busyDevice === device.id}
+                        >
+                            <span className={styles.layerPlateLabel}>Click to change state</span>
+                            <span className={styles.layerPlateState}>{activeStatuses[device.id] || "UNKNOWN"}</span>
+                        </button>
 
                         <div className={styles.actions}>
-                            {[
-                                { label: "Off", value: "OFF", tone: "ghost" },
-                                { label: "On", value: "ON", tone: "primary" },
-                                { label: "Auto", value: "AUTO", tone: "neutral" },
-                            ].map((action) => (
-                                <button
-                                    key={action.value}
-                                    type="button"
-                                    className={`${styles.actionButton} ${styles[action.tone]} ${
-                                        activeModes[layer.id] === action.value ? styles.selected : ""
-                                    }`}
-                                    disabled={busyLayer === layer.id}
-                                    onClick={() => handleLayerCommand(layer.id, action.value)}
-                                >
-                                    {action.label}
-                                </button>
-                            ))}
-                            <label className={styles.durationField}>
-                                <span>Duration (sec, optional)</span>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    placeholder="e.g. 3600"
-                                    value={layer.durationSec}
-                                    onChange={(e) =>
-                                        updateLayer(layer.id, (prev) => ({
-                                            durationSec: e.target.value,
-                                            schedule: { ...prev.schedule },
-                                        }))
-                                    }
-                                />
-                            </label>
+                            {[{ label: "Turn Off", value: "OFF", tone: "ghost" }, { label: "Turn On", value: "ON", tone: "primary" }].map(
+                                (action) => (
+                                    <button
+                                        key={action.value}
+                                        type="button"
+                                        className={`${styles.actionButton} ${styles[action.tone]} ${
+                                            activeStatuses[device.id] === action.value ? styles.selected : ""
+                                        }`}
+                                        disabled={busyDevice === device.id}
+                                        onClick={() => handleCommand(device.id, action.value)}
+                                    >
+                                        {action.label}
+                                    </button>
+                                )
+                            )}
+                            <button
+                                type="button"
+                                className={`${styles.actionButton} ${styles.neutral}`}
+                                disabled={busyDevice === device.id}
+                                onClick={() => handleCommand(device.id, "TOGGLE")}
+                            >
+                                Toggle
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.ghostButton}
+                                disabled={busyDevice === device.id || loadingDevices}
+                                onClick={() => refreshDeviceStatus(device.id)}
+                            >
+                                Refresh status
+                            </button>
                         </div>
 
                         <form
                             className={styles.scheduleForm}
-                            onSubmit={(event) => handleScheduleSubmit(event, layer.id)}
+                            onSubmit={(event) => handleScheduleSubmit(event, device.id)}
+                            autoComplete="off"
                         >
-                            <label className={styles.field}>
-                                <span>Start time</span>
+                            <div className={styles.field}>
+                                <span>Turn on at (local)</span>
                                 <input
-                                    type="time"
-                                    value={layer.schedule.start}
+                                    type="datetime-local"
+                                    value={device.schedule.turnOnAt}
                                     onChange={(e) =>
-                                        updateLayer(layer.id, (prev) => ({
-                                            schedule: { ...prev.schedule, start: e.target.value },
+                                        updateDevice(device.id, (prev) => ({
+                                            schedule: { ...prev.schedule, turnOnAt: e.target.value },
                                         }))
                                     }
-                                    required
+                                    step="1"
                                 />
-                            </label>
-                            <label className={styles.field}>
-                                <span>Duration (hours)</span>
+                            </div>
+                            <div className={styles.field}>
+                                <span>Turn off at (local)</span>
+                                <input
+                                    type="datetime-local"
+                                    value={device.schedule.turnOffAt}
+                                    onChange={(e) =>
+                                        updateDevice(device.id, (prev) => ({
+                                            schedule: { ...prev.schedule, turnOffAt: e.target.value },
+                                        }))
+                                    }
+                                    step="1"
+                                />
+                            </div>
+                            <div className={styles.field}>
+                                <span>Duration (minutes)</span>
                                 <input
                                     type="number"
                                     min="1"
-                                    step="1"
-                                    value={layer.schedule.durationHours}
+                                    placeholder="e.g. 90"
+                                    value={device.schedule.durationMinutes}
                                     onChange={(e) =>
-                                        updateLayer(layer.id, (prev) => ({
-                                            schedule: {
-                                                ...prev.schedule,
-                                                durationHours: e.target.value,
-                                            },
+                                        updateDevice(device.id, (prev) => ({
+                                            schedule: { ...prev.schedule, durationMinutes: e.target.value },
                                         }))
                                     }
-                                    required
                                 />
-                            </label>
-                            <button type="submit" className={styles.submitButton} disabled={sendingSchedule}>
-                                {sendingSchedule ? "Saving..." : "Save schedule"}
+                            </div>
+                            <button
+                                type="submit"
+                                className={styles.submitButton}
+                                disabled={schedulingDevice === device.id}
+                            >
+                                {schedulingDevice === device.id ? "Saving..." : "Submit schedule"}
                             </button>
                         </form>
 
                         <div className={styles.meta}>
-                            <span>Command topic: actuator/led/cmd</span>
-                            <span>Status topic: actuator/led/status/{layer.id}</span>
+                            <span>GET /api/shelly/devices/{device.id}/status</span>
+                            <span>POST /api/shelly/devices/{device.id}/schedule</span>
                         </div>
                     </article>
                 ))}
