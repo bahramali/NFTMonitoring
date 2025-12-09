@@ -13,10 +13,23 @@
 }
 
 .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     font-weight: 700;
     color: #e2e8f0;
     text-decoration: none;
     letter-spacing: 0.4px;
+}
+
+.brandLogo {
+    height: 32px;
+    width: auto;
+    display: block;
+}
+
+.brandName {
+    color: #e2e8f0;
 }
 
 .navLinks {
