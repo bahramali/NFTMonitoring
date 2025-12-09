@@ -1,209 +1,212 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import hydroleafLogo from '../assets/hydroleaf_logo.png';
 import styles from './Shop.module.css';
 
-const DASHBOARD_HOME = '/dashboard/overview';
-
-const PRODUCT_LIST = [
+const HYDROPONIC_ITEMS = [
     {
-        name: 'NFT Channel Kit',
-        price: '$249',
-        description: 'Complete nutrient film technique channel kit with food-safe PVC and end caps.',
-        badges: ['Hydroponic Ready', 'DIY Friendly'],
+        title: '12-Row Home NFT Kit',
+        badge: 'Ready to install',
+        description: 'Start growing basil without extra setup.',
+        points: ['Quiet pump with 60L reservoir', '90W full-spectrum light', '15-minute assembly guide'],
     },
     {
-        name: 'Inline Pump 1200L/h',
-        price: '$89',
-        description: 'Energy-efficient circulation pump ideal for home grow racks and small greenhouses.',
-        badges: ['Low Noise', '24/7 Rated'],
+        title: 'Nutrient & EC Controller',
+        badge: 'Live monitoring',
+        description: 'Automatic dosing to keep flavor consistent.',
+        points: ['Calibrated EC and pH sensors', 'Telegram alerts and dashboard', 'Smooth, adjustable dosing'],
     },
     {
-        name: 'Monitoring Starter',
-        price: '$149',
-        description: 'Core sensors (pH, EC, water temp) with quick-connect harness for rapid deployment.',
-        badges: ['Plug & Play', 'Calibrated'],
-    },
-    {
-        name: 'LED Grow Bar Duo',
-        price: '$199',
-        description: 'Balanced spectrum light bars with passive cooling for leafy greens and seedlings.',
-        badges: ['Full Spectrum', 'Dimmable'],
+        title: 'Propagation & Rooting Kit',
+        badge: 'Fast start',
+        description: 'For cutting prep and seed starting.',
+        points: ['24 cells with humidity domes', 'Compact ultrasonic mister', 'Week-one nutrient pack'],
     },
 ];
 
+const PACKAGING_BUNDLES = [
+    {
+        title: '50g Café Pouch',
+        badge: 'Top seller',
+        description: 'Sized for quick online orders.',
+        points: ['Matte zipper pouch', 'Space for your logo label', '48-hour cold shelf life'],
+    },
+    {
+        title: '100g Market Pack',
+        badge: 'Shelf-ready',
+        description: 'Clear look for in-store presentation.',
+        points: ['Heat seal with air punch', 'Barcode/date cartridge', '5–7 day shelf life'],
+    },
+    {
+        title: 'Basil Gift Box',
+        badge: 'Brand-friendly',
+        description: 'Ideal for direct sales or weekly subscriptions.',
+        points: ['Moisture-resistant liner', 'Gel ice pack with hidden vents', 'Brochure space for recipes'],
+    },
+];
+
+const SERVICE_POINTS = [
+    'Harvest and packaging scheduled to your orders',
+    'Label design mock sent in under 24 hours',
+    'Chilled logistics coordinated for nearby cities',
+];
+
+function FeatureCard({ title, badge, description, points }) {
+    return (
+        <article className={styles.card}>
+            <div className={styles.cardHead}>
+                <div>
+                    <h3>{title}</h3>
+                    <p className={styles.cardDescription}>{description}</p>
+                </div>
+                {badge ? <span className={styles.badge}>{badge}</span> : null}
+            </div>
+            <ul className={styles.pointList}>
+                {points.map((point) => (
+                    <li key={point}>
+                        <span className={styles.pointDot} />
+                        <span>{point}</span>
+                    </li>
+                ))}
+            </ul>
+        </article>
+    );
+}
+
 export default function Shop() {
-    const { isAuthenticated, login } = useAuth();
+    const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
 
     useEffect(() => {
         if (isAuthenticated) {
-            navigate(DASHBOARD_HOME, { replace: true });
+            navigate('/dashboard/overview', { replace: true });
         }
     }, [isAuthenticated, navigate]);
-
-    const badgePalette = useMemo(
-        () => ['#e0f2fe', '#fef9c3', '#ecfccb', '#fce7f3'],
-        [],
-    );
-
-    const handleLogin = (event) => {
-        event.preventDefault();
-        setError('');
-        const result = login(username, password);
-
-        if (result.success) {
-            navigate(DASHBOARD_HOME, { replace: true });
-        } else {
-            setError('Incorrect username or password.');
-        }
-    };
 
     return (
         <div className={styles.page}>
             <header className={styles.hero}>
                 <nav className={styles.navbar}>
                     <div className={styles.brand}>
-                        <img
-                            src={hydroleafLogo}
-                            alt="HydroLeaf Organic Products logo"
-                            className={styles.brandLogo}
-                        />
+                        <img src={hydroleafLogo} alt="HydroLeaf" className={styles.brandLogo} />
+                        <span className={styles.brandName}>HydroLeaf Farm</span>
                     </div>
                     <div className={styles.links}>
-                        <a href="#products">Products</a>
-                        <a href="#about">Why us</a>
+                        <a href="#hydroponic">Hydroponic gear</a>
+                        <a href="#packaging">Basil packaging</a>
+                        <a href="#contact">Support</a>
                     </div>
-                    {isAuthenticated ? (
-                        <button
-                            type="button"
-                            className={styles.dashboardButton}
-                            onClick={() => navigate(DASHBOARD_HOME)}
-                        >
-                            View dashboard
-                        </button>
-                    ) : (
-                        <form className={styles.inlineLogin} onSubmit={handleLogin}>
-                            <input
-                                className={styles.input}
-                                type="text"
-                                placeholder="Username"
-                                value={username}
-                                onChange={(event) => setUsername(event.target.value)}
-                                required
-                            />
-                            <input
-                                className={styles.input}
-                                type="password"
-                                placeholder="Password"
-                                value={password}
-                                onChange={(event) => setPassword(event.target.value)}
-                                required
-                            />
-                            <button className={styles.loginButton} type="submit">
-                                Admin login
-                            </button>
-                        </form>
-                    )}
+                    <button
+                        type="button"
+                        className={styles.navButton}
+                        onClick={() =>
+                            navigate(isAuthenticated ? '/dashboard/overview' : '/login', { replace: true })
+                        }
+                    >
+                        {isAuthenticated ? 'Go to dashboard' : 'Manager login'}
+                    </button>
                 </nav>
 
                 <div className={styles.heroContent}>
                     <div>
-                        <p className={styles.kicker}>Official NFT hardware store</p>
-                        <h1 className={styles.title}>Browse products and only sign in when you need the dashboard</h1>
+                        <p className={styles.kicker}>Fresh, aromatic, and ready to sell</p>
+                        <h1 className={styles.title}>
+                            Basil in versatile packaging and complete hydroponic gear
+                        </h1>
                         <p className={styles.subtitle}>
-                            View ready-to-ship products without signing in. With an admin login,
-                            you go directly to the control dashboard.
+                            We split the journey into two tracks: grow equipment for consistent yields and
+                            packaging that keeps every delivery effortless.
                         </p>
-                        <div className={styles.ctaRow}>
-                            <a className={styles.primaryCta} href="#products">View products</a>
-                            <div className={styles.secondaryCta}>
-                                <span className={styles.dot} />
-                                Secure dashboard connection is active for admins.
-                            </div>
+                        <div className={styles.pillRow}>
+                            <span className={styles.pill}>Fast handoff in 48 hours</span>
+                            <span className={styles.pill}>Custom label for your brand</span>
+                            <span className={styles.pill}>Free packaging consult</span>
                         </div>
-                        {error && <div className={styles.error}>{error}</div>}
                     </div>
                     <div className={styles.heroCard}>
-                        <div className={styles.heroBadge}>Built for smart greenhouses</div>
-                        <div className={styles.metricGrid}>
-                            <div>
-                                <div className={styles.metricLabel}>Online support</div>
-                                <div className={styles.metricValue}>24/7</div>
+                        <div className={styles.statGrid}>
+                            <div className={styles.statItem}>
+                                <div className={styles.statValue}>+18</div>
+                                <div className={styles.statLabel}>Ready-to-ship packaging styles</div>
                             </div>
-                            <div>
-                                <div className={styles.metricLabel}>Warranty</div>
-                                <div className={styles.metricValue}>12 months</div>
+                            <div className={styles.statItem}>
+                                <div className={styles.statValue}>24/7</div>
+                                <div className={styles.statLabel}>Grow and harvest support</div>
                             </div>
-                            <div>
-                                <div className={styles.metricLabel}>Fast shipping</div>
-                                <div className={styles.metricValue}>48 hours</div>
+                            <div className={styles.statItem}>
+                                <div className={styles.statValue}>5 to 7 days</div>
+                                <div className={styles.statLabel}>Cold storage shelf life</div>
                             </div>
-                            <div>
-                                <div className={styles.metricLabel}>Parts supply</div>
-                                <div className={styles.metricValue}>Ongoing</div>
+                            <div className={styles.statItem}>
+                                <div className={styles.statValue}>Dashboard</div>
+                                <div className={styles.statLabel}>Access after manager login</div>
                             </div>
                         </div>
                         <p className={styles.heroNote}>
-                            Sign in with an admin account for precise management and monitoring. Otherwise, feel free to browse products openly.
+                            Choose whether to push sales right now or equip your hydroponic setup for steady
+                            production. We designed two paths that stay aligned.
                         </p>
                     </div>
                 </div>
             </header>
 
-            <section id="products" className={styles.productsSection}>
+            <section id="hydroponic" className={styles.section}>
                 <div className={styles.sectionHeader}>
-                    <h2>Products ready to ship</h2>
-                    <p>Review specs and pricing without logging in.</p>
+                    <p className={styles.sectionKicker}>Hydroponic gear</p>
+                    <h2>Everything for a steady harvest</h2>
+                    <p>Compact kits and controllers that fit comfortably in tight spaces.</p>
                 </div>
-                <div className={styles.productGrid}>
-                    {PRODUCT_LIST.map((product, index) => (
-                        <article key={product.name} className={styles.productCard}>
-                            <div className={styles.cardHeader}>
-                                <h3>{product.name}</h3>
-                                <span className={styles.price}>{product.price}</span>
-                            </div>
-                            <p className={styles.description}>{product.description}</p>
-                            <div className={styles.badges}>
-                                {product.badges.map((badge, badgeIndex) => (
-                                    <span
-                                        key={badge}
-                                        className={styles.badge}
-                                        style={{ backgroundColor: badgePalette[(index + badgeIndex) % badgePalette.length] }}
-                                    >
-                                        {badge}
-                                    </span>
-                                ))}
-                            </div>
-                        </article>
+                <div className={styles.cardGrid}>
+                    {HYDROPONIC_ITEMS.map((item) => (
+                        <FeatureCard key={item.title} {...item} />
                     ))}
                 </div>
             </section>
 
-            <section id="about" className={styles.aboutSection}>
-                <div>
-                    <h2>Alongside the real-time monitoring dashboard</h2>
-                    <p>
-                        Every product is compatible with your sensors and monitoring system. With an admin login, you can
-                        access the Overview, Live, and other dashboard modules.
-                    </p>
+            <section id="packaging" className={styles.section}>
+                <div className={styles.sectionHeader}>
+                    <p className={styles.sectionKicker}>Basil packaging</p>
+                    <h2>Bundles ready to sell fast</h2>
+                    <p>Pick a compact option for each channel—online, retail, or gifting.</p>
                 </div>
-                <div className={styles.highlights}>
-                    <div className={styles.highlightCard}>
-                        <div className={styles.highlightTitle}>Secure admin login</div>
-                        <p>After entering your username and password, you’re taken to the admin dashboard.</p>
+                <div className={styles.cardGrid}>
+                    {PACKAGING_BUNDLES.map((item) => (
+                        <FeatureCard key={item.title} {...item} />
+                    ))}
+                </div>
+            </section>
+
+            <section id="contact" className={styles.section}>
+                <div className={styles.callout}>
+                    <div>
+                        <h3>Sales coordination on call</h3>
+                        <p className={styles.calloutText}>
+                            We review packaging details, custom labels, and harvest timing together so sales
+                            stay uninterrupted.
+                        </p>
+                        <ul className={styles.pointList}>
+                            {SERVICE_POINTS.map((point) => (
+                                <li key={point}>
+                                    <span className={styles.pointDot} />
+                                    <span>{point}</span>
+                                </li>
+                            ))}
+                        </ul>
                     </div>
-                    <div className={styles.highlightCard}>
-                        <div className={styles.highlightTitle}>Open product browsing</div>
-                        <p>All items and pricing stay visible without signing in.</p>
-                    </div>
-                    <div className={styles.highlightCard}>
-                        <div className={styles.highlightTitle}>Unified management</div>
-                        <p>In the dashboard, the control panel, reports, and sensor configuration are ready for you.</p>
+                    <div className={styles.calloutActions}>
+                        <a className={styles.primaryAction} href="tel:+989120000000">
+                            Call for a consult
+                        </a>
+                        <button
+                            type="button"
+                            className={styles.secondaryAction}
+                            onClick={() =>
+                                navigate(isAuthenticated ? '/dashboard/overview' : '/login', { replace: true })
+                            }
+                        >
+                            View dashboard after login
+                        </button>
                     </div>
                 </div>
             </section>
