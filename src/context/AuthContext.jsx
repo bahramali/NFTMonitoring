@@ -28,7 +28,9 @@ const defaultAuthValue = {
     username: isTestEnv ? 'Test User' : null,
     userPermissions: [],
     adminAssignments: DEFAULT_ADMINS,
+    registeredCustomers: [],
     login: () => ({ success: false }),
+    register: () => ({ success: false }),
     logout: () => {},
     upsertAdmin: () => {},
     removeAdmin: () => {},
@@ -44,6 +46,7 @@ const readStoredSession = () => {
             userRole: null,
             userPermissions: [],
             adminAssignments: DEFAULT_ADMINS,
+            registeredCustomers: [],
             expiry: null,
         };
     }
@@ -56,33 +59,48 @@ const readStoredSession = () => {
             userRole: null,
             userPermissions: [],
             adminAssignments: DEFAULT_ADMINS,
+            registeredCustomers: [],
             expiry: null,
         };
     }
 
     try {
         const parsed = JSON.parse(rawData);
-        if (parsed.expiry && parsed.expiry > Date.now()) {
+        const adminAssignments = parsed.adminAssignments?.length ? parsed.adminAssignments : DEFAULT_ADMINS;
+        const registeredCustomers = parsed.registeredCustomers || [];
+
+        if (parsed.expiry && parsed.expiry <= Date.now()) {
             return {
-                isAuthenticated: Boolean(parsed.isAuthenticated),
-                username: parsed.username || null,
-                userRole: parsed.userRole || null,
-                userPermissions: parsed.userPermissions || [],
-                adminAssignments: parsed.adminAssignments?.length ? parsed.adminAssignments : DEFAULT_ADMINS,
-                expiry: parsed.expiry,
+                isAuthenticated: false,
+                username: null,
+                userRole: null,
+                userPermissions: [],
+                adminAssignments,
+                registeredCustomers,
+                expiry: null,
             };
         }
+
+        return {
+            isAuthenticated: Boolean(parsed.isAuthenticated),
+            username: parsed.username || null,
+            userRole: parsed.userRole || null,
+            userPermissions: parsed.userPermissions || [],
+            adminAssignments,
+            registeredCustomers,
+            expiry: parsed.expiry || null,
+        };
     } catch {
         // If parsing fails, fall through to reset state
     }
 
-    window.localStorage.removeItem('authSession');
     return {
         isAuthenticated: false,
         username: null,
         userRole: null,
         userPermissions: [],
         adminAssignments: DEFAULT_ADMINS,
+        registeredCustomers: [],
         expiry: null,
     };
 };
@@ -96,6 +114,7 @@ export function AuthProvider({ children }) {
                 userRole: 'SUPER_ADMIN',
                 userPermissions: [],
                 adminAssignments: DEFAULT_ADMINS,
+                registeredCustomers: [],
                 expiry: Date.now() + SESSION_DURATION_MS,
             };
         }
@@ -121,6 +140,18 @@ export function AuthProvider({ children }) {
         }
 
         let resolvedPermissions = [];
+        if (normalizedRole === 'CUSTOMER') {
+            const customerRecord = session.registeredCustomers?.find(
+                (customer) => customer.username.toLowerCase() === trimmedUsername.toLowerCase(),
+            );
+            if (!customerRecord) {
+                return { success: false, message: 'Account not found. Please register first.' };
+            }
+
+            if (customerRecord.password && customerRecord.password !== password) {
+                return { success: false, message: 'Incorrect password. Please try again.' };
+            }
+        }
         if (normalizedRole === 'ADMIN') {
             const adminRecord = session.adminAssignments?.find(
                 (admin) => admin.username.toLowerCase() === normalizedUsername,
@@ -134,6 +165,7 @@ export function AuthProvider({ children }) {
             userRole: normalizedRole,
             userPermissions: resolvedPermissions,
             adminAssignments: session.adminAssignments?.length ? session.adminAssignments : DEFAULT_ADMINS,
+            registeredCustomers: session.registeredCustomers || [],
             expiry: Date.now() + SESSION_DURATION_MS,
         };
         setSession(newSession);
@@ -142,8 +174,46 @@ export function AuthProvider({ children }) {
             window.localStorage.setItem('authSession', JSON.stringify(newSession));
         }
 
-        return { success: true, role: normalizedRole };
-    }, [session.adminAssignments]);
+        return { success: true };
+    }, [session.adminAssignments, session.registeredCustomers]);
+
+    const register = useCallback((username, password) => {
+        const trimmedUsername = username?.trim();
+        if (!trimmedUsername || !password?.trim()) {
+            return { success: false, message: 'Username and password are required.' };
+        }
+
+        const existingCustomer = session.registeredCustomers?.find(
+            (customer) => customer.username.toLowerCase() === trimmedUsername.toLowerCase(),
+        );
+
+        if (existingCustomer) {
+            return { success: false, message: 'A customer with this username already exists.' };
+        }
+
+        const updatedCustomers = [
+            ...(session.registeredCustomers || []),
+            { username: trimmedUsername, password: password.trim() },
+        ];
+
+        const newSession = {
+            isAuthenticated: true,
+            username: trimmedUsername,
+            userRole: 'CUSTOMER',
+            userPermissions: [],
+            adminAssignments: session.adminAssignments?.length ? session.adminAssignments : DEFAULT_ADMINS,
+            registeredCustomers: updatedCustomers,
+            expiry: Date.now() + SESSION_DURATION_MS,
+        };
+
+        setSession(newSession);
+
+        if (typeof window !== 'undefined') {
+            window.localStorage.setItem('authSession', JSON.stringify(newSession));
+        }
+
+        return { success: true };
+    }, [session.adminAssignments, session.registeredCustomers]);
 
     const logout = useCallback(() => {
         setSession((previous) => ({
@@ -152,12 +222,22 @@ export function AuthProvider({ children }) {
             username: null,
             userRole: null,
             userPermissions: [],
+            registeredCustomers: previous.registeredCustomers,
             expiry: null,
         }));
         if (typeof window !== 'undefined') {
-            window.localStorage.removeItem('authSession');
+            const storedSession = {
+                isAuthenticated: false,
+                username: null,
+                userRole: null,
+                userPermissions: [],
+                adminAssignments: session.adminAssignments,
+                registeredCustomers: session.registeredCustomers,
+                expiry: null,
+            };
+            window.localStorage.setItem('authSession', JSON.stringify(storedSession));
         }
-    }, []);
+    }, [session.adminAssignments, session.registeredCustomers]);
 
     const upsertAdmin = useCallback((admin) => {
         setSession((previous) => {
@@ -204,12 +284,14 @@ export function AuthProvider({ children }) {
             userRole: session.userRole,
             userPermissions: session.userPermissions,
             adminAssignments: session.adminAssignments,
+            registeredCustomers: session.registeredCustomers,
             login,
+            register,
             logout,
             upsertAdmin,
             removeAdmin,
         }),
-        [session, login, logout, upsertAdmin, removeAdmin],
+        [session, login, logout, register, upsertAdmin, removeAdmin],
     );
 
     return (
