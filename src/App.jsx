@@ -4,6 +4,7 @@ import Navbar from './components/Navbar.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import Home from './pages/Home.jsx';
 import Login from './pages/Login.jsx';
+import Register from './pages/Register.jsx';
 import NotAuthorized from './pages/NotAuthorized.jsx';
 import SuperAdminDashboard from './pages/SuperAdminDashboard.jsx';
 import AdminManagement from './pages/AdminManagement.jsx';
@@ -23,6 +24,7 @@ function App() {
             <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
                 <Route path="/not-authorized" element={<NotAuthorized />} />
 
                 <Route
