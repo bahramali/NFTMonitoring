@@ -18,6 +18,7 @@ const DEFAULT_ADMINS = [
     {
         id: 'ops-admin',
         username: 'ops_admin',
+        email: 'ops_admin@example.com',
         permissions: ['admin-dashboard', 'admin-reports'],
     },
 ];
