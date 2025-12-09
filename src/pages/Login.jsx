@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import styles from './Login.module.css';
 
@@ -84,6 +84,11 @@ export default function Login() {
                     {error && <div className={styles.error}>{error}</div>}
 
                     <button className={styles.button} type="submit">Sign in</button>
+                    <p className={styles.linkRow}>
+                        New customer?
+                        {' '}
+                        <Link to="/register">Create an account</Link>
+                    </p>
                 </form>
             </div>
             <div className={styles.helper}>
