@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">HydroLeaf Organic Products</title>
+  <desc id="desc">Circular HydroLeaf logo with green leaves above blue flowing water.</desc>
+  <defs>
+    <linearGradient id="water" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7bb5f4" />
+      <stop offset="100%" stop-color="#6aa1e4" />
+    </linearGradient>
+  </defs>
+  <circle cx="256" cy="256" r="218" fill="none" stroke="#78b85c" stroke-width="42" />
+  <path
+    fill="#78b85c"
+    d="M210 129c31.5-38.5 79-60 126-60-5.5 33.5-23 67-52 90-32 25-70 33-104 25 6-22.5 16-41 30-55Z"
+  />
+  <path
+    fill="#4e9954"
+    d="M172 154c0 18 4 36 11 52-33 4-63-8-82-34 17-16 43-22 71-18Z"
+  />
+  <path
+    fill="url(#water)"
+    d="M398 282c-26 17-56 28-87 28-46 0-87-22-116-43-27-19-59-26-91-24 25 44 63 82 112 104 77 35 164 22 227-26-5-15-20-28-45-39Z"
+  />
+  <path
+    fill="#7bb5f4"
+    d="M411 228c-28 15-59 22-91 22-61 0-112-24-143-46 16-10 35-15 55-15 48 0 95 28 148 39 13 3 23 0 31-6Z"
+  />
+</svg>

@@ -66,7 +66,13 @@ export default function Shop() {
         <div className={styles.page}>
             <header className={styles.hero}>
                 <nav className={styles.navbar}>
-                    <div className={styles.brand}>HydroLeaf Market</div>
+                    <div className={styles.brand}>
+                        <img
+                            src="/hydroleaf-logo.svg"
+                            alt="HydroLeaf Organic Products logo"
+                            className={styles.brandLogo}
+                        />
+                    </div>
                     <div className={styles.links}>
                         <a href="#products">Products</a>
                         <a href="#about">Why us</a>
