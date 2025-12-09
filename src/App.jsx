@@ -51,7 +51,7 @@ function App() {
                     )}
                 />
                 <Route
-                    path="/admin/reports"
+                    path="/dashboard/reports"
                     element={(
                         <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermission="admin-reports">
                             <AdminReports />
