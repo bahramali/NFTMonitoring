@@ -124,16 +124,13 @@ export function AuthProvider({ children }) {
 
     const login = useCallback((username, password, role) => {
         const trimmedUsername = username?.trim();
-        let normalizedRole = role?.trim();
-        if (!trimmedUsername || !normalizedRole) {
+        const requestedRole = role?.trim();
+        if (!trimmedUsername || !requestedRole) {
             return { success: false, message: 'Username and role are required.' };
         }
 
-        const normalizedUsername = trimmedUsername.toLowerCase();
-
-        if (normalizedUsername === 'azad_admin') {
-            normalizedRole = 'SUPER_ADMIN';
-        }
+        const isAzadAdmin = trimmedUsername.toLowerCase() === 'azad_admin';
+        const normalizedRole = isAzadAdmin ? 'SUPER_ADMIN' : requestedRole;
 
         if (normalizedRole === 'SUPER_ADMIN' && password !== SUPER_ADMIN_PASSWORD && !isTestEnv) {
             return { success: false, message: 'Invalid super admin password.' };
@@ -174,7 +171,7 @@ export function AuthProvider({ children }) {
             window.localStorage.setItem('authSession', JSON.stringify(newSession));
         }
 
-        return { success: true };
+        return { success: true, role: normalizedRole };
     }, [session.adminAssignments, session.registeredCustomers]);
 
     const register = useCallback((username, password) => {
