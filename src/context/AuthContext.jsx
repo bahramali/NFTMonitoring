@@ -12,106 +12,198 @@ const isTestEnv = (typeof import.meta !== 'undefined' && import.meta.env?.MODE =
 
 const SESSION_DURATION_MS = 30 * 60 * 1000;
 
+const SUPER_ADMIN_PASSWORD = 'superadmin';
+
+const DEFAULT_ADMINS = [
+    {
+        id: 'ops-admin',
+        username: 'ops_admin',
+        permissions: ['admin-dashboard', 'admin-reports'],
+    },
+];
+
 const defaultAuthValue = {
     isAuthenticated: isTestEnv,
-    user: isTestEnv ? { username: 'Test User' } : null,
+    userRole: isTestEnv ? 'SUPER_ADMIN' : null,
+    username: isTestEnv ? 'Test User' : null,
+    userPermissions: [],
+    adminAssignments: DEFAULT_ADMINS,
     login: () => ({ success: false }),
     logout: () => {},
+    upsertAdmin: () => {},
+    removeAdmin: () => {},
 };
 
 const AuthContext = createContext(defaultAuthValue);
 
-const VALID_USERNAME = 'Azad_admin';
-const VALID_PASSWORD = 'Reza1!Reza1!';
-
 const readStoredSession = () => {
     if (typeof window === 'undefined') {
-        return { isAuthenticated: false, user: null, expiry: null };
-    }
-
-    const storedStatus = window.localStorage.getItem('authStatus');
-    const storedUser = window.localStorage.getItem('authUser');
-    const storedExpiry = Number(window.localStorage.getItem('authExpiry'));
-
-    if (storedStatus === 'authenticated' && storedExpiry && storedExpiry > Date.now()) {
         return {
-            isAuthenticated: true,
-            user: storedUser ? { username: storedUser } : null,
-            expiry: storedExpiry,
+            isAuthenticated: false,
+            username: null,
+            userRole: null,
+            userPermissions: [],
+            adminAssignments: DEFAULT_ADMINS,
+            expiry: null,
         };
     }
 
-    window.localStorage.removeItem('authStatus');
-    window.localStorage.removeItem('authUser');
-    window.localStorage.removeItem('authExpiry');
+    const rawData = window.localStorage.getItem('authSession');
+    if (!rawData) {
+        return {
+            isAuthenticated: false,
+            username: null,
+            userRole: null,
+            userPermissions: [],
+            adminAssignments: DEFAULT_ADMINS,
+            expiry: null,
+        };
+    }
 
-    return { isAuthenticated: false, user: null, expiry: null };
+    try {
+        const parsed = JSON.parse(rawData);
+        if (parsed.expiry && parsed.expiry > Date.now()) {
+            return {
+                isAuthenticated: Boolean(parsed.isAuthenticated),
+                username: parsed.username || null,
+                userRole: parsed.userRole || null,
+                userPermissions: parsed.userPermissions || [],
+                adminAssignments: parsed.adminAssignments?.length ? parsed.adminAssignments : DEFAULT_ADMINS,
+                expiry: parsed.expiry,
+            };
+        }
+    } catch {
+        // If parsing fails, fall through to reset state
+    }
+
+    window.localStorage.removeItem('authSession');
+    return {
+        isAuthenticated: false,
+        username: null,
+        userRole: null,
+        userPermissions: [],
+        adminAssignments: DEFAULT_ADMINS,
+        expiry: null,
+    };
 };
 
 export function AuthProvider({ children }) {
-    const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const [session, setSession] = useState(() => {
         if (isTestEnv) {
-            return true;
+            return {
+                isAuthenticated: true,
+                username: 'Test User',
+                userRole: 'SUPER_ADMIN',
+                userPermissions: [],
+                adminAssignments: DEFAULT_ADMINS,
+                expiry: Date.now() + SESSION_DURATION_MS,
+            };
         }
 
-        return readStoredSession().isAuthenticated;
+        return readStoredSession();
     });
 
-    const [user, setUser] = useState(() => {
-        if (isTestEnv) {
-            return { username: 'Test User' };
-        }
-
-        return readStoredSession().user;
-    });
-
-    const login = (username, password) => {
+    const login = useCallback((username, password, role) => {
         const trimmedUsername = username?.trim();
-        if (trimmedUsername === VALID_USERNAME && password === VALID_PASSWORD) {
-            setIsAuthenticated(true);
-            setUser({ username: trimmedUsername });
-            if (typeof window !== 'undefined') {
-                window.localStorage.setItem('authStatus', 'authenticated');
-                window.localStorage.setItem('authUser', trimmedUsername);
-                window.localStorage.setItem('authExpiry', `${Date.now() + SESSION_DURATION_MS}`);
-            }
-            return { success: true };
+        const normalizedRole = role?.trim();
+        if (!trimmedUsername || !normalizedRole) {
+            return { success: false, message: 'Username and role are required.' };
         }
 
-        return { success: false };
-    };
+        if (normalizedRole === 'SUPER_ADMIN' && password !== SUPER_ADMIN_PASSWORD && !isTestEnv) {
+            return { success: false, message: 'Invalid super admin password.' };
+        }
+
+        let resolvedPermissions = [];
+        if (normalizedRole === 'ADMIN') {
+            const adminRecord = session.adminAssignments?.find(
+                (admin) => admin.username.toLowerCase() === trimmedUsername.toLowerCase(),
+            );
+            resolvedPermissions = adminRecord?.permissions || [];
+        }
+
+        const newSession = {
+            isAuthenticated: true,
+            username: trimmedUsername,
+            userRole: normalizedRole,
+            userPermissions: resolvedPermissions,
+            adminAssignments: session.adminAssignments?.length ? session.adminAssignments : DEFAULT_ADMINS,
+            expiry: Date.now() + SESSION_DURATION_MS,
+        };
+        setSession(newSession);
+
+        if (typeof window !== 'undefined') {
+            window.localStorage.setItem('authSession', JSON.stringify(newSession));
+        }
+
+        return { success: true };
+    }, [session.adminAssignments]);
 
     const logout = useCallback(() => {
-        setIsAuthenticated(false);
-        setUser(null);
+        setSession((previous) => ({
+            ...previous,
+            isAuthenticated: false,
+            username: null,
+            userRole: null,
+            userPermissions: [],
+            expiry: null,
+        }));
         if (typeof window !== 'undefined') {
-            window.localStorage.removeItem('authStatus');
-            window.localStorage.removeItem('authUser');
-            window.localStorage.removeItem('authExpiry');
+            window.localStorage.removeItem('authSession');
         }
     }, []);
 
+    const upsertAdmin = useCallback((admin) => {
+        setSession((previous) => {
+            const filtered = previous.adminAssignments.filter((item) => item.id !== admin.id);
+            const updatedAssignments = [...filtered, admin];
+            const nextSession = { ...previous, adminAssignments: updatedAssignments };
+            if (typeof window !== 'undefined') {
+                window.localStorage.setItem('authSession', JSON.stringify(nextSession));
+            }
+            return nextSession;
+        });
+    }, []);
+
+    const removeAdmin = useCallback((id) => {
+        setSession((previous) => {
+            const updatedAssignments = previous.adminAssignments.filter((item) => item.id !== id);
+            const nextSession = { ...previous, adminAssignments: updatedAssignments };
+            if (typeof window !== 'undefined') {
+                window.localStorage.setItem('authSession', JSON.stringify(nextSession));
+            }
+            return nextSession;
+        });
+    }, []);
+
     useEffect(() => {
-        if (!isAuthenticated) {
+        if (!session.isAuthenticated) {
             return undefined;
         }
 
-        const storedSession = readStoredSession();
-        if (!storedSession.expiry || storedSession.expiry <= Date.now()) {
+        const expiry = session.expiry || 0;
+        if (!expiry || expiry <= Date.now()) {
             logout();
             return undefined;
         }
 
-        const timeoutId = window.setTimeout(() => {
-            logout();
-        }, storedSession.expiry - Date.now());
-
+        const timeoutId = window.setTimeout(logout, expiry - Date.now());
         return () => window.clearTimeout(timeoutId);
-    }, [isAuthenticated, logout]);
+    }, [logout, session.expiry, session.isAuthenticated]);
 
     const value = useMemo(
-        () => ({ isAuthenticated, user, login, logout }),
-        [isAuthenticated, user],
+        () => ({
+            isAuthenticated: session.isAuthenticated,
+            username: session.username,
+            userRole: session.userRole,
+            userPermissions: session.userPermissions,
+            adminAssignments: session.adminAssignments,
+            login,
+            logout,
+            upsertAdmin,
+            removeAdmin,
+        }),
+        [session, login, logout, upsertAdmin, removeAdmin],
     );
 
     return (
@@ -121,6 +213,7 @@ export function AuthProvider({ children }) {
     );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
     return useContext(AuthContext);
 }
