@@ -44,7 +44,7 @@ export default function Login() {
             <div className={styles.card}>
                 <h1 className={styles.title}>Sign in</h1>
                 <p className={styles.subtitle}>
-                    Use the selector to choose your role. Super admins need the password "superadmin".
+                    Use the selector to choose your role. Super admins need the password "Reza1!Reza1!".
                 </p>
                 <form className={styles.form} onSubmit={handleSubmit} autoComplete="off">
                     <label className={styles.label} htmlFor="username">Username</label>

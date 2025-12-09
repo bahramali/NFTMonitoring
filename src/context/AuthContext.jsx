@@ -12,7 +12,7 @@ const isTestEnv = (typeof import.meta !== 'undefined' && import.meta.env?.MODE =
 
 const SESSION_DURATION_MS = 30 * 60 * 1000;
 
-const SUPER_ADMIN_PASSWORD = 'superadmin';
+const SUPER_ADMIN_PASSWORDS = ['superadmin', 'Reza1!Reza1!'];
 
 const DEFAULT_ADMINS = [
     {
@@ -137,7 +137,9 @@ export function AuthProvider({ children }) {
             return { success: false, role: normalizedRole || null, message: 'Username and role are required.' };
         }
 
-        if (normalizedRole === 'SUPER_ADMIN' && password !== SUPER_ADMIN_PASSWORD && !isTestEnv) {
+        const isValidSuperAdminPassword = SUPER_ADMIN_PASSWORDS.includes(password);
+
+        if (normalizedRole === 'SUPER_ADMIN' && !isValidSuperAdminPassword && !isTestEnv) {
             return { success: false, role: normalizedRole, message: 'Invalid super admin password.' };
         }
 
