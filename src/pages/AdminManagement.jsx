@@ -8,12 +8,13 @@ const AVAILABLE_PERMISSIONS = [
     { id: 'admin-team', label: 'Team' },
 ];
 
-const emptyForm = { id: '', username: '', permissions: ['admin-dashboard'] };
+const emptyForm = { id: '', username: '', email: '', permissions: ['admin-dashboard'] };
 
 export default function AdminManagement() {
     const { adminAssignments, upsertAdmin, removeAdmin } = useAuth();
     const [formState, setFormState] = useState(emptyForm);
     const [editingId, setEditingId] = useState(null);
+    const [inviteNotice, setInviteNotice] = useState('');
 
     const sortedAdmins = useMemo(
         () => [...(adminAssignments || [])].sort((a, b) => a.username.localeCompare(b.username)),
@@ -22,18 +23,27 @@ export default function AdminManagement() {
 
     const handleSubmit = (event) => {
         event.preventDefault();
-        if (!formState.id || !formState.username) {
+        if (!formState.id || !formState.username || !formState.email) {
             return;
         }
 
-        upsertAdmin(formState);
+        const normalizedAdmin = {
+            ...formState,
+            id: formState.id.trim(),
+            username: formState.username.trim(),
+            email: formState.email.trim(),
+        };
+
+        upsertAdmin(normalizedAdmin);
+        setInviteNotice(`Invitation email queued for ${normalizedAdmin.email} so they can set and confirm their password.`);
         setFormState(emptyForm);
         setEditingId(null);
     };
 
     const startEdit = (admin) => {
-        setFormState(admin);
+        setFormState({ ...admin, email: admin.email || '' });
         setEditingId(admin.id);
+        setInviteNotice('');
     };
 
     const togglePermission = (permission) => {
@@ -75,6 +85,16 @@ export default function AdminManagement() {
                         onChange={(event) => setFormState((previous) => ({ ...previous, username: event.target.value }))}
                         required
                     />
+                    <label className={styles.label} htmlFor="email">Admin email</label>
+                    <input
+                        id="email"
+                        type="email"
+                        className={styles.input}
+                        value={formState.email}
+                        onChange={(event) => setFormState((previous) => ({ ...previous, email: event.target.value }))}
+                        required
+                    />
+                    <p className={styles.helper}>We’ll email the admin so they can set and confirm their own password.</p>
                     <p className={styles.label}>Permissions</p>
                     <div className={styles.permissions}>
                         {AVAILABLE_PERMISSIONS.map((permission) => (
@@ -91,6 +111,7 @@ export default function AdminManagement() {
                     <button className={styles.button} type="submit">
                         {editingId ? 'Save changes' : 'Create admin'}
                     </button>
+                    {inviteNotice && <p className={styles.notice}>{inviteNotice}</p>}
                 </form>
 
                 <div className={styles.card}>
@@ -103,6 +124,7 @@ export default function AdminManagement() {
                                 <li key={admin.id}>
                                     <div>
                                         <strong>{admin.username}</strong>
+                                        <p className={styles.meta}>Email: {admin.email || 'Not provided'}</p>
                                         <p className={styles.meta}>Permissions: {admin.permissions.join(', ') || 'None'}</p>
                                     </div>
                                     <div className={styles.rowActions}>

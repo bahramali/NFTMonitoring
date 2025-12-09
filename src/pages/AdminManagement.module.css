@@ -38,6 +38,12 @@
     font-weight: 700;
 }
 
+.helper {
+    color: #475569;
+    margin-top: 6px;
+    font-size: 14px;
+}
+
 .input {
     width: 100%;
     padding: 10px;
@@ -71,6 +77,15 @@
     border-radius: 10px;
     cursor: pointer;
     font-weight: 700;
+}
+
+.notice {
+    margin-top: 10px;
+    background: #ecfeff;
+    color: #0e7490;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #67e8f9;
 }
 
 .adminList {
