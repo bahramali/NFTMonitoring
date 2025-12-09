@@ -45,6 +45,11 @@ export default function Navbar() {
                             Login
                         </NavLink>
                     )}
+                    {!isAuthenticated && (
+                        <NavLink to="/register" className={({ isActive }) => (isActive ? styles.active : '')}>
+                            Register
+                        </NavLink>
+                    )}
                     {userRole === 'SUPER_ADMIN' && (
                         <>
                             <NavLink
