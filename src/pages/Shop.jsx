@@ -6,50 +6,50 @@ import styles from './Shop.module.css';
 
 const HYDROPONIC_ITEMS = [
     {
-        title: 'کیت NFT خانگی ۱۲ ردیفه',
-        badge: 'آماده نصب',
-        description: 'برای شروع کشت ریحان بدون دردسر.',
-        points: ['پمپ کم‌صدا و مخزن ۶۰ لیتری', 'چراغ طیف کامل ۹۰ وات', 'راهنمای نصب ۱۵ دقیقه‌ای'],
+        title: '12-Row Home NFT Kit',
+        badge: 'Ready to install',
+        description: 'Start growing basil without extra setup.',
+        points: ['Quiet pump with 60L reservoir', '90W full-spectrum light', '15-minute assembly guide'],
     },
     {
-        title: 'کنترلر تغذیه و EC',
-        badge: 'پایش لحظه‌ای',
-        description: 'پایش و تنظیم اتوماتیک برای ثبات طعم.',
-        points: ['سنسور EC و pH کالیبره', 'هشدار تلگرامی و داشبورد', 'دوزینگ نرم و قابل تنظیم'],
+        title: 'Nutrient & EC Controller',
+        badge: 'Live monitoring',
+        description: 'Automatic dosing to keep flavor consistent.',
+        points: ['Calibrated EC and pH sensors', 'Telegram alerts and dashboard', 'Smooth, adjustable dosing'],
     },
     {
-        title: 'کیت نهال‌کاری و ریشه‌زایی',
-        badge: 'شتاب رشد',
-        description: 'برای قلمه‌گیری و آماده‌سازی بذر.',
-        points: ['۲۴ حفره با درپوش رطوبت', 'مهپاش اولتراسونیک کوچک', 'پک مواد مغذی هفته اول'],
+        title: 'Propagation & Rooting Kit',
+        badge: 'Fast start',
+        description: 'For cutting prep and seed starting.',
+        points: ['24 cells with humidity domes', 'Compact ultrasonic mister', 'Week-one nutrient pack'],
     },
 ];
 
 const PACKAGING_BUNDLES = [
     {
-        title: 'بسته ۵۰ گرمی کافه‌ای',
-        badge: 'پرفروش',
-        description: 'برای ارسال سریع سفارش آنلاین.',
-        points: ['سلفون مات با زیپ‌لاک', 'جای لیبل لوگوی شما', 'پایداری ۴۸ ساعته در سردخانه'],
+        title: '50g Café Pouch',
+        badge: 'Top seller',
+        description: 'Sized for quick online orders.',
+        points: ['Matte zipper pouch', 'Space for your logo label', '48-hour cold shelf life'],
     },
     {
-        title: 'بسته ۱۰۰ گرمی سوپرمارکت',
-        badge: 'نمایش قفسه‌ای',
-        description: 'ظاهر شفاف و آماده عرضه حضوری.',
-        points: ['پلمپ حرارتی و پانچ هوا', 'کارتریج بارکد/تاریخ', 'شلف لایف ۵ تا ۷ روز'],
+        title: '100g Market Pack',
+        badge: 'Shelf-ready',
+        description: 'Clear look for in-store presentation.',
+        points: ['Heat seal with air punch', 'Barcode/date cartridge', '5–7 day shelf life'],
     },
     {
-        title: 'جعبه هدیه ریحان',
-        badge: 'ویژه برندینگ',
-        description: 'برای فروش مستقیم و اشتراک هفتگی.',
-        points: ['مقوای ضد‌رطوبت با لاینر', 'پک یخ ژلی و تهویه مخفی', 'فضای بروشور نوشیدنی و سالاد'],
+        title: 'Basil Gift Box',
+        badge: 'Brand-friendly',
+        description: 'Ideal for direct sales or weekly subscriptions.',
+        points: ['Moisture-resistant liner', 'Gel ice pack with hidden vents', 'Brochure space for recipes'],
     },
 ];
 
 const SERVICE_POINTS = [
-    'زمان‌بندی برداشت و بسته‌بندی طبق سفارش شما',
-    'ارسال نمونه طراحی لیبل در کمتر از ۲۴ ساعت',
-    'هماهنگی لجستیک یخچال‌دار برای شهرهای مجاور',
+    'Harvest and packaging scheduled to your orders',
+    'Label design mock sent in under 24 hours',
+    'Chilled logistics coordinated for nearby cities',
 ];
 
 function FeatureCard({ title, badge, description, points }) {
@@ -93,9 +93,9 @@ export default function Shop() {
                         <span className={styles.brandName}>HydroLeaf Farm</span>
                     </div>
                     <div className={styles.links}>
-                        <a href="#hydroponic">تجهیزات هیدروپونیک</a>
-                        <a href="#packaging">بسته‌بندی ریحان</a>
-                        <a href="#contact">پشتیبانی</a>
+                        <a href="#hydroponic">Hydroponic gear</a>
+                        <a href="#packaging">Basil packaging</a>
+                        <a href="#contact">Support</a>
                     </div>
                     <button
                         type="button"
@@ -104,48 +104,48 @@ export default function Shop() {
                             navigate(isAuthenticated ? '/dashboard/overview' : '/login', { replace: true })
                         }
                     >
-                        {isAuthenticated ? 'ورود به داشبورد' : 'ورود مدیر'}
+                        {isAuthenticated ? 'Go to dashboard' : 'Manager login'}
                     </button>
                 </nav>
 
                 <div className={styles.heroContent}>
                     <div>
-                        <p className={styles.kicker}>تازه، معطر و آماده فروش</p>
+                        <p className={styles.kicker}>Fresh, aromatic, and ready to sell</p>
                         <h1 className={styles.title}>
-                            ریحان در بسته‌بندی‌های متنوع و تجهیزات کامل برای رشد هیدروپونیک
+                            Basil in versatile packaging and complete hydroponic gear
                         </h1>
                         <p className={styles.subtitle}>
-                            فروش را به دو بخش تقسیم کردیم: تجهیزات کشت برای رشد یکنواخت و بسته‌بندی‌های
-                            آماده فروش تا محصول بدون دغدغه به دست مشتری برسد.
+                            We split the journey into two tracks: grow equipment for consistent yields and
+                            packaging that keeps every delivery effortless.
                         </p>
                         <div className={styles.pillRow}>
-                            <span className={styles.pill}>تحویل سریع در ۴۸ ساعت</span>
-                            <span className={styles.pill}>لیبل اختصاصی برای برند شما</span>
-                            <span className={styles.pill}>مشاوره رایگان بسته‌بندی</span>
+                            <span className={styles.pill}>Fast handoff in 48 hours</span>
+                            <span className={styles.pill}>Custom label for your brand</span>
+                            <span className={styles.pill}>Free packaging consult</span>
                         </div>
                     </div>
                     <div className={styles.heroCard}>
                         <div className={styles.statGrid}>
                             <div className={styles.statItem}>
                                 <div className={styles.statValue}>+18</div>
-                                <div className={styles.statLabel}>مدل بسته‌بندی آماده</div>
+                                <div className={styles.statLabel}>Ready-to-ship packaging styles</div>
                             </div>
                             <div className={styles.statItem}>
-                                <div className={styles.statValue}>۲۴/۷</div>
-                                <div className={styles.statLabel}>پشتیبانی کشت و برداشت</div>
+                                <div className={styles.statValue}>24/7</div>
+                                <div className={styles.statLabel}>Grow and harvest support</div>
                             </div>
                             <div className={styles.statItem}>
-                                <div className={styles.statValue}>۵ تا ۷ روز</div>
-                                <div className={styles.statLabel}>ماندگاری در سردخانه</div>
+                                <div className={styles.statValue}>5 to 7 days</div>
+                                <div className={styles.statLabel}>Cold storage shelf life</div>
                             </div>
                             <div className={styles.statItem}>
-                                <div className={styles.statValue}>داشبورد</div>
-                                <div className={styles.statLabel}>دسترسی بعد از ورود مدیر</div>
+                                <div className={styles.statValue}>Dashboard</div>
+                                <div className={styles.statLabel}>Access after manager login</div>
                             </div>
                         </div>
                         <p className={styles.heroNote}>
-                            انتخاب کنید که الان فروش محصول را پیش ببرید یا تجهیزات هیدروپونیک را برای کشت
-                            پایدار تهیه کنید. ما دو مسیر جدا اما هماهنگ برای شما چیده‌ایم.
+                            Choose whether to push sales right now or equip your hydroponic setup for steady
+                            production. We designed two paths that stay aligned.
                         </p>
                     </div>
                 </div>
@@ -153,9 +153,9 @@ export default function Shop() {
 
             <section id="hydroponic" className={styles.section}>
                 <div className={styles.sectionHeader}>
-                    <p className={styles.sectionKicker}>تجهیزات هیدروپونیک</p>
-                    <h2>همه چیز برای یک برداشت یکنواخت</h2>
-                    <p>کیت‌ها و کنترلرها کوچک و کاربردی هستند تا در فضای محدود هم جا شوند.</p>
+                    <p className={styles.sectionKicker}>Hydroponic gear</p>
+                    <h2>Everything for a steady harvest</h2>
+                    <p>Compact kits and controllers that fit comfortably in tight spaces.</p>
                 </div>
                 <div className={styles.cardGrid}>
                     {HYDROPONIC_ITEMS.map((item) => (
@@ -166,9 +166,9 @@ export default function Shop() {
 
             <section id="packaging" className={styles.section}>
                 <div className={styles.sectionHeader}>
-                    <p className={styles.sectionKicker}>بسته‌بندی ریحان</p>
-                    <h2>معرفی بسته‌های فروش فوری</h2>
-                    <p>برای هر کانال فروش (آنلاین، سوپرمارکت یا هدیه) یک انتخاب جمع‌وجور آماده کرده‌ایم.</p>
+                    <p className={styles.sectionKicker}>Basil packaging</p>
+                    <h2>Bundles ready to sell fast</h2>
+                    <p>Pick a compact option for each channel—online, retail, or gifting.</p>
                 </div>
                 <div className={styles.cardGrid}>
                     {PACKAGING_BUNDLES.map((item) => (
@@ -180,10 +180,10 @@ export default function Shop() {
             <section id="contact" className={styles.section}>
                 <div className={styles.callout}>
                     <div>
-                        <h3>هماهنگی فوری فروش</h3>
+                        <h3>Sales coordination on call</h3>
                         <p className={styles.calloutText}>
-                            اطلاعات بسته‌بندی، لیبل اختصاصی و زمان‌بندی برداشت را با هم مرور می‌کنیم تا فروش بدون
-                            توقف جلو برود.
+                            We review packaging details, custom labels, and harvest timing together so sales
+                            stay uninterrupted.
                         </p>
                         <ul className={styles.pointList}>
                             {SERVICE_POINTS.map((point) => (
@@ -196,7 +196,7 @@ export default function Shop() {
                     </div>
                     <div className={styles.calloutActions}>
                         <a className={styles.primaryAction} href="tel:+989120000000">
-                            تماس برای مشاوره
+                            Call for a consult
                         </a>
                         <button
                             type="button"
@@ -205,7 +205,7 @@ export default function Shop() {
                                 navigate(isAuthenticated ? '/dashboard/overview' : '/login', { replace: true })
                             }
                         >
-                            مشاهده داشبورد بعد از ورود
+                            View dashboard after login
                         </button>
                     </div>
                 </div>
