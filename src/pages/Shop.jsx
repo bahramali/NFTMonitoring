@@ -68,7 +68,7 @@ export default function Shop() {
                 <nav className={styles.navbar}>
                     <div className={styles.brand}>
                         <img
-                            src="/hydroleaf-logo.png"
+                            src="./hydroleaf_logo.png"
                             alt="HydroLeaf Organic Products logo"
                             className={styles.brandLogo}
                         />
