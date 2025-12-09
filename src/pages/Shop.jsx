@@ -58,7 +58,7 @@ export default function Shop() {
         if (result.success) {
             navigate(DASHBOARD_HOME, { replace: true });
         } else {
-            setError('نام کاربری یا رمز عبور نادرست است.');
+            setError('Incorrect username or password.');
         }
     };
 
@@ -68,8 +68,8 @@ export default function Shop() {
                 <nav className={styles.navbar}>
                     <div className={styles.brand}>HydroLeaf Market</div>
                     <div className={styles.links}>
-                        <a href="#products">محصولات</a>
-                        <a href="#about">چرا ما</a>
+                        <a href="#products">Products</a>
+                        <a href="#about">Why us</a>
                     </div>
                     {isAuthenticated ? (
                         <button
@@ -77,14 +77,14 @@ export default function Shop() {
                             className={styles.dashboardButton}
                             onClick={() => navigate(DASHBOARD_HOME)}
                         >
-                            مشاهده داشبورد
+                            View dashboard
                         </button>
                     ) : (
                         <form className={styles.inlineLogin} onSubmit={handleLogin}>
                             <input
                                 className={styles.input}
                                 type="text"
-                                placeholder="نام کاربری"
+                                placeholder="Username"
                                 value={username}
                                 onChange={(event) => setUsername(event.target.value)}
                                 required
@@ -92,13 +92,13 @@ export default function Shop() {
                             <input
                                 className={styles.input}
                                 type="password"
-                                placeholder="رمز عبور"
+                                placeholder="Password"
                                 value={password}
                                 onChange={(event) => setPassword(event.target.value)}
                                 required
                             />
                             <button className={styles.loginButton} type="submit">
-                                ورود ادمین
+                                Admin login
                             </button>
                         </form>
                     )}
@@ -106,43 +106,43 @@ export default function Shop() {
 
                 <div className={styles.heroContent}>
                     <div>
-                        <p className={styles.kicker}>فروشگاه رسمی تجهیزات NFT</p>
-                        <h1 className={styles.title}>محصولات را ببینید و فقط در صورت نیاز وارد داشبورد شوید</h1>
+                        <p className={styles.kicker}>Official NFT hardware store</p>
+                        <h1 className={styles.title}>Browse products and only sign in when you need the dashboard</h1>
                         <p className={styles.subtitle}>
-                            بدون ورود، محصولات آماده‌ی ارسال را مشاهده کنید. با ورود ادمین،
-                            مستقیماً به داشبورد کنترلی منتقل می‌شوید.
+                            View ready-to-ship products without signing in. With an admin login,
+                            you go directly to the control dashboard.
                         </p>
                         <div className={styles.ctaRow}>
-                            <a className={styles.primaryCta} href="#products">مشاهده محصولات</a>
+                            <a className={styles.primaryCta} href="#products">View products</a>
                             <div className={styles.secondaryCta}>
                                 <span className={styles.dot} />
-                                اتصال امن داشبورد برای مدیران فعال است.
+                                Secure dashboard connection is active for admins.
                             </div>
                         </div>
                         {error && <div className={styles.error}>{error}</div>}
                     </div>
                     <div className={styles.heroCard}>
-                        <div className={styles.heroBadge}>ویژه گلخانه‌های هوشمند</div>
+                        <div className={styles.heroBadge}>Built for smart greenhouses</div>
                         <div className={styles.metricGrid}>
                             <div>
-                                <div className={styles.metricLabel}>پشتیبانی آنلاین</div>
+                                <div className={styles.metricLabel}>Online support</div>
                                 <div className={styles.metricValue}>24/7</div>
                             </div>
                             <div>
-                                <div className={styles.metricLabel}>گارانتی</div>
-                                <div className={styles.metricValue}>12 ماه</div>
+                                <div className={styles.metricLabel}>Warranty</div>
+                                <div className={styles.metricValue}>12 months</div>
                             </div>
                             <div>
-                                <div className={styles.metricLabel}>ارسال سریع</div>
-                                <div className={styles.metricValue}>48 ساعت</div>
+                                <div className={styles.metricLabel}>Fast shipping</div>
+                                <div className={styles.metricValue}>48 hours</div>
                             </div>
                             <div>
-                                <div className={styles.metricLabel}>تامین قطعه</div>
-                                <div className={styles.metricValue}>دائمی</div>
+                                <div className={styles.metricLabel}>Parts supply</div>
+                                <div className={styles.metricValue}>Ongoing</div>
                             </div>
                         </div>
                         <p className={styles.heroNote}>
-                            برای مدیریت و پایش دقیق، با حساب ادمین وارد شوید. در غیر این صورت آزادانه محصولات را بررسی کنید.
+                            Sign in with an admin account for precise management and monitoring. Otherwise, feel free to browse products openly.
                         </p>
                     </div>
                 </div>
@@ -150,8 +150,8 @@ export default function Shop() {
 
             <section id="products" className={styles.productsSection}>
                 <div className={styles.sectionHeader}>
-                    <h2>محصولات آماده‌ی فروش</h2>
-                    <p>بدون نیاز به ورود، مشخصات و قیمت‌ها را بررسی کنید.</p>
+                    <h2>Products ready to ship</h2>
+                    <p>Review specs and pricing without logging in.</p>
                 </div>
                 <div className={styles.productGrid}>
                     {PRODUCT_LIST.map((product, index) => (
@@ -179,24 +179,24 @@ export default function Shop() {
 
             <section id="about" className={styles.aboutSection}>
                 <div>
-                    <h2>در کنار داشبورد پایش لحظه‌ای</h2>
+                    <h2>Alongside the real-time monitoring dashboard</h2>
                     <p>
-                        هر محصول با سنسورها و سیستم پایش شما سازگار است. با ورود ادمین می‌توانید
-                        به بخش‌های Overview ،Live و دیگر ماژول‌های داشبورد دسترسی داشته باشید.
+                        Every product is compatible with your sensors and monitoring system. With an admin login, you can
+                        access the Overview, Live, and other dashboard modules.
                     </p>
                 </div>
                 <div className={styles.highlights}>
                     <div className={styles.highlightCard}>
-                        <div className={styles.highlightTitle}>ورود امن ادمین</div>
-                        <p>پس از وارد کردن نام کاربری و رمز عبور، به داشبورد مدیریتی منتقل می‌شوید.</p>
+                        <div className={styles.highlightTitle}>Secure admin login</div>
+                        <p>After entering your username and password, you’re taken to the admin dashboard.</p>
                     </div>
                     <div className={styles.highlightCard}>
-                        <div className={styles.highlightTitle}>نمایش آزاد محصولات</div>
-                        <p>بدون ورود، همه‌ی کالاها و قیمت‌ها قابل مشاهده هستند.</p>
+                        <div className={styles.highlightTitle}>Open product browsing</div>
+                        <p>All items and pricing stay visible without signing in.</p>
                     </div>
                     <div className={styles.highlightCard}>
-                        <div className={styles.highlightTitle}>مدیریت یکپارچه</div>
-                        <p>در داشبورد، کنترل پنل، گزارش‌ها و پیکربندی سنسورها در دسترس شماست.</p>
+                        <div className={styles.highlightTitle}>Unified management</div>
+                        <p>In the dashboard, the control panel, reports, and sensor configuration are ready for you.</p>
                     </div>
                 </div>
             </section>
