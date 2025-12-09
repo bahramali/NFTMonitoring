@@ -144,7 +144,7 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
                 bufferRef.current.set(targetBufferKey, points);
                 scheduleRender();
                 retryRef.current = RETRY_MIN;
-            } catch (err) {
+            } catch {
                 if (!signal.aborted) {
                     setHistoryError("Unable to load history data");
                 }
@@ -228,7 +228,7 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
                     websocket.onerror = scheduleRetry;
                     websocket.onclose = scheduleRetry;
                 }
-            } catch (err) {
+            } catch {
                 scheduleRetry();
             }
         };
