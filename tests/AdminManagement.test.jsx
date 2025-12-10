@@ -36,4 +36,18 @@ describe('AdminManagement', () => {
         expect(body.email).toBe('test@example.com');
         await screen.findByText(/Invitation email queued for test@example.com from bahramali.az@gmail.com/);
     });
+
+    it('shows a manual notification when invites cannot be queued', async () => {
+        vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('Network unavailable'))));
+
+        renderWithAuth(<AdminManagement />);
+
+        fireEvent.change(screen.getByLabelText(/Admin ID/i), { target: { value: 'admin-1' } });
+        fireEvent.change(screen.getByLabelText(/Username/i), { target: { value: 'new_admin' } });
+        fireEvent.change(screen.getByLabelText(/Admin email/i), { target: { value: 'test@example.com' } });
+
+        fireEvent.click(screen.getByRole('button', { name: /Create admin/i }));
+
+        await screen.findByText(/Admin saved, but email delivery is unavailable/);
+    });
 });

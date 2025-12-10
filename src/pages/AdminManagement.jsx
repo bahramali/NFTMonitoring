@@ -39,14 +39,21 @@ export default function AdminManagement() {
         upsertAdmin(normalizedAdmin);
 
         try {
-            await sendAdminInvite(normalizedAdmin);
-            const senderEmail = getInviteSenderEmail();
-            setInviteNotice(
-                `Invitation email queued for ${normalizedAdmin.email} from ${senderEmail} so they can set and confirm their password.`,
-            );
+            const inviteResult = await sendAdminInvite(normalizedAdmin);
+            if (inviteResult?.queued) {
+                const senderEmail = inviteResult?.senderEmail || inviteSenderEmail;
+                setInviteNotice(
+                    `Invitation email queued for ${normalizedAdmin.email} from ${senderEmail} so they can set and confirm their password.`,
+                );
+            } else {
+                const failureReason = inviteResult?.errorMessage ? ` (${inviteResult.errorMessage})` : '';
+                setInviteNotice(
+                    `Admin saved, but email delivery is unavailable${failureReason}. Please notify ${normalizedAdmin.email} manually.`,
+                );
+            }
         } catch (error) {
-            console.error('Failed to send admin invite email', error);
-            setInviteNotice('Saved admin but could not queue the invitation email. Please try again.');
+            console.error('Failed to handle admin invite flow', error);
+            setInviteNotice('Admin saved, but email delivery is unavailable. Please notify them manually.');
         }
 
         setFormState(emptyForm);

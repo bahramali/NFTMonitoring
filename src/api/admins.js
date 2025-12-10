@@ -9,12 +9,29 @@ export function getInviteSenderEmail() {
 
 export async function sendAdminInvite(admin) {
     const senderEmail = getInviteSenderEmail();
-    const res = await fetch(`${BASE_URL}/invite`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...admin, fromEmail: senderEmail }),
-    });
 
-    if (!res.ok) throw new Error('Failed to send admin invite email');
-    return res.json().catch(() => undefined);
+    try {
+        const res = await fetch(`${BASE_URL}/invite`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...admin, fromEmail: senderEmail }),
+        });
+
+        if (!res.ok) {
+            let message = `Failed to send admin invite email (${res.status})`;
+            try {
+                const body = await res.json();
+                if (body?.message) message = body.message;
+            } catch {
+                // ignore JSON parse errors and keep the default message
+            }
+            throw new Error(message);
+        }
+
+        await res.json().catch(() => undefined);
+        return { queued: true, senderEmail };
+    } catch (error) {
+        console.warn('Unable to queue admin invite, falling back to manual flow', error);
+        return { queued: false, senderEmail, errorMessage: error?.message };
+    }
 }
