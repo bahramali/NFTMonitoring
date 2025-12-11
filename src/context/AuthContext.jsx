@@ -40,7 +40,6 @@ const defaultAuthValue = {
     upsertAdmin: () => {},
     removeAdmin: () => {},
     userRole: isTestEnv ? 'SUPER_ADMIN' : null,
-    username: null,
 };
 
 const AuthContext = createContext(defaultAuthValue);
@@ -344,7 +343,6 @@ export function AuthProvider({ children }) {
             userId: session.userId,
             username: session.username,
             role: session.role,
-            userRole: session.role,
             permissions: session.permissions,
             adminAssignments: session.adminAssignments,
             registeredCustomers: session.registeredCustomers,
@@ -354,7 +352,6 @@ export function AuthProvider({ children }) {
             upsertAdmin,
             removeAdmin,
             userRole: session.role,
-            username: session.userId,
         }),
         [session, login, logout, register, upsertAdmin, removeAdmin],
     );
