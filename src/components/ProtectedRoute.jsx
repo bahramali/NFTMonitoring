@@ -2,29 +2,21 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
-export default function ProtectedRoute({ children, allowedRoles = [], requiredPermission }) {
-    const { isAuthenticated, userRole, userPermissions } = useAuth();
+export default function ProtectedRoute({ children, requiredRoles = [], requiredPermissions = [] }) {
+    const { isAuthenticated, role, permissions } = useAuth();
     const location = useLocation();
 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace state={{ from: location }} />;
     }
 
-    if (allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
-        if (userRole === 'WORKER') {
-            return <Navigate to="/worker" replace />;
-        }
-
-        if (userRole === 'CUSTOMER') {
-            return <Navigate to="/my-page" replace />;
-        }
-
+    if (requiredRoles.length > 0 && !requiredRoles.includes(role)) {
         return <Navigate to="/not-authorized" replace />;
     }
 
-    if (requiredPermission && userRole !== 'SUPER_ADMIN') {
-        const hasPermission = userPermissions?.includes(requiredPermission);
-        if (!hasPermission) {
+    if (requiredPermissions.length > 0 && role === 'ADMIN') {
+        const hasAllPermissions = requiredPermissions.every((permission) => permissions?.includes(permission));
+        if (!hasAllPermissions) {
             return <Navigate to="/not-authorized" replace />;
         }
     }
