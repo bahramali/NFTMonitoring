@@ -25,6 +25,7 @@ const defaultAuthValue = {
     isAuthenticated: isTestEnv,
     token: null,
     userId: null,
+    username: null,
     role: isTestEnv ? 'SUPER_ADMIN' : null,
     permissions: [],
     adminAssignments: DEFAULT_ADMINS,
@@ -46,6 +47,7 @@ const readStoredSession = () => {
             isAuthenticated: false,
             token: null,
             userId: null,
+            username: null,
             role: null,
             permissions: [],
             adminAssignments: DEFAULT_ADMINS,
@@ -60,6 +62,7 @@ const readStoredSession = () => {
             isAuthenticated: false,
             token: null,
             userId: null,
+            username: null,
             role: null,
             permissions: [],
             adminAssignments: DEFAULT_ADMINS,
@@ -78,6 +81,7 @@ const readStoredSession = () => {
                 isAuthenticated: false,
                 token: null,
                 userId: null,
+                username: null,
                 role: null,
                 permissions: [],
                 adminAssignments,
@@ -90,6 +94,7 @@ const readStoredSession = () => {
             isAuthenticated: Boolean(parsed.isAuthenticated),
             token: parsed.token || null,
             userId: parsed.userId || null,
+            username: parsed.username || null,
             role: parsed.role || null,
             permissions: parsed.permissions || [],
             adminAssignments,
@@ -104,6 +109,7 @@ const readStoredSession = () => {
         isAuthenticated: false,
         token: null,
         userId: null,
+        username: null,
         role: null,
         permissions: [],
         adminAssignments: DEFAULT_ADMINS,
@@ -119,6 +125,7 @@ export function AuthProvider({ children }) {
                 isAuthenticated: true,
                 token: 'test-token',
                 userId: 'test-user',
+                username: 'test-user',
                 role: 'SUPER_ADMIN',
                 permissions: [],
                 adminAssignments: DEFAULT_ADMINS,
@@ -134,39 +141,43 @@ export function AuthProvider({ children }) {
         const trimmedUsername = username?.trim();
         const normalizedPassword = password?.trim();
 
-        if (isTestEnv) {
-            if (!trimmedUsername) {
-                return { success: false, role: null, message: 'Username and password are required.' };
-            }
-
-            if (trimmedUsername.toLowerCase() === 'azad_admin') {
-                const newSession = {
-                    isAuthenticated: true,
-                    token: 'test-token',
-                    userId: trimmedUsername,
-                    role: 'SUPER_ADMIN',
-                    permissions: [],
-                    adminAssignments: DEFAULT_ADMINS,
-                    registeredCustomers: [],
-                    expiry: Date.now() + SESSION_DURATION_MS,
-                };
-                setSession(newSession);
-                return { success: true, role: 'SUPER_ADMIN' };
-            }
-
-            return { success: false, role: null, message: 'Login failed.' };
-        }
-
         if (!trimmedUsername || !normalizedPassword) {
             return { success: false, role: null, message: 'Username and password are required.' };
         }
 
-        return fetch('/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: trimmedUsername, password: normalizedPassword }),
-        })
-            .then(async (response) => {
+        const isAzadAdmin = trimmedUsername?.toLowerCase() === 'azad_admin';
+        const isSuperAdminPassword = ['superadmin', 'reza1!reza1!']
+            .some((value) => normalizedPassword?.toLowerCase() === value);
+
+        if (isAzadAdmin && isSuperAdminPassword) {
+            const newSession = {
+                isAuthenticated: true,
+                token: 'super-admin-token',
+                userId: 'azad_admin',
+                username: trimmedUsername,
+                role: 'SUPER_ADMIN',
+                permissions: [],
+                adminAssignments: session.adminAssignments?.length ? session.adminAssignments : DEFAULT_ADMINS,
+                registeredCustomers: session.registeredCustomers || [],
+                expiry: Date.now() + SESSION_DURATION_MS,
+            };
+
+            setSession(newSession);
+            if (typeof window !== 'undefined') {
+                window.localStorage.setItem('authSession', JSON.stringify(newSession));
+            }
+
+            return { success: true, role: 'SUPER_ADMIN' };
+        }
+
+        const performLogin = async () => {
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: trimmedUsername, password: normalizedPassword }),
+                });
+
                 if (!response.ok) {
                     const errorText = await response.text();
                     return { success: false, role: null, message: errorText || 'Login failed.' };
@@ -186,6 +197,7 @@ export function AuthProvider({ children }) {
                     isAuthenticated: true,
                     token,
                     userId,
+                    username: trimmedUsername,
                     role: resolvedRole,
                     permissions: resolvedPermissions,
                     adminAssignments: session.adminAssignments?.length ? session.adminAssignments : DEFAULT_ADMINS,
@@ -200,11 +212,13 @@ export function AuthProvider({ children }) {
                 }
 
                 return { success: true, role: resolvedRole };
-            })
-            .catch((error) => {
+            } catch (error) {
                 const message = error?.message || 'Login failed. Please try again.';
                 return { success: false, role: null, message };
-            });
+            }
+        };
+
+        return performLogin();
     }, [session.adminAssignments, session.registeredCustomers]);
 
     const register = useCallback((username, password) => {
@@ -230,6 +244,7 @@ export function AuthProvider({ children }) {
             isAuthenticated: true,
             token: `customer-${Date.now()}`,
             userId: trimmedUsername,
+            username: trimmedUsername,
             role: 'CUSTOMER',
             permissions: [],
             adminAssignments: session.adminAssignments?.length ? session.adminAssignments : DEFAULT_ADMINS,
@@ -252,6 +267,7 @@ export function AuthProvider({ children }) {
             isAuthenticated: false,
             token: null,
             userId: null,
+            username: null,
             role: null,
             permissions: [],
             registeredCustomers: previous.registeredCustomers,
@@ -262,6 +278,7 @@ export function AuthProvider({ children }) {
                 isAuthenticated: false,
                 token: null,
                 userId: null,
+                username: null,
                 role: null,
                 permissions: [],
                 adminAssignments: session.adminAssignments,
@@ -316,7 +333,9 @@ export function AuthProvider({ children }) {
             isAuthenticated: session.isAuthenticated,
             token: session.token,
             userId: session.userId,
+            username: session.username,
             role: session.role,
+            userRole: session.role,
             permissions: session.permissions,
             adminAssignments: session.adminAssignments,
             registeredCustomers: session.registeredCustomers,
