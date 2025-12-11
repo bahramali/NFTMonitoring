@@ -150,12 +150,16 @@ export function AuthProvider({ children }) {
         const isSuperAdminPassword = ['superadmin', 'reza1!reza1!']
             .some((value) => normalizedPassword?.toLowerCase() === value);
 
+        const preferredAzadAdminUsername = isAzadAdmin
+            ? trimmedUsername || 'Azad_admin'
+            : trimmedUsername;
+
         if (isAzadAdmin && (isSuperAdminPassword || normalizedRoleHint === 'SUPER_ADMIN')) {
             const newSession = {
                 isAuthenticated: true,
                 token: 'super-admin-token',
                 userId: 'azad_admin',
-                username: trimmedUsername,
+                username: preferredAzadAdminUsername,
                 role: 'SUPER_ADMIN',
                 permissions: [],
                 adminAssignments: session.adminAssignments?.length ? session.adminAssignments : DEFAULT_ADMINS,
