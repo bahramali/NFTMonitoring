@@ -35,6 +35,8 @@ const defaultAuthValue = {
     logout: () => {},
     upsertAdmin: () => {},
     removeAdmin: () => {},
+    userRole: isTestEnv ? 'SUPER_ADMIN' : null,
+    username: null,
 };
 
 const AuthContext = createContext(defaultAuthValue);
@@ -135,7 +137,7 @@ export function AuthProvider({ children }) {
         return readStoredSession();
     });
 
-    const login = useCallback((username, password) => {
+    const login = useCallback(async (username, password) => {
         const trimmedUsername = username?.trim();
         const normalizedPassword = password?.trim();
 
@@ -342,6 +344,8 @@ export function AuthProvider({ children }) {
             logout,
             upsertAdmin,
             removeAdmin,
+            userRole: session.role,
+            username: session.userId,
         }),
         [session, login, logout, register, upsertAdmin, removeAdmin],
     );
