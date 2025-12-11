@@ -5,13 +5,13 @@ import styles from './Login.module.css';
 
 const ROLE_ROUTES = {
     SUPER_ADMIN: '/super-admin',
-    ADMIN: '/admin/dashboard',
-    WORKER: '/worker',
+    ADMIN: '/admin',
+    WORKER: '/worker/dashboard',
     CUSTOMER: '/my-page',
 };
 
 export default function Login() {
-    const { isAuthenticated, login, userRole } = useAuth();
+    const { isAuthenticated, login, role } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -21,21 +21,23 @@ export default function Login() {
 
     useEffect(() => {
         if (isAuthenticated) {
-            const target = ROLE_ROUTES[userRole] || '/';
+            const target = ROLE_ROUTES[role] || '/';
             navigate(target, { replace: true });
         }
-    }, [isAuthenticated, navigate, userRole]);
+    }, [isAuthenticated, navigate, role]);
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
-        const result = login(username, password);
-        if (result.success) {
-            const resolvedRole = result.role || userRole;
-            const redirect = location.state?.from?.pathname || ROLE_ROUTES[resolvedRole] || '/';
-            navigate(redirect, { replace: true });
-        } else {
+        const result = await login(username, password);
+        if (!result.success) {
             setError(result.message || 'Login failed. Please verify your credentials.');
+            return;
         }
+
+        const resolvedRole = result.role || role;
+        const roleRedirect = ROLE_ROUTES[resolvedRole] || '/';
+        const redirect = location.state?.from?.pathname || roleRedirect;
+        navigate(redirect, { replace: true });
     };
 
     return (
@@ -43,8 +45,8 @@ export default function Login() {
             <div className={styles.card}>
                 <h1 className={styles.title}>Sign in</h1>
                 <p className={styles.subtitle}>
-                    Enter your username and password. We&apos;ll detect the correct role and route you to the
-                    right dashboard. Super admins still need the password "Reza1!Reza1!".
+                    Enter your username and password. We&apos;ll call the login API, store your session securely, and
+                    redirect you to the right dashboard for your role.
                 </p>
                 <form className={styles.form} onSubmit={handleSubmit} autoComplete="off">
                     <label className={styles.label} htmlFor="username">Username</label>
