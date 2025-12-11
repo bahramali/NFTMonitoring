@@ -75,6 +75,9 @@ const readStoredSession = () => {
         const parsed = JSON.parse(rawData);
         const adminAssignments = parsed.adminAssignments?.length ? parsed.adminAssignments : DEFAULT_ADMINS;
         const registeredCustomers = parsed.registeredCustomers || [];
+        const canonicalUsername = parsed.username?.toLowerCase() === 'azad_admin'
+            ? 'Azad_admin'
+            : parsed.username || null;
 
         if (parsed.expiry && parsed.expiry <= Date.now()) {
             return {
@@ -91,15 +94,15 @@ const readStoredSession = () => {
         }
 
         return {
-            isAuthenticated: Boolean(parsed.isAuthenticated),
-            token: parsed.token || null,
-            userId: parsed.userId || null,
-            username: parsed.username || null,
-            role: parsed.role || null,
-            permissions: parsed.permissions || [],
-            adminAssignments,
-            registeredCustomers,
-            expiry: parsed.expiry || null,
+                isAuthenticated: Boolean(parsed.isAuthenticated),
+                token: parsed.token || null,
+                userId: parsed.userId || null,
+                username: canonicalUsername,
+                role: parsed.role || null,
+                permissions: parsed.permissions || [],
+                adminAssignments,
+                registeredCustomers,
+                expiry: parsed.expiry || null,
         };
     } catch {
         // If parsing fails, fall through to reset state
