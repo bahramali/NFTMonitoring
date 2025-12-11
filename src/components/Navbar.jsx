@@ -12,32 +12,36 @@ const ADMIN_PAGES = [
 export default function Navbar() {
     const {
         isAuthenticated,
-        username,
-        userRole,
-        userPermissions,
+        userId,
+        role,
+        permissions,
         logout,
     } = useAuth();
 
     const adminLinks = useMemo(() => {
-        if (userRole === 'SUPER_ADMIN') {
+        if (role === 'SUPER_ADMIN') {
             return [
                 { path: '/dashboard/overview', label: 'Monitoring Dashboard' },
                 ...ADMIN_PAGES,
             ];
         }
 
-        if (userRole === 'ADMIN') {
-            const monitoringLinks = userPermissions?.includes('admin-dashboard')
+        if (role === 'ADMIN') {
+            const monitoringLinks = permissions?.includes('admin-dashboard')
                 ? [{ path: '/dashboard/overview', label: 'Monitoring Dashboard' }]
                 : [];
 
             return [
                 ...monitoringLinks,
-                ...ADMIN_PAGES.filter((page) => userPermissions?.includes(page.permission)),
+                ...ADMIN_PAGES.filter((page) => permissions?.includes(page.permission)),
             ];
         }
         return [];
-    }, [userPermissions, userRole]);
+    }, [permissions, role]);
+
+    const handleLogout = () => {
+        logout();
+    };
 
     return (
         <header className={styles.header}>
@@ -60,7 +64,7 @@ export default function Navbar() {
                             Register
                         </NavLink>
                     )}
-                    {userRole === 'SUPER_ADMIN' && (
+                    {role === 'SUPER_ADMIN' && (
                         <>
                             <NavLink
                                 to="/super-admin"
@@ -85,12 +89,15 @@ export default function Navbar() {
                             {link.label}
                         </NavLink>
                     ))}
-                    {userRole === 'WORKER' && (
-                        <NavLink to="/worker" className={({ isActive }) => (isActive ? styles.active : '')}>
+                    {role === 'WORKER' && (
+                        <NavLink
+                            to="/worker/dashboard"
+                            className={({ isActive }) => (isActive ? styles.active : '')}
+                        >
                             Worker Dashboard
                         </NavLink>
                     )}
-                    {userRole === 'CUSTOMER' && (
+                    {role === 'CUSTOMER' && (
                         <NavLink to="/my-page" className={({ isActive }) => (isActive ? styles.active : '')}>
                             My Page
                         </NavLink>
@@ -100,10 +107,10 @@ export default function Navbar() {
                     {isAuthenticated ? (
                         <>
                             <div className={styles.identity}>
-                                <span className={styles.roleBadge}>{userRole}</span>
-                                <span className={styles.username}>{username}</span>
+                                <span className={styles.roleBadge}>{role}</span>
+                                <span className={styles.username}>{userId}</span>
                             </div>
-                            <button type="button" className={styles.button} onClick={logout}>
+                            <button type="button" className={styles.button} onClick={handleLogout}>
                                 Logout
                             </button>
                         </>
