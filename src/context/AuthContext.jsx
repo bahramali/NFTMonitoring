@@ -12,6 +12,10 @@ const isTestEnv = (typeof import.meta !== 'undefined' && import.meta.env?.MODE =
 
 const SESSION_DURATION_MS = 30 * 60 * 1000;
 
+const AZAD_ADMIN_USERNAME = 'Azad_admin';
+const isAzadAdminUser = (value) => value?.toLowerCase() === AZAD_ADMIN_USERNAME.toLowerCase();
+const getCanonicalUsername = (value) => (isAzadAdminUser(value) ? AZAD_ADMIN_USERNAME : value);
+
 const DEFAULT_ADMINS = [
     {
         id: 'ops-admin',
@@ -47,7 +51,7 @@ const readStoredSession = () => {
             isAuthenticated: false,
             token: null,
             userId: null,
-            username: null,
+            username: getCanonicalUsername(null),
             role: null,
             permissions: [],
             adminAssignments: DEFAULT_ADMINS,
@@ -62,7 +66,7 @@ const readStoredSession = () => {
             isAuthenticated: false,
             token: null,
             userId: null,
-            username: null,
+            username: getCanonicalUsername(null),
             role: null,
             permissions: [],
             adminAssignments: DEFAULT_ADMINS,
@@ -84,7 +88,7 @@ const readStoredSession = () => {
                 isAuthenticated: false,
                 token: null,
                 userId: null,
-                username: null,
+                username: getCanonicalUsername(null),
                 role: null,
                 permissions: [],
                 adminAssignments,
@@ -94,15 +98,15 @@ const readStoredSession = () => {
         }
 
         return {
-                isAuthenticated: Boolean(parsed.isAuthenticated),
-                token: parsed.token || null,
-                userId: parsed.userId || null,
-                username: canonicalUsername,
-                role: parsed.role || null,
-                permissions: parsed.permissions || [],
-                adminAssignments,
-                registeredCustomers,
-                expiry: parsed.expiry || null,
+            isAuthenticated: Boolean(parsed.isAuthenticated),
+            token: parsed.token || null,
+            userId: parsed.userId || null,
+            username: getCanonicalUsername(parsed.username || null),
+            role: parsed.role || null,
+            permissions: parsed.permissions || [],
+            adminAssignments,
+            registeredCustomers,
+            expiry: parsed.expiry || null,
         };
     } catch {
         // If parsing fails, fall through to reset state
@@ -112,7 +116,7 @@ const readStoredSession = () => {
         isAuthenticated: false,
         token: null,
         userId: null,
-        username: null,
+        username: getCanonicalUsername(null),
         role: null,
         permissions: [],
         adminAssignments: DEFAULT_ADMINS,
@@ -149,9 +153,8 @@ export function AuthProvider({ children }) {
             return { success: false, role: null, message: 'Username and password are required.' };
         }
 
-        const isAzadAdmin = trimmedUsername?.toLowerCase() === 'azad_admin';
-        const canonicalAzadAdminUsername = 'Azad_admin';
-        const canonicalUsername = isAzadAdmin ? canonicalAzadAdminUsername : trimmedUsername;
+        const isAzadAdmin = isAzadAdminUser(trimmedUsername);
+        const canonicalUsername = getCanonicalUsername(trimmedUsername);
         const isSuperAdminPassword = ['superadmin', 'reza1!reza1!']
             .some((value) => normalizedPassword?.toLowerCase() === value);
 
