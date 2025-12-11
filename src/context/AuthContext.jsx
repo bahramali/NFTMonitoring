@@ -1,7 +1,7 @@
 import React, {
     createContext,
-    useContext,
     useCallback,
+    useContext,
     useEffect,
     useMemo,
     useState,
@@ -11,8 +11,6 @@ const isTestEnv = (typeof import.meta !== 'undefined' && import.meta.env?.MODE =
     || process.env.NODE_ENV === 'test';
 
 const SESSION_DURATION_MS = 30 * 60 * 1000;
-
-const SUPER_ADMIN_PASSWORDS = ['superadmin', 'Reza1!Reza1!'];
 
 const DEFAULT_ADMINS = [
     {
@@ -25,12 +23,13 @@ const DEFAULT_ADMINS = [
 
 const defaultAuthValue = {
     isAuthenticated: isTestEnv,
-    userRole: isTestEnv ? 'SUPER_ADMIN' : null,
-    username: isTestEnv ? 'Test User' : null,
-    userPermissions: [],
+    token: null,
+    userId: null,
+    role: isTestEnv ? 'SUPER_ADMIN' : null,
+    permissions: [],
     adminAssignments: DEFAULT_ADMINS,
     registeredCustomers: [],
-    login: () => ({ success: false }),
+    login: async () => ({ success: false }),
     register: () => ({ success: false }),
     logout: () => {},
     upsertAdmin: () => {},
@@ -43,9 +42,10 @@ const readStoredSession = () => {
     if (typeof window === 'undefined') {
         return {
             isAuthenticated: false,
-            username: null,
-            userRole: null,
-            userPermissions: [],
+            token: null,
+            userId: null,
+            role: null,
+            permissions: [],
             adminAssignments: DEFAULT_ADMINS,
             registeredCustomers: [],
             expiry: null,
@@ -56,9 +56,10 @@ const readStoredSession = () => {
     if (!rawData) {
         return {
             isAuthenticated: false,
-            username: null,
-            userRole: null,
-            userPermissions: [],
+            token: null,
+            userId: null,
+            role: null,
+            permissions: [],
             adminAssignments: DEFAULT_ADMINS,
             registeredCustomers: [],
             expiry: null,
@@ -73,9 +74,10 @@ const readStoredSession = () => {
         if (parsed.expiry && parsed.expiry <= Date.now()) {
             return {
                 isAuthenticated: false,
-                username: null,
-                userRole: null,
-                userPermissions: [],
+                token: null,
+                userId: null,
+                role: null,
+                permissions: [],
                 adminAssignments,
                 registeredCustomers,
                 expiry: null,
@@ -84,9 +86,10 @@ const readStoredSession = () => {
 
         return {
             isAuthenticated: Boolean(parsed.isAuthenticated),
-            username: parsed.username || null,
-            userRole: parsed.userRole || null,
-            userPermissions: parsed.userPermissions || [],
+            token: parsed.token || null,
+            userId: parsed.userId || null,
+            role: parsed.role || null,
+            permissions: parsed.permissions || [],
             adminAssignments,
             registeredCustomers,
             expiry: parsed.expiry || null,
@@ -97,9 +100,10 @@ const readStoredSession = () => {
 
     return {
         isAuthenticated: false,
-        username: null,
-        userRole: null,
-        userPermissions: [],
+        token: null,
+        userId: null,
+        role: null,
+        permissions: [],
         adminAssignments: DEFAULT_ADMINS,
         registeredCustomers: [],
         expiry: null,
@@ -111,9 +115,10 @@ export function AuthProvider({ children }) {
         if (isTestEnv) {
             return {
                 isAuthenticated: true,
-                username: 'Test User',
-                userRole: 'SUPER_ADMIN',
-                userPermissions: [],
+                token: 'test-token',
+                userId: 'test-user',
+                role: 'SUPER_ADMIN',
+                permissions: [],
                 adminAssignments: DEFAULT_ADMINS,
                 registeredCustomers: [],
                 expiry: Date.now() + SESSION_DURATION_MS,
@@ -123,70 +128,58 @@ export function AuthProvider({ children }) {
         return readStoredSession();
     });
 
-    const login = useCallback((username, password) => {
+    const login = useCallback(async (username, password) => {
         const trimmedUsername = username?.trim();
-        const normalizedUsername = trimmedUsername?.toLowerCase();
         const normalizedPassword = password?.trim();
 
         if (!trimmedUsername || !normalizedPassword) {
             return { success: false, role: null, message: 'Username and password are required.' };
         }
 
-        const isValidSuperAdminPassword = SUPER_ADMIN_PASSWORDS.includes(normalizedPassword);
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: trimmedUsername, password: normalizedPassword }),
+            });
 
-        let resolvedRole = normalizedUsername === 'azad_admin' ? 'SUPER_ADMIN' : null;
-        let resolvedPermissions = [];
-
-        if (!resolvedRole && (isValidSuperAdminPassword || isTestEnv)) {
-            resolvedRole = 'SUPER_ADMIN';
-        }
-
-        if (!resolvedRole) {
-            const adminRecord = session.adminAssignments?.find(
-                (admin) => admin.username.toLowerCase() === normalizedUsername,
-            );
-            if (adminRecord) {
-                resolvedRole = 'ADMIN';
-                resolvedPermissions = adminRecord.permissions || [];
+            if (!response.ok) {
+                const errorText = await response.text();
+                return { success: false, role: null, message: errorText || 'Login failed.' };
             }
-        }
 
-        if (!resolvedRole) {
-            const customerRecord = session.registeredCustomers?.find(
-                (customer) => customer.username.toLowerCase() === trimmedUsername.toLowerCase(),
-            );
-            if (customerRecord) {
-                if (customerRecord.password && customerRecord.password !== normalizedPassword) {
-                    return { success: false, message: 'Incorrect password. Please try again.' };
-                }
-                resolvedRole = 'CUSTOMER';
+            const data = await response.json();
+            const resolvedRole = data?.role || null;
+            const resolvedPermissions = Array.isArray(data?.permissions) ? data.permissions : [];
+            const token = data?.token || null;
+            const userId = data?.userId || trimmedUsername;
+
+            if (!resolvedRole || !token) {
+                return { success: false, role: null, message: 'Login response is missing required fields.' };
             }
+
+            const newSession = {
+                isAuthenticated: true,
+                token,
+                userId,
+                role: resolvedRole,
+                permissions: resolvedPermissions,
+                adminAssignments: session.adminAssignments?.length ? session.adminAssignments : DEFAULT_ADMINS,
+                registeredCustomers: session.registeredCustomers || [],
+                expiry: Date.now() + SESSION_DURATION_MS,
+            };
+
+            setSession(newSession);
+
+            if (typeof window !== 'undefined') {
+                window.localStorage.setItem('authSession', JSON.stringify(newSession));
+            }
+
+            return { success: true, role: resolvedRole };
+        } catch (error) {
+            const message = error?.message || 'Login failed. Please try again.';
+            return { success: false, role: null, message };
         }
-
-        if (!resolvedRole) {
-            resolvedRole = 'WORKER';
-        }
-
-        if (resolvedRole === 'SUPER_ADMIN' && !isValidSuperAdminPassword && !isTestEnv) {
-            return { success: false, role: resolvedRole, message: 'Invalid super admin password.' };
-        }
-
-        const newSession = {
-            isAuthenticated: true,
-            username: trimmedUsername,
-            userRole: resolvedRole,
-            userPermissions: resolvedPermissions,
-            adminAssignments: session.adminAssignments?.length ? session.adminAssignments : DEFAULT_ADMINS,
-            registeredCustomers: session.registeredCustomers || [],
-            expiry: Date.now() + SESSION_DURATION_MS,
-        };
-        setSession(newSession);
-
-        if (typeof window !== 'undefined') {
-            window.localStorage.setItem('authSession', JSON.stringify(newSession));
-        }
-
-        return { success: true, role: resolvedRole };
     }, [session.adminAssignments, session.registeredCustomers]);
 
     const register = useCallback((username, password) => {
@@ -210,9 +203,10 @@ export function AuthProvider({ children }) {
 
         const newSession = {
             isAuthenticated: true,
-            username: trimmedUsername,
-            userRole: 'CUSTOMER',
-            userPermissions: [],
+            token: `customer-${Date.now()}`,
+            userId: trimmedUsername,
+            role: 'CUSTOMER',
+            permissions: [],
             adminAssignments: session.adminAssignments?.length ? session.adminAssignments : DEFAULT_ADMINS,
             registeredCustomers: updatedCustomers,
             expiry: Date.now() + SESSION_DURATION_MS,
@@ -231,23 +225,26 @@ export function AuthProvider({ children }) {
         setSession((previous) => ({
             ...previous,
             isAuthenticated: false,
-            username: null,
-            userRole: null,
-            userPermissions: [],
+            token: null,
+            userId: null,
+            role: null,
+            permissions: [],
             registeredCustomers: previous.registeredCustomers,
             expiry: null,
         }));
         if (typeof window !== 'undefined') {
             const storedSession = {
                 isAuthenticated: false,
-                username: null,
-                userRole: null,
-                userPermissions: [],
+                token: null,
+                userId: null,
+                role: null,
+                permissions: [],
                 adminAssignments: session.adminAssignments,
                 registeredCustomers: session.registeredCustomers,
                 expiry: null,
             };
             window.localStorage.setItem('authSession', JSON.stringify(storedSession));
+            window.location.assign('/');
         }
     }, [session.adminAssignments, session.registeredCustomers]);
 
@@ -292,9 +289,10 @@ export function AuthProvider({ children }) {
     const value = useMemo(
         () => ({
             isAuthenticated: session.isAuthenticated,
-            username: session.username,
-            userRole: session.userRole,
-            userPermissions: session.userPermissions,
+            token: session.token,
+            userId: session.userId,
+            role: session.role,
+            permissions: session.permissions,
             adminAssignments: session.adminAssignments,
             registeredCustomers: session.registeredCustomers,
             login,
