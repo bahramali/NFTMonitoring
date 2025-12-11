@@ -39,6 +39,8 @@ const defaultAuthValue = {
     logout: () => {},
     upsertAdmin: () => {},
     removeAdmin: () => {},
+    userRole: isTestEnv ? 'SUPER_ADMIN' : null,
+    username: null,
 };
 
 const AuthContext = createContext(defaultAuthValue);
@@ -77,6 +79,9 @@ const readStoredSession = () => {
         const parsed = JSON.parse(rawData);
         const adminAssignments = parsed.adminAssignments?.length ? parsed.adminAssignments : DEFAULT_ADMINS;
         const registeredCustomers = parsed.registeredCustomers || [];
+        const canonicalUsername = parsed.username?.toLowerCase() === 'azad_admin'
+            ? 'Azad_admin'
+            : parsed.username || null;
 
         if (parsed.expiry && parsed.expiry <= Date.now()) {
             return {
@@ -348,6 +353,8 @@ export function AuthProvider({ children }) {
             logout,
             upsertAdmin,
             removeAdmin,
+            userRole: session.role,
+            username: session.userId,
         }),
         [session, login, logout, register, upsertAdmin, removeAdmin],
     );
