@@ -148,6 +148,7 @@ export function AuthProvider({ children }) {
 
         const isAzadAdmin = trimmedUsername?.toLowerCase() === 'azad_admin';
         const canonicalAzadAdminUsername = 'Azad_admin';
+        const canonicalUsername = isAzadAdmin ? canonicalAzadAdminUsername : trimmedUsername;
         const isSuperAdminPassword = ['superadmin', 'reza1!reza1!']
             .some((value) => normalizedPassword?.toLowerCase() === value);
 
@@ -156,7 +157,7 @@ export function AuthProvider({ children }) {
                 isAuthenticated: true,
                 token: 'super-admin-token',
                 userId: 'azad_admin',
-                username: isAzadAdmin ? canonicalAzadAdminUsername : trimmedUsername,
+                username: canonicalUsername,
                 role: 'SUPER_ADMIN',
                 permissions: [],
                 adminAssignments: session.adminAssignments?.length ? session.adminAssignments : DEFAULT_ADMINS,
@@ -169,7 +170,7 @@ export function AuthProvider({ children }) {
                 window.localStorage.setItem('authSession', JSON.stringify(newSession));
             }
 
-            return { success: true, role: 'SUPER_ADMIN' };
+            return { success: true, role: 'SUPER_ADMIN', username: canonicalUsername };
         }
 
         const performLogin = async () => {
