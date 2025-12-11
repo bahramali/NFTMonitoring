@@ -130,7 +130,7 @@ export function AuthProvider({ children }) {
         return readStoredSession();
     });
 
-    const login = useCallback((username, password) => {
+    const login = useCallback(async (username, password) => {
         const trimmedUsername = username?.trim();
         const normalizedPassword = password?.trim();
 
