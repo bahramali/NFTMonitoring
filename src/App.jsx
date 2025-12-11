@@ -38,7 +38,7 @@ function App() {
                 <Route
                     path="/super-admin"
                     element={(
-                        <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                        <ProtectedRoute requiredRoles={["SUPER_ADMIN"]}>
                             <SuperAdminDashboard />
                         </ProtectedRoute>
                     )}
@@ -46,24 +46,25 @@ function App() {
                 <Route
                     path="/super-admin/admins"
                     element={(
-                        <ProtectedRoute allowedRoles={["SUPER_ADMIN"]}>
+                        <ProtectedRoute requiredRoles={["SUPER_ADMIN"]}>
                             <AdminManagement />
                         </ProtectedRoute>
                     )}
                 />
 
                 <Route
-                    path="/admin/dashboard"
+                    path="/admin"
                     element={(
-                        <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermission="admin-dashboard">
+                        <ProtectedRoute requiredRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermissions={["admin-dashboard"]}>
                             <AdminDashboard />
                         </ProtectedRoute>
                     )}
                 />
+                <Route path="/admin/dashboard" element={<Navigate to="/admin" replace />} />
                 <Route
                     path="/admin/team"
                     element={(
-                        <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermission="admin-team">
+                        <ProtectedRoute requiredRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermissions={["admin-team"]}>
                             <AdminTeam />
                         </ProtectedRoute>
                     )}
@@ -73,8 +74,8 @@ function App() {
                     path="/dashboard/*"
                     element={(
                         <ProtectedRoute
-                            allowedRoles={["SUPER_ADMIN", "ADMIN"]}
-                            requiredPermission="admin-dashboard"
+                            requiredRoles={["SUPER_ADMIN", "ADMIN"]}
+                            requiredPermissions={["admin-dashboard"]}
                         >
                             <MainLayout />
                         </ProtectedRoute>
@@ -89,7 +90,7 @@ function App() {
                     <Route
                         path="reports"
                         element={(
-                            <ProtectedRoute allowedRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermission="admin-reports">
+                            <ProtectedRoute requiredRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermissions={["admin-reports"]}>
                                 <Reports />
                             </ProtectedRoute>
                         )}
@@ -99,9 +100,9 @@ function App() {
                 </Route>
 
                 <Route
-                    path="/worker"
+                    path="/worker/dashboard"
                     element={(
-                        <ProtectedRoute allowedRoles={["SUPER_ADMIN", "WORKER"]}>
+                        <ProtectedRoute requiredRoles={["SUPER_ADMIN", "WORKER"]}>
                             <WorkerDashboard />
                         </ProtectedRoute>
                     )}
@@ -110,7 +111,7 @@ function App() {
                 <Route
                     path="/my-page"
                     element={(
-                        <ProtectedRoute allowedRoles={["SUPER_ADMIN", "CUSTOMER"]}>
+                        <ProtectedRoute requiredRoles={["SUPER_ADMIN", "CUSTOMER"]}>
                             <MyPage />
                         </ProtectedRoute>
                     )}
