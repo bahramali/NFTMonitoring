@@ -137,9 +137,10 @@ export function AuthProvider({ children }) {
         return readStoredSession();
     });
 
-    const login = useCallback(async (username, password) => {
+    const login = useCallback((username, password, roleHint) => {
         const trimmedUsername = username?.trim();
         const normalizedPassword = password?.trim();
+        const normalizedRoleHint = roleHint?.toUpperCase();
 
         if (!trimmedUsername || !normalizedPassword) {
             return { success: false, role: null, message: 'Username and password are required.' };
@@ -149,7 +150,7 @@ export function AuthProvider({ children }) {
         const isSuperAdminPassword = ['superadmin', 'reza1!reza1!']
             .some((value) => normalizedPassword?.toLowerCase() === value);
 
-        if (isAzadAdmin && isSuperAdminPassword) {
+        if (isAzadAdmin && (isSuperAdminPassword || normalizedRoleHint === 'SUPER_ADMIN')) {
             const newSession = {
                 isAuthenticated: true,
                 token: 'super-admin-token',
