@@ -94,17 +94,24 @@ export function AuthProvider({ children }) {
                     body: JSON.stringify({ email: trimmedEmail, password: normalizedPassword }),
                 });
 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    return { success: false, role: null, message: errorText || 'Login failed.' };
+                const text = await response.text();
+                let payload;
+
+                try {
+                    payload = JSON.parse(text || '{}');
+                } catch (parseError) {
+                    payload = { message: text };
                 }
 
-                const data = await response.json();
+                if (!response.ok) {
+                    return { success: false, role: null, message: payload?.message || 'Login failed.' };
+                }
+
                 return setAuthenticatedSession({
-                    token: data?.token,
-                    userId: data?.userId,
-                    role: data?.role,
-                    permissions: data?.permissions,
+                    token: payload?.token,
+                    userId: payload?.userId,
+                    role: payload?.role,
+                    permissions: payload?.permissions,
                 });
             } catch (error) {
                 const message = error?.message || 'Login failed. Please try again.';
