@@ -7,183 +7,91 @@ import React, {
     useState,
 } from 'react';
 
-const isTestEnv = (typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test')
-    || process.env.NODE_ENV === 'test';
-
 const SESSION_DURATION_MS = 30 * 60 * 1000;
 
-const AZAD_ADMIN_USERNAME = 'Azad_admin';
-const isAzadAdminUser = (value) => value?.toLowerCase() === AZAD_ADMIN_USERNAME.toLowerCase();
-const getCanonicalUsername = (value) => (isAzadAdminUser(value) ? AZAD_ADMIN_USERNAME : value);
-
-const DEFAULT_ADMINS = [
-    {
-        id: 'ops-admin',
-        username: 'ops_admin',
-        email: 'ops_admin@example.com',
-        permissions: ['admin-dashboard', 'admin-reports'],
-    },
-];
-
 const defaultAuthValue = {
-    isAuthenticated: isTestEnv,
+    isAuthenticated: false,
     token: null,
     userId: null,
-    username: null,
-    role: isTestEnv ? 'SUPER_ADMIN' : null,
+    role: null,
     permissions: [],
-    adminAssignments: DEFAULT_ADMINS,
-    registeredCustomers: [],
     login: async () => ({ success: false }),
-    register: () => ({ success: false }),
+    register: async () => ({ success: false }),
     logout: () => {},
-    upsertAdmin: () => {},
-    removeAdmin: () => {},
-    userRole: isTestEnv ? 'SUPER_ADMIN' : null,
 };
 
 const AuthContext = createContext(defaultAuthValue);
 
 const readStoredSession = () => {
     if (typeof window === 'undefined') {
-        return {
-            isAuthenticated: false,
-            token: null,
-            userId: null,
-            username: getCanonicalUsername(null),
-            role: null,
-            permissions: [],
-            adminAssignments: DEFAULT_ADMINS,
-            registeredCustomers: [],
-            expiry: null,
-        };
+        return defaultAuthValue;
     }
 
     const rawData = window.localStorage.getItem('authSession');
-    if (!rawData) {
-        return {
-            isAuthenticated: false,
-            token: null,
-            userId: null,
-            username: getCanonicalUsername(null),
-            role: null,
-            permissions: [],
-            adminAssignments: DEFAULT_ADMINS,
-            registeredCustomers: [],
-            expiry: null,
-        };
-    }
+    if (!rawData) return defaultAuthValue;
 
     try {
         const parsed = JSON.parse(rawData);
-        const adminAssignments = parsed.adminAssignments?.length ? parsed.adminAssignments : DEFAULT_ADMINS;
-        const registeredCustomers = parsed.registeredCustomers || [];
-        const canonicalUsername = parsed.username?.toLowerCase() === 'azad_admin'
-            ? 'Azad_admin'
-            : parsed.username || null;
-
         if (parsed.expiry && parsed.expiry <= Date.now()) {
-            return {
-                isAuthenticated: false,
-                token: null,
-                userId: null,
-                username: getCanonicalUsername(null),
-                role: null,
-                permissions: [],
-                adminAssignments,
-                registeredCustomers,
-                expiry: null,
-            };
+            return defaultAuthValue;
         }
 
         return {
             isAuthenticated: Boolean(parsed.isAuthenticated),
             token: parsed.token || null,
             userId: parsed.userId || null,
-            username: getCanonicalUsername(parsed.username || null),
             role: parsed.role || null,
-            permissions: parsed.permissions || [],
-            adminAssignments,
-            registeredCustomers,
+            permissions: Array.isArray(parsed.permissions) ? parsed.permissions : [],
             expiry: parsed.expiry || null,
         };
     } catch {
-        // If parsing fails, fall through to reset state
+        return defaultAuthValue;
     }
+};
 
-    return {
-        isAuthenticated: false,
-        token: null,
-        userId: null,
-        username: getCanonicalUsername(null),
-        role: null,
-        permissions: [],
-        adminAssignments: DEFAULT_ADMINS,
-        registeredCustomers: [],
-        expiry: null,
-    };
+const persistSession = (session) => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('authSession', JSON.stringify(session));
 };
 
 export function AuthProvider({ children }) {
-    const [session, setSession] = useState(() => {
-        if (isTestEnv) {
-            return {
-                isAuthenticated: true,
-                token: 'test-token',
-                userId: 'test-user',
-                username: 'test-user',
-                role: 'SUPER_ADMIN',
-                permissions: [],
-                adminAssignments: DEFAULT_ADMINS,
-                registeredCustomers: [],
-                expiry: Date.now() + SESSION_DURATION_MS,
-            };
+    const [session, setSession] = useState(() => readStoredSession());
+
+    const setAuthenticatedSession = useCallback((payload) => {
+        const { token, userId, role, permissions } = payload || {};
+        if (!token || !userId || !role) {
+            return { success: false, message: 'Login response is missing required fields.' };
         }
 
-        return readStoredSession();
-    });
+        const normalizedPermissions = Array.isArray(permissions) ? permissions : [];
+        const nextSession = {
+            isAuthenticated: true,
+            token,
+            userId,
+            role,
+            permissions: normalizedPermissions,
+            expiry: Date.now() + SESSION_DURATION_MS,
+        };
 
-    const login = useCallback((username, password, roleHint) => {
-        const trimmedUsername = username?.trim();
-        const normalizedPassword = password?.trim();
-        const normalizedRoleHint = roleHint?.toUpperCase();
+        setSession(nextSession);
+        persistSession(nextSession);
+        return { success: true, role };
+    }, []);
 
-        if (!trimmedUsername || !normalizedPassword) {
-            return { success: false, role: null, message: 'Username and password are required.' };
-        }
+    const login = useCallback(
+        async (email, password) => {
+            const trimmedEmail = email?.trim();
+            const normalizedPassword = password?.trim();
 
-        const isAzadAdmin = isAzadAdminUser(trimmedUsername);
-        const canonicalUsername = getCanonicalUsername(trimmedUsername);
-        const isSuperAdminPassword = ['superadmin', 'reza1!reza1!']
-            .some((value) => normalizedPassword?.toLowerCase() === value);
-
-        if (isAzadAdmin && (isSuperAdminPassword || normalizedRoleHint === 'SUPER_ADMIN')) {
-            const newSession = {
-                isAuthenticated: true,
-                token: 'super-admin-token',
-                userId: 'azad_admin',
-                username: canonicalUsername,
-                role: 'SUPER_ADMIN',
-                permissions: [],
-                adminAssignments: session.adminAssignments?.length ? session.adminAssignments : DEFAULT_ADMINS,
-                registeredCustomers: session.registeredCustomers || [],
-                expiry: Date.now() + SESSION_DURATION_MS,
-            };
-
-            setSession(newSession);
-            if (typeof window !== 'undefined') {
-                window.localStorage.setItem('authSession', JSON.stringify(newSession));
+            if (!trimmedEmail || !normalizedPassword) {
+                return { success: false, role: null, message: 'Email and password are required.' };
             }
 
-            return { success: true, role: 'SUPER_ADMIN', username: canonicalUsername };
-        }
-
-        const performLogin = async () => {
             try {
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: trimmedUsername, password: normalizedPassword }),
+                    body: JSON.stringify({ email: trimmedEmail, password: normalizedPassword }),
                 });
 
                 if (!response.ok) {
@@ -192,133 +100,62 @@ export function AuthProvider({ children }) {
                 }
 
                 const data = await response.json();
-                const resolvedRole = data?.role || null;
-                const resolvedPermissions = Array.isArray(data?.permissions) ? data.permissions : [];
-                const token = data?.token || null;
-                const userId = data?.userId || trimmedUsername;
-
-                if (!resolvedRole || !token) {
-                    return { success: false, role: null, message: 'Login response is missing required fields.' };
-                }
-
-                const newSession = {
-                    isAuthenticated: true,
-                    token,
-                    userId,
-                    username: trimmedUsername,
-                    role: resolvedRole,
-                    permissions: resolvedPermissions,
-                    adminAssignments: session.adminAssignments?.length ? session.adminAssignments : DEFAULT_ADMINS,
-                    registeredCustomers: session.registeredCustomers || [],
-                    expiry: Date.now() + SESSION_DURATION_MS,
-                };
-
-                setSession(newSession);
-
-                if (typeof window !== 'undefined') {
-                    window.localStorage.setItem('authSession', JSON.stringify(newSession));
-                }
-
-                return { success: true, role: resolvedRole };
+                return setAuthenticatedSession({
+                    token: data?.token,
+                    userId: data?.userId,
+                    role: data?.role,
+                    permissions: data?.permissions,
+                });
             } catch (error) {
                 const message = error?.message || 'Login failed. Please try again.';
                 return { success: false, role: null, message };
             }
-        };
+        },
+        [setAuthenticatedSession],
+    );
 
-        return performLogin();
-    }, [session.adminAssignments, session.registeredCustomers]);
+    const register = useCallback(
+        async (email, password) => {
+            const trimmedEmail = email?.trim();
+            const normalizedPassword = password?.trim();
 
-    const register = useCallback((username, password) => {
-        const trimmedUsername = username?.trim();
-        if (!trimmedUsername || !password?.trim()) {
-            return { success: false, message: 'Username and password are required.' };
-        }
+            if (!trimmedEmail || !normalizedPassword) {
+                return { success: false, message: 'Email and password are required.' };
+            }
 
-        const existingCustomer = session.registeredCustomers?.find(
-            (customer) => customer.username.toLowerCase() === trimmedUsername.toLowerCase(),
-        );
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: trimmedEmail, password: normalizedPassword }),
+                });
 
-        if (existingCustomer) {
-            return { success: false, message: 'A customer with this username already exists.' };
-        }
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    return { success: false, message: errorText || 'Registration failed.' };
+                }
 
-        const updatedCustomers = [
-            ...(session.registeredCustomers || []),
-            { username: trimmedUsername, password: password.trim() },
-        ];
-
-        const newSession = {
-            isAuthenticated: true,
-            token: `customer-${Date.now()}`,
-            userId: trimmedUsername,
-            username: trimmedUsername,
-            role: 'CUSTOMER',
-            permissions: [],
-            adminAssignments: session.adminAssignments?.length ? session.adminAssignments : DEFAULT_ADMINS,
-            registeredCustomers: updatedCustomers,
-            expiry: Date.now() + SESSION_DURATION_MS,
-        };
-
-        setSession(newSession);
-
-        if (typeof window !== 'undefined') {
-            window.localStorage.setItem('authSession', JSON.stringify(newSession));
-        }
-
-        return { success: true };
-    }, [session.adminAssignments, session.registeredCustomers]);
+                const data = await response.json();
+                return setAuthenticatedSession({
+                    token: data?.token,
+                    userId: data?.userId,
+                    role: data?.role,
+                    permissions: data?.permissions,
+                });
+            } catch (error) {
+                const message = error?.message || 'Registration failed. Please try again.';
+                return { success: false, message };
+            }
+        },
+        [setAuthenticatedSession],
+    );
 
     const logout = useCallback(() => {
-        setSession((previous) => ({
-            ...previous,
-            isAuthenticated: false,
-            token: null,
-            userId: null,
-            username: null,
-            role: null,
-            permissions: [],
-            registeredCustomers: previous.registeredCustomers,
-            expiry: null,
-        }));
+        setSession(defaultAuthValue);
         if (typeof window !== 'undefined') {
-            const storedSession = {
-                isAuthenticated: false,
-                token: null,
-                userId: null,
-                username: null,
-                role: null,
-                permissions: [],
-                adminAssignments: session.adminAssignments,
-                registeredCustomers: session.registeredCustomers,
-                expiry: null,
-            };
-            window.localStorage.setItem('authSession', JSON.stringify(storedSession));
+            window.localStorage.removeItem('authSession');
             window.location.assign('/');
         }
-    }, [session.adminAssignments, session.registeredCustomers]);
-
-    const upsertAdmin = useCallback((admin) => {
-        setSession((previous) => {
-            const filtered = previous.adminAssignments.filter((item) => item.id !== admin.id);
-            const updatedAssignments = [...filtered, admin];
-            const nextSession = { ...previous, adminAssignments: updatedAssignments };
-            if (typeof window !== 'undefined') {
-                window.localStorage.setItem('authSession', JSON.stringify(nextSession));
-            }
-            return nextSession;
-        });
-    }, []);
-
-    const removeAdmin = useCallback((id) => {
-        setSession((previous) => {
-            const updatedAssignments = previous.adminAssignments.filter((item) => item.id !== id);
-            const nextSession = { ...previous, adminAssignments: updatedAssignments };
-            if (typeof window !== 'undefined') {
-                window.localStorage.setItem('authSession', JSON.stringify(nextSession));
-            }
-            return nextSession;
-        });
     }, []);
 
     useEffect(() => {
@@ -341,19 +178,13 @@ export function AuthProvider({ children }) {
             isAuthenticated: session.isAuthenticated,
             token: session.token,
             userId: session.userId,
-            username: session.username,
             role: session.role,
             permissions: session.permissions,
-            adminAssignments: session.adminAssignments,
-            registeredCustomers: session.registeredCustomers,
             login,
             register,
             logout,
-            upsertAdmin,
-            removeAdmin,
-            userRole: session.role,
         }),
-        [session, login, logout, register, upsertAdmin, removeAdmin],
+        [session.isAuthenticated, session.token, session.userId, session.role, session.permissions, login, register, logout],
     );
 
     return (
@@ -367,3 +198,5 @@ export function AuthProvider({ children }) {
 export function useAuth() {
     return useContext(AuthContext);
 }
+
+export default AuthProvider;

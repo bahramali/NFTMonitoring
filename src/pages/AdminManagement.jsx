@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import { sendAdminInvite, getInviteSenderEmail } from '../api/admins.js';
-import { useAuth } from '../context/AuthContext.jsx';
 import styles from './AdminManagement.module.css';
 
 const AVAILABLE_PERMISSIONS = [
@@ -9,34 +8,36 @@ const AVAILABLE_PERMISSIONS = [
     { id: 'admin-team', label: 'Team' },
 ];
 
-const emptyForm = { id: '', username: '', email: '', permissions: ['admin-dashboard'] };
+const emptyForm = { id: '', email: '', permissions: ['admin-dashboard'] };
 
 export default function AdminManagement() {
-    const { adminAssignments, upsertAdmin, removeAdmin } = useAuth();
+    const [adminAssignments, setAdminAssignments] = useState([]);
     const [formState, setFormState] = useState(emptyForm);
     const [editingId, setEditingId] = useState(null);
     const [inviteNotice, setInviteNotice] = useState('');
     const inviteSenderEmail = getInviteSenderEmail();
 
     const sortedAdmins = useMemo(
-        () => [...(adminAssignments || [])].sort((a, b) => a.username.localeCompare(b.username)),
+        () => [...(adminAssignments || [])].sort((a, b) => a.email.localeCompare(b.email)),
         [adminAssignments],
     );
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        if (!formState.id || !formState.username || !formState.email) {
+        if (!formState.id || !formState.email) {
             return;
         }
 
         const normalizedAdmin = {
             ...formState,
             id: formState.id.trim(),
-            username: formState.username.trim(),
             email: formState.email.trim(),
         };
 
-        upsertAdmin(normalizedAdmin);
+        setAdminAssignments((previous) => {
+            const filtered = previous.filter((item) => item.id !== normalizedAdmin.id);
+            return [...filtered, normalizedAdmin];
+        });
 
         try {
             const inviteResult = await sendAdminInvite(normalizedAdmin);
@@ -61,7 +62,11 @@ export default function AdminManagement() {
     };
 
     const startEdit = (admin) => {
-        setFormState({ ...admin, email: admin.email || '' });
+        setFormState({
+            ...admin,
+            email: admin.email || '',
+            permissions: admin.permissions || ['admin-dashboard'],
+        });
         setEditingId(admin.id);
         setInviteNotice('');
     };
@@ -97,15 +102,7 @@ export default function AdminManagement() {
                         onChange={(event) => setFormState((previous) => ({ ...previous, id: event.target.value }))}
                         required
                     />
-                    <label className={styles.label} htmlFor="username">Username (login)</label>
-                    <input
-                        id="username"
-                        className={styles.input}
-                        value={formState.username}
-                        onChange={(event) => setFormState((previous) => ({ ...previous, username: event.target.value }))}
-                        required
-                    />
-                    <label className={styles.label} htmlFor="email">Admin email</label>
+                    <label className={styles.label} htmlFor="email">Admin email (login)</label>
                     <input
                         id="email"
                         type="email"
@@ -148,13 +145,17 @@ export default function AdminManagement() {
                             {sortedAdmins.map((admin) => (
                                 <li key={admin.id}>
                                     <div>
-                                        <strong>{admin.username}</strong>
-                                        <p className={styles.meta}>Email: {admin.email || 'Not provided'}</p>
+                                        <strong>{admin.email}</strong>
+                                        <p className={styles.meta}>Admin ID: {admin.id}</p>
                                         <p className={styles.meta}>Permissions: {admin.permissions.join(', ') || 'None'}</p>
                                     </div>
                                     <div className={styles.rowActions}>
                                         <button type="button" onClick={() => startEdit(admin)}>Edit</button>
-                                        <button type="button" onClick={() => removeAdmin(admin.id)} className={styles.danger}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAdminAssignments((previous) => previous.filter((item) => item.id !== admin.id))}
+                                            className={styles.danger}
+                                        >
                                             Delete
                                         </button>
                                     </div>
