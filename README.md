@@ -78,3 +78,14 @@ below the dropdown.
 | F8   | 680         | 650–700   | Red |
 | Clear| -           | full visible spectrum | All colors |
 | NIR  | -           | >700       | Near Infrared |
+
+## Backend SUPER_ADMIN provisioning
+
+The backend provisions exactly one `SUPER_ADMIN` account on startup via an internal seed. The seed runs in the Spring Boot backend and uses the following configuration keys (environment variables or `application.yml`):
+
+- `APP_SUPERADMIN_EMAIL` (required)
+- `APP_SUPERADMIN_PASSWORD` (required, minimum 12 characters)
+- `APP_SUPERADMIN_DISPLAY_NAME` (optional, defaults to `Super Admin`)
+- `APP_SUPERADMIN_ACTIVE` (optional, defaults to `true`)
+
+The seed only executes when no `SUPER_ADMIN` exists, trims and lowercases the email, hashes the password with the configured encoder, and skips seeding with a warning if required values are missing. `SUPER_ADMIN` cannot be created through public APIs; user management endpoints reject any attempt to assign the `SUPER_ADMIN` role via request payloads.
