@@ -7,6 +7,8 @@ import React, {
     useState,
 } from 'react';
 
+const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
+const AUTH_BASE = `${API_BASE}/api/auth`;
 const SESSION_DURATION_MS = 30 * 60 * 1000;
 
 const defaultAuthValue = {
@@ -88,23 +90,25 @@ export function AuthProvider({ children }) {
             }
 
             try {
-                const response = await fetch('/api/auth/login', {
+                const response = await fetch(`${AUTH_BASE}/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: trimmedEmail, password: normalizedPassword }),
                 });
 
-                const text = await response.text();
-                let payload;
-
-                try {
-                    payload = JSON.parse(text || '{}');
-                } catch (parseError) {
-                    payload = { message: text };
+                const raw = await response.text();
+                let payload = {};
+                if (raw) {
+                    try {
+                        payload = JSON.parse(raw);
+                    } catch {
+                        payload = { message: raw };
+                    }
                 }
 
                 if (!response.ok) {
-                    return { success: false, role: null, message: payload?.message || 'Login failed.' };
+                    const message = payload?.message || `Login failed (${response.status})`;
+                    return { success: false, role: null, message };
                 }
 
                 return setAuthenticatedSession({
@@ -131,23 +135,32 @@ export function AuthProvider({ children }) {
             }
 
             try {
-                const response = await fetch('/api/auth/register', {
+                const response = await fetch(`${AUTH_BASE}/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: trimmedEmail, password: normalizedPassword }),
                 });
 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    return { success: false, message: errorText || 'Registration failed.' };
+                const raw = await response.text();
+                let payload = {};
+                if (raw) {
+                    try {
+                        payload = JSON.parse(raw);
+                    } catch {
+                        payload = { message: raw };
+                    }
                 }
 
-                const data = await response.json();
+                if (!response.ok) {
+                    const message = payload?.message || `Registration failed (${response.status})`;
+                    return { success: false, message };
+                }
+
                 return setAuthenticatedSession({
-                    token: data?.token,
-                    userId: data?.userId,
-                    role: data?.role,
-                    permissions: data?.permissions,
+                    token: payload?.token,
+                    userId: payload?.userId,
+                    role: payload?.role,
+                    permissions: payload?.permissions,
                 });
             } catch (error) {
                 const message = error?.message || 'Registration failed. Please try again.';

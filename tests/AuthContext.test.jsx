@@ -3,6 +3,9 @@ import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { AuthProvider, useAuth } from '../src/context/AuthContext.jsx';
 
+const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
+const LOGIN_URL = `${API_BASE}/api/auth/login`;
+
 afterEach(() => {
     vi.restoreAllMocks();
     window.localStorage.clear();
@@ -19,7 +22,7 @@ describe('AuthContext', () => {
 
         vi.stubGlobal('fetch', vi.fn(async () => ({
             ok: true,
-            json: async () => backendResponse,
+            text: async () => JSON.stringify(backendResponse),
         })));
 
         const wrapper = ({ children }) => <AuthProvider>{children}</AuthProvider>;
@@ -29,7 +32,7 @@ describe('AuthContext', () => {
             await result.current.login('user@example.com', 'password123');
         });
 
-        expect(global.fetch).toHaveBeenCalledWith('/api/auth/login', {
+        expect(global.fetch).toHaveBeenCalledWith(LOGIN_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: 'user@example.com', password: 'password123' }),
@@ -45,7 +48,7 @@ describe('AuthContext', () => {
     it('rejects login when backend omits required fields', async () => {
         vi.stubGlobal('fetch', vi.fn(async () => ({
             ok: true,
-            json: async () => ({ token: 'token-without-role' }),
+            text: async () => JSON.stringify({ token: 'token-without-role' }),
         })));
 
         const wrapper = ({ children }) => <AuthProvider>{children}</AuthProvider>;
