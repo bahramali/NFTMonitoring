@@ -6,6 +6,7 @@ import styles from './Navbar.module.css';
 
 const ADMIN_PAGES = [
     { path: '/admin/dashboard', label: 'Admin Dashboard', permission: 'admin-dashboard' },
+    { path: '/dashboard/reports', label: 'Reports', permission: 'admin-reports' },
     { path: '/admin/team', label: 'Team', permission: 'admin-team' },
 ];
 
