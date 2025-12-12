@@ -15,7 +15,7 @@ export default function Login() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
@@ -28,7 +28,7 @@ export default function Login() {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        const result = await login(username, password);
+        const result = await login(email, password);
         if (!result.success) {
             setError(result.message || 'Login failed. Please verify your credentials.');
             return;
@@ -45,23 +45,22 @@ export default function Login() {
             <div className={styles.card}>
                 <h1 className={styles.title}>Sign in</h1>
                 <p className={styles.subtitle}>
-                    Enter your username and password. We&apos;ll call the login API, store your session securely, and
+                    Enter your email and password. We&apos;ll call the login API, store your session securely, and
                     redirect you to the right dashboard for your role.
                 </p>
                 <form className={styles.form} onSubmit={handleSubmit} autoComplete="off">
-                    <label className={styles.label} htmlFor="username">Username</label>
+                    <label className={styles.label} htmlFor="email">Email</label>
                     <input
-                        id="username"
+                        id="email"
                         className={styles.input}
-                        type="text"
-                        value={username}
-                        onChange={(event) => setUsername(event.target.value)}
+                        type="email"
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
                         required
                     />
 
                     <label className={styles.label} htmlFor="password">
                         Password
-                        <span className={styles.labelHint}>(required for super admin)</span>
                     </label>
                     <input
                         id="password"
@@ -84,7 +83,7 @@ export default function Login() {
             <div className={styles.helper}>
                 <h2>Quick rules</h2>
                 <ul>
-                    <li>Admins inherit only the pages the super admin assigns.</li>
+                    <li>Admins only see the pages the backend permissions allow.</li>
                     <li>Workers always see Home and Worker Dashboard.</li>
                     <li>Customers can always reach Home and My Page.</li>
                 </ul>

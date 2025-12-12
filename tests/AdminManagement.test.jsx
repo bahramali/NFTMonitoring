@@ -21,7 +21,6 @@ describe('AdminManagement', () => {
         renderWithAuth(<AdminManagement />);
 
         fireEvent.change(screen.getByLabelText(/Admin ID/i), { target: { value: 'admin-1' } });
-        fireEvent.change(screen.getByLabelText(/Username/i), { target: { value: 'new_admin' } });
         fireEvent.change(screen.getByLabelText(/Admin email/i), { target: { value: 'test@example.com' } });
 
         fireEvent.click(screen.getByRole('button', { name: /Create admin/i }));
@@ -43,7 +42,6 @@ describe('AdminManagement', () => {
         renderWithAuth(<AdminManagement />);
 
         fireEvent.change(screen.getByLabelText(/Admin ID/i), { target: { value: 'admin-1' } });
-        fireEvent.change(screen.getByLabelText(/Username/i), { target: { value: 'new_admin' } });
         fireEvent.change(screen.getByLabelText(/Admin email/i), { target: { value: 'test@example.com' } });
 
         fireEvent.click(screen.getByRole('button', { name: /Create admin/i }));

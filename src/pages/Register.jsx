@@ -10,7 +10,7 @@ export default function Register() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
@@ -22,14 +22,14 @@ export default function Register() {
         }
     }, [isAuthenticated, location.state?.from?.pathname, navigate]);
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
         if (password !== confirmPassword) {
             setError('Passwords do not match.');
             return;
         }
 
-        const result = register(username, password);
+        const result = await register(email, password);
         if (result.success) {
             setError('');
             navigate(DEFAULT_ROUTE, { replace: true });
@@ -43,19 +43,19 @@ export default function Register() {
             <div className={styles.card}>
                 <h1 className={styles.title}>Create a customer account</h1>
                 <p className={styles.subtitle}>
-                    Register with a username and password to access your customer page. You&apos;ll be logged in as soon as
+                    Register with your email and password to access your customer page. You&apos;ll be logged in as soon as
                     your account is created.
                 </p>
                 <form className={styles.form} onSubmit={handleSubmit} autoComplete="off">
-                    <label className={styles.label} htmlFor="username">Username</label>
+                    <label className={styles.label} htmlFor="email">Email</label>
                     <input
-                        id="username"
+                        id="email"
                         className={styles.input}
-                        type="text"
-                        value={username}
-                        onChange={(event) => setUsername(event.target.value)}
+                        type="email"
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
                         required
-                        autoComplete="username"
+                        autoComplete="email"
                     />
 
                     <label className={styles.label} htmlFor="password">Password</label>
