@@ -20,6 +20,7 @@ describe('AdminManagement', () => {
 
         renderWithAuth(<AdminManagement />);
 
+        expect(screen.queryByLabelText(/Username/i)).toBeNull();
         fireEvent.change(screen.getByLabelText(/Admin ID/i), { target: { value: 'admin-1' } });
         fireEvent.change(screen.getByLabelText(/Admin email/i), { target: { value: 'test@example.com' } });
 
@@ -41,6 +42,7 @@ describe('AdminManagement', () => {
 
         renderWithAuth(<AdminManagement />);
 
+        expect(screen.queryByLabelText(/Username/i)).toBeNull();
         fireEvent.change(screen.getByLabelText(/Admin ID/i), { target: { value: 'admin-1' } });
         fireEvent.change(screen.getByLabelText(/Admin email/i), { target: { value: 'test@example.com' } });
 
