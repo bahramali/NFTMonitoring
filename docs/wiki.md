@@ -7,10 +7,10 @@ The application provides dashboards and customer pages for managing NFT-powered 
 
 ## Key Features
 - **Authentication and session handling**: Users log in with email and password. The frontend stores only backend-issued session fields (token, userId, role, and permissions) and routes users based on their role.
-- **Role-based navigation**: SUPER_ADMIN, ADMIN, WORKER, and CUSTOMER users see different sections. Admin access respects the permissions array returned by the backend.
+- **Role-based navigation**: SUPER_ADMIN, ADMIN, WORKER, and CUSTOMER users see different sections. Admin access respects the permissions array returned by the backend. SUPER_ADMIN inherits full access and may also view monitoring dashboards.
 - **Monitoring dashboards**: Admins and workers can open dashboards for device health, irrigation performance, and alerts.
 - **User pages**: Customers have a dedicated My Page to view their devices and account information.
-- **Inviting admins**: Admin management pages let authorized users invite other admins and configure their permissions while relying on backend email delivery for credential setup.
+- **Inviting admins**: Admin management pages (accessible only to SUPER_ADMIN) allow inviting and managing ADMIN users and configuring their permissions; no other role can invite or create admins. Backend email delivery handles credential setup.
 
 ## How It Works with the Backend
 1. **Login**: The frontend sends email/password to `/api/auth/login` and uses the returned token, userId, role, and permissions as the single source of truth.
@@ -26,5 +26,5 @@ The application provides dashboards and customer pages for managing NFT-powered 
 ## User Journey Overview
 - **Customer**: Registers or logs in, then reaches `/my-page` for personal data.
 - **Worker**: Logs in and is redirected to `/worker/dashboard` for operational tools.
-- **Admin**: Logs in, sees only the admin sections their permissions allow, and may invite/manage other admins.
-- **Super Admin**: Logs in and accesses `/super-admin` and related oversight tools without any preloaded credentials on the frontend.
+- **Admin**: Logs in and sees only the admin sections their permissions allow; admins cannot invite or create other admins.
+- **Super Admin**: Logs in and accesses `/super-admin` and related oversight tools without any preloaded credentials on the frontend. SUPER_ADMIN inherits full access and may also view monitoring dashboards. SUPER_ADMIN accounts are provisioned via an initial seed/migration or an internal server-side process, not through public UI or API endpoints.
