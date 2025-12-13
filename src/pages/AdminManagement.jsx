@@ -35,7 +35,7 @@ const STATUS_META = {
     DISABLED: { icon: '🔴', label: 'Disabled', description: 'Login blocked' },
 };
 
-const emptyForm = { email: '', displayName: '', permissions: [AVAILABLE_PERMISSIONS[0].value], inviteExpiryHours: '' };
+const emptyForm = { email: '', displayName: '', permissions: [AVAILABLE_PERMISSIONS[0].value], expiresInHours: '' };
 
 export default function AdminManagement() {
     const { token } = useAuth();
@@ -127,8 +127,8 @@ export default function AdminManagement() {
             permissions: formState.permissions.map((permission) => permission),
         };
 
-        if (formState.inviteExpiryHours) {
-            payload.inviteExpiryHours = Number(formState.inviteExpiryHours);
+        if (formState.expiresInHours) {
+            payload.expiresInHours = Number(formState.expiresInHours);
         }
 
         try {
@@ -277,10 +277,10 @@ export default function AdminManagement() {
                     <select
                         id="inviteExpiry"
                         className={styles.input}
-                        value={formState.inviteExpiryHours}
+                        value={formState.expiresInHours}
                         onChange={(event) => {
                             setInviteFeedback(null);
-                            setFormState((previous) => ({ ...previous, inviteExpiryHours: event.target.value }));
+                            setFormState((previous) => ({ ...previous, expiresInHours: event.target.value }));
                         }}
                     >
                         {INVITE_EXPIRY_OPTIONS.map((option) => (
