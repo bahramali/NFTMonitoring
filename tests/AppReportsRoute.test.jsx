@@ -20,7 +20,7 @@ beforeEach(() => {
             token: 'token',
             userId: 'admin-1',
             role: 'ADMIN',
-            permissions: ['admin-dashboard', 'admin-reports'],
+            permissions: ['ADMIN_DASHBOARD', 'ADMIN_REPORTS'],
             expiry: Date.now() + 60_000,
         }),
     );

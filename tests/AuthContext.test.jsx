@@ -17,7 +17,7 @@ describe('AuthContext', () => {
             token: 'jwt-token',
             userId: 'user-123',
             role: 'ADMIN',
-            permissions: ['admin-dashboard', 'admin-team'],
+            permissions: ['ADMIN_DASHBOARD', 'ADMIN_TEAM'],
         };
 
         vi.stubGlobal('fetch', vi.fn(async () => ({
