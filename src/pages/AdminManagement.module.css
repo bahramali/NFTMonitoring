@@ -186,6 +186,16 @@
     font-weight: 700;
     font-size: 12px;
     border: 1px solid transparent;
+    gap: 6px;
+}
+
+.statusIcon {
+    font-size: 14px;
+    line-height: 1;
+}
+
+.statusText {
+    letter-spacing: 0.06em;
 }
 
 .statusINVITED {
@@ -326,4 +336,25 @@
 .toastError {
     background: #fee2e2;
     border: 1px solid #fecdd3;
+}
+
+.statusLegend {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.legendItem {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.legendIcon {
+    font-size: 16px;
+}
+
+.legendLabel {
+    font-weight: 700;
 }
