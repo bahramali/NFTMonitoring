@@ -105,6 +105,12 @@ export default function Navbar() {
     const navLinkClassName = ({ isActive }) =>
         [styles.navLink, isActive ? styles.navLinkActive : ''].filter(Boolean).join(' ');
 
+    const handleNavLinkClick = () => {
+        setIsNavOpen(false);
+        setIsAdminOpen(false);
+        setIsUserMenuOpen(false);
+    };
+
     const adminTriggerClassName = [
         styles.dropdownTrigger,
         isAdminOpen || isAdminRoute ? styles.dropdownTriggerActive : '',
@@ -140,7 +146,12 @@ export default function Navbar() {
                     <nav className={`${styles.nav} ${isNavOpen ? styles.navOpen : ''}`}>
                         <div className={styles.navList}>
                             {primaryLinks.map((item) => (
-                                <NavLink key={item.path} to={item.path} className={navLinkClassName}>
+                                <NavLink
+                                    key={item.path}
+                                    to={item.path}
+                                    className={navLinkClassName}
+                                    onClick={handleNavLinkClick}
+                                >
                                     {item.label}
                                 </NavLink>
                             ))}
@@ -169,6 +180,7 @@ export default function Navbar() {
                                                 key={item.path}
                                                 to={item.path}
                                                 className={navLinkClassName}
+                                                onClick={handleNavLinkClick}
                                             >
                                                 {item.label}
                                             </NavLink>
