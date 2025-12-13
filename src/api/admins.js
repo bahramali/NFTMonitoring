@@ -1,37 +1,57 @@
+import { parseApiResponse } from './http.js';
+
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'https://api.hydroleaf.se';
-const BASE_URL = `${API_BASE}/api/admins`;
+const BASE_URL = `${API_BASE}/api/super-admin/admins`;
 
-const DEFAULT_INVITE_SENDER_EMAIL = 'bahramali.az@gmail.com';
+const authHeaders = (token) => ({
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+});
 
-export function getInviteSenderEmail() {
-    return import.meta.env.VITE_INVITE_SENDER_EMAIL?.trim() || DEFAULT_INVITE_SENDER_EMAIL;
+export async function fetchAdmins(token) {
+    const res = await fetch(BASE_URL, { headers: authHeaders(token) });
+    return parseApiResponse(res, 'Failed to load admins');
 }
 
-export async function sendAdminInvite(admin) {
-    const senderEmail = getInviteSenderEmail();
+export async function inviteAdmin(payload, token) {
+    const res = await fetch(`${BASE_URL}/invite`, {
+        method: 'POST',
+        headers: authHeaders(token),
+        body: JSON.stringify(payload),
+    });
+    return parseApiResponse(res, 'Failed to send admin invite');
+}
 
-    try {
-        const res = await fetch(`${BASE_URL}/invite`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...admin, fromEmail: senderEmail }),
-        });
+export async function updateAdminPermissions(id, permissions, token) {
+    const res = await fetch(`${BASE_URL}/${id}/permissions`, {
+        method: 'PUT',
+        headers: authHeaders(token),
+        body: JSON.stringify({ permissions }),
+    });
+    return parseApiResponse(res, 'Failed to update permissions');
+}
 
-        if (!res.ok) {
-            let message = `Failed to send admin invite email (${res.status})`;
-            try {
-                const body = await res.json();
-                if (body?.message) message = body.message;
-            } catch {
-                // ignore JSON parse errors and keep the default message
-            }
-            throw new Error(message);
-        }
+export async function updateAdminStatus(id, status, token) {
+    const res = await fetch(`${BASE_URL}/${id}/status`, {
+        method: 'PUT',
+        headers: authHeaders(token),
+        body: JSON.stringify({ status }),
+    });
+    return parseApiResponse(res, 'Failed to update status');
+}
 
-        await res.json().catch(() => undefined);
-        return { queued: true, senderEmail };
-    } catch (error) {
-        console.warn('Unable to queue admin invite, falling back to manual flow', error);
-        return { queued: false, senderEmail, errorMessage: error?.message };
-    }
+export async function deleteAdmin(id, token) {
+    const res = await fetch(`${BASE_URL}/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(token),
+    });
+    return parseApiResponse(res, 'Failed to remove admin');
+}
+
+export async function resendAdminInvite(id, token) {
+    const res = await fetch(`${BASE_URL}/${id}/resend-invite`, {
+        method: 'POST',
+        headers: authHeaders(token),
+    });
+    return parseApiResponse(res, 'Failed to resend invite');
 }

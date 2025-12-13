@@ -10,7 +10,12 @@ export default function ProtectedRoute({ children, requiredRoles = [], requiredP
         return <Navigate to="/login" replace state={{ from: location }} />;
     }
 
+    const requiresSuperAdmin = requiredRoles.includes('SUPER_ADMIN');
+
     if (requiredRoles.length > 0 && !requiredRoles.includes(role)) {
+        if (requiresSuperAdmin) {
+            return <Navigate to="/" replace />;
+        }
         return <Navigate to="/not-authorized" replace />;
     }
 
