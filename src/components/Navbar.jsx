@@ -5,9 +5,9 @@ import hydroleafLogo from '../assets/hydroleaf_logo.png';
 import styles from './Navbar.module.css';
 
 const ADMIN_PAGES = [
-    { path: '/admin/dashboard', label: 'Admin Dashboard', permission: 'admin-dashboard' },
-    { path: '/dashboard/reports', label: 'Reports', permission: 'admin-reports' },
-    { path: '/admin/team', label: 'Team', permission: 'admin-team' },
+    { path: '/admin/dashboard', label: 'Admin Dashboard', permission: 'ADMIN_DASHBOARD' },
+    { path: '/dashboard/reports', label: 'Reports', permission: 'ADMIN_REPORTS' },
+    { path: '/admin/team', label: 'Team', permission: 'ADMIN_TEAM' },
 ];
 
 export default function Navbar() {
@@ -28,7 +28,7 @@ export default function Navbar() {
         }
 
         if (role === 'ADMIN') {
-            const monitoringLinks = permissions?.includes('admin-dashboard')
+            const monitoringLinks = permissions?.includes('ADMIN_DASHBOARD')
                 ? [{ path: '/dashboard/overview', label: 'Monitoring Dashboard' }]
                 : [];
 
