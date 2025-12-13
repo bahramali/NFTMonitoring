@@ -11,6 +11,7 @@ The application provides dashboards and customer pages for managing NFT-powered 
 - **Monitoring dashboards**: Admins and workers can open dashboards for device health, irrigation performance, and alerts.
 - **User pages**: Customers have a dedicated My Page to view their devices and account information.
 - **Inviting admins**: Admin management pages (accessible only to SUPER_ADMIN) allow inviting and managing ADMIN users and configuring their permissions; no other role can invite or create admins. Backend email delivery handles credential setup.
+- **SUPER_ADMIN coverage**: SUPER_ADMIN has full access, including monitoring dashboards. These accounts are provisioned through seed/migration or other server-side bootstrap processes rather than through public UI or API paths.
 
 ## How It Works with the Backend
 1. **Login**: The frontend sends email/password to `/api/auth/login` and uses the returned token, userId, role, and permissions as the single source of truth.
