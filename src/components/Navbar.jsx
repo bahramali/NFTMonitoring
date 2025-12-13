@@ -65,6 +65,8 @@ export default function Navbar() {
     const adminMenuRef = useRef(null);
     const userMenuRef = useRef(null);
     const location = useLocation();
+    const isAdminRoute =
+        location.pathname.startsWith('/admin') || location.pathname.startsWith('/super-admin');
 
     const roleLabel = role ? role.replace('_', ' ') : '';
     const userLabel = userId ? `User #${userId}` : 'Account';
@@ -118,6 +120,13 @@ export default function Navbar() {
     const navLinkClassName = ({ isActive }) =>
         [styles.navLink, isActive ? styles.navLinkActive : ''].filter(Boolean).join(' ');
 
+    const adminTriggerClassName = [
+        styles.dropdownTrigger,
+        isAdminOpen || isAdminRoute ? styles.dropdownTriggerActive : '',
+    ]
+        .filter(Boolean)
+        .join(' ');
+
     return (
         <header className={styles.header}>
             <div className={styles.container}>
@@ -155,9 +164,7 @@ export default function Navbar() {
                                 <div className={styles.dropdown} ref={adminMenuRef}>
                                     <button
                                         type="button"
-                                        className={`${styles.dropdownTrigger} ${
-                                            isAdminOpen ? styles.dropdownTriggerActive : ''
-                                        }`}
+                                        className={adminTriggerClassName}
                                         aria-expanded={isAdminOpen}
                                         onClick={() => {
                                             setIsAdminOpen((open) => !open);
