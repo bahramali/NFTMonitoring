@@ -1,7 +1,7 @@
 import React from 'react';
 import styles from './AdminPage.module.css';
 
-export default function AdminDashboard() {
+export default function AdminOverview() {
     return (
         <div className={styles.page}>
             <div className={styles.card}>
