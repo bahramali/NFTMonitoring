@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import hydroleafLogo from '../assets/hydroleaf_logo.png';
@@ -62,10 +62,13 @@ export default function Navbar() {
     const [isNavOpen, setIsNavOpen] = useState(false);
     const [isAdminOpen, setIsAdminOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const adminMenuRef = useRef(null);
+    const userMenuRef = useRef(null);
     const location = useLocation();
 
     const roleLabel = role ? role.replace('_', ' ') : '';
     const userLabel = userId ? `User #${userId}` : 'Account';
+    const userInitial = userLabel?.trim()?.charAt(0)?.toUpperCase() || 'U';
 
     const primaryLinks = useMemo(() => {
         return NAV_ITEMS.filter((item) => {
@@ -84,6 +87,33 @@ export default function Navbar() {
         setIsAdminOpen(false);
         setIsUserMenuOpen(false);
     }, [location.pathname]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (adminMenuRef.current && !adminMenuRef.current.contains(event.target)) {
+                setIsAdminOpen(false);
+            }
+
+            if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+                setIsUserMenuOpen(false);
+            }
+        };
+
+        const handleEscape = (event) => {
+            if (event.key === 'Escape') {
+                setIsAdminOpen(false);
+                setIsUserMenuOpen(false);
+                setIsNavOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleEscape);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleEscape);
+        };
+    }, []);
 
     const navLinkClassName = ({ isActive }) =>
         [styles.navLink, isActive ? styles.navLinkActive : ''].filter(Boolean).join(' ');
@@ -122,14 +152,18 @@ export default function Navbar() {
                             ))}
 
                             {adminLinks.length > 0 && (
-                                <div className={styles.dropdown}>
+                                <div className={styles.dropdown} ref={adminMenuRef}>
                                     <button
                                         type="button"
                                         className={styles.dropdownTrigger}
                                         aria-expanded={isAdminOpen}
-                                        onClick={() => setIsAdminOpen((open) => !open)}
+                                        onClick={() => {
+                                            setIsAdminOpen((open) => !open);
+                                            setIsUserMenuOpen(false);
+                                        }}
                                     >
                                         Admin
+                                        <span className={styles.caret} aria-hidden="true" />
                                     </button>
                                     <div
                                         className={`${styles.dropdownMenu} ${
@@ -154,15 +188,21 @@ export default function Navbar() {
 
                 <div className={styles.authSection}>
                     {isAuthenticated ? (
-                        <div className={styles.userArea}>
+                        <div className={styles.userArea} ref={userMenuRef}>
                             <button
                                 type="button"
                                 className={styles.userButton}
                                 aria-expanded={isUserMenuOpen}
-                                onClick={() => setIsUserMenuOpen((open) => !open)}
+                                onClick={() => {
+                                    setIsUserMenuOpen((open) => !open);
+                                    setIsAdminOpen(false);
+                                }}
                             >
+                                <span className={styles.avatar} aria-hidden="true">
+                                    {userInitial}
+                                </span>
                                 <span className={styles.userName}>{userLabel}</span>
-                                {roleLabel && <span className={styles.rolePill}>{roleLabel}</span>}
+                                <span className={styles.caret} aria-hidden="true" />
                             </button>
                             <div
                                 className={`${styles.userMenu} ${
@@ -170,9 +210,15 @@ export default function Navbar() {
                                 }`}
                             >
                                 <div className={styles.userMenuMeta}>
-                                    <span className={styles.mutedLabel}>Signed in as</span>
-                                    <span className={styles.metaValue}>{userLabel}</span>
+                                    <div className={styles.userIdentity}>
+                                        <span className={styles.metaValue}>{userLabel}</span>
+                                        {roleLabel && <span className={styles.roleBadge}>{roleLabel}</span>}
+                                    </div>
+                                    <span className={styles.mutedLabel}>Account</span>
                                 </div>
+                                <button type="button" className={styles.menuLink} disabled>
+                                    Settings (coming soon)
+                                </button>
                                 <button
                                     type="button"
                                     className={styles.menuAction}
