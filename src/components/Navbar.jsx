@@ -8,24 +8,10 @@ const NAV_ITEMS = [
     { path: '/', label: 'Home', requiresAuth: false },
     {
         path: '/dashboard/overview',
-        label: 'Monitoring',
+        label: 'Dashboard',
         requiresAuth: true,
-        roles: ['SUPER_ADMIN', 'ADMIN'],
+        roles: ['SUPER_ADMIN', 'ADMIN', 'WORKER'],
         permissions: ['ADMIN_DASHBOARD'],
-    },
-    {
-        path: '/dashboard/reports',
-        label: 'Reports',
-        requiresAuth: true,
-        roles: ['SUPER_ADMIN', 'ADMIN'],
-        permissions: ['ADMIN_REPORTS'],
-    },
-    {
-        path: '/team',
-        label: 'Team',
-        requiresAuth: true,
-        roles: ['SUPER_ADMIN', 'ADMIN'],
-        permissions: ['ADMIN_TEAM'],
     },
 ];
 
@@ -50,7 +36,7 @@ const hasAccess = (item, role, permissions = []) => {
     if (!item?.roles || item.roles.length === 0) return true;
     if (!role || !item.roles.includes(role)) return false;
 
-    if (item.permissions && item.permissions.length > 0) {
+    if (item.permissions && item.permissions.length > 0 && role === 'ADMIN') {
         return item.permissions.every((permission) => permissions?.includes(permission));
     }
 

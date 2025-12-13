@@ -83,7 +83,7 @@ function App() {
                     path="/dashboard/*"
                     element={(
                         <ProtectedRoute
-                            requiredRoles={["SUPER_ADMIN", "ADMIN"]}
+                            requiredRoles={["SUPER_ADMIN", "ADMIN", "WORKER"]}
                             requiredPermissions={["ADMIN_DASHBOARD"]}
                         >
                             <MainLayout />
