@@ -8,7 +8,7 @@ import Register from './pages/Register.jsx';
 import NotAuthorized from './pages/NotAuthorized.jsx';
 import SuperAdminDashboard from './pages/SuperAdminDashboard.jsx';
 import AdminManagement from './pages/AdminManagement.jsx';
-import AdminDashboard from './pages/AdminDashboard.jsx';
+import AdminOverview from './pages/AdminOverview.jsx';
 import AdminTeam from './pages/AdminTeam.jsx';
 import WorkerDashboard from './pages/WorkerDashboard.jsx';
 import MyPage from './pages/MyPage.jsx';
@@ -56,7 +56,7 @@ function App() {
                     path="/admin"
                     element={(
                         <ProtectedRoute requiredRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermissions={["ADMIN_DASHBOARD"]}>
-                            <AdminDashboard />
+                            <AdminOverview />
                         </ProtectedRoute>
                     )}
                 />
