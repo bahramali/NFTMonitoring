@@ -16,14 +16,26 @@ const AVAILABLE_PERMISSIONS = [
     { id: 'admin-team', label: 'Team' },
 ];
 
+const PERMISSION_LABELS = AVAILABLE_PERMISSIONS.reduce((map, permission) => {
+    map[permission.id] = permission.label;
+    return map;
+}, {});
+
 const INVITE_EXPIRY_OPTIONS = [
+    { value: '72', label: '72 hours (recommended)' },
+    { value: '24', label: '24 hours' },
+    { value: '48', label: '48 hours' },
+    { value: '168', label: '7 days' },
     { value: '', label: 'No expiry override' },
-    { value: '24', label: '24h' },
-    { value: '48', label: '48h' },
-    { value: '168', label: '7d' },
 ];
 
-const emptyForm = { email: '', displayName: '', permissions: ['admin-dashboard'], inviteExpiryHours: '' };
+const STATUS_META = {
+    INVITED: { icon: '🟡', label: 'Invited', description: 'Email sent, password not set' },
+    ACTIVE: { icon: '🟢', label: 'Active', description: 'Login allowed' },
+    DISABLED: { icon: '🔴', label: 'Disabled', description: 'Login blocked' },
+};
+
+const emptyForm = { email: '', displayName: '', permissions: ['admin-dashboard'], inviteExpiryHours: '72' };
 
 export default function AdminManagement() {
     const { token } = useAuth();
@@ -78,6 +90,18 @@ export default function AdminManagement() {
         return parsed.toLocaleString();
     };
 
+    const renderStatusBadge = (status) => {
+        const meta = STATUS_META[status] || { icon: '⚪', label: status || 'Unknown' };
+        return (
+            <span className={`${styles.statusBadge} ${styles[`status${status}`] || ''}`}>
+                <span aria-hidden className={styles.statusIcon}>
+                    {meta.icon}
+                </span>
+                <span className={styles.statusText}>{meta.label.toUpperCase()}</span>
+            </span>
+        );
+    };
+
     const togglePermission = (permission) => {
         setInviteFeedback(null);
         setFormState((previous) => {
@@ -106,7 +130,7 @@ export default function AdminManagement() {
 
         try {
             await inviteAdmin(payload, token);
-            setInviteFeedback({ type: 'success', message: 'Invite sent successfully.' });
+            setInviteFeedback({ type: 'success', message: 'Invite sent successfully. Email sent to admin.' });
             setFormState(emptyForm);
             loadAdmins();
         } catch (error) {
@@ -185,6 +209,7 @@ export default function AdminManagement() {
                     <p className={styles.kicker}>Super admin only</p>
                     <h1>Super Admin Console</h1>
                     <p className={styles.subtitle}>Invite admins, manage permissions, and control access.</p>
+                    <p className={styles.helper}>Lifecycle: Invite → Active → Disabled. No passwords are collected here.</p>
                 </div>
                 <div className={styles.badge}>SUPER_ADMIN</div>
             </header>
@@ -263,6 +288,10 @@ export default function AdminManagement() {
                     </select>
 
                     <button className={styles.button} type="submit">Send invite</button>
+
+                    <div className={styles.notice} role="status">
+                        Admin will receive an email to set their password securely after accepting the invite.
+                    </div>
                 </form>
 
                 <div className={`${styles.card} ${styles.tableCard}`}>
@@ -270,6 +299,17 @@ export default function AdminManagement() {
                         <div>
                             <p className={styles.kicker}>Admin roster</p>
                             <h2>Lifecycle &amp; access</h2>
+                            <div className={styles.statusLegend}>
+                                {Object.entries(STATUS_META).map(([key, meta]) => (
+                                    <div key={key} className={styles.legendItem}>
+                                        <span className={styles.legendIcon} aria-hidden>{meta.icon}</span>
+                                        <div>
+                                            <div className={styles.legendLabel}>{meta.label.toUpperCase()}</div>
+                                            <div className={styles.meta}>{meta.description}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                         <button className={styles.refreshButton} type="button" onClick={loadAdmins} disabled={loading}>
                             Refresh
@@ -302,15 +342,15 @@ export default function AdminManagement() {
                                             </td>
                                             <td>{admin.displayName || '—'}</td>
                                             <td>
-                                                <span className={`${styles.statusBadge} ${styles[`status${admin.status}`] || ''}`}>
-                                                    {admin.status || 'UNKNOWN'}
-                                                </span>
+                                                {renderStatusBadge(admin.status)}
                                             </td>
                                             <td>
                                                 <div className={styles.chips}>
                                                     {(admin.permissions || []).length === 0 && <span className={styles.chip}>None</span>}
                                                     {(admin.permissions || []).map((permission) => (
-                                                        <span key={permission} className={styles.chip}>{permission}</span>
+                                                        <span key={permission} className={styles.chip}>
+                                                            {PERMISSION_LABELS[permission] || permission}
+                                                        </span>
                                                     ))}
                                                 </div>
                                             </td>
