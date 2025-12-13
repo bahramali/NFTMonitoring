@@ -11,7 +11,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import styles from './AdminManagement.module.css';
 
 const AVAILABLE_PERMISSIONS = [
-    { value: 'ADMIN_DASHBOARD', label: 'Admin Dashboard' },
+    { value: 'ADMIN_DASHBOARD', label: 'Admin Overview' },
     { value: 'ADMIN_REPORTS', label: 'Reports' },
     { value: 'ADMIN_TEAM', label: 'Team' },
 ];
