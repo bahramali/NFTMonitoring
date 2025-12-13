@@ -71,6 +71,15 @@ function App() {
                 />
 
                 <Route
+                    path="/team"
+                    element={(
+                        <ProtectedRoute requiredRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermissions={["ADMIN_TEAM"]}>
+                            <AdminTeam />
+                        </ProtectedRoute>
+                    )}
+                />
+
+                <Route
                     path="/dashboard/*"
                     element={(
                         <ProtectedRoute

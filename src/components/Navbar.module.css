@@ -1,216 +1,362 @@
 .header {
     background: linear-gradient(135deg, #0b1224, #0f172a);
     color: #e2e8f0;
-    padding: 14px 22px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .container {
+    max-width: 1200px;
+    margin: 0 auto;
     display: flex;
     align-items: center;
-    gap: 18px;
-    max-width: 1220px;
-    margin: 0 auto;
+    gap: 16px;
+}
+
+.brandBlock {
+    display: flex;
+    align-items: center;
+    min-width: 200px;
 }
 
 .brand {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 12px;
-    font-weight: 700;
-    color: #e2e8f0;
+    color: inherit;
     text-decoration: none;
-    letter-spacing: 0.4px;
-    min-width: 220px;
 }
 
 .brandLogo {
-    height: 40px;
-    width: 40px;
-    display: block;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05);
+    height: 44px;
+    width: 44px;
+    border-radius: 12px;
     padding: 6px;
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .brandCopy {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
 }
 
 .brandName {
-    color: #e2e8f0;
-    font-size: 16px;
-}
-
-.tagline {
-    color: #94a3b8;
-    font-size: 12px;
+    font-weight: 800;
     letter-spacing: 0.2px;
 }
 
-.navWrapper {
+.brandSubtitle {
+    font-size: 12px;
+    color: #94a3b8;
+    letter-spacing: 0.3px;
+}
+
+.navSection {
     flex: 1;
     display: flex;
+    align-items: center;
     justify-content: center;
+    position: relative;
 }
 
-.navLinks {
-    display: flex;
+.menuToggle {
+    display: none;
     align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 14px;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
-}
-
-.navLinks a {
-    color: #cbd5e1;
-    text-decoration: none;
-    padding: 8px 12px;
-    border-radius: 10px;
-    font-size: 14px;
-    transition: all 0.2s ease;
-}
-
-.navLinks a:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #ffffff;
-}
-
-.active {
-    background: rgba(34, 197, 94, 0.18);
-    color: #bbf7d0;
-    border: 1px solid rgba(34, 197, 94, 0.35);
-}
-
-.authSection {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 260px;
-    justify-content: flex-end;
-}
-
-.identity {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-}
-
-.identityText {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.identityLabel {
-    color: #94a3b8;
-    font-size: 12px;
-}
-
-.identityValue {
-    color: #e2e8f0;
+    padding: 10px 14px;
+    cursor: pointer;
     font-weight: 700;
+    min-height: 44px;
+}
+
+.menuIcon {
+    width: 18px;
+    height: 2px;
+    background: currentColor;
+    position: relative;
+    display: inline-block;
+}
+
+.menuIcon::before,
+.menuIcon::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 18px;
+    height: 2px;
+    background: currentColor;
+}
+
+.menuIcon::before {
+    top: -6px;
+}
+
+.menuIcon::after {
+    top: 6px;
+}
+
+.menuLabel {
     font-size: 14px;
-}
-
-.roleBadge {
-    background: #1d4ed8;
-    color: #e2e8f0;
-    padding: 6px 10px;
-    border-radius: 999px;
-    font-weight: 700;
-    font-size: 12px;
-    text-transform: capitalize;
     letter-spacing: 0.2px;
 }
 
-.button,
-.buttonOutline {
-    border-radius: 10px;
-    font-weight: 800;
-    cursor: pointer;
-    text-decoration: none;
-    padding: 9px 14px;
-    font-size: 14px;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+.nav {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 10px 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
 }
 
-.button {
-    background: #22c55e;
-    color: #0f172a;
-    border: 1px solid #16a34a;
-    box-shadow: 0 8px 16px rgba(34, 197, 94, 0.28);
-}
-
-.button:hover {
-    background: #16a34a;
-    transform: translateY(-1px);
-}
-
-.buttonOutline {
-    background: transparent;
-    color: #e2e8f0;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-}
-
-.buttonOutline:hover {
-    background: rgba(255, 255, 255, 0.08);
-    transform: translateY(-1px);
-}
-
-.authActions {
+.navList {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
+.navLink,
+.dropdownTrigger,
+.primaryButton,
+.ghostButton,
+.menuAction {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    min-height: 44px;
+    transition: all 0.2s ease;
+}
+
+.navLink {
+    color: #cbd5e1;
+}
+
+.navLink:hover,
+.dropdownTrigger:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+.navLinkActive {
+    background: rgba(34, 197, 94, 0.2);
+    color: #bbf7d0;
+    border-color: rgba(34, 197, 94, 0.45);
+}
+
+.dropdown {
+    position: relative;
+}
+
+.dropdownTrigger {
+    background: rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dropdownMenu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    background: #0c1528;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.25);
+    padding: 10px;
+    min-width: 220px;
+    z-index: 10;
+}
+
+.dropdownMenuOpen {
+    display: grid;
+    gap: 6px;
+}
+
+.authSection {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    min-width: 240px;
+}
+
+.authActions {
+    display: flex;
+    gap: 10px;
+}
+
+.primaryButton {
+    background: #22c55e;
+    color: #0f172a;
+    border-color: #16a34a;
+    box-shadow: 0 10px 22px rgba(34, 197, 94, 0.25);
+}
+
+.primaryButton:hover {
+    background: #16a34a;
+    color: #0b1224;
+    transform: translateY(-1px);
+}
+
+.ghostButton {
+    background: rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+.ghostButton:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.userArea {
+    position: relative;
+}
+
+.userButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    min-height: 44px;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.userButton:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.userName {
+    font-size: 14px;
+}
+
+.rolePill {
+    background: rgba(34, 197, 94, 0.2);
+    color: #bbf7d0;
+    border: 1px solid rgba(34, 197, 94, 0.45);
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 12px;
+    letter-spacing: 0.2px;
+    text-transform: capitalize;
+}
+
+.userMenu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 10px);
+    background: #0c1528;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.28);
+    min-width: 230px;
+    display: none;
+    z-index: 12;
+}
+
+.userMenuOpen {
+    display: grid;
+    gap: 10px;
+}
+
+.userMenuMeta {
+    display: grid;
+    gap: 4px;
+}
+
+.mutedLabel {
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.metaValue {
+    font-weight: 700;
+}
+
+.menuAction {
+    background: rgba(248, 113, 113, 0.12);
+    color: #fecdd3;
+    border-color: rgba(248, 113, 113, 0.32);
+}
+
+.menuAction:hover {
+    background: rgba(248, 113, 113, 0.22);
+}
+
 @media (max-width: 1100px) {
     .container {
         flex-wrap: wrap;
-        justify-content: center;
     }
 
-    .navWrapper {
+    .brandBlock {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 900px) {
+    .container {
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .navSection {
         order: 3;
         width: 100%;
+        justify-content: flex-start;
     }
 
-    .navLinks {
-        justify-content: center;
-        flex-wrap: wrap;
+    .menuToggle {
+        display: inline-flex;
+    }
+
+    .nav {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: calc(100% + 10px);
+        padding: 14px;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-6px);
+    }
+
+    .navOpen {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
+    }
+
+    .navList {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .dropdownMenu {
+        position: static;
+        box-shadow: none;
+        margin-top: 8px;
     }
 
     .authSection {
         order: 2;
         width: 100%;
-        justify-content: center;
-    }
-}
-
-@media (max-width: 640px) {
-    .brand {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .identity {
-        width: 100%;
-        justify-content: space-between;
-    }
-
-    .authActions {
-        width: 100%;
-        justify-content: center;
+        justify-content: flex-end;
     }
 }
