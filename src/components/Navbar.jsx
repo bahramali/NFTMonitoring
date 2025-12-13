@@ -18,7 +18,7 @@ const NAV_ITEMS = [
 const ADMIN_MENU = [
     {
         path: '/admin',
-        label: 'Admin Dashboard',
+        label: 'Admin Overview',
         roles: ['SUPER_ADMIN', 'ADMIN'],
         permissions: ['ADMIN_DASHBOARD'],
     },

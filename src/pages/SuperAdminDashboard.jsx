@@ -5,7 +5,7 @@ export default function SuperAdminDashboard() {
     return (
         <div className={styles.page}>
             <div className={styles.card}>
-                <h1>Super Admin Dashboard</h1>
+                <h1>Super Admin Tools</h1>
                 <p>
                     You have full access. Use the Admin Management page to decide which routes each admin can open.
                 </p>
