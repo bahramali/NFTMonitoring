@@ -155,7 +155,9 @@ export default function Navbar() {
                                 <div className={styles.dropdown} ref={adminMenuRef}>
                                     <button
                                         type="button"
-                                        className={styles.dropdownTrigger}
+                                        className={`${styles.dropdownTrigger} ${
+                                            isAdminOpen ? styles.dropdownTriggerActive : ''
+                                        }`}
                                         aria-expanded={isAdminOpen}
                                         onClick={() => {
                                             setIsAdminOpen((open) => !open);
