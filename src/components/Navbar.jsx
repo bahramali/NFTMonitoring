@@ -8,7 +8,7 @@ const NAV_ITEMS = [
     { path: '/', label: 'Home', requiresAuth: false },
     {
         path: '/dashboard/overview',
-        label: 'Dashboard',
+        label: 'Monitoring',
         requiresAuth: true,
         roles: ['SUPER_ADMIN', 'ADMIN', 'WORKER'],
         permissions: ['ADMIN_DASHBOARD'],
@@ -51,8 +51,7 @@ export default function Navbar() {
     const adminMenuRef = useRef(null);
     const userMenuRef = useRef(null);
     const location = useLocation();
-    const isAdminRoute =
-        location.pathname.startsWith('/admin') || location.pathname.startsWith('/super-admin');
+    const isAdminRoute = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
 
     const roleLabel = role ? role.replace('_', ' ') : '';
     const userLabel = userId ? `User #${userId}` : 'Account';
