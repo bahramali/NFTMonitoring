@@ -13,8 +13,24 @@ const parseBody = async (response) => {
 
 export async function parseApiResponse(response, defaultError = 'Request failed') {
     const { data, message } = await parseBody(response);
+
     if (!response.ok) {
-        const error = new Error(message || `${defaultError} (${response.status})`);
+        const validationMessages = Array.isArray(data?.errors)
+            ? data.errors
+                  .map((error) => [error.field, error.message].filter(Boolean).join(': '))
+                  .filter(Boolean)
+            : [];
+
+        const combinedMessage = validationMessages.length > 0 ? validationMessages.join('\n') : message;
+
+        const errorMessage = combinedMessage || `${defaultError} (${response.status})`;
+        console.error('API request failed', {
+            status: response.status,
+            message: errorMessage,
+            errors: data?.errors,
+        });
+
+        const error = new Error(errorMessage);
         error.status = response.status;
         error.payload = data;
         throw error;

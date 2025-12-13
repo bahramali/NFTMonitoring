@@ -11,13 +11,13 @@ import { useAuth } from '../context/AuthContext.jsx';
 import styles from './AdminManagement.module.css';
 
 const AVAILABLE_PERMISSIONS = [
-    { id: 'admin-dashboard', label: 'Admin Dashboard' },
-    { id: 'admin-reports', label: 'Reports' },
-    { id: 'admin-team', label: 'Team' },
+    { value: 'ADMIN_DASHBOARD', label: 'Admin Dashboard' },
+    { value: 'ADMIN_REPORTS', label: 'Reports' },
+    { value: 'ADMIN_TEAM', label: 'Team' },
 ];
 
 const PERMISSION_LABELS = AVAILABLE_PERMISSIONS.reduce((map, permission) => {
-    map[permission.id] = permission.label;
+    map[permission.value] = permission.label;
     return map;
 }, {});
 
@@ -35,7 +35,7 @@ const STATUS_META = {
     DISABLED: { icon: '🔴', label: 'Disabled', description: 'Login blocked' },
 };
 
-const emptyForm = { email: '', displayName: '', permissions: ['admin-dashboard'], inviteExpiryHours: '72' };
+const emptyForm = { email: '', displayName: '', permissions: [AVAILABLE_PERMISSIONS[0].value], inviteExpiryHours: '' };
 
 export default function AdminManagement() {
     const { token } = useAuth();
@@ -121,12 +121,22 @@ export default function AdminManagement() {
             return;
         }
 
+        if (!formState.permissions.length) {
+            const message = 'Select at least one permission to continue.';
+            showToast('error', message);
+            setInviteFeedback({ type: 'error', message });
+            return;
+        }
+
         const payload = {
             email: formState.email.trim(),
             displayName: formState.displayName?.trim() || undefined,
-            permissions: formState.permissions,
-            inviteExpiryHours: formState.inviteExpiryHours || undefined,
+            permissions: formState.permissions.map((permission) => permission),
         };
+
+        if (formState.inviteExpiryHours) {
+            payload.inviteExpiryHours = Number(formState.inviteExpiryHours);
+        }
 
         try {
             await inviteAdmin(payload, token);
@@ -135,7 +145,15 @@ export default function AdminManagement() {
             loadAdmins();
         } catch (error) {
             console.error('Failed to invite admin', error);
-            const message = error?.message || 'Failed to send invite';
+
+            const validationMessage = Array.isArray(error?.payload?.errors)
+                ? error.payload.errors
+                      .map((item) => [item.field, item.message].filter(Boolean).join(': '))
+                      .filter(Boolean)
+                      .join('\n')
+                : '';
+            const message = validationMessage || error?.payload?.message || error?.message || 'Failed to send invite';
+
             setInviteFeedback({ type: 'error', message });
         }
     };
@@ -259,11 +277,11 @@ export default function AdminManagement() {
                     <p className={styles.label}>Permissions</p>
                     <div className={styles.permissions}>
                         {AVAILABLE_PERMISSIONS.map((permission) => (
-                            <label key={permission.id} className={styles.checkboxRow}>
+                            <label key={permission.value} className={styles.checkboxRow}>
                                 <input
                                     type="checkbox"
-                                    checked={formState.permissions.includes(permission.id)}
-                                    onChange={() => togglePermission(permission.id)}
+                                    checked={formState.permissions.includes(permission.value)}
+                                    onChange={() => togglePermission(permission.value)}
                                 />
                                 {permission.label}
                             </label>
@@ -431,11 +449,11 @@ export default function AdminManagement() {
                         </div>
                         <div className={styles.permissions}>
                             {AVAILABLE_PERMISSIONS.map((permission) => (
-                                <label key={permission.id} className={styles.checkboxRow}>
+                                <label key={permission.value} className={styles.checkboxRow}>
                                     <input
                                         type="checkbox"
-                                        checked={editPermissions.includes(permission.id)}
-                                        onChange={() => toggleEditPermission(permission.id)}
+                                        checked={editPermissions.includes(permission.value)}
+                                        onChange={() => toggleEditPermission(permission.value)}
                                     />
                                     {permission.label}
                                 </label>
