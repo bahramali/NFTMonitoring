@@ -31,6 +31,7 @@ export default function AdminManagement() {
     const [loading, setLoading] = useState(false);
     const [formState, setFormState] = useState(emptyForm);
     const [toast, setToast] = useState(null);
+    const [inviteFeedback, setInviteFeedback] = useState(null);
     const [editModalAdmin, setEditModalAdmin] = useState(null);
     const [editPermissions, setEditPermissions] = useState([]);
     const [confirmAdmin, setConfirmAdmin] = useState(null);
@@ -70,7 +71,15 @@ export default function AdminManagement() {
         [admins],
     );
 
+    const formatLastLogin = (value) => {
+        if (!value) return 'Never';
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) return 'Unknown';
+        return parsed.toLocaleString();
+    };
+
     const togglePermission = (permission) => {
+        setInviteFeedback(null);
         setFormState((previous) => {
             const hasPermission = previous.permissions.includes(permission);
             const permissions = hasPermission
@@ -84,6 +93,7 @@ export default function AdminManagement() {
         event.preventDefault();
         if (!formState.email) {
             showToast('error', 'Email is required.');
+            setInviteFeedback({ type: 'error', message: 'Email is required.' });
             return;
         }
 
@@ -96,12 +106,13 @@ export default function AdminManagement() {
 
         try {
             await inviteAdmin(payload, token);
-            showToast('success', 'Invite sent successfully.');
+            setInviteFeedback({ type: 'success', message: 'Invite sent successfully.' });
             setFormState(emptyForm);
             loadAdmins();
         } catch (error) {
             console.error('Failed to invite admin', error);
-            showToast('error', error?.message || 'Failed to send invite');
+            const message = error?.message || 'Failed to send invite';
+            setInviteFeedback({ type: 'error', message });
         }
     };
 
@@ -131,14 +142,14 @@ export default function AdminManagement() {
         }
     };
 
-    const toggleStatus = async (admin) => {
-        const nextStatus = admin.status === 'DISABLED' ? 'ACTIVE' : 'DISABLED';
+    const updateStatus = async (admin, nextStatus) => {
         try {
             await updateAdminStatus(admin.id, nextStatus, token);
-            showToast('success', `Admin ${nextStatus === 'ACTIVE' ? 'enabled' : 'disabled'}`);
+            const action = nextStatus === 'ACTIVE' ? 'enabled' : nextStatus === 'DISABLED' ? 'disabled' : 'updated';
+            showToast('success', `Admin ${action}`);
             loadAdmins();
         } catch (error) {
-            console.error('Failed to toggle admin status', error);
+            console.error('Failed to update admin status', error);
             showToast('error', error?.message || 'Failed to update status');
         }
     };
@@ -146,8 +157,9 @@ export default function AdminManagement() {
     const confirmRemoval = async () => {
         if (!confirmAdmin) return;
         try {
-            await deleteAdmin(confirmAdmin.id, token);
-            showToast('success', 'Admin removed');
+            await deleteAdmin(confirmAdmin.admin.id, token);
+            const successMessage = confirmAdmin.intent === 'revoke' ? 'Invite revoked' : 'Admin removed';
+            showToast('success', successMessage);
             setConfirmAdmin(null);
             loadAdmins();
         } catch (error) {
@@ -186,13 +198,24 @@ export default function AdminManagement() {
                         </div>
                     </div>
 
+                    {inviteFeedback && (
+                        <div
+                            className={`${styles.banner} ${inviteFeedback.type === 'error' ? styles.bannerError : styles.bannerSuccess}`}
+                        >
+                            {inviteFeedback.message}
+                        </div>
+                    )}
+
                     <label className={styles.label} htmlFor="email">Admin email (required)</label>
                     <input
                         id="email"
                         type="email"
                         className={styles.input}
                         value={formState.email}
-                        onChange={(event) => setFormState((previous) => ({ ...previous, email: event.target.value }))}
+                        onChange={(event) => {
+                            setInviteFeedback(null);
+                            setFormState((previous) => ({ ...previous, email: event.target.value }));
+                        }}
                         required
                     />
 
@@ -202,7 +225,10 @@ export default function AdminManagement() {
                         type="text"
                         className={styles.input}
                         value={formState.displayName}
-                        onChange={(event) => setFormState((previous) => ({ ...previous, displayName: event.target.value }))}
+                        onChange={(event) => {
+                            setInviteFeedback(null);
+                            setFormState((previous) => ({ ...previous, displayName: event.target.value }));
+                        }}
                     />
 
                     <p className={styles.label}>Permissions</p>
@@ -224,9 +250,10 @@ export default function AdminManagement() {
                         id="inviteExpiry"
                         className={styles.input}
                         value={formState.inviteExpiryHours}
-                        onChange={(event) =>
-                            setFormState((previous) => ({ ...previous, inviteExpiryHours: event.target.value }))
-                        }
+                        onChange={(event) => {
+                            setInviteFeedback(null);
+                            setFormState((previous) => ({ ...previous, inviteExpiryHours: event.target.value }));
+                        }}
                     >
                         {INVITE_EXPIRY_OPTIONS.map((option) => (
                             <option key={option.value || 'none'} value={option.value}>
@@ -241,8 +268,8 @@ export default function AdminManagement() {
                 <div className={`${styles.card} ${styles.tableCard}`}>
                     <div className={styles.cardHeader}>
                         <div>
-                            <p className={styles.kicker}>Current admins</p>
-                            <h2>Admin roster</h2>
+                            <p className={styles.kicker}>Admin roster</p>
+                            <h2>Lifecycle &amp; access</h2>
                         </div>
                         <button className={styles.refreshButton} type="button" onClick={loadAdmins} disabled={loading}>
                             Refresh
@@ -262,6 +289,7 @@ export default function AdminManagement() {
                                         <th>Display name</th>
                                         <th>Status</th>
                                         <th>Permissions</th>
+                                        <th>Last login</th>
                                         <th className={styles.actionsColumn}>Actions</th>
                                     </tr>
                                 </thead>
@@ -287,24 +315,56 @@ export default function AdminManagement() {
                                                 </div>
                                             </td>
                                             <td>
+                                                <div className={styles.primaryText}>
+                                                    {formatLastLogin(
+                                                        admin.lastLoginAt || admin.lastLogin || admin.lastActiveAt || admin.lastSeenAt,
+                                                    )}
+                                                </div>
+                                                {admin.lastIp && <div className={styles.meta}>From {admin.lastIp}</div>}
+                                            </td>
+                                            <td>
                                                 <div className={styles.rowActions}>
-                                                    <button type="button" onClick={() => openEdit(admin)}>
-                                                        Edit permissions
-                                                    </button>
-                                                    <button type="button" onClick={() => toggleStatus(admin)}>
-                                                        {admin.status === 'DISABLED' ? 'Enable' : 'Disable'}
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        className={styles.danger}
-                                                        onClick={() => setConfirmAdmin(admin)}
-                                                    >
-                                                        Remove
-                                                    </button>
                                                     {admin.status === 'INVITED' && (
-                                                        <button type="button" onClick={() => resendInviteAction(admin)}>
-                                                            Resend invite
-                                                        </button>
+                                                        <>
+                                                            <button type="button" onClick={() => resendInviteAction(admin)}>
+                                                                Resend invite
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className={styles.danger}
+                                                                onClick={() => setConfirmAdmin({ admin, intent: 'revoke' })}
+                                                            >
+                                                                Revoke
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {admin.status === 'ACTIVE' && (
+                                                        <>
+                                                            <button type="button" onClick={() => openEdit(admin)}>
+                                                                Edit permissions
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => updateStatus(admin, 'DISABLED')}
+                                                                className={styles.softDanger}
+                                                            >
+                                                                Disable
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {admin.status === 'DISABLED' && (
+                                                        <>
+                                                            <button type="button" onClick={() => updateStatus(admin, 'ACTIVE')}>
+                                                                Enable
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className={styles.danger}
+                                                                onClick={() => setConfirmAdmin({ admin, intent: 'delete' })}
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        </>
                                                     )}
                                                 </div>
                                             </td>
@@ -358,22 +418,26 @@ export default function AdminManagement() {
                     <div className={styles.modal}>
                         <div className={styles.modalHeader}>
                             <div>
-                                <p className={styles.kicker}>Confirm removal</p>
-                                <h3>{confirmAdmin.email}</h3>
+                                <p className={styles.kicker}>
+                                    {confirmAdmin.intent === 'revoke' ? 'Revoke invite' : 'Delete admin'}
+                                </p>
+                                <h3>{confirmAdmin.admin.email}</h3>
                             </div>
                             <button type="button" className={styles.closeButton} onClick={() => setConfirmAdmin(null)}>
                                 ✕
                             </button>
                         </div>
                         <p className={styles.helper}>
-                            This removes the admin and revokes all access. Are you sure?
+                            {confirmAdmin.intent === 'revoke'
+                                ? 'This cancels the invitation. The admin will need a new invite to join later.'
+                                : 'This removes the admin and revokes all access. Are you sure?'}
                         </p>
                         <div className={styles.modalActions}>
                             <button type="button" onClick={() => setConfirmAdmin(null)} className={styles.subtleButton}>
                                 Cancel
                             </button>
                             <button type="button" className={styles.danger} onClick={confirmRemoval}>
-                                Remove admin
+                                {confirmAdmin.intent === 'revoke' ? 'Revoke invite' : 'Delete admin'}
                             </button>
                         </div>
                     </div>
