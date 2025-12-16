@@ -5,7 +5,7 @@ import {
     fetchAutomations,
     fetchHierarchy,
     fetchStatuses,
-    setSocketState,
+    toggleSocket,
 } from "../../api/shelly";
 import styles from "./ShellyControlPage.module.css";
 
@@ -16,8 +16,8 @@ function StatusDot({ on }) {
 }
 
 function SocketCard({ socket, status, onToggle, onAutomation }) {
-    const online = status?.online;
-    const isOn = status?.outputOn;
+    const online = status?.online ?? true;
+    const isOn = !!status?.output;
 
     return (
         <div className={styles.socketCard}>
@@ -34,12 +34,18 @@ function SocketCard({ socket, status, onToggle, onAutomation }) {
                 </span>
             </div>
             <div className={styles.metricRow}>
-                <span className={styles.metric}>ID: {socket.id}</span>
+                <span className={styles.metric}>ID: {socket.socketId || socket.id}</span>
                 {typeof status?.powerW === "number" && <span className={styles.metric}>Power: {status.powerW.toFixed(1)} W</span>}
                 {typeof status?.voltageV === "number" && <span className={styles.metric}>Voltage: {status.voltageV.toFixed(1)} V</span>}
             </div>
             <div className={styles.controls}>
-                <button className={styles.primaryButton} type="button" onClick={() => onToggle(socket, status)}>
+                <button
+                    className={styles.primaryButton}
+                    type="button"
+                    onClick={() => onToggle(socket, status)}
+                    disabled={!online}
+                    title={!online ? "Socket offline" : undefined}
+                >
                     {isOn ? "Turn OFF" : "Turn ON"}
                 </button>
                 <button className={styles.secondaryButton} type="button" onClick={() => onAutomation(socket)}>
@@ -52,7 +58,16 @@ function SocketCard({ socket, status, onToggle, onAutomation }) {
 
 function AutomationModal({ socket, onClose, onSubmit }) {
     const [tab, setTab] = useState("TIME_RANGE");
-    const [form, setForm] = useState({ startTime: "06:00", endTime: "22:00", intervalMinutes: 15, autoOffMinutes: 5 });
+    const [form, setForm] = useState({
+        onTime: "06:00",
+        offTime: "22:00",
+        daysOfWeek: "",
+        intervalMinutes: 15,
+        mode: "TOGGLE",
+        pulseSeconds: 5,
+        durationMinutes: 5,
+        startNow: true,
+    });
 
     useEffect(() => {
         setTab("TIME_RANGE");
@@ -63,17 +78,26 @@ function AutomationModal({ socket, onClose, onSubmit }) {
     };
 
     const handleSubmit = () => {
-        const payload = { socketId: socket.id, type: tab };
+        const payload = { socketId: socket.socketId || socket.id, type: tab };
         if (tab === "TIME_RANGE") {
-            payload.startTime = form.startTime;
-            payload.endTime = form.endTime;
-            payload.daysOfWeek = form.daysOfWeek?.split(",").map((d) => d.trim().toUpperCase()).filter(Boolean);
+            payload.onTime = form.onTime;
+            payload.offTime = form.offTime;
+            const days = form.daysOfWeek
+                ?.split(",")
+                .map((d) => d.trim().toUpperCase())
+                .filter(Boolean);
+            if (days?.length) payload.daysOfWeek = days;
         }
         if (tab === "INTERVAL_TOGGLE") {
             payload.intervalMinutes = Number(form.intervalMinutes);
+            payload.mode = form.mode;
+            if (form.mode === "PULSE" && form.pulseSeconds) {
+                payload.pulseSeconds = Number(form.pulseSeconds);
+            }
         }
         if (tab === "AUTO_OFF") {
-            payload.autoOffMinutes = Number(form.autoOffMinutes);
+            payload.durationMinutes = Number(form.durationMinutes);
+            payload.startNow = !!form.startNow;
         }
         onSubmit(payload);
     };
@@ -115,8 +139,8 @@ function AutomationModal({ socket, onClose, onSubmit }) {
                                 id="start"
                                 className={styles.input}
                                 type="time"
-                                value={form.startTime}
-                                onChange={(e) => handleChange("startTime", e.target.value)}
+                                value={form.onTime}
+                                onChange={(e) => handleChange("onTime", e.target.value)}
                             />
                         </div>
                         <div className={styles.field}>
@@ -125,8 +149,8 @@ function AutomationModal({ socket, onClose, onSubmit }) {
                                 id="end"
                                 className={styles.input}
                                 type="time"
-                                value={form.endTime}
-                                onChange={(e) => handleChange("endTime", e.target.value)}
+                                value={form.offTime}
+                                onChange={(e) => handleChange("offTime", e.target.value)}
                             />
                         </div>
                         <div className={styles.field}>
@@ -143,33 +167,72 @@ function AutomationModal({ socket, onClose, onSubmit }) {
                 )}
 
                 {tab === "INTERVAL_TOGGLE" && (
-                    <div className={styles.field}>
-                        <label htmlFor="interval">Interval minutes</label>
-                        <input
-                            id="interval"
-                            className={styles.input}
-                            type="number"
-                            min="1"
-                            value={form.intervalMinutes}
-                            onChange={(e) => handleChange("intervalMinutes", e.target.value)}
-                        />
-                        <span className={styles.helper}>Socket will toggle every N minutes.</span>
-                    </div>
+                    <>
+                        <div className={styles.field}>
+                            <label htmlFor="interval">Interval minutes</label>
+                            <input
+                                id="interval"
+                                className={styles.input}
+                                type="number"
+                                min="1"
+                                value={form.intervalMinutes}
+                                onChange={(e) => handleChange("intervalMinutes", e.target.value)}
+                            />
+                            <span className={styles.helper}>Socket will toggle every N minutes.</span>
+                        </div>
+                        <div className={styles.field}>
+                            <label htmlFor="mode">Mode</label>
+                            <select
+                                id="mode"
+                                className={styles.input}
+                                value={form.mode}
+                                onChange={(e) => handleChange("mode", e.target.value)}
+                            >
+                                <option value="TOGGLE">Toggle</option>
+                                <option value="PULSE">Pulse</option>
+                            </select>
+                        </div>
+                        {form.mode === "PULSE" && (
+                            <div className={styles.field}>
+                                <label htmlFor="pulse">Pulse seconds</label>
+                                <input
+                                    id="pulse"
+                                    className={styles.input}
+                                    type="number"
+                                    min="1"
+                                    value={form.pulseSeconds}
+                                    onChange={(e) => handleChange("pulseSeconds", e.target.value)}
+                                />
+                                <span className={styles.helper}>Duration to hold the pulse when pulsing.</span>
+                            </div>
+                        )}
+                    </>
                 )}
 
                 {tab === "AUTO_OFF" && (
-                    <div className={styles.field}>
-                        <label htmlFor="autoOff">Turn off after (minutes)</label>
-                        <input
-                            id="autoOff"
-                            className={styles.input}
-                            type="number"
-                            min="1"
-                            value={form.autoOffMinutes}
-                            onChange={(e) => handleChange("autoOffMinutes", e.target.value)}
-                        />
-                        <span className={styles.helper}>Turns on immediately and powers down after the duration.</span>
-                    </div>
+                    <>
+                        <div className={styles.field}>
+                            <label htmlFor="autoOff">Turn off after (minutes)</label>
+                            <input
+                                id="autoOff"
+                                className={styles.input}
+                                type="number"
+                                min="1"
+                                value={form.durationMinutes}
+                                onChange={(e) => handleChange("durationMinutes", e.target.value)}
+                            />
+                            <span className={styles.helper}>Turns on immediately and powers down after the duration.</span>
+                        </div>
+                        <label className={styles.checkboxRow} htmlFor="startNow">
+                            <input
+                                id="startNow"
+                                type="checkbox"
+                                checked={form.startNow}
+                                onChange={(e) => handleChange("startNow", e.target.checked)}
+                            />
+                            <span>Start now</span>
+                        </label>
+                    </>
                 )}
 
                 <div className={styles.modalActions}>
@@ -195,14 +258,18 @@ function AutomationList({ automations, onDelete }) {
                         <span className={styles.automationLabel}>{a.type.replace("_", " ")} — {a.socketId}</span>
                         {a.type === "TIME_RANGE" && (
                             <span className={styles.helper}>
-                                {a.startTime} → {a.endTime} {a.daysOfWeek?.length ? `(${a.daysOfWeek.join(",")})` : "(daily)"}
+                                {a.onTime} → {a.offTime} {a.daysOfWeek?.length ? `(${a.daysOfWeek.join(",")})` : "(daily)"}
                             </span>
                         )}
                         {a.type === "INTERVAL_TOGGLE" && (
-                            <span className={styles.helper}>Toggle every {a.intervalMinutes} minutes</span>
+                            <span className={styles.helper}>
+                                {a.mode === "PULSE"
+                                    ? `Pulse every ${a.intervalMinutes} minutes (${a.pulseSeconds}s)`
+                                    : `Toggle every ${a.intervalMinutes} minutes`}
+                            </span>
                         )}
                         {a.type === "AUTO_OFF" && (
-                            <span className={styles.helper}>Turn off after {a.autoOffMinutes} minutes</span>
+                            <span className={styles.helper}>Turn off after {a.durationMinutes ?? a.autoOffMinutes} minutes</span>
                         )}
                     </div>
                     <button className={styles.dangerButton} type="button" onClick={() => onDelete(a.id)}>
@@ -227,7 +294,7 @@ export default function ShellyControlPage() {
             .then((data) => {
                 const loadedRooms = data?.rooms || [];
                 setRooms(loadedRooms);
-                if (!selectedRoom && loadedRooms.length) setSelectedRoom(loadedRooms[0].id);
+                setSelectedRoom((prev) => prev ?? loadedRooms[0]?.id);
             })
             .catch((err) => setError(err.message));
         fetchAutomations()
@@ -237,12 +304,28 @@ export default function ShellyControlPage() {
 
     const sockets = useMemo(() => {
         const room = rooms.find((r) => r.id === selectedRoom);
-        return room?.racks?.flatMap((rack) => rack.sockets.map((socket) => ({ ...socket, rackName: rack.name }))) || [];
+        return (
+            room?.racks?.flatMap((rack) =>
+                rack.sockets.map((socket) => ({
+                    ...socket,
+                    socketId: socket.socketId || socket.id,
+                    name: socket.name || socket.socketId || socket.id,
+                    rackName: rack.name,
+                }))
+            ) || []
+        );
     }, [rooms, selectedRoom]);
 
     const refreshStatuses = () => {
-        fetchStatuses(sockets.map((s) => s.id))
-            .then((data) => setStatuses(data || {}))
+        fetchStatuses()
+            .then((data) => {
+                const entries = Array.isArray(data) ? data : [];
+                const map = entries.reduce((acc, entry) => {
+                    if (entry?.socketId) acc[entry.socketId] = entry;
+                    return acc;
+                }, {});
+                setStatuses(map);
+            })
             .catch((err) => setError(err.message));
     };
 
@@ -254,17 +337,30 @@ export default function ShellyControlPage() {
     }, [selectedRoom, sockets.length]);
 
     const handleToggle = (socket, status) => {
-        const target = !(status?.outputOn);
-        setStatuses((prev) => ({ ...prev, [socket.id]: { ...status, outputOn: target } }));
-        setSocketState(socket.id, target)
-            .then((resp) => setStatuses((prev) => ({ ...prev, [socket.id]: resp })))
-            .catch((err) => setError(err.message));
+        const socketId = socket.socketId || socket.id;
+        if (status && status.online === false) {
+            setError(`${socketId} is offline`);
+            return;
+        }
+
+        const target = !(status?.output);
+        setStatuses((prev) => ({ ...prev, [socketId]: { ...status, output: target } }));
+        toggleSocket(socketId)
+            .then((resp) => setStatuses((prev) => ({ ...prev, [socketId]: resp })))
+            .catch((err) => {
+                setError(err.message);
+                refreshStatuses();
+            });
     };
 
     const handleAutomationSubmit = (payload) => {
         createAutomation(payload)
             .then((automation) => {
                 setAutomations((prev) => [...prev.filter((a) => a.id !== automation.id), automation]);
+                return fetchAutomations();
+            })
+            .then((list) => {
+                if (list) setAutomations(list);
                 setModalSocket(null);
             })
             .catch((err) => setError(err.message));
@@ -309,9 +405,9 @@ export default function ShellyControlPage() {
                             <div className={styles.socketsGrid}>
                                 {rack.sockets.map((socket) => (
                                     <SocketCard
-                                        key={socket.id}
+                                        key={socket.socketId || socket.id}
                                         socket={socket}
-                                        status={statuses?.[socket.id]}
+                                        status={statuses?.[socket.socketId || socket.id]}
                                         onToggle={handleToggle}
                                         onAutomation={() => setModalSocket(socket)}
                                     />

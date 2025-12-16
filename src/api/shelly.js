@@ -36,28 +36,56 @@ async function handleResponse(response, defaultErrorMessage) {
 }
 
 export async function fetchHierarchy({ signal } = {}) {
-    const response = await fetch(`${SHELLY_BASE}/rooms`, withAuth({ signal }));
-    return handleResponse(response, "Failed to load rooms");
+    const roomsResponse = await fetch(`${SHELLY_BASE}/rooms`, withAuth({ signal }));
+    const roomsPayload = await handleResponse(roomsResponse, "Failed to load rooms");
+    const rooms = Array.isArray(roomsPayload) ? roomsPayload : roomsPayload?.rooms;
+
+    if (!Array.isArray(rooms)) return { rooms: [] };
+
+    const roomWithRacks = await Promise.all(
+        rooms.map(async (room) => {
+            const racksResponse = await fetch(`${SHELLY_BASE}/rooms/${room.id}/racks`, withAuth({ signal }));
+            const racks = await handleResponse(racksResponse, `Failed to load racks for room ${room.id}`);
+
+            const racksWithSockets = await Promise.all(
+                (racks || []).map(async (rack) => {
+                    const socketsResponse = await fetch(`${SHELLY_BASE}/racks/${rack.id}/sockets`, withAuth({ signal }));
+                    const sockets = await handleResponse(socketsResponse, `Failed to load sockets for rack ${rack.id}`);
+                    return { ...rack, sockets: sockets || [] };
+                })
+            );
+
+            return { ...room, racks: racksWithSockets };
+        })
+    );
+
+    return { rooms: roomWithRacks };
 }
 
-export async function fetchStatuses(ids = []) {
-    const params = ids.length ? `?ids=${ids.join(",")}` : "";
-    const response = await fetch(`${SHELLY_BASE}/status${params}`, withAuth());
-    return handleResponse(response, "Failed to load statuses");
+export async function fetchStatuses() {
+    const response = await fetch(`${SHELLY_BASE}/status`, withAuth());
+    const payload = await handleResponse(response, "Failed to load statuses");
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.statuses)) return payload.statuses;
+    return [];
+}
+
+export async function fetchSocketStatus(socketId) {
+    const response = await fetch(`${SHELLY_BASE}/sockets/${socketId}/status`, withAuth());
+    return handleResponse(response, `Failed to load status for ${socketId}`);
 }
 
 export async function toggleSocket(socketId) {
-    const response = await fetch(`${SHELLY_BASE}/socket/${socketId}/toggle`, withAuth({
+    const response = await fetch(`${SHELLY_BASE}/sockets/${socketId}/toggle`, withAuth({
         method: "POST",
     }));
     return handleResponse(response, "Failed to toggle socket");
 }
 
 export async function setSocketState(socketId, on) {
-    const response = await fetch(`${SHELLY_BASE}/socket/${socketId}/state`, withAuth({
+    const endpoint = on ? "on" : "off";
+    const response = await fetch(`${SHELLY_BASE}/sockets/${socketId}/${endpoint}`, withAuth({
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ on }),
     }));
     return handleResponse(response, `Failed to update ${socketId}`);
 }
@@ -97,8 +125,8 @@ export async function fetchShellyDevices() {
     return hierarchy.rooms.flatMap((room) =>
         (room.racks || []).flatMap((rack) =>
             (rack.sockets || []).map((socket) => ({
-                id: socket.socketId,
-                name: socket.name || socket.socketId,
+                id: socket.socketId || socket.id,
+                name: socket.name || socket.socketId || socket.id,
                 status: socket.status ?? socket.state ?? null,
                 roomId: room.id,
                 rackId: rack.id,
@@ -108,11 +136,7 @@ export async function fetchShellyDevices() {
 }
 
 export async function fetchShellyDeviceStatus(socketId) {
-    const statuses = await fetchStatuses([socketId]);
-    if (Array.isArray(statuses)) {
-        return statuses.find((entry) => entry.socketId === socketId || entry.id === socketId) ?? statuses[0];
-    }
-    return statuses;
+    return fetchSocketStatus(socketId);
 }
 
 export async function toggleShellyDevice(socketId) {
@@ -133,10 +157,17 @@ export async function scheduleShellyDevice(socketId, payload = {}) {
     if (payload.durationMinutes) {
         body.type = "AUTO_OFF";
         body.durationMinutes = payload.durationMinutes;
+        if (payload.startNow !== undefined) body.startNow = payload.startNow;
+    } else if (payload.intervalMinutes) {
+        body.type = "INTERVAL_TOGGLE";
+        body.intervalMinutes = payload.intervalMinutes;
+        body.mode = payload.mode || "TOGGLE";
+        if (payload.pulseSeconds) body.pulseSeconds = payload.pulseSeconds;
     } else if (payload.turnOnAt || payload.turnOffAt) {
         body.type = "TIME_RANGE";
-        if (payload.turnOnAt) body.startTime = payload.turnOnAt;
-        if (payload.turnOffAt) body.endTime = payload.turnOffAt;
+        if (payload.turnOnAt) body.onTime = payload.turnOnAt;
+        if (payload.turnOffAt) body.offTime = payload.turnOffAt;
+        if (payload.daysOfWeek) body.daysOfWeek = payload.daysOfWeek;
     }
 
     return createAutomation(body);
