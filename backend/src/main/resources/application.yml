@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: shelly-control
+  main:
+    banner-mode: off
+
+shelly:
+  rooms:
+    - id: MAIN_ROOM
+      name: Main Room
+      racks:
+        - id: RACK_A
+          name: Rack A
+          sockets:
+            - id: SOCKET_1
+              name: Pump A
+              ip: 192.168.1.10
+            - id: SOCKET_2
+              name: Pump B
+              ip: 192.168.1.11
+        - id: RACK_B
+          name: Rack B
+          sockets:
+            - id: SOCKET_3
+              name: Lights A
+              ip: 192.168.1.12
+            - id: SOCKET_4
+              name: Lights B
+              ip: 192.168.1.13
