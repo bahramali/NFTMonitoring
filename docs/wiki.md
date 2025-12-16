@@ -5,6 +5,8 @@ This wiki page summarizes what the HydroLeaf Shop frontend does and how it inter
 ## Purpose
 The application provides dashboards and customer pages for managing NFT-powered irrigation devices. It connects to backend APIs for authentication, user management, and live telemetry so users can monitor equipment and perform role-based tasks.
 
+Shelly Control extends the platform with backend-driven management for Shelly Gen3 smart sockets. The frontend only consumes REST APIs (no IP addresses in the browser) and renders a Room → Rack → Socket hierarchy with live power/voltage readings, toggle controls, and automation schedules.
+
 ## Key Features
 - **Authentication and session handling**: Users log in with email and password. The frontend stores only backend-issued session fields (token, userId, role, and permissions) and routes users based on their role.
 - **Role-based navigation**: SUPER_ADMIN, ADMIN, WORKER, and CUSTOMER users see different sections. Admin access respects the permissions array returned by the backend. SUPER_ADMIN inherits full access and may also view monitoring dashboards.
