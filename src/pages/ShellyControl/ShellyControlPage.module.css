@@ -286,3 +286,10 @@
     font-size: 12px;
     color: #5b6478;
 }
+
+.checkboxRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
