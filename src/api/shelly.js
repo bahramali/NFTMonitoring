@@ -2,6 +2,8 @@ import { API_BASE } from "./topics";
 
 const SHELLY_BASE = `${API_BASE}/api/shelly`;
 
+const AUTHENTICATED_OPTIONS = { credentials: "include" };
+
 async function handleResponse(response, defaultErrorMessage) {
     if (!response.ok) {
         let message = `${defaultErrorMessage} (${response.status})`;
@@ -22,23 +24,27 @@ async function handleResponse(response, defaultErrorMessage) {
 }
 
 export async function fetchHierarchy({ signal } = {}) {
-    const response = await fetch(`${SHELLY_BASE}/rooms`, { signal });
+    const response = await fetch(`${SHELLY_BASE}/rooms`, { ...AUTHENTICATED_OPTIONS, signal });
     return handleResponse(response, "Failed to load rooms");
 }
 
 export async function fetchStatuses(ids = []) {
     const params = ids.length ? `?ids=${ids.join(",")}` : "";
-    const response = await fetch(`${SHELLY_BASE}/status${params}`);
+    const response = await fetch(`${SHELLY_BASE}/status${params}`, AUTHENTICATED_OPTIONS);
     return handleResponse(response, "Failed to load statuses");
 }
 
 export async function toggleSocket(socketId) {
-    const response = await fetch(`${SHELLY_BASE}/socket/${socketId}/toggle`, { method: "POST" });
+    const response = await fetch(`${SHELLY_BASE}/socket/${socketId}/toggle`, {
+        ...AUTHENTICATED_OPTIONS,
+        method: "POST",
+    });
     return handleResponse(response, "Failed to toggle socket");
 }
 
 export async function setSocketState(socketId, on) {
     const response = await fetch(`${SHELLY_BASE}/socket/${socketId}/state`, {
+        ...AUTHENTICATED_OPTIONS,
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ on }),
@@ -47,12 +53,13 @@ export async function setSocketState(socketId, on) {
 }
 
 export async function fetchAutomations() {
-    const response = await fetch(`${SHELLY_BASE}/automation`);
+    const response = await fetch(`${SHELLY_BASE}/automation`, AUTHENTICATED_OPTIONS);
     return handleResponse(response, "Failed to load automations");
 }
 
 export async function createAutomation(payload) {
     const response = await fetch(`${SHELLY_BASE}/automation`, {
+        ...AUTHENTICATED_OPTIONS,
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload ?? {}),
@@ -61,7 +68,10 @@ export async function createAutomation(payload) {
 }
 
 export async function deleteAutomation(id) {
-    const response = await fetch(`${SHELLY_BASE}/automation/${id}`, { method: "DELETE" });
+    const response = await fetch(`${SHELLY_BASE}/automation/${id}`, {
+        ...AUTHENTICATED_OPTIONS,
+        method: "DELETE",
+    });
     if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText || "Failed to delete automation");
