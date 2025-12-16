@@ -48,6 +48,12 @@ red dot shows a problem reported in the incoming `health` object.
 The dashboard shows a bar chart of the most recent spectral intensities and a temperature line chart. The bar chart is memoized so its labels stay stable as new data arrives. Historical band data can be explored in a separate section where you pick a time range.
 The previous Daily Band chart has been removed; use the Historical Bands controls to inspect past readings.
 
+## Shelly Control
+
+Shelly smart sockets are managed via a Spring Boot backend located in `backend/`. The frontend never stores device IPs; it calls
+the REST API exposed under `/api/shelly` for room/rack/socket listings, status polling, toggling, and automation scheduling. See
+`docs/shelly-control.md` for the architecture, API examples, and instructions for adding new sockets.
+
 Incoming MQTT messages are expected to contain a `timestamp` field and channel
 values such as `ch415`, `ch445`, … `ch680` along with `temperature`, `humidity`
 and `lux`. The dashboard normalizes these keys to bands `F1`–`F8` internally.

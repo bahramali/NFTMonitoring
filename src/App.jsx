@@ -21,6 +21,7 @@ import Cameras from './pages/Cameras/index.jsx';
 import Reports from './pages/Reports/index.jsx';
 import Note from './pages/Note/index.jsx';
 import SensorConfig from './pages/SensorConfig/index.jsx';
+import ShellyControlPage from './pages/ShellyControl/index.jsx';
 
 function App() {
     const rawBase = import.meta?.env?.BASE_URL || '/';
@@ -93,6 +94,7 @@ function App() {
                     <Route index element={<Navigate to="overview" replace />} />
                     <Route path="overview" element={<Overview />} />
                     <Route path="control-panel" element={<ControlPanel />} />
+                    <Route path="shelly-control" element={<ShellyControlPage />} />
                     <Route path="live" element={<LiveDashboard />} />
                     <Route path="germination" element={<Germination />} />
                     <Route path="cameras" element={<Cameras />} />

@@ -12,6 +12,7 @@ const DASHBOARD_BASE = "/dashboard";
 const NAV_ITEMS = [
     { to: `${DASHBOARD_BASE}/overview`, icon: "🏠", label: "Overview" },
     { to: `${DASHBOARD_BASE}/control-panel`, icon: "💡", label: "Control Panel" },
+    { to: `${DASHBOARD_BASE}/shelly-control`, icon: "🔌", label: "Shelly Control" },
     { to: `${DASHBOARD_BASE}/live`, icon: "📡", label: "NFT Channels" },
     { to: `${DASHBOARD_BASE}/germination`, icon: "🌱", label: "Germination" },
     { to: `${DASHBOARD_BASE}/cameras`, icon: "📷", label: "Cameras" },
