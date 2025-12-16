@@ -2,7 +2,13 @@ import { API_BASE } from "./topics";
 
 const SHELLY_BASE = `${API_BASE}/api/shelly`;
 
-const AUTHENTICATED_OPTIONS = { credentials: "include" };
+const AUTHENTICATED_OPTIONS = { credentials: "include", headers: { Accept: "application/json" } };
+
+const withAuth = (options = {}) => ({
+    ...AUTHENTICATED_OPTIONS,
+    ...options,
+    headers: { ...(AUTHENTICATED_OPTIONS.headers ?? {}), ...(options.headers ?? {}) },
+});
 
 async function handleResponse(response, defaultErrorMessage) {
     if (!response.ok) {
@@ -16,62 +22,64 @@ async function handleResponse(response, defaultErrorMessage) {
         throw new Error(message);
     }
 
+    const contentType = response.headers.get("content-type") || "";
+    const isJson = contentType.includes("application/json");
+
     try {
-        return await response.json();
-    } catch {
+        if (isJson) return await response.json();
+        const fallbackText = await response.text();
+        if (fallbackText) throw new Error(fallbackText);
         return null;
+    } catch (error) {
+        throw error instanceof Error ? error : new Error("Unexpected response from Shelly API");
     }
 }
 
 export async function fetchHierarchy({ signal } = {}) {
-    const response = await fetch(`${SHELLY_BASE}/rooms`, { ...AUTHENTICATED_OPTIONS, signal });
+    const response = await fetch(`${SHELLY_BASE}/rooms`, withAuth({ signal }));
     return handleResponse(response, "Failed to load rooms");
 }
 
 export async function fetchStatuses(ids = []) {
     const params = ids.length ? `?ids=${ids.join(",")}` : "";
-    const response = await fetch(`${SHELLY_BASE}/status${params}`, AUTHENTICATED_OPTIONS);
+    const response = await fetch(`${SHELLY_BASE}/status${params}`, withAuth());
     return handleResponse(response, "Failed to load statuses");
 }
 
 export async function toggleSocket(socketId) {
-    const response = await fetch(`${SHELLY_BASE}/socket/${socketId}/toggle`, {
-        ...AUTHENTICATED_OPTIONS,
+    const response = await fetch(`${SHELLY_BASE}/socket/${socketId}/toggle`, withAuth({
         method: "POST",
-    });
+    }));
     return handleResponse(response, "Failed to toggle socket");
 }
 
 export async function setSocketState(socketId, on) {
-    const response = await fetch(`${SHELLY_BASE}/socket/${socketId}/state`, {
-        ...AUTHENTICATED_OPTIONS,
+    const response = await fetch(`${SHELLY_BASE}/socket/${socketId}/state`, withAuth({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ on }),
-    });
+    }));
     return handleResponse(response, `Failed to update ${socketId}`);
 }
 
 export async function fetchAutomations() {
-    const response = await fetch(`${SHELLY_BASE}/automation`, AUTHENTICATED_OPTIONS);
+    const response = await fetch(`${SHELLY_BASE}/automation`, withAuth());
     return handleResponse(response, "Failed to load automations");
 }
 
 export async function createAutomation(payload) {
-    const response = await fetch(`${SHELLY_BASE}/automation`, {
-        ...AUTHENTICATED_OPTIONS,
+    const response = await fetch(`${SHELLY_BASE}/automation`, withAuth({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload ?? {}),
-    });
+    }));
     return handleResponse(response, "Failed to create automation");
 }
 
 export async function deleteAutomation(id) {
-    const response = await fetch(`${SHELLY_BASE}/automation/${id}`, {
-        ...AUTHENTICATED_OPTIONS,
+    const response = await fetch(`${SHELLY_BASE}/automation/${id}`, withAuth({
         method: "DELETE",
-    });
+    }));
     if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText || "Failed to delete automation");
