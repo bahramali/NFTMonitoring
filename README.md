@@ -23,6 +23,7 @@ VITE_MQTT_BROKER_URL=
 VITE_MQTT_USERNAME=
 VITE_MQTT_PASSWORD=
 VITE_API_BASE=
+VITE_BASE_PATH=
 ```
 
 Additionally, set `VITE_WS_URL` to the WebSocket endpoint that provides the live
@@ -31,6 +32,10 @@ Set `VITE_API_BASE` to the base URL for REST API requests. When omitted,
 requests default to `https://api.hydroleaf.se`. For pages that communicate with
 the backend (such as the Notes page), this should point to a running API
 instance that exposes the expected endpoints.
+
+Use `VITE_BASE_PATH` when deploying the app under a sub‑directory (for example,
+`/super-admin/`). The build falls back to `/`, so set this variable when the app
+is not served from the domain root to keep asset URLs valid on refresh.
 
 These variables are used to establish the MQTT connection.
 Make sure the file is named `.env` and each variable starts with the `VITE_` prefix so that Vite exposes them to the frontend.
