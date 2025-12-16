@@ -70,3 +70,56 @@ export async function deleteAutomation(id) {
 }
 
 export { SHELLY_BASE };
+
+// Legacy helpers retained for the existing ControlPanel page
+export async function fetchShellyDevices() {
+    const hierarchy = await fetchHierarchy();
+    if (!hierarchy?.rooms) return [];
+
+    return hierarchy.rooms.flatMap((room) =>
+        (room.racks || []).flatMap((rack) =>
+            (rack.sockets || []).map((socket) => ({
+                id: socket.socketId,
+                name: socket.name || socket.socketId,
+                status: socket.status ?? socket.state ?? null,
+                roomId: room.id,
+                rackId: rack.id,
+            }))
+        )
+    );
+}
+
+export async function fetchShellyDeviceStatus(socketId) {
+    const statuses = await fetchStatuses([socketId]);
+    if (Array.isArray(statuses)) {
+        return statuses.find((entry) => entry.socketId === socketId || entry.id === socketId) ?? statuses[0];
+    }
+    return statuses;
+}
+
+export async function toggleShellyDevice(socketId) {
+    return toggleSocket(socketId);
+}
+
+export async function turnShellyOn(socketId) {
+    return setSocketState(socketId, true);
+}
+
+export async function turnShellyOff(socketId) {
+    return setSocketState(socketId, false);
+}
+
+export async function scheduleShellyDevice(socketId, payload = {}) {
+    const body = { socketId };
+
+    if (payload.durationMinutes) {
+        body.type = "AUTO_OFF";
+        body.durationMinutes = payload.durationMinutes;
+    } else if (payload.turnOnAt || payload.turnOffAt) {
+        body.type = "TIME_RANGE";
+        if (payload.turnOnAt) body.startTime = payload.turnOnAt;
+        if (payload.turnOffAt) body.endTime = payload.turnOffAt;
+    }
+
+    return createAutomation(body);
+}
