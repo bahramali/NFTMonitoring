@@ -34,9 +34,8 @@ the backend (such as the Notes page), this should point to a running API
 instance that exposes the expected endpoints.
 
 Use `VITE_BASE_PATH` when deploying the app under a sub‑directory (for example,
-`/super-admin/`). The build falls back to `/super-admin/` if the variable is not
-set, ensuring asset URLs remain valid when reloading nested routes in the admin
-console.
+`/super-admin/`). The build falls back to `/`, so set this variable when the app
+is not served from the domain root to keep asset URLs valid on refresh.
 
 These variables are used to establish the MQTT connection.
 Make sure the file is named `.env` and each variable starts with the `VITE_` prefix so that Vite exposes them to the frontend.
