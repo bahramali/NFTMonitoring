@@ -9,18 +9,22 @@
     width: 100%;
     border-radius: 20px;
     padding: 22px;
-    color: #0b1220;
+    color: var(--text);
     display: grid;
     gap: 10px;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+    background: #fff;
+    border: 1px solid var(--border, #e6e6e6);
 }
 
 .success {
-    background: linear-gradient(135deg, #22d3ee, #4ade80);
+    border-color: #cfe8d6;
+    background: #f4fbf6;
 }
 
 .error {
-    background: linear-gradient(135deg, #fbbf24, #f87171);
+    border-color: #f3c8c2;
+    background: #fef7f6;
 }
 
 .kicker {
@@ -36,8 +40,7 @@
 
 .copy {
     margin: 0;
-    color: rgba(11, 18, 32, 0.9);
-    font-weight: 600;
+    color: var(--muted);
 }
 
 .actions {
@@ -58,12 +61,13 @@
 }
 
 .primary {
-    background: #0b1220;
-    color: #e2ecff;
+    background: var(--accent, #3a9d5b);
+    color: #fff;
+    border: 1px solid var(--accent, #3a9d5b);
 }
 
 .secondary {
-    color: #0b1220;
-    border: 1px solid rgba(11, 18, 32, 0.4);
-    background: rgba(255, 255, 255, 0.35);
+    color: var(--text);
+    border: 1px solid var(--border, #e6e6e6);
+    background: #fff;
 }

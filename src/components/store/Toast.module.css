@@ -4,15 +4,17 @@
     right: 16px;
     padding: 14px 16px;
     border-radius: 14px;
-    color: #0b1220;
+    color: var(--text, #111);
     font-weight: 700;
     min-width: 260px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.18);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
     z-index: 50;
+    background: #fff;
+    border: 1px solid var(--border, #e6e6e6);
 }
 
 .dismiss {
@@ -24,18 +26,17 @@
 }
 
 .success {
-    background: linear-gradient(120deg, #bef264, #4ade80);
+    border-left: 4px solid #3a9d5b;
 }
 
 .error {
-    background: linear-gradient(120deg, #fca5a5, #ef4444);
-    color: #0b1220;
+    border-left: 4px solid #d25c4d;
 }
 
 .warning {
-    background: linear-gradient(120deg, #fcd34d, #f97316);
+    border-left: 4px solid #d98c1a;
 }
 
 .info {
-    background: linear-gradient(120deg, #bae6fd, #38bdf8);
+    border-left: 4px solid #5aa0d6;
 }

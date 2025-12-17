@@ -18,7 +18,7 @@ export default function CartPage() {
                 <div>
                     <p className={styles.kicker}>Cart</p>
                     <h1>Your items</h1>
-                    <p className={styles.subtitle}>Quantities, shipping, and totals stay in sync with our backend.</p>
+                    <p className={styles.subtitle}>Quantities and totals update automatically.</p>
                 </div>
                 <Link to="/store" className={styles.link}>Continue shopping</Link>
             </header>

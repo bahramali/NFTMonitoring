@@ -3,7 +3,7 @@
     flex-direction: column;
     gap: 12px;
     padding: 12px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--border, #e6e6e6);
 }
 
 .meta {
@@ -16,9 +16,10 @@
     height: 64px;
     border-radius: 14px;
     overflow: hidden;
-    background: linear-gradient(135deg, rgba(34, 211, 238, 0.4), rgba(74, 222, 128, 0.35));
+    background: var(--surface, #f7f7f7);
     display: grid;
     place-items: center;
+    border: 1px solid var(--border, #e6e6e6);
 }
 
 .thumb img {
@@ -30,31 +31,31 @@
 .dot {
     width: 22px;
     height: 22px;
-    background: white;
+    background: var(--border, #e6e6e6);
     border-radius: 50%;
-    opacity: 0.9;
+    opacity: 1;
 }
 
 .name {
     margin: 0;
     font-weight: 700;
-    color: #e2ecff;
+    color: var(--text, #111);
 }
 
 .price {
     margin: 4px 0 0;
-    color: #b7c7ec;
+    color: var(--muted, #666);
 }
 
 .note {
     margin: 4px 0 0;
-    color: rgba(226, 236, 255, 0.64);
+    color: var(--muted, #666);
     font-size: 14px;
 }
 
 .unit {
     margin: 4px 0 0;
-    color: rgba(226, 236, 255, 0.5);
+    color: var(--muted, #666);
     font-size: 12px;
     letter-spacing: 0.05em;
 }
@@ -68,14 +69,14 @@
 
 .total {
     text-align: right;
-    color: #e2ecff;
+    color: var(--text, #111);
     font-weight: 700;
 }
 
 .remove {
-    background: transparent;
-    border: 1px solid rgba(226, 232, 240, 0.2);
-    color: #e2ecff;
+    background: #fff;
+    border: 1px solid var(--border, #e6e6e6);
+    color: var(--text, #111);
     border-radius: 10px;
     padding: 8px 12px;
     cursor: pointer;
@@ -83,8 +84,8 @@
 }
 
 .remove:hover:not(:disabled) {
-    border-color: rgba(226, 232, 240, 0.5);
-    color: white;
+    border-color: #cfd1d4;
+    color: var(--text, #111);
 }
 
 .remove:disabled {
