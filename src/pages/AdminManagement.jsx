@@ -103,6 +103,10 @@ export default function AdminManagement() {
         }
     }, [normalizePermissionDefinitions, showToast, token]);
 
+    const loadPermissions = useCallback(() => {
+        loadPermissionDefinitions();
+    }, [loadPermissionDefinitions]);
+
     useEffect(() => {
         loadPermissions();
     }, [loadPermissions]);
@@ -110,10 +114,6 @@ export default function AdminManagement() {
     useEffect(() => {
         loadAdmins();
     }, [loadAdmins]);
-
-    useEffect(() => {
-        loadPermissionDefinitions();
-    }, [loadPermissionDefinitions]);
 
     useEffect(() => {
         setHasFetchedPermissions(false);
