@@ -61,3 +61,10 @@ export async function resendAdminInvite(id, token) {
     });
     return parseApiResponse(res, 'Failed to resend invite');
 }
+
+export async function fetchPermissionDefinitions(token) {
+    const res = await fetch(PERMISSIONS_URL, {
+        headers: authHeaders(token),
+    });
+    return parseApiResponse(res, 'Failed to load permission definitions');
+}

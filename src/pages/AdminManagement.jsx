@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     deleteAdmin,
     fetchAdmins,
-    fetchAdminPermissions,
+    fetchPermissionDefinitions,
     inviteAdmin,
     resendAdminInvite,
     updateAdminPermissions,
@@ -10,49 +10,6 @@ import {
 } from '../api/admins.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import styles from './AdminManagement.module.css';
-
-const buildEmptyForm = (defaultPermissions = []) => ({
-    email: '',
-    displayName: '',
-    permissions: defaultPermissions,
-    expiresInHours: '',
-});
-
-const normalizePermissionDefinitions = (payload) => {
-    const rawPermissions = Array.isArray(payload)
-        ? payload
-        : Array.isArray(payload?.permissions)
-            ? payload.permissions
-            : [];
-
-    return rawPermissions
-        .map((permission) => {
-            if (typeof permission === 'string') {
-                return {
-                    key: permission,
-                    label: permission,
-                    description: '',
-                    defaultSelected: false,
-                };
-            }
-
-            const key = permission?.key || permission?.value;
-            if (!key) return null;
-
-            return {
-                key,
-                label: permission?.label || permission?.name || key,
-                description: permission?.description || '',
-                defaultSelected: Boolean(permission?.defaultSelected),
-            };
-        })
-        .filter(Boolean);
-};
-
-const buildPermissionLabels = (permissions = []) => permissions.reduce((map, permission) => {
-    map[permission.key] = permission.label;
-    return map;
-}, {});
 
 const INVITE_EXPIRY_OPTIONS = [
     { value: '72', label: '72 hours (recommended)' },
@@ -68,17 +25,19 @@ const STATUS_META = {
     DISABLED: { icon: '🔴', label: 'Disabled', description: 'Login blocked' },
 };
 
+const emptyForm = { email: '', displayName: '', expiresInHours: '' };
+
 export default function AdminManagement() {
     const { token } = useAuth();
     const [admins, setAdmins] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [availablePermissions, setAvailablePermissions] = useState([]);
-    const [permissionLabels, setPermissionLabels] = useState({});
-    const [defaultPermissionSelection, setDefaultPermissionSelection] = useState([]);
-    const [permissionsLoading, setPermissionsLoading] = useState(false);
-    const [permissionsError, setPermissionsError] = useState('');
-    const [formState, setFormState] = useState(() => buildEmptyForm([]));
-    const [hasUserModifiedPermissions, setHasUserModifiedPermissions] = useState(false);
+    const [permissionDefs, setPermissionDefs] = useState([]);
+    const [selectedPermissionKeys, setSelectedPermissionKeys] = useState([]);
+    const [hasFetchedPermissions, setHasFetchedPermissions] = useState(false);
+    const [hasAppliedDefaultPermissions, setHasAppliedDefaultPermissions] = useState(false);
+    const [permissionLoadError, setPermissionLoadError] = useState(null);
+    const [loadingPermissions, setLoadingPermissions] = useState(false);
+    const [formState, setFormState] = useState(emptyForm);
     const [toast, setToast] = useState(null);
     const [inviteFeedback, setInviteFeedback] = useState(null);
     const [editModalAdmin, setEditModalAdmin] = useState(null);
@@ -97,34 +56,20 @@ export default function AdminManagement() {
         return [];
     }, []);
 
-    const loadPermissions = useCallback(async () => {
-        if (!token) return;
-        setPermissionsLoading(true);
-        setPermissionsError('');
-        try {
-            const payload = await fetchAdminPermissions(token);
-            const normalized = normalizePermissionDefinitions(payload);
-            setAvailablePermissions(normalized);
-            setPermissionLabels(buildPermissionLabels(normalized));
-            setDefaultPermissionSelection(
-                normalized.filter((permission) => permission.defaultSelected).map((permission) => permission.key),
-            );
-            setEditPermissions((previous) => previous.filter((permission) => normalized.some((item) => item.key === permission)));
-            setFormState((previous) => ({
-                ...previous,
-                permissions: previous.permissions.filter((permission) => normalized.some((item) => item.key === permission)),
-            }));
-            setHasUserModifiedPermissions(false);
-        } catch (error) {
-            console.error('Failed to load permissions', error);
-            setAvailablePermissions([]);
-            setPermissionLabels({});
-            setDefaultPermissionSelection([]);
-            setPermissionsError(error?.message || 'Failed to load permissions');
-        } finally {
-            setPermissionsLoading(false);
-        }
-    }, [token]);
+    const normalizePermissionDefinitions = useCallback((payload) => {
+        if (Array.isArray(payload)) return payload;
+        if (payload && Array.isArray(payload.permissions)) return payload.permissions;
+        return [];
+    }, []);
+
+    const deriveDefaultPermissionKeys = useCallback(
+        (definitions) =>
+            definitions
+                .filter((permission) => permission?.defaultSelected)
+                .map((permission) => permission.key)
+                .filter(Boolean),
+        [],
+    );
 
     const loadAdmins = useCallback(async () => {
         if (!token) return;
@@ -140,6 +85,24 @@ export default function AdminManagement() {
         }
     }, [normalizeAdmins, showToast, token]);
 
+    const loadPermissionDefinitions = useCallback(async () => {
+        if (!token) return;
+        setLoadingPermissions(true);
+        try {
+            const payload = await fetchPermissionDefinitions(token);
+            const normalized = normalizePermissionDefinitions(payload);
+            setPermissionDefs(normalized);
+            setHasFetchedPermissions(true);
+            setPermissionLoadError(null);
+        } catch (error) {
+            console.error('Failed to load permissions', error);
+            setPermissionLoadError(error?.message || 'Failed to load permissions');
+            showToast('error', error?.message || 'Failed to load permissions');
+        } finally {
+            setLoadingPermissions(false);
+        }
+    }, [normalizePermissionDefinitions, showToast, token]);
+
     useEffect(() => {
         loadPermissions();
     }, [loadPermissions]);
@@ -149,13 +112,52 @@ export default function AdminManagement() {
     }, [loadAdmins]);
 
     useEffect(() => {
-        if (hasUserModifiedPermissions) return;
-        setFormState((previous) => ({ ...previous, permissions: defaultPermissionSelection }));
-    }, [defaultPermissionSelection, hasUserModifiedPermissions]);
+        loadPermissionDefinitions();
+    }, [loadPermissionDefinitions]);
+
+    useEffect(() => {
+        setHasFetchedPermissions(false);
+        setHasAppliedDefaultPermissions(false);
+        setPermissionDefs([]);
+        setSelectedPermissionKeys([]);
+    }, [token]);
+
+    useEffect(() => {
+        if (!hasFetchedPermissions || hasAppliedDefaultPermissions) return;
+        setSelectedPermissionKeys(deriveDefaultPermissionKeys(permissionDefs));
+        setHasAppliedDefaultPermissions(true);
+    }, [deriveDefaultPermissionKeys, hasAppliedDefaultPermissions, hasFetchedPermissions, permissionDefs]);
+
+    useEffect(() => {
+        if (!hasFetchedPermissions) return;
+        const validKeys = new Set(permissionDefs.map((permission) => permission?.key).filter(Boolean));
+        setSelectedPermissionKeys((previous) => previous.filter((key) => validKeys.has(key)));
+    }, [permissionDefs, hasFetchedPermissions]);
 
     const sortedAdmins = useMemo(
         () => [...admins].sort((a, b) => (a.email || '').localeCompare(b.email || '')),
         [admins],
+    );
+
+    const permissionLabelMap = useMemo(() => {
+        const map = {};
+        permissionDefs.forEach((permission) => {
+            if (permission?.key) {
+                map[permission.key] = permission.label || permission.key;
+            }
+        });
+        return map;
+    }, [permissionDefs]);
+
+    const defaultPermissionKeys = useMemo(
+        () => deriveDefaultPermissionKeys(permissionDefs),
+        [deriveDefaultPermissionKeys, permissionDefs],
+    );
+
+    const hasUnknownPermissions = useMemo(
+        () =>
+            admins.some((admin) => (admin.permissions || []).some((permission) => !permissionLabelMap[permission])),
+        [admins, permissionLabelMap],
     );
 
     const formatLastLogin = (value) => {
@@ -163,6 +165,57 @@ export default function AdminManagement() {
         const parsed = new Date(value);
         if (Number.isNaN(parsed.getTime())) return 'Unknown';
         return parsed.toLocaleString();
+    };
+
+    const renderPermissionCheckboxes = (selectedKeys, toggleHandler) => {
+        const errorBanner = permissionLoadError ? (
+            <div className={`${styles.banner} ${styles.bannerError}`}>{permissionLoadError}</div>
+        ) : null;
+
+        if (!permissionDefs.length && loadingPermissions) {
+            return (
+                <>
+                    {errorBanner}
+                    <p className={styles.helper}>Loading permissions…</p>
+                </>
+            );
+        }
+
+        if (!permissionDefs.length) {
+            return (
+                <>
+                    {errorBanner}
+                    <p className={styles.helper}>No permissions available.</p>
+                </>
+            );
+        }
+
+        return (
+            <>
+                {errorBanner}
+                <div className={styles.permissions}>
+                    {permissionDefs.map((permission, index) => (
+                        <label
+                            key={permission.key || permission.label || `permission-${index}`}
+                            className={styles.checkboxRow}
+                            title={permission.description || undefined}
+                        >
+                            <input
+                                type="checkbox"
+                                checked={selectedKeys.includes(permission.key)}
+                                onChange={() => toggleHandler(permission.key)}
+                            />
+                            <div>
+                                <div>{permission.label || permission.key}</div>
+                                {permission.description ? (
+                                    <div className={styles.permissionDescription}>{permission.description}</div>
+                                ) : null}
+                            </div>
+                        </label>
+                    ))}
+                </div>
+            </>
+        );
     };
 
     const renderStatusBadge = (status) => {
@@ -179,13 +232,9 @@ export default function AdminManagement() {
 
     const togglePermission = (permission) => {
         setInviteFeedback(null);
-        setHasUserModifiedPermissions(true);
-        setFormState((previous) => {
-            const hasPermission = previous.permissions.includes(permission);
-            const permissions = hasPermission
-                ? previous.permissions.filter((item) => item !== permission)
-                : [...previous.permissions, permission];
-            return { ...previous, permissions };
+        setSelectedPermissionKeys((previous) => {
+            const hasPermission = previous.includes(permission);
+            return hasPermission ? previous.filter((item) => item !== permission) : [...previous, permission];
         });
     };
 
@@ -197,40 +246,17 @@ export default function AdminManagement() {
             return;
         }
 
-        if (permissionsLoading) {
-            const message = 'Permissions are still loading. Please wait a moment.';
-            setInviteFeedback({ type: 'error', message });
+        if (selectedPermissionKeys.length === 0) {
+            const message = 'Select at least one permission';
             showToast('error', message);
-            return;
-        }
-
-        if (availablePermissions.length === 0) {
-            const message = permissionsError || 'No permissions available. Please refresh permissions and try again.';
             setInviteFeedback({ type: 'error', message });
-            showToast('error', message);
-            return;
-        }
-
-        if (formState.permissions.length === 0) {
-            const message = 'Select at least one permission before sending the invite.';
-            setInviteFeedback({ type: 'error', message });
-            showToast('error', message);
-            return;
-        }
-
-        const unknownSelection = formState.permissions.filter((permission) => !permissionLabels[permission]);
-        if (unknownSelection.length > 0) {
-            const message = 'One or more selected permissions are no longer valid. Refreshing the list.';
-            setInviteFeedback({ type: 'error', message });
-            showToast('error', message);
-            loadPermissions();
             return;
         }
 
         const payload = {
             email: formState.email.trim(),
             displayName: formState.displayName?.trim() || undefined,
-            permissions: formState.permissions.map((permission) => permission),
+            permissions: Array.from(new Set(selectedPermissionKeys)),
         };
 
         if (formState.expiresInHours) {
@@ -240,8 +266,8 @@ export default function AdminManagement() {
         try {
             await inviteAdmin(payload, token);
             setInviteFeedback({ type: 'success', message: 'Invite sent successfully. Email sent to admin.' });
-            setHasUserModifiedPermissions(false);
-            setFormState(buildEmptyForm(defaultPermissionSelection));
+            setFormState(emptyForm);
+            setSelectedPermissionKeys(defaultPermissionKeys);
             loadAdmins();
         } catch (error) {
             console.error('Failed to invite admin', error);
@@ -386,39 +412,7 @@ export default function AdminManagement() {
                     />
 
                     <p className={styles.label}>Permissions</p>
-                    {permissionsError && (
-                        <div className={`${styles.banner} ${styles.bannerError}`}>
-                            {permissionsError}
-                        </div>
-                    )}
-                    {permissionsLoading ? (
-                        <p className={styles.helper}>Loading permissions…</p>
-                    ) : (
-                        <div className={styles.permissions}>
-                            {availablePermissions.length === 0 ? (
-                                <p className={styles.helper}>No permissions available. Refresh to try again.</p>
-                            ) : (
-                                availablePermissions.map((permission) => (
-                                    <label key={permission.key} className={styles.checkboxRow}>
-                                        <input
-                                            type="checkbox"
-                                            checked={formState.permissions.includes(permission.key)}
-                                            onChange={() => togglePermission(permission.key)}
-                                        />
-                                        <div className={styles.permissionContent}>
-                                            <span className={styles.permissionLabel}>{permission.label}</span>
-                                            {permission.description && (
-                                                <span className={styles.permissionDescription}>
-                                                    {permission.description}
-                                                </span>
-                                            )}
-                                            <span className={styles.permissionKey}>{permission.key}</span>
-                                        </div>
-                                    </label>
-                                ))
-                            )}
-                        </div>
-                    )}
+                    {renderPermissionCheckboxes(selectedPermissionKeys, togglePermission)}
 
                     <label className={styles.label} htmlFor="inviteExpiry">Invite expiry</label>
                     <select
@@ -461,10 +455,26 @@ export default function AdminManagement() {
                                 ))}
                             </div>
                         </div>
-                        <button className={styles.refreshButton} type="button" onClick={loadAdmins} disabled={loading}>
-                            Refresh
-                        </button>
+                        <div className={styles.headerActions}>
+                            <button className={styles.refreshButton} type="button" onClick={loadAdmins} disabled={loading}>
+                                Refresh
+                            </button>
+                            <button
+                                className={styles.refreshButton}
+                                type="button"
+                                onClick={loadPermissionDefinitions}
+                                disabled={loadingPermissions}
+                            >
+                                Refresh permissions
+                            </button>
+                        </div>
                     </div>
+
+                    {hasUnknownPermissions && (
+                        <p className={styles.helper}>
+                            Some permissions are unknown. Refresh permissions to update the roster labels.
+                        </p>
+                    )}
 
                     {loading ? (
                         <p className={styles.helper}>Loading admins…</p>
@@ -499,7 +509,7 @@ export default function AdminManagement() {
                                                     {(admin.permissions || []).length === 0 && <span className={styles.chip}>None</span>}
                                                     {(admin.permissions || []).map((permission) => (
                                                         <span key={permission} className={styles.chip}>
-                                                            {permissionLabels[permission] || permission}
+                                                            {permissionLabelMap[permission] || `[UNKNOWN: ${permission}]`}
                                                         </span>
                                                     ))}
                                                 </div>
@@ -579,32 +589,7 @@ export default function AdminManagement() {
                                 ✕
                             </button>
                         </div>
-                        <div className={styles.permissions}>
-                            {permissionsLoading ? (
-                                <p className={styles.helper}>Loading permissions…</p>
-                            ) : availablePermissions.length === 0 ? (
-                                <p className={styles.helper}>No permissions available.</p>
-                            ) : (
-                                availablePermissions.map((permission) => (
-                                    <label key={permission.key} className={styles.checkboxRow}>
-                                        <input
-                                            type="checkbox"
-                                            checked={editPermissions.includes(permission.key)}
-                                            onChange={() => toggleEditPermission(permission.key)}
-                                        />
-                                        <div className={styles.permissionContent}>
-                                            <span className={styles.permissionLabel}>{permission.label}</span>
-                                            {permission.description && (
-                                                <span className={styles.permissionDescription}>
-                                                    {permission.description}
-                                                </span>
-                                            )}
-                                            <span className={styles.permissionKey}>{permission.key}</span>
-                                        </div>
-                                    </label>
-                                ))
-                            )}
-                        </div>
+                        {renderPermissionCheckboxes(editPermissions, toggleEditPermission)}
                         <div className={styles.modalActions}>
                             <button type="button" onClick={() => setEditModalAdmin(null)} className={styles.subtleButton}>
                                 Cancel

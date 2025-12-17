@@ -55,6 +55,12 @@
     gap: 12px;
 }
 
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .banner {
     margin: 4px 0 12px 0;
     padding: 10px 12px;
@@ -111,26 +117,9 @@
     border-radius: 8px;
 }
 
-.permissionContent {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.permissionLabel {
-    font-weight: 700;
-    color: #0f172a;
-}
-
 .permissionDescription {
     color: #475569;
     font-size: 13px;
-}
-
-.permissionKey {
-    color: #94a3b8;
-    font-size: 12px;
-    letter-spacing: 0.04em;
 }
 
 .button {
