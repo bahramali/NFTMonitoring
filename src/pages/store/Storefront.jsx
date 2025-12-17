@@ -10,9 +10,18 @@ export default function Storefront() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [sortBy, setSortBy] = useState('name');
 
-    const inStock = useMemo(() => products.filter((product) => product.stock === undefined || product.stock > 0), [products]);
-    const lowStock = useMemo(() => products.filter((product) => product.stock !== undefined && product.stock <= 0), [products]);
+    const sortedProducts = useMemo(() => {
+        const list = Array.isArray(products) ? [...products] : [];
+        if (sortBy === 'price') {
+            return list.sort((a, b) => (a?.price ?? 0) - (b?.price ?? 0));
+        }
+        return list.sort((a, b) => (a?.name || '').localeCompare(b?.name || ''));
+    }, [products, sortBy]);
+
+    const inStock = useMemo(() => sortedProducts.filter((product) => product.stock === undefined || product.stock > 0), [sortedProducts]);
+    const lowStock = useMemo(() => sortedProducts.filter((product) => product.stock !== undefined && product.stock <= 0), [sortedProducts]);
 
     const fetchProducts = async () => {
         setLoading(true);
@@ -36,32 +45,32 @@ export default function Storefront() {
         <div className={styles.page}>
             <section className={styles.hero}>
                 <div className={styles.heroCopy}>
-                    <p className={styles.kicker}>HydroLeaf Public Store</p>
-                    <h1 className={styles.title}>Fresh basil, packaging, and hydroponic gear</h1>
+                    <p className={styles.kicker}>HydroLeaf Store</p>
+                    <h1 className={styles.title}>Fresh basil &amp; packaging</h1>
                     <p className={styles.subtitle}>
-                        Browse live inventory, add items to your cart, and check out securely. All prices are shown in SEK.
+                        Order greenhouse basil, clean packaging, and hydroponic gear in SEK with calm, food-grade handling.
                     </p>
                     <div className={styles.pills}>
-                        <span>Real-time stock</span>
-                        <span>SEK pricing</span>
-                        <span>Fast checkout</span>
+                        <span>Grown in Sweden</span>
+                        <span>Food-grade handling</span>
+                        <span>Fast pickup</span>
                     </div>
                 </div>
                 <div className={styles.heroCard}>
-                    <p className={styles.heroLabel}>Order guidance</p>
-                    <h3>Need help choosing gear?</h3>
+                    <p className={styles.heroLabel}>Simple checkout</p>
+                    <h3>Built for busy kitchens</h3>
                     <p className={styles.heroText}>
-                        We&apos;ll align packaging, basil volumes, and hydroponic kits based on your channel. Start with any product and adjust quantities later.
+                        Keep your cart open while you browse. Prices stay in SEK and update as quantities change.
                     </p>
                     <Link to="/store/checkout" className={styles.heroAction}>
-                        Go to checkout
+                        Review cart &amp; checkout
                     </Link>
                 </div>
             </section>
 
             {error && (
-                <div className={styles.banner}>
-                    <p>{error}</p>
+                <div className={styles.alert} role="alert">
+                    <span>{error}</span>
                     <button type="button" onClick={fetchProducts}>Retry</button>
                 </div>
             )}
@@ -72,7 +81,16 @@ export default function Storefront() {
                         <p className={styles.sectionKicker}>Available now</p>
                         <h2>Products in stock</h2>
                     </div>
-                    <p className={styles.sectionNote}>Select quantity and add to cart. Stock updates after each action.</p>
+                    <div className={styles.controls}>
+                        <div className={styles.field}>
+                            <label htmlFor="sort">Sort</label>
+                            <select id="sort" value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+                                <option value="name">Name</option>
+                                <option value="price">Price</option>
+                            </select>
+                        </div>
+                        <p className={styles.sectionNote}>Prices shown in SEK · Stock updates after each add</p>
+                    </div>
                 </div>
 
                 {loading ? (
@@ -95,10 +113,10 @@ export default function Storefront() {
                 <section className={styles.section}>
                     <div className={styles.sectionHead}>
                         <div>
-                            <p className={styles.sectionKicker}>Out of stock</p>
-                            <h2>We&apos;ll restock these shortly</h2>
+                            <p className={styles.sectionKicker}>Restocking</p>
+                            <h2>More items on the way</h2>
                         </div>
-                        <p className={styles.sectionNote}>Add them to your list and we&apos;ll notify you once available.</p>
+                        <p className={styles.sectionNote}>We&apos;ll make these available again shortly.</p>
                     </div>
                     <div className={styles.grid}>
                         {lowStock.map((product) => (

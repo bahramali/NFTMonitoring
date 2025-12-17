@@ -9,6 +9,12 @@ export default function ProductCard({ product, onAdd, pending = false }) {
 
     const { name, id, imageUrl, shortDescription, price, currency, stock, badges = [], tags = [] } = product || {};
     const isOutOfStock = stock !== undefined && stock <= 0;
+    const stockLabel = useMemo(() => {
+        if (stock === undefined) return 'In stock';
+        if (stock <= 0) return 'Out of stock';
+        if (stock <= 5) return 'Low stock';
+        return 'In stock';
+    }, [stock]);
     const priceLabel = useMemo(() => formatCurrency(price, currency || 'SEK'), [currency, price]);
 
     return (
@@ -21,13 +27,6 @@ export default function ProductCard({ product, onAdd, pending = false }) {
                         <span className={styles.logoDot} />
                     </div>
                 )}
-                <div className={styles.badges}>
-                    {isOutOfStock ? <span className={`${styles.badge} ${styles.badgeMuted}`}>Out of stock</span> : null}
-                    {stock > 0 ? <span className={`${styles.badge} ${styles.badgePositive}`}>{stock} in stock</span> : null}
-                    {badges.map((badge) => (
-                        <span key={badge} className={styles.badge}>{badge}</span>
-                    ))}
-                </div>
             </div>
 
             <div className={styles.body}>
@@ -42,13 +41,21 @@ export default function ProductCard({ product, onAdd, pending = false }) {
                     </div>
                 </div>
 
-                {tags.length > 0 && (
+                {(tags.length > 0 || badges.length > 0) && (
                     <div className={styles.tagRow}>
-                        {tags.map((tag) => (
+                        {[...badges, ...tags].map((tag) => (
                             <span key={tag} className={styles.tag}>{tag}</span>
                         ))}
                     </div>
                 )}
+
+                <div className={styles.metaRow}>
+                    <span className={`${styles.stock} ${isOutOfStock ? styles.stockMuted : ''}`}>
+                        {stockLabel}
+                        {stock > 0 ? ` · ${stock} pcs` : ''}
+                    </span>
+                    <span className={styles.unitLabel}>{currencyLabel(currency || 'SEK')}</span>
+                </div>
 
                 <div className={styles.actions}>
                     <QuantityStepper
@@ -65,7 +72,7 @@ export default function ProductCard({ product, onAdd, pending = false }) {
                         onClick={() => onAdd?.(quantity)}
                         disabled={pending || isOutOfStock}
                     >
-                        {pending ? 'Adding…' : 'Add to cart'}
+                        {pending ? 'Adding…' : 'Add'}
                     </button>
                 </div>
             </div>
