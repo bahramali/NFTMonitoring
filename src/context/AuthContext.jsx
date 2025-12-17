@@ -170,11 +170,14 @@ export function AuthProvider({ children }) {
         [setAuthenticatedSession],
     );
 
-    const logout = useCallback(() => {
+    const logout = useCallback((options = {}) => {
+        const { redirect = true } = options;
         setSession(defaultAuthValue);
         if (typeof window !== 'undefined') {
             window.localStorage.removeItem('authSession');
-            window.location.assign('/');
+            if (redirect) {
+                window.location.assign('/');
+            }
         }
     }, []);
 
