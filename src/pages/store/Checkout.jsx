@@ -67,7 +67,7 @@ export default function Checkout() {
                 <div>
                     <p className={styles.kicker}>Checkout</p>
                     <h1>Confirm your order</h1>
-                    <p className={styles.subtitle}>Totals and shipping come from the backend—no manual calculations.</p>
+                    <p className={styles.subtitle}>Enter delivery details to confirm your SEK total.</p>
                 </div>
                 <Link to="/store/cart" className={styles.link}>View cart</Link>
             </header>

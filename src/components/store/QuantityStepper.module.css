@@ -2,9 +2,9 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: #0c1729;
-    color: #e2ecff;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface, #f7f7f7);
+    color: var(--text, #111);
+    border: 1px solid var(--border, #e6e6e6);
     border-radius: 12px;
     padding: 6px 10px;
 }
@@ -18,11 +18,11 @@
     width: 30px;
     height: 30px;
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: linear-gradient(180deg, #13243d, #0c1729);
-    color: #e2ecff;
+    border: 1px solid var(--border, #e6e6e6);
+    background: #fff;
+    color: var(--text, #111);
     cursor: pointer;
-    transition: transform 120ms ease, border-color 120ms ease, color 120ms ease;
+    transition: transform 120ms ease, border-color 120ms ease, color 120ms ease, background 120ms ease;
 }
 
 .button:disabled {
@@ -32,7 +32,8 @@
 
 .button:not(:disabled):hover {
     transform: translateY(-1px);
-    border-color: rgba(255, 255, 255, 0.25);
+    border-color: #cfd1d4;
+    background: var(--surface, #f7f7f7);
 }
 
 .value {

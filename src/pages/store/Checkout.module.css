@@ -1,46 +1,51 @@
 .page {
     display: grid;
-    gap: 16px;
+    gap: 20px;
+    color: var(--text, #111);
 }
 
 .header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
+    gap: 12px;
 }
 
 .kicker {
     margin: 0;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #94a3b8;
+    color: var(--muted, #666);
 }
 
 .subtitle {
-    color: rgba(226, 236, 255, 0.65);
+    color: var(--muted, #666);
+    margin: 6px 0 0;
 }
 
 .link {
-    color: #a5f3fc;
+    color: var(--text, #111);
     text-decoration: none;
-    border: 1px solid rgba(165, 243, 252, 0.5);
-    padding: 8px 12px;
-    border-radius: 10px;
+    border: 1px solid var(--border, #e6e6e6);
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #fff;
 }
 
 .layout {
     display: grid;
     grid-template-columns: 1.4fr 1fr;
-    gap: 16px;
+    gap: 18px;
 }
 
 .form {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.04);
+    background: #fff;
+    border: 1px solid var(--border, #e6e6e6);
     border-radius: 16px;
-    padding: 16px;
+    padding: 18px;
     display: grid;
     gap: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
 }
 
 .fieldGroup {
@@ -49,7 +54,7 @@
 }
 
 .fieldGroup label {
-    color: #cbd5e1;
+    color: var(--muted, #666);
 }
 
 .fieldGroup input,
@@ -57,9 +62,9 @@
     width: 100%;
     padding: 10px 12px;
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.02);
-    color: #e2ecff;
+    border: 1px solid var(--border, #e6e6e6);
+    background: #fff;
+    color: var(--text, #111);
 }
 
 .inlineFields {
@@ -69,12 +74,12 @@
 }
 
 .submit {
-    background: linear-gradient(120deg, #22d3ee, #4ade80);
-    border: none;
+    background: var(--accent, #3a9d5b);
+    border: 1px solid var(--accent, #3a9d5b);
     border-radius: 14px;
     padding: 12px 14px;
     font-weight: 800;
-    color: #0b1220;
+    color: #fff;
     cursor: pointer;
 }
 
@@ -84,18 +89,18 @@
 }
 
 .error {
-    color: #fecdd3;
-    background: rgba(248, 113, 113, 0.16);
+    color: #8a3b32;
+    background: #fef7f6;
     padding: 10px;
     border-radius: 10px;
-    border: 1px solid rgba(248, 113, 113, 0.3);
+    border: 1px solid #f3c8c2;
 }
 
 .summary {
-    background: linear-gradient(180deg, rgba(11, 18, 36, 0.9), rgba(10, 14, 24, 0.95));
+    background: #fafafa;
     border-radius: 16px;
-    padding: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 18px;
+    border: 1px solid var(--border, #e6e6e6);
     display: grid;
     gap: 10px;
 }
@@ -108,7 +113,7 @@
 .item {
     display: flex;
     justify-content: space-between;
-    color: #e2ecff;
+    color: var(--text, #111);
 }
 
 .itemName {
@@ -118,26 +123,26 @@
 
 .itemMeta {
     margin: 4px 0 0;
-    color: rgba(226, 236, 255, 0.65);
+    color: var(--muted, #666);
 }
 
 .row {
     display: flex;
     justify-content: space-between;
-    color: #b7c7ec;
+    color: var(--muted, #666);
 }
 
 .total {
     font-weight: 800;
-    color: #e2ecff;
+    color: var(--text, #111);
     margin-top: 6px;
 }
 
 .empty {
     padding: 20px;
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.04);
+    background: #fff;
+    border: 1px solid var(--border, #e6e6e6);
     display: grid;
     gap: 10px;
 }
@@ -145,8 +150,8 @@
 .primary {
     display: inline-flex;
     width: fit-content;
-    background: linear-gradient(120deg, #22d3ee, #4ade80);
-    color: #0b1220;
+    background: var(--accent, #3a9d5b);
+    color: #fff;
     padding: 10px 14px;
     border-radius: 12px;
     text-decoration: none;
