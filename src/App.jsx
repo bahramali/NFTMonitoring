@@ -23,6 +23,12 @@ import Note from './pages/Note/index.jsx';
 import SensorConfig from './pages/SensorConfig/index.jsx';
 import ShellyControlPage from './pages/ShellyControl/index.jsx';
 import AcceptInvite from './pages/AcceptInvite.jsx';
+import StoreLayout from './components/store/StoreLayout.jsx';
+import Storefront from './pages/store/Storefront.jsx';
+import ProductDetail from './pages/store/ProductDetail.jsx';
+import CartPage from './pages/store/CartPage.jsx';
+import Checkout from './pages/store/Checkout.jsx';
+import OrderStatus from './pages/store/OrderStatus.jsx';
 
 function App() {
     const rawBase = import.meta?.env?.BASE_URL || '/';
@@ -33,6 +39,14 @@ function App() {
             <Navbar />
             <Routes>
                 <Route path="/" element={<Home />} />
+                <Route path="/store" element={<StoreLayout />}>
+                    <Route index element={<Storefront />} />
+                    <Route path="product/:productId" element={<ProductDetail />} />
+                    <Route path="cart" element={<CartPage />} />
+                    <Route path="checkout" element={<Checkout />} />
+                    <Route path="order/:orderId/success" element={<OrderStatus status="success" />} />
+                    <Route path="order/:orderId/cancel" element={<OrderStatus status="cancel" />} />
+                </Route>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/not-authorized" element={<NotAuthorized />} />

@@ -104,6 +104,10 @@ export default function AdminManagement() {
     }, [normalizePermissionDefinitions, showToast, token]);
 
     useEffect(() => {
+        loadPermissions();
+    }, [loadPermissions]);
+
+    useEffect(() => {
         loadAdmins();
     }, [loadAdmins]);
 
@@ -269,6 +273,9 @@ export default function AdminManagement() {
             console.error('Failed to invite admin', error);
             const message = error?.payload?.message || error?.message || 'Failed to send invite';
             setInviteFeedback({ type: 'error', message });
+            if (error?.payload?.invalidPermissions || `${error?.message}`.toLowerCase().includes('permission')) {
+                loadPermissions();
+            }
         }
     };
 
@@ -286,6 +293,19 @@ export default function AdminManagement() {
 
     const savePermissions = async () => {
         if (!editModalAdmin) return;
+        if (editPermissions.length === 0) {
+            showToast('error', 'Select at least one permission.');
+            return;
+        }
+
+        const unknownSelection = editPermissions.filter((permission) => !permissionLabels[permission]);
+        if (unknownSelection.length > 0) {
+            const message = 'Selected permissions are no longer valid. Refreshing permissions.';
+            showToast('error', message);
+            loadPermissions();
+            return;
+        }
+
         try {
             await updateAdminPermissions(editModalAdmin.id, editPermissions, token);
             showToast('success', 'Permissions updated');
@@ -295,6 +315,9 @@ export default function AdminManagement() {
         } catch (error) {
             console.error('Failed to update permissions', error);
             showToast('error', error?.message || 'Failed to update permissions');
+            if (error?.payload?.invalidPermissions || `${error?.message}`.toLowerCase().includes('permission')) {
+                loadPermissions();
+            }
         }
     };
 

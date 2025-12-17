@@ -6,6 +6,7 @@ import styles from './Navbar.module.css';
 
 const NAV_ITEMS = [
     { path: '/', label: 'Home', requiresAuth: false },
+    { path: '/store', label: 'Store', requiresAuth: false },
     {
         path: '/dashboard/overview',
         label: 'Monitoring',

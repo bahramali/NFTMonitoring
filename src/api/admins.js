@@ -14,6 +14,11 @@ export async function fetchAdmins(token) {
     return parseApiResponse(res, 'Failed to load admins');
 }
 
+export async function fetchAdminPermissions(token) {
+    const res = await fetch(PERMISSIONS_URL, { headers: authHeaders(token) });
+    return parseApiResponse(res, 'Failed to load permissions');
+}
+
 export async function inviteAdmin(payload, token) {
     const res = await fetch(`${BASE_URL}/invite`, {
         method: 'POST',
