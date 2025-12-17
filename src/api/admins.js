@@ -2,6 +2,7 @@ import { parseApiResponse } from './http.js';
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'https://api.hydroleaf.se';
 const BASE_URL = `${API_BASE}/api/super-admin/admins`;
+const PERMISSIONS_URL = `${API_BASE}/api/admin/permissions`;
 
 const authHeaders = (token) => ({
     'Content-Type': 'application/json',
@@ -11,6 +12,11 @@ const authHeaders = (token) => ({
 export async function fetchAdmins(token) {
     const res = await fetch(BASE_URL, { headers: authHeaders(token) });
     return parseApiResponse(res, 'Failed to load admins');
+}
+
+export async function fetchAdminPermissions(token) {
+    const res = await fetch(PERMISSIONS_URL, { headers: authHeaders(token) });
+    return parseApiResponse(res, 'Failed to load permissions');
 }
 
 export async function inviteAdmin(payload, token) {
