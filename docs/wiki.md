@@ -12,7 +12,7 @@ Shelly Control extends the platform with backend-driven management for Shelly Ge
 - **Role-based navigation**: SUPER_ADMIN, ADMIN, WORKER, and CUSTOMER users see different sections. Admin access respects the permissions array returned by the backend. SUPER_ADMIN inherits full access and may also view monitoring dashboards.
 - **Monitoring dashboards**: Admins and workers can open dashboards for device health, irrigation performance, and alerts.
 - **User pages**: Customers have a dedicated My Page to view their devices and account information.
-- **Inviting admins**: Admin management pages (accessible only to SUPER_ADMIN) allow inviting and managing ADMIN users and configuring their permissions; no other role can invite or create admins. Backend email delivery handles credential setup.
+- **Inviting admins**: Admin management pages (accessible only to SUPER_ADMIN) allow inviting and managing ADMIN users and configuring their permissions; no other role can invite or create admins. Backend email delivery handles credential setup. Invited admins land on `/invite/{token}` (or `/auth/accept-invite?token={token}`), where the SPA clears any existing session, validates the token via `GET /api/auth/accept-invite/{token}`, and submits `{ token, password }` with `POST /api/auth/accept-invite`. Set `APP_INVITE_LINK_TEMPLATE` to `https://hydroleaf.se/invite/{token}` (or the chosen route) so email links open the acceptance page.
 - **SUPER_ADMIN coverage**: SUPER_ADMIN has full access, including monitoring dashboards. These accounts are provisioned through seed/migration or other server-side bootstrap processes rather than through public UI or API paths.
 
 ## How It Works with the Backend

@@ -22,6 +22,7 @@ import Reports from './pages/Reports/index.jsx';
 import Note from './pages/Note/index.jsx';
 import SensorConfig from './pages/SensorConfig/index.jsx';
 import ShellyControlPage from './pages/ShellyControl/index.jsx';
+import AcceptInvite from './pages/AcceptInvite.jsx';
 
 function App() {
     const rawBase = import.meta?.env?.BASE_URL || '/';
@@ -35,6 +36,9 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/not-authorized" element={<NotAuthorized />} />
+                <Route path="/invite/:token" element={<AcceptInvite />} />
+                <Route path="/auth/accept-invite" element={<AcceptInvite />} />
+                <Route path="/auth/accept-invite/:token" element={<AcceptInvite />} />
 
                 <Route
                     path="/super-admin"
