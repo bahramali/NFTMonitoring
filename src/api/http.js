@@ -4,17 +4,23 @@ const parseBody = async (response) => {
         return { data: null, message: '' };
     }
 
-    const contentType = response.headers?.get('content-type') || '';
+    const safeResponse =
+        typeof response.clone === 'function' && !response.bodyUsed ? response.clone() : response;
+    const headers = safeResponse.headers;
+    const contentType =
+        typeof headers?.get === 'function'
+            ? headers.get('content-type') || ''
+            : headers?.['content-type'] || headers?.['Content-Type'] || '';
     const isJson = contentType.includes('application/json');
 
     try {
         if (isJson) {
-            const data = await response.json();
+            const data = await safeResponse.json();
             const message = typeof data === 'object' && data !== null && 'message' in data ? data.message : '';
             return { data, message: message || '' };
         }
 
-        const text = await response.text();
+        const text = await safeResponse.text();
         if (!text) return { data: null, message: '' };
 
         // Fallback: if content-type is missing, attempt to parse JSON once.
@@ -26,7 +32,10 @@ const parseBody = async (response) => {
             return { data: text, message: text };
         }
     } catch (error) {
-        if (response.bodyUsed) {
+        if (response.bodyUsed || safeResponse.bodyUsed) {
+            return { data: null, message: '' };
+        }
+        if (`${error?.message}`.toLowerCase().includes('body stream already read')) {
             return { data: null, message: '' };
         }
         throw error;
