@@ -16,7 +16,15 @@ const parseBody = async (response) => {
 
         const text = await response.text();
         if (!text) return { data: null, message: '' };
-        return { data: text, message: text };
+
+        // Fallback: if content-type is missing, attempt to parse JSON once.
+        try {
+            const data = JSON.parse(text);
+            const message = typeof data === 'object' && data !== null && 'message' in data ? data.message : '';
+            return { data, message: message || text };
+        } catch {
+            return { data: text, message: text };
+        }
     } catch (error) {
         if (response.bodyUsed) {
             return { data: null, message: '' };
