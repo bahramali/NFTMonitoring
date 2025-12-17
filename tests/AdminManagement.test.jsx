@@ -24,6 +24,14 @@ describe('AdminManagement', () => {
     it('sends an invite with the fallback sender email when none is configured', async () => {
         const fetchMock = vi
             .fn()
+            .mockResolvedValueOnce(
+                createJsonResponse({
+                    permissions: [
+                        { key: 'ADMIN_DASHBOARD', label: 'Admin Overview', defaultSelected: true },
+                        { key: 'ADMIN_REPORTS', label: 'Reports' },
+                    ],
+                }),
+            )
             .mockResolvedValueOnce(createJsonResponse({ admins: [] }))
             .mockResolvedValueOnce(createJsonResponse({ id: 'admin-1', status: 'INVITED' }))
             .mockResolvedValueOnce(createJsonResponse({ admins: [] }));
@@ -43,6 +51,7 @@ describe('AdminManagement', () => {
 
         renderWithAuth(<AdminManagement />);
 
+        await screen.findByText(/Admin Overview/i);
         expect(screen.queryByLabelText(/Username/i)).toBeNull();
         fireEvent.change(screen.getByLabelText(/Admin email/i), { target: { value: 'test@example.com' } });
         fireEvent.change(screen.getByLabelText(/Display name/i), { target: { value: 'Test Admin' } });
@@ -59,6 +68,7 @@ describe('AdminManagement', () => {
         const body = JSON.parse(options.body);
         expect(body.email).toBe('test@example.com');
         expect(body.displayName).toBe('Test Admin');
+        expect(body.permissions).toContain('ADMIN_DASHBOARD');
         expect(options.headers.Authorization).toBe('Bearer token-123');
         await screen.findByText(/Invite sent successfully/i);
     });
@@ -68,6 +78,11 @@ describe('AdminManagement', () => {
             'fetch',
             vi
                 .fn()
+                .mockResolvedValueOnce(
+                    createJsonResponse({
+                        permissions: [{ key: 'ADMIN_DASHBOARD', label: 'Admin Overview', defaultSelected: true }],
+                    }),
+                )
                 .mockResolvedValueOnce(createJsonResponse({ admins: [] }))
                 .mockRejectedValueOnce(new Error('Network unavailable')),
         );
@@ -86,11 +101,57 @@ describe('AdminManagement', () => {
 
         renderWithAuth(<AdminManagement />);
 
+        await screen.findByText(/Admin Overview/i);
         expect(screen.queryByLabelText(/Username/i)).toBeNull();
         fireEvent.change(screen.getByLabelText(/Admin email/i), { target: { value: 'test@example.com' } });
 
         fireEvent.click(screen.getByRole('button', { name: /Send invite/i }));
 
         await screen.findByText(/Network unavailable/);
+    });
+
+    it('renders permissions returned by the backend without code changes', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi
+                .fn()
+                .mockResolvedValueOnce(
+                    createJsonResponse({
+                        permissions: [
+                            { key: 'ADMIN_DASHBOARD', label: 'Admin Overview' },
+                            { key: 'NEW_PERMISSION', label: 'New Permission', description: 'Synced from backend' },
+                        ],
+                    }),
+                )
+                .mockResolvedValueOnce(
+                    createJsonResponse({
+                        admins: [
+                            {
+                                id: 'admin-1',
+                                email: 'new@example.com',
+                                permissions: ['NEW_PERMISSION'],
+                                status: 'ACTIVE',
+                            },
+                        ],
+                    }),
+                ),
+        );
+
+        window.localStorage.setItem(
+            'authSession',
+            JSON.stringify({
+                isAuthenticated: true,
+                token: 'token-123',
+                userId: 'super-admin',
+                role: 'SUPER_ADMIN',
+                permissions: [],
+                expiry: Date.now() + 60_000,
+            }),
+        );
+
+        renderWithAuth(<AdminManagement />);
+
+        const newPermissionLabels = await screen.findAllByText(/New Permission/i);
+        expect(newPermissionLabels.length).toBeGreaterThan(0);
     });
 });
