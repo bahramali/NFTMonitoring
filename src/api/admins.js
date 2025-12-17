@@ -2,6 +2,7 @@ import { parseApiResponse } from './http.js';
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'https://api.hydroleaf.se';
 const BASE_URL = `${API_BASE}/api/super-admin/admins`;
+const PERMISSIONS_URL = `${API_BASE}/api/admin/permissions`;
 
 const authHeaders = (token) => ({
     'Content-Type': 'application/json',
@@ -54,4 +55,11 @@ export async function resendAdminInvite(id, token) {
         headers: authHeaders(token),
     });
     return parseApiResponse(res, 'Failed to resend invite');
+}
+
+export async function fetchPermissionDefinitions(token) {
+    const res = await fetch(PERMISSIONS_URL, {
+        headers: authHeaders(token),
+    });
+    return parseApiResponse(res, 'Failed to load permission definitions');
 }

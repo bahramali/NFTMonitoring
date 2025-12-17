@@ -55,6 +55,12 @@
     gap: 12px;
 }
 
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .banner {
     margin: 4px 0 12px 0;
     padding: 10px 12px;
@@ -109,6 +115,11 @@
     background: #f8fafc;
     padding: 8px;
     border-radius: 8px;
+}
+
+.permissionDescription {
+    color: #475569;
+    font-size: 13px;
 }
 
 .button {
