@@ -1,5 +1,19 @@
 const parseBody = async (response) => {
-    const text = await response.text();
+    // Avoid throwing when the response body was already consumed by another handler.
+    if (response.bodyUsed) {
+        return { data: null, message: '' };
+    }
+
+    let text;
+    try {
+        text = await response.text();
+    } catch (error) {
+        if (response.bodyUsed) {
+            return { data: null, message: '' };
+        }
+        throw error;
+    }
+
     if (!text) return { data: null, message: '' };
 
     try {
