@@ -1,0 +1,42 @@
+.stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #0c1729;
+    color: #e2ecff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 6px 10px;
+}
+
+.compact {
+    padding: 4px 8px;
+    gap: 6px;
+}
+
+.button {
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(180deg, #13243d, #0c1729);
+    color: #e2ecff;
+    cursor: pointer;
+    transition: transform 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.button:not(:disabled):hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.value {
+    min-width: 32px;
+    text-align: center;
+    font-weight: 700;
+}
