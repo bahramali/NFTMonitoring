@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import hydroleafLogo from '../assets/hydroleaf_logo.png';
 import styles from './Navbar.module.css';
+import { hasStoreAdminAccess, STORE_PERMISSION_KEY } from '../utils/permissions.js';
 
 const NAV_ITEMS = [
     { path: '/', label: 'Home', requiresAuth: false },
@@ -29,6 +30,12 @@ const ADMIN_MENU = [
         roles: ['SUPER_ADMIN', 'ADMIN'],
         permissions: ['ADMIN_TEAM'],
     },
+    {
+        path: '/monitoring/admin/products',
+        label: 'Products',
+        roles: ['SUPER_ADMIN', 'ADMIN'],
+        permissions: [STORE_PERMISSION_KEY],
+    },
     { path: '/super-admin', label: 'Super Admin Tools', roles: ['SUPER_ADMIN'] },
     { path: '/super-admin/admins', label: 'Admin Directory', roles: ['SUPER_ADMIN'] },
 ];
@@ -38,6 +45,9 @@ const hasAccess = (item, role, permissions = []) => {
     if (!role || !item.roles.includes(role)) return false;
 
     if (item.permissions && item.permissions.length > 0 && role === 'ADMIN') {
+        if (item.permissions.includes(STORE_PERMISSION_KEY)) {
+            return hasStoreAdminAccess(role, permissions);
+        }
         return item.permissions.every((permission) => permissions?.includes(permission));
     }
 
