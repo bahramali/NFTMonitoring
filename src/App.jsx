@@ -29,6 +29,7 @@ import ProductDetail from './pages/store/ProductDetail.jsx';
 import CartPage from './pages/store/CartPage.jsx';
 import Checkout from './pages/store/Checkout.jsx';
 import OrderStatus from './pages/store/OrderStatus.jsx';
+import ProductAdmin from './pages/ProductAdmin.jsx';
 
 function App() {
     const rawBase = import.meta?.env?.BASE_URL || '/';
@@ -145,6 +146,9 @@ function App() {
                         </ProtectedRoute>
                     )}
                 />
+
+                <Route path="/monitoring" element={<Navigate to="/dashboard/overview" replace />} />
+                <Route path="/monitoring/admin/products" element={<ProductAdmin />} />
 
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
