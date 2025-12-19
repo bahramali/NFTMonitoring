@@ -7,7 +7,10 @@ import { enableFetchLogging } from './utils/logFetch.js';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { StorefrontProvider } from './context/StorefrontContext.jsx';
 
-enableFetchLogging();
+const shouldEnableFetchLogs = import.meta.env.VITE_ENABLE_FETCH_LOGS === 'true';
+if (shouldEnableFetchLogs) {
+    enableFetchLogging();
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
