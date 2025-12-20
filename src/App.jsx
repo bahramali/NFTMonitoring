@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import CustomerRoute from './components/CustomerRoute.jsx';
 import Home from './pages/Home.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
@@ -11,7 +12,11 @@ import AdminManagement from './pages/AdminManagement.jsx';
 import AdminOverview from './pages/AdminOverview.jsx';
 import AdminTeam from './pages/AdminTeam.jsx';
 import WorkerDashboard from './pages/WorkerDashboard.jsx';
-import MyPage from './pages/MyPage.jsx';
+import CustomerLayout from './pages/customer/CustomerLayout.jsx';
+import CustomerDashboard from './pages/customer/CustomerDashboard.jsx';
+import CustomerDeviceDetails from './pages/customer/CustomerDeviceDetails.jsx';
+import CustomerOrders from './pages/customer/CustomerOrders.jsx';
+import CustomerOrderDetails from './pages/customer/CustomerOrderDetails.jsx';
 import MainLayout from './layouts/MainLayout.jsx';
 import Overview from './pages/Overview/index.jsx';
 import ControlPanel from './pages/ControlPanel/index.jsx';
@@ -139,13 +144,18 @@ function App() {
                 />
 
                 <Route
-                    path="/my-page"
+                    path="/my-page/*"
                     element={(
-                        <ProtectedRoute requiredRoles={["SUPER_ADMIN", "CUSTOMER"]}>
-                            <MyPage />
-                        </ProtectedRoute>
+                        <CustomerRoute>
+                            <CustomerLayout />
+                        </CustomerRoute>
                     )}
-                />
+                >
+                    <Route index element={<CustomerDashboard />} />
+                    <Route path="devices/:deviceId" element={<CustomerDeviceDetails />} />
+                    <Route path="orders" element={<CustomerOrders />} />
+                    <Route path="orders/:orderId" element={<CustomerOrderDetails />} />
+                </Route>
 
                 <Route path="/monitoring" element={<Navigate to="/dashboard/overview" replace />} />
                 <Route path="/monitoring/admin/products" element={<ProductAdmin />} />
