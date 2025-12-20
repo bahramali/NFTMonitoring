@@ -2,13 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import styles from './Login.module.css';
-
-const ROLE_ROUTES = {
-    SUPER_ADMIN: '/super-admin',
-    ADMIN: '/admin',
-    WORKER: '/worker/dashboard',
-    CUSTOMER: '/my-page',
-};
+import { getDefaultRouteForRole } from '../utils/roleRoutes.js';
 
 export default function Login() {
     const { isAuthenticated, login, role } = useAuth();
@@ -21,7 +15,7 @@ export default function Login() {
 
     useEffect(() => {
         if (isAuthenticated) {
-            const target = ROLE_ROUTES[role] || '/';
+            const target = getDefaultRouteForRole(role);
             navigate(target, { replace: true });
         }
     }, [isAuthenticated, navigate, role]);
@@ -35,7 +29,7 @@ export default function Login() {
         }
 
         const resolvedRole = result.role || role;
-        const roleRedirect = ROLE_ROUTES[resolvedRole] || '/';
+        const roleRedirect = getDefaultRouteForRole(resolvedRole);
         const redirect = location.state?.from?.pathname || roleRedirect;
         navigate(redirect, { replace: true });
     };

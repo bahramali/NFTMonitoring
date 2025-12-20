@@ -1,0 +1,161 @@
+.card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #0ea5e9;
+    font-weight: 700;
+    font-size: 12px;
+    margin: 0;
+}
+
+.subtitle {
+    margin: 4px 0 0;
+    color: #475569;
+}
+
+.statusBlock {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-end;
+}
+
+.statusBadge {
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.statusPositive {
+    background: rgba(52, 211, 153, 0.15);
+    color: #16a34a;
+    border: 1px solid rgba(52, 211, 153, 0.5);
+}
+
+.statusNegative {
+    background: rgba(248, 113, 113, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(248, 113, 113, 0.45);
+}
+
+.statusNeutral {
+    background: #eef2ff;
+    color: #312e81;
+    border: 1px solid #c7d2fe;
+}
+
+.subStatus {
+    color: #475569;
+}
+
+.metaGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin: 12px 0;
+}
+
+.label {
+    margin: 0;
+    color: #475569;
+    font-size: 13px;
+}
+
+.value {
+    margin: 4px 0 0;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.items {
+    margin: 14px 0;
+}
+
+.itemGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+}
+
+.item {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.itemName {
+    margin: 0;
+    font-weight: 700;
+}
+
+.itemMeta {
+    margin: 4px 0 0;
+    color: #475569;
+}
+
+.note {
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    padding: 10px;
+    background: #f8fafc;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+}
+
+.primaryButton, .secondaryButton {
+    padding: 10px 12px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.primaryButton {
+    background: #0ea5e9;
+    color: #fff;
+}
+
+.secondaryButton {
+    border: 1px solid #0ea5e9;
+    color: #0ea5e9;
+}
+
+.loading {
+    color: #475569;
+}
+
+.error {
+    padding: 10px 12px;
+    border: 1px solid #fecdd3;
+    background: #fff1f2;
+    border-radius: 10px;
+}
+
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+    }
+
+    .statusBlock {
+        align-items: flex-start;
+    }
+}

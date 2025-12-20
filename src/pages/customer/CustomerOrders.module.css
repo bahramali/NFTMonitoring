@@ -1,0 +1,147 @@
+.card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #0ea5e9;
+    font-weight: 700;
+    font-size: 12px;
+    margin: 0;
+}
+
+.subtitle {
+    margin: 4px 0 0;
+    color: #475569;
+}
+
+.secondaryButton, .primaryButton {
+    background: #0ea5e9;
+    color: #fff;
+    padding: 10px 12px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.secondaryButton {
+    background: transparent;
+    color: #0ea5e9;
+    border: 1px solid #0ea5e9;
+}
+
+.loading {
+    color: #475569;
+}
+
+.error {
+    padding: 10px 12px;
+    border: 1px solid #fecdd3;
+    background: #fff1f2;
+    border-radius: 10px;
+    margin: 8px 0;
+}
+
+.empty {
+    padding: 14px;
+    text-align: center;
+    color: #475569;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.order {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    text-decoration: none;
+    color: inherit;
+}
+
+.order:hover {
+    border-color: #bfdbfe;
+    background: #f8fafc;
+}
+
+.orderId {
+    margin: 0;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.orderMeta {
+    margin: 4px 0 0;
+    color: #475569;
+}
+
+.orderStatus {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.statusBadge {
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.statusPositive {
+    background: rgba(52, 211, 153, 0.15);
+    color: #16a34a;
+    border: 1px solid rgba(52, 211, 153, 0.5);
+}
+
+.statusNegative {
+    background: rgba(248, 113, 113, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(248, 113, 113, 0.45);
+}
+
+.statusNeutral {
+    background: #eef2ff;
+    color: #312e81;
+    border: 1px solid #c7d2fe;
+}
+
+.total {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+@media (max-width: 640px) {
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .order {
+        flex-direction: column;
+    }
+
+    .orderStatus {
+        align-items: flex-start;
+    }
+}
