@@ -14,7 +14,6 @@ import AdminTeam from './pages/AdminTeam.jsx';
 import WorkerDashboard from './pages/WorkerDashboard.jsx';
 import CustomerLayout from './pages/customer/CustomerLayout.jsx';
 import CustomerDashboard from './pages/customer/CustomerDashboard.jsx';
-import CustomerDeviceDetails from './pages/customer/CustomerDeviceDetails.jsx';
 import CustomerOrders from './pages/customer/CustomerOrders.jsx';
 import CustomerOrderDetails from './pages/customer/CustomerOrderDetails.jsx';
 import MainLayout from './layouts/MainLayout.jsx';
@@ -152,7 +151,6 @@ function App() {
                     )}
                 >
                     <Route index element={<CustomerDashboard />} />
-                    <Route path="devices/:deviceId" element={<CustomerDeviceDetails />} />
                     <Route path="orders" element={<CustomerOrders />} />
                     <Route path="orders/:orderId" element={<CustomerOrderDetails />} />
                 </Route>
