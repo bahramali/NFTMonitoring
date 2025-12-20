@@ -123,7 +123,7 @@ export default function CustomerLayout() {
     );
 
     const headline = profile?.displayName || 'My account';
-    const subhead = profile?.email || 'Manage your account details and devices here.';
+    const subhead = profile?.email || 'Manage your account details and orders here.';
 
     return (
         <div className={styles.page}>
