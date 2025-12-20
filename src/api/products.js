@@ -11,10 +11,20 @@ const authHeaders = (token) => ({
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
 });
 
+const normalizeProduct = (product) => {
+    if (!product) return product;
+    const id = product.id || product.productId || product._id || product.sku || null;
+    return { ...product, id };
+};
+
 const normalizeProductsPayload = (payload) => {
-    if (Array.isArray(payload)) return payload;
-    if (Array.isArray(payload?.products)) return payload.products;
-    return [];
+    const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.products)
+            ? payload.products
+            : [];
+
+    return list.map(normalizeProduct);
 };
 
 const mockProducts = [
@@ -78,7 +88,8 @@ export async function createProduct(payload, token) {
             headers: authHeaders(token),
             body: JSON.stringify(payload),
         });
-        return parseApiResponse(res, 'Failed to create product');
+        const data = await parseApiResponse(res, 'Failed to create product');
+        return normalizeProduct(data);
     } catch (error) {
         if (useMockFallback(error)) {
             console.warn('Mocking product creation until backend endpoint is ready.', error);
@@ -102,7 +113,8 @@ export async function updateProduct(productId, payload, token) {
             headers: authHeaders(token),
             body: JSON.stringify(payload),
         });
-        return parseApiResponse(res, 'Failed to update product');
+        const data = await parseApiResponse(res, 'Failed to update product');
+        return normalizeProduct(data);
     } catch (error) {
         if (useMockFallback(error)) {
             console.warn('Mocking product update until backend endpoint is ready.', error);
@@ -128,7 +140,8 @@ export async function toggleProductActive(productId, active, token) {
             headers: authHeaders(token),
             body: JSON.stringify({ active }),
         });
-        return parseApiResponse(res, 'Failed to update status');
+        const data = await parseApiResponse(res, 'Failed to update status');
+        return normalizeProduct(data);
     } catch (error) {
         if (useMockFallback(error)) {
             console.warn('Mocking product active toggle until backend endpoint is ready.', error);
@@ -148,7 +161,8 @@ export async function updateProductStock(productId, stock, token) {
             headers: authHeaders(token),
             body: JSON.stringify({ stock }),
         });
-        return parseApiResponse(res, 'Failed to update stock');
+        const data = await parseApiResponse(res, 'Failed to update stock');
+        return normalizeProduct(data);
     } catch (error) {
         if (useMockFallback(error)) {
             console.warn('Mocking product stock update until backend endpoint is ready.', error);
