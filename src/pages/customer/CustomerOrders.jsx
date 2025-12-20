@@ -39,12 +39,12 @@ export default function CustomerOrders() {
             <div className={styles.card}>
                 <div className={styles.header}>
                     <div>
-                        <p className={styles.kicker}>سفارش‌ها</p>
-                        <h1>دسترسی سفارش‌ها فعال نیست</h1>
-                        <p className={styles.subtitle}>پشتیبانی سفارش برای این حساب فعال نشده است.</p>
+                        <p className={styles.kicker}>Orders</p>
+                        <h1>Orders unavailable</h1>
+                        <p className={styles.subtitle}>Order history is not enabled for this account.</p>
                     </div>
                 </div>
-                <Link to="/my-page" className={styles.primaryButton}>بازگشت به حساب</Link>
+                <Link to="/my-page" className={styles.primaryButton}>Back to account</Link>
             </div>
         );
     }
@@ -53,14 +53,14 @@ export default function CustomerOrders() {
         <div className={styles.card}>
             <div className={styles.header}>
                 <div>
-                    <p className={styles.kicker}>سفارش‌ها</p>
-                    <h1>سفارش‌های من</h1>
-                    <p className={styles.subtitle}>لیست آخرین سفارش‌های ثبت شده در فروشگاه.</p>
+                    <p className={styles.kicker}>Orders</p>
+                    <h1>My orders</h1>
+                    <p className={styles.subtitle}>Recent orders placed in the store.</p>
                 </div>
-                <Link to="/my-page" className={styles.secondaryButton}>بازگشت</Link>
+                <Link to="/my-page" className={styles.secondaryButton}>Back</Link>
             </div>
 
-            {ordersState.loading && <div className={styles.loading}>در حال بارگذاری سفارش‌ها…</div>}
+            {ordersState.loading && <div className={styles.loading}>Loading orders…</div>}
             {localError || ordersState.error ? (
                 <div className={styles.error} role="alert">
                     {localError || ordersState.error}
@@ -69,7 +69,7 @@ export default function CustomerOrders() {
 
             {!ordersState.loading && sortedOrders.length === 0 && !localError && !ordersState.error ? (
                 <div className={styles.empty}>
-                    <p>سفارشی ثبت نشده است.</p>
+                    <p>No orders found.</p>
                 </div>
             ) : null}
 
@@ -77,16 +77,16 @@ export default function CustomerOrders() {
                 {sortedOrders.map((order) => (
                     <Link key={order.id} to={`/my-page/orders/${encodeURIComponent(order.id)}`} className={styles.order}>
                         <div>
-                            <p className={styles.orderId}>شناسه سفارش: {order.id}</p>
+                            <p className={styles.orderId}>Order ID: {order.id}</p>
                             <p className={styles.orderMeta}>
-                                ثبت شده در
+                                Placed on
                                 {' '}
                                 {order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}
                             </p>
                         </div>
                         <div className={styles.orderStatus}>
                             <span className={`${styles.statusBadge} ${statusTone(order.status)}`}>
-                                {order.status || 'نامشخص'}
+                                {order.status || 'Unknown'}
                             </span>
                             <span className={styles.total}>
                                 {order.total != null ? formatCurrency(order.total, order.currency) : '—'}

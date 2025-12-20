@@ -68,8 +68,8 @@ const deriveMetrics = (device) => {
     const metrics = device.metrics || {};
 
     const candidates = [
-        formatMetric('دما', metrics.tempC ?? metrics.temperature ?? map.temp, '°C'),
-        formatMetric('رطوبت', metrics.humidity ?? map.humidity, '%'),
+        formatMetric('Temperature', metrics.tempC ?? metrics.temperature ?? map.temp, '°C'),
+        formatMetric('Humidity', metrics.humidity ?? map.humidity, '%'),
         formatMetric('CO₂', metrics.co2 ?? map.co2, 'ppm'),
         formatMetric('EC', metrics.ec ?? map.ec, 'mS/cm'),
         formatMetric('TDS', metrics.tds ?? map.tds, 'ppm'),
@@ -155,13 +155,13 @@ export default function CustomerDashboard() {
 
     const summaryTiles = useMemo(() => {
         const tiles = [
-            { label: 'تعداد دستگاه‌ها', value: devices.length || '۰' },
+            { label: 'Devices', value: devices.length || '0' },
         ];
         if (activeAlerts != null) {
-            tiles.push({ label: 'هشدار فعال', value: activeAlerts });
+            tiles.push({ label: 'Active alerts', value: activeAlerts });
         }
         if (latestTelemetry) {
-            tiles.push({ label: 'آخرین ارسال داده', value: latestTelemetry });
+            tiles.push({ label: 'Last telemetry', value: latestTelemetry });
         }
         return tiles;
     }, [activeAlerts, devices.length, latestTelemetry]);
@@ -171,12 +171,12 @@ export default function CustomerDashboard() {
             <section className={styles.summary}>
                 <div className={styles.sectionHeader}>
                     <div>
-                        <h2>نمای کلی</h2>
-                        <p>وضعیت سریع حساب و دستگاه‌های شما.</p>
+                        <h2>Overview</h2>
+                        <p>Quick status for your account and devices.</p>
                     </div>
                     {ordersState.supported ? (
                         <Link to="/my-page/orders" className={styles.linkButton}>
-                            سفارش‌ها
+                            Orders
                         </Link>
                     ) : null}
                 </div>
@@ -193,26 +193,26 @@ export default function CustomerDashboard() {
             <section className={styles.devices}>
                 <div className={styles.sectionHeader}>
                     <div>
-                        <h2>دستگاه‌های من</h2>
-                        <p>وضعیت لحظه‌ای، داده‌های کلیدی و دسترسی سریع.</p>
+                        <h2>My devices</h2>
+                        <p>Live status, key metrics, and quick access.</p>
                     </div>
                 </div>
 
                 {loadingDevices ? (
-                    <div className={styles.loading}>در حال بارگذاری دستگاه‌ها…</div>
+                    <div className={styles.loading}>Loading devices…</div>
                 ) : devicesError ? (
                     <div className={styles.error} role="alert">
                         <div>{devicesError}</div>
                         <button type="button" onClick={() => window.location.reload()}>
-                            تلاش مجدد
+                            Retry
                         </button>
                     </div>
                 ) : devices.length === 0 ? (
                     <div className={styles.empty}>
-                        <p>هنوز دستگاهی ندارید…</p>
-                        <p className={styles.emptySub}>به فروشگاه سر بزنید و یک دستگاه اضافه کنید.</p>
+                        <p>You do not have any devices yet…</p>
+                        <p className={styles.emptySub}>Visit the store to add your first device.</p>
                         <div className={styles.emptyActions}>
-                            <Link to="/store" className={styles.primaryButton}>مشاهده فروشگاه</Link>
+                            <Link to="/store" className={styles.primaryButton}>Browse store</Link>
                         </div>
                     </div>
                 ) : (
@@ -225,13 +225,13 @@ export default function CustomerDashboard() {
                                     <div className={styles.deviceHeader}>
                                         <div>
                                             <p className={styles.deviceName}>{device.name}</p>
-                                            <p className={styles.deviceId}>شناسه: {device.id}</p>
+                                            <p className={styles.deviceId}>ID: {device.id}</p>
                                         </div>
                                         <div className={styles.deviceStatus}>
                                             <span className={`${styles.statusBadge} ${statusClassName(device.status)}`}>
                                                 {String(device.status || '').toUpperCase()}
                                             </span>
-                                            {lastSeen && <span className={styles.metaText}>آخرین بروزرسانی: {lastSeen}</span>}
+                                            {lastSeen && <span className={styles.metaText}>Last update: {lastSeen}</span>}
                                         </div>
                                     </div>
 
@@ -244,7 +244,7 @@ export default function CustomerDashboard() {
                                                 </span>
                                             ))
                                         ) : (
-                                            <span className={styles.metaText}>داده‌ای برای نمایش موجود نیست.</span>
+                                            <span className={styles.metaText}>No data available.</span>
                                         )}
                                     </div>
 
@@ -263,14 +263,14 @@ export default function CustomerDashboard() {
                                             className={styles.secondaryButton}
                                             onClick={() => navigate(`/my-page/devices/${encodeURIComponent(device.id)}`)}
                                         >
-                                            جزئیات
+                                            Details
                                         </button>
                                         {reportsEnabled ? (
                                             <Link
                                                 to={`/dashboard/reports?deviceId=${encodeURIComponent(device.id)}`}
                                                 className={styles.ghostButton}
                                             >
-                                                گزارش‌ها
+                                                Reports
                                             </Link>
                                         ) : null}
                                     </div>
@@ -282,25 +282,25 @@ export default function CustomerDashboard() {
             </section>
 
             <section className={styles.account}>
-                <h2>حساب</h2>
+                <h2>Account</h2>
                 <div className={styles.accountGrid}>
                     <div className={styles.field}>
-                        <label>نمایش نام</label>
-                        <div className={styles.readonly}>{loadingProfile ? 'در حال بارگذاری…' : profile?.displayName || '—'}</div>
+                        <label>Display name</label>
+                        <div className={styles.readonly}>{loadingProfile ? 'Loading…' : profile?.displayName || '—'}</div>
                     </div>
                     <div className={styles.field}>
-                        <label>ایمیل</label>
-                        <div className={styles.readonly}>{loadingProfile ? 'در حال بارگذاری…' : profile?.email || '—'}</div>
+                        <label>Email</label>
+                        <div className={styles.readonly}>{loadingProfile ? 'Loading…' : profile?.email || '—'}</div>
                     </div>
                 </div>
                 <div className={styles.accountActions}>
                     {ordersState.supported ? (
                         <Link to="/my-page/orders" className={styles.linkButton}>
-                            سفارش‌های من
+                            My orders
                         </Link>
                     ) : null}
                     <button type="button" className={styles.dangerButton} onClick={() => logout()}>
-                        خروج از حساب
+                        Sign out
                     </button>
                 </div>
             </section>

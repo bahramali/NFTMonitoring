@@ -22,7 +22,7 @@ const normalizeDevice = (payload = {}) => {
 
     return {
         id,
-        name: device.name ?? device.displayName ?? device.deviceName ?? id ?? 'دستگاه',
+        name: device.name ?? device.displayName ?? device.deviceName ?? id ?? 'Device',
         status,
         lastSeen,
         sensors: device.sensors ?? device.readings ?? device.sensorReadings ?? device.data ?? [],
@@ -97,26 +97,26 @@ export default function CustomerDeviceDetails() {
     return (
         <div className={styles.page}>
             <div className={styles.breadcrumbs}>
-                <Link to="/my-page">حساب من</Link>
+                <Link to="/my-page">My account</Link>
                 <span>/</span>
-                <span className={styles.current}>{device?.name ?? deviceId ?? 'جزئیات دستگاه'}</span>
+                <span className={styles.current}>{device?.name ?? deviceId ?? 'Device details'}</span>
             </div>
 
             {loading ? (
-                <div className={styles.loading}>در حال بارگذاری جزئیات…</div>
+                <div className={styles.loading}>Loading device details…</div>
             ) : error ? (
                 <div className={styles.error} role="alert">
                     <p>{error}</p>
-                    <Link to="/my-page" className={styles.primaryButton}>بازگشت</Link>
+                    <Link to="/my-page" className={styles.primaryButton}>Back</Link>
                 </div>
             ) : device ? (
                 <div className={styles.card}>
                     <div className={styles.header}>
                         <div>
-                            <p className={styles.kicker}>دستگاه مشتری</p>
+                            <p className={styles.kicker}>Customer device</p>
                             <h1 className={styles.title}>{device.name}</h1>
                             <p className={styles.subtitle}>
-                                {profile?.email ? `متعلق به ${profile.email}` : 'متعلق به شما'}
+                                {profile?.email ? `Owned by ${profile.email}` : 'Owned by you'}
                             </p>
                         </div>
                         <div className={styles.statusBlock}>
@@ -125,7 +125,7 @@ export default function CustomerDeviceDetails() {
                             </span>
                             {device.lastSeen && (
                                 <span className={styles.metaText}>
-                                    آخرین بروزرسانی:
+                                    Last update:
                                     {' '}
                                     {formatDateTime(device.lastSeen)}
                                 </span>
@@ -135,15 +135,15 @@ export default function CustomerDeviceDetails() {
 
                     <div className={styles.infoGrid}>
                         <div className={styles.infoItem}>
-                            <span className={styles.label}>شناسه</span>
+                            <span className={styles.label}>ID</span>
                             <span className={styles.value}>{device.id || '—'}</span>
                         </div>
                         <div className={styles.infoItem}>
-                            <span className={styles.label}>مکان</span>
+                            <span className={styles.label}>Location</span>
                             <span className={styles.value}>{device.location || '—'}</span>
                         </div>
                         <div className={styles.infoItem}>
-                            <span className={styles.label}>هشدارها</span>
+                            <span className={styles.label}>Alerts</span>
                             <span className={styles.value}>{alertCount}</span>
                         </div>
                     </div>
@@ -158,13 +158,13 @@ export default function CustomerDeviceDetails() {
                     />
 
                     <div className={styles.actions}>
-                        <Link to="/my-page" className={styles.secondaryButton}>بازگشت به حساب</Link>
+                        <Link to="/my-page" className={styles.secondaryButton}>Back to account</Link>
                         {reportsEnabled ? (
                             <Link
                                 to={`/dashboard/reports?deviceId=${encodeURIComponent(device.id)}`}
                                 className={styles.ghostButton}
                             >
-                                گزارش‌ها
+                                Reports
                             </Link>
                         ) : null}
                     </div>

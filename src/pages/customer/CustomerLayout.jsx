@@ -10,7 +10,7 @@ const normalizeProfile = (payload) => {
     const source = payload?.user ?? payload ?? {};
     const email = source.email ?? source.username ?? '';
     const displayName =
-        (source.displayName ?? source.name ?? source.fullName ?? source.nickname ?? email) || 'کاربر';
+        (source.displayName ?? source.name ?? source.fullName ?? source.nickname ?? email) || 'Customer';
 
     return {
         id: source.id ?? source.userId ?? null,
@@ -122,19 +122,19 @@ export default function CustomerLayout() {
         [loadOrders, loadingProfile, ordersState, profile, profileError, redirectToLogin],
     );
 
-    const headline = profile?.displayName || 'حساب من';
-    const subhead = profile?.email || 'جزئیات حساب و دستگاه‌های شما در این صفحه مدیریت می‌شوند.';
+    const headline = profile?.displayName || 'My account';
+    const subhead = profile?.email || 'Manage your account details and devices here.';
 
     return (
         <div className={styles.page}>
             <div className={styles.hero}>
                 <div>
-                    <p className={styles.kicker}>حساب من</p>
+                    <p className={styles.kicker}>My account</p>
                     <h1 className={styles.title}>{headline}</h1>
                     <p className={styles.subtitle}>{subhead}</p>
                 </div>
                 <div className={styles.heroMeta}>
-                    <span className={styles.metaLabel}>مسیر جاری</span>
+                    <span className={styles.metaLabel}>Current route</span>
                     <span className={styles.metaValue}>{location.pathname}</span>
                 </div>
             </div>
@@ -142,11 +142,11 @@ export default function CustomerLayout() {
             {profileError && (
                 <div className={`${styles.banner} ${styles.bannerError}`} role="alert">
                     <div>
-                        <strong>خطا در بارگذاری حساب</strong>
+                        <strong>Failed to load account</strong>
                         <div>{profileError}</div>
                     </div>
                     <button type="button" className={styles.bannerAction} onClick={() => loadProfile()}>
-                        تلاش مجدد
+                        Retry
                     </button>
                 </div>
             )}

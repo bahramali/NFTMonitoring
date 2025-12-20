@@ -92,23 +92,23 @@ export default function CustomerOrderDetails() {
     if (unsupported) {
         return (
             <div className={styles.card}>
-                <p className={styles.kicker}>سفارش</p>
-                <h1>نمایش سفارش فعال نیست</h1>
-                <p className={styles.subtitle}>نمایش جزئیات سفارش برای این حساب در دسترس نیست.</p>
-                <Link to="/my-page" className={styles.primaryButton}>بازگشت</Link>
+                <p className={styles.kicker}>Order</p>
+                <h1>Order details unavailable</h1>
+                <p className={styles.subtitle}>Order details are not available for this account.</p>
+                <Link to="/my-page" className={styles.primaryButton}>Back</Link>
             </div>
         );
     }
 
     if (loading) {
-        return <div className={styles.loading}>در حال بارگذاری سفارش…</div>;
+        return <div className={styles.loading}>Loading order…</div>;
     }
 
     if (error) {
         return (
             <div className={styles.card}>
                 <p className={styles.error} role="alert">{error}</p>
-                <Link to="/my-page/orders" className={styles.secondaryButton}>بازگشت</Link>
+                <Link to="/my-page/orders" className={styles.secondaryButton}>Back</Link>
             </div>
         );
     }
@@ -119,21 +119,21 @@ export default function CustomerOrderDetails() {
         <div className={styles.card}>
             <div className={styles.header}>
                 <div>
-                    <p className={styles.kicker}>سفارش</p>
-                    <h1>سفارش {order.id}</h1>
+                    <p className={styles.kicker}>Order</p>
+                    <h1>Order {order.id}</h1>
                     <p className={styles.subtitle}>
-                        ثبت شده در
+                        Placed on
                         {' '}
                         {order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}
                     </p>
                 </div>
                 <div className={styles.statusBlock}>
                     <span className={`${styles.statusBadge} ${statusTone(order.status)}`}>
-                        {order.status || 'نامشخص'}
+                        {order.status || 'Unknown'}
                     </span>
                     {order.paymentStatus ? (
                         <span className={styles.subStatus}>
-                            وضعیت پرداخت:
+                            Payment status:
                             {' '}
                             {order.paymentStatus}
                         </span>
@@ -143,39 +143,39 @@ export default function CustomerOrderDetails() {
 
             <div className={styles.metaGrid}>
                 <div>
-                    <p className={styles.label}>مبلغ</p>
+                    <p className={styles.label}>Total</p>
                     <p className={styles.value}>
                         {order.total != null ? formatCurrency(order.total, order.currency) : '—'}
                     </p>
                 </div>
                 <div>
-                    <p className={styles.label}>به‌روزرسانی</p>
+                    <p className={styles.label}>Updated</p>
                     <p className={styles.value}>
                         {order.updatedAt ? new Date(order.updatedAt).toLocaleString() : '—'}
                     </p>
                 </div>
                 <div>
-                    <p className={styles.label}>آدرس</p>
+                    <p className={styles.label}>Address</p>
                     <p className={styles.value}>{formatAddress(order.shippingAddress)}</p>
                 </div>
             </div>
 
             <div className={styles.items}>
-                <h3>اقلام</h3>
+                <h3>Items</h3>
                 {!order.items?.length ? (
-                    <p className={styles.value}>هیچ موردی ثبت نشده است.</p>
+                    <p className={styles.value}>No items recorded.</p>
                 ) : (
                     <div className={styles.itemGrid}>
                         {order.items.map((item, index) => (
                             <div key={item.id ?? item.sku ?? index} className={styles.item}>
-                                <p className={styles.itemName}>{item.name ?? item.title ?? 'کالا'}</p>
+                                <p className={styles.itemName}>{item.name ?? item.title ?? 'Item'}</p>
                                 <p className={styles.itemMeta}>
-                                    تعداد:
+                                    Quantity:
                                     {' '}
                                     {item.quantity ?? item.qty ?? 1}
                                 </p>
                                 <p className={styles.itemMeta}>
-                                    قیمت واحد:
+                                    Unit price:
                                     {' '}
                                     {item.price != null || item.unitPrice != null || item.amount != null
                                         ? formatCurrency(
@@ -192,14 +192,14 @@ export default function CustomerOrderDetails() {
 
             {order.customerNote ? (
                 <div className={styles.note}>
-                    <p className={styles.label}>یادداشت</p>
+                    <p className={styles.label}>Note</p>
                     <p className={styles.value}>{order.customerNote}</p>
                 </div>
             ) : null}
 
             <div className={styles.actions}>
-                <Link to="/my-page/orders" className={styles.secondaryButton}>بازگشت به سفارش‌ها</Link>
-                <Link to="/my-page" className={styles.primaryButton}>بازگشت به حساب</Link>
+                <Link to="/my-page/orders" className={styles.secondaryButton}>Back to orders</Link>
+                <Link to="/my-page" className={styles.primaryButton}>Back to account</Link>
             </div>
         </div>
     );
