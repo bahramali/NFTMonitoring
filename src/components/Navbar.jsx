@@ -9,6 +9,12 @@ const NAV_ITEMS = [
     { path: '/', label: 'Home', requiresAuth: false },
     { path: '/store', label: 'Store', requiresAuth: false },
     {
+        path: '/my-page',
+        label: 'My Page',
+        requiresAuth: true,
+        roles: ['CUSTOMER'],
+    },
+    {
         path: '/dashboard/overview',
         label: 'Monitoring',
         requiresAuth: true,
@@ -233,6 +239,15 @@ export default function Navbar() {
                                     </div>
                                     <span className={styles.mutedLabel}>Account</span>
                                 </div>
+                                {role === 'CUSTOMER' && (
+                                    <Link
+                                        to="/my-page"
+                                        className={styles.menuLink}
+                                        onClick={handleNavLinkClick}
+                                    >
+                                        My Page
+                                    </Link>
+                                )}
                                 <button type="button" className={styles.menuLink} disabled>
                                     Settings (coming soon)
                                 </button>

@@ -1,0 +1,293 @@
+.grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.sectionHeader h2 {
+    margin: 0;
+}
+
+.sectionHeader p {
+    margin: 2px 0 0;
+    color: #475569;
+}
+
+.summary, .devices, .account {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.tile {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    padding: 12px;
+    border-radius: 12px;
+}
+
+.tileLabel {
+    margin: 0;
+    font-size: 13px;
+    color: #475569;
+}
+
+.tileValue {
+    margin: 4px 0 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.linkButton {
+    background: #0ea5e9;
+    color: #fff;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.devices h2 {
+    margin: 0;
+}
+
+.loading {
+    padding: 12px;
+    color: #475569;
+}
+
+.error {
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid #fecdd3;
+    background: #fff1f2;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-content: space-between;
+}
+
+.error button {
+    border: none;
+    background: #ef4444;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.empty {
+    padding: 18px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    background: #f8fafc;
+    text-align: center;
+}
+
+.emptySub {
+    margin: 6px 0 12px;
+    color: #64748b;
+}
+
+.emptyActions {
+    display: flex;
+    justify-content: center;
+}
+
+.primaryButton {
+    background: #0ea5e9;
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.deviceGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 14px;
+}
+
+.deviceCard {
+    background: linear-gradient(160deg, #0b1530, #0e203b);
+    color: #e3edff;
+    border-radius: 14px;
+    padding: 14px;
+    border: 1px solid rgba(148, 197, 255, 0.35);
+    box-shadow: 0 18px 38px rgba(5, 12, 28, 0.55);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.deviceHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.deviceName {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.deviceId {
+    margin: 2px 0 0;
+    color: #9cb6e4;
+    font-size: 13px;
+}
+
+.deviceStatus {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.statusBadge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.statusOnline {
+    background: rgba(52, 211, 153, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(52, 211, 153, 0.5);
+}
+
+.statusOffline {
+    background: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(248, 113, 113, 0.45);
+}
+
+.statusUnknown {
+    background: rgba(148, 163, 184, 0.15);
+    color: #cbd5e1;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+}
+
+.metaText {
+    color: #cbd5e1;
+    font-size: 13px;
+}
+
+.metricsRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.metricChip {
+    background: rgba(148, 197, 255, 0.1);
+    border: 1px solid rgba(148, 197, 255, 0.35);
+    border-radius: 10px;
+    padding: 8px 10px;
+    display: inline-flex;
+    gap: 6px;
+    align-items: baseline;
+}
+
+.metricLabel {
+    color: #9fc6ff;
+    font-size: 12px;
+}
+
+.metricValue {
+    color: #e3edff;
+    font-weight: 700;
+}
+
+.deviceActions {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.secondaryButton {
+    border: 1px solid #60a5fa;
+    background: transparent;
+    color: #bfdbfe;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    flex: 1;
+}
+
+.ghostButton {
+    border: 1px dashed #93c5fd;
+    background: transparent;
+    color: #93c5fd;
+    padding: 10px 12px;
+    border-radius: 10px;
+    text-decoration: none;
+    flex: 1;
+    text-align: center;
+}
+
+.accountGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    margin: 12px 0;
+}
+
+.field label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #0f172a;
+}
+
+.readonly {
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    padding: 10px 12px;
+    border-radius: 10px;
+}
+
+.accountActions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.dangerButton {
+    border: 1px solid #f87171;
+    background: transparent;
+    color: #dc2626;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .deviceActions {
+        flex-direction: column;
+    }
+}
