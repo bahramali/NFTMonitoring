@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
     addItemToCart,
     checkoutCart as checkoutCartApi,
@@ -71,6 +71,19 @@ export function StorefrontProvider({ children }) {
     const [pendingItemId, setPendingItemId] = useState(null);
     const [isCartOpen, setIsCartOpen] = useState(false);
 
+    const cartStateRef = useRef(cartState);
+    const cartRef = useRef(cart);
+    const didInitRef = useRef(false);
+    const cartRequestRef = useRef(null);
+
+    useEffect(() => {
+        cartStateRef.current = cartState;
+    }, [cartState]);
+
+    useEffect(() => {
+        cartRef.current = cart;
+    }, [cart]);
+
     const showToast = useCallback((type, message) => {
         if (!message) return;
         setToast({ type, message, id: Date.now() });
@@ -78,13 +91,17 @@ export function StorefrontProvider({ children }) {
 
     const applyCartResponse = useCallback(
         (payload, expectation = {}) => {
-            const normalized = normalizeCartResponse(payload, cartState);
+            const normalized = normalizeCartResponse(payload, cartStateRef.current);
             if (!normalized) return null;
 
             const nextCartId = normalized.id || normalized.cartId;
             const nextSessionId = normalized.sessionId;
+
             if (nextCartId && nextSessionId) {
-                setCartState({ cartId: nextCartId, sessionId: nextSessionId });
+                setCartState((prev) => {
+                    if (prev.cartId === nextCartId && prev.sessionId === nextSessionId) return prev;
+                    return { cartId: nextCartId, sessionId: nextSessionId };
+                });
                 persistCartSession(nextCartId, nextSessionId);
             }
 
@@ -109,61 +126,74 @@ export function StorefrontProvider({ children }) {
         },
         [cartState, showToast],
     );
+    const ensureCartSession = useCallback(
+        async ({ allowCreate = true, silent = false } = {}) => {
+            if (cartRequestRef.current) return cartRequestRef.current;
 
-    const bootstrapCart = useCallback(async () => {
-        setInitializing(true);
-        try {
-            if (!cartState.cartId || !cartState.sessionId) {
-                const created = await createStoreCart(cartState.sessionId);
-                applyCartResponse(created);
-                return;
-            }
+            const request = (async () => {
+                const storedCartId = cartStateRef.current.cartId;
+                const storedSessionId = cartStateRef.current.sessionId;
+                const existingCartId = cartRef.current?.id || storedCartId;
+                const existingSessionId = cartRef.current?.sessionId || storedSessionId;
 
-            const fetched = await fetchStoreCart(cartState.cartId, cartState.sessionId);
-            applyCartResponse(fetched);
-        } catch (error) {
-            console.error('Failed to sync cart', error);
-            clearCartSession();
-            try {
-                const created = await createStoreCart();
-                applyCartResponse(created);
-            } catch (creationError) {
-                showToast('error', creationError?.message || 'Unable to start a cart session.');
-            }
-        } finally {
-            setInitializing(false);
-        }
-    }, [applyCartResponse, cartState.cartId, cartState.sessionId, showToast]);
+                try {
+                    if (existingCartId && existingSessionId) {
+                        const fetched = await fetchStoreCart(existingCartId, existingSessionId);
+                        return applyCartResponse(fetched, silent ? { silent: true } : undefined);
+                    }
+
+                    if (!allowCreate) return null;
+
+                    const created = await createStoreCart(existingSessionId);
+                    return applyCartResponse(created, silent ? { silent: true } : undefined);
+                } catch (error) {
+                    if (!allowCreate) {
+                        showToast('error', error?.message || 'Unable to start a cart session.');
+                        return null;
+                    }
+
+                    console.error('Failed to sync cart', error);
+                    clearCartSession();
+                    try {
+                        const created = await createStoreCart();
+                        return applyCartResponse(created, silent ? { silent: true } : undefined);
+                    } catch (creationError) {
+                        showToast('error', creationError?.message || 'Unable to start a cart session.');
+                        return null;
+                    }
+                }
+            })()
+                .finally(() => {
+                    cartRequestRef.current = null;
+                    setInitializing(false);
+                });
+
+            cartRequestRef.current = request;
+            return request;
+        },
+        [applyCartResponse, showToast],
+    );
 
     useEffect(() => {
-        bootstrapCart();
-    }, [bootstrapCart]);
+        if (didInitRef.current) return;
+        didInitRef.current = true;
+        setInitializing(true);
+        ensureCartSession();
+    }, [ensureCartSession]);
 
     const refreshCart = useCallback(async () => {
-        if (!cartState.cartId) return null;
-        try {
-            const fetched = await fetchStoreCart(cartState.cartId, cartState.sessionId);
-            return applyCartResponse(fetched, { silent: true });
-        } catch (error) {
-            showToast('error', error?.message || 'Unable to refresh cart.');
-            return null;
-        }
-    }, [applyCartResponse, cartState.cartId, cartState.sessionId, showToast]);
+        if (!cartStateRef.current.cartId) return null;
+        return ensureCartSession({ allowCreate: false, silent: true });
+    }, [ensureCartSession]);
 
     const addToCart = useCallback(
         async (productId, quantity = 1) => {
             if (!productId) return null;
             setPendingProductId(productId);
             try {
-                let ensuredCartId = cartState.cartId || cart?.id;
-                let ensuredSessionId = cartState.sessionId || cart?.sessionId;
-
-                if (!ensuredCartId || !ensuredSessionId) {
-                    const created = await createStoreCart(ensuredSessionId);
-                    const createdCart = applyCartResponse(created, { silent: true });
-                    ensuredCartId = createdCart?.id || createdCart?.cartId;
-                    ensuredSessionId = createdCart?.sessionId;
-                }
+                const ensuredCart = await ensureCartSession({ allowCreate: true, silent: true });
+                const ensuredCartId = ensuredCart?.id || ensuredCart?.cartId;
+                const ensuredSessionId = ensuredCart?.sessionId;
 
                 if (!ensuredCartId || !ensuredSessionId) {
                     throw new Error('Unable to start a cart session. Please try again.');
@@ -180,7 +210,7 @@ export function StorefrontProvider({ children }) {
                 setPendingProductId(null);
             }
         },
-        [applyCartResponse, cart?.id, cart?.sessionId, cartState.cartId, cartState.sessionId, showToast],
+        [applyCartResponse, ensureCartSession, showToast],
     );
 
     const updateItemQuantity = useCallback(
@@ -188,7 +218,7 @@ export function StorefrontProvider({ children }) {
             if (!itemId) return null;
             setPendingItemId(itemId);
             try {
-                const response = await updateCartItem(cartState.cartId, cartState.sessionId, itemId, quantity);
+                const response = await updateCartItem(cartStateRef.current.cartId, cartStateRef.current.sessionId, itemId, quantity);
                 return applyCartResponse(response, { itemId, quantity });
             } catch (error) {
                 showToast('error', error?.message || 'Unable to update quantity.');
@@ -197,7 +227,7 @@ export function StorefrontProvider({ children }) {
                 setPendingItemId(null);
             }
         },
-        [applyCartResponse, cartState.cartId, cartState.sessionId, showToast],
+        [applyCartResponse, showToast],
     );
 
     const removeItem = useCallback(
@@ -205,7 +235,7 @@ export function StorefrontProvider({ children }) {
             if (!itemId) return null;
             setPendingItemId(itemId);
             try {
-                const response = await removeCartItem(cartState.cartId, cartState.sessionId, itemId);
+                const response = await removeCartItem(cartStateRef.current.cartId, cartStateRef.current.sessionId, itemId);
                 return applyCartResponse(response, { itemId, silent: true });
             } catch (error) {
                 showToast('error', error?.message || 'Unable to remove item.');
@@ -214,21 +244,21 @@ export function StorefrontProvider({ children }) {
                 setPendingItemId(null);
             }
         },
-        [applyCartResponse, cartState.cartId, cartState.sessionId, showToast],
+        [applyCartResponse, showToast],
     );
 
     const checkout = useCallback(
         async (payload) => {
-            if (!cartState.cartId || !cartState.sessionId) {
+            if (!cartStateRef.current.cartId || !cartStateRef.current.sessionId) {
                 throw new Error('Cart session is not ready yet. Please try again.');
             }
-            const response = await checkoutCartApi(cartState.cartId, cartState.sessionId, payload);
+            const response = await checkoutCartApi(cartStateRef.current.cartId, cartStateRef.current.sessionId, payload);
             if (response?.cart || response?.cartId) {
                 applyCartResponse(response, { silent: true });
             }
             return response;
         },
-        [applyCartResponse, cartState.cartId, cartState.sessionId],
+        [applyCartResponse],
     );
 
     const closeCart = useCallback(() => setIsCartOpen(false), []);
