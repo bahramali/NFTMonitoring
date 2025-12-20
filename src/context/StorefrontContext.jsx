@@ -155,8 +155,20 @@ export function StorefrontProvider({ children }) {
             if (!productId) return null;
             setPendingProductId(productId);
             try {
-                const ensuredCartId = cartState.cartId || cart?.id;
-                const ensuredSessionId = cartState.sessionId || cart?.sessionId;
+                let ensuredCartId = cartState.cartId || cart?.id;
+                let ensuredSessionId = cartState.sessionId || cart?.sessionId;
+
+                if (!ensuredCartId || !ensuredSessionId) {
+                    const created = await createStoreCart(ensuredSessionId);
+                    const createdCart = applyCartResponse(created, { silent: true });
+                    ensuredCartId = createdCart?.id || createdCart?.cartId;
+                    ensuredSessionId = createdCart?.sessionId;
+                }
+
+                if (!ensuredCartId || !ensuredSessionId) {
+                    throw new Error('Unable to start a cart session. Please try again.');
+                }
+
                 const response = await addItemToCart(ensuredCartId, ensuredSessionId, productId, quantity);
                 const updated = applyCartResponse(response, { productId, quantity, intent: 'add' });
                 setIsCartOpen(true);
