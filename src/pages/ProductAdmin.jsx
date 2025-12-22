@@ -238,7 +238,7 @@ export default function ProductAdmin() {
     const validateForm = () => {
         if (!formState.name || formState.name.trim().length < 2) return 'Name must be at least 2 characters.';
         const priceNumber = normalizeNumber(formState.price, -1);
-        if (priceNumber <= 0) return 'Price must be greater than 0.';
+        if (priceNumber < 0) return 'Price cannot be negative.';
         const stockNumber = normalizeNumber(formState.stock, 0);
         if (stockNumber < 0) return 'Stock cannot be negative.';
         return '';
