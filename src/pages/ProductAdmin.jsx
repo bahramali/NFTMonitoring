@@ -40,9 +40,32 @@ const normalizePermissionDefinitions = (payload) => {
     return [];
 };
 
+const digitToAscii = (char) => {
+    const code = char.charCodeAt(0);
+    const persianZero = 0x06f0; // Persian zero
+    const persianNine = 0x06f9; // Persian nine
+    const arabicZero = 0x0660; // Arabic-indic zero
+    const arabicNine = 0x0669; // Arabic-indic nine
+
+    if (code >= persianZero && code <= persianNine) return String(code - persianZero);
+    if (code >= arabicZero && code <= arabicNine) return String(code - arabicZero);
+    return char;
+};
+
 const normalizeNumber = (value, fallback = 0) => {
     if (value === '' || value === null || value === undefined) return fallback;
-    const numeric = Number(value);
+
+    const normalized = `${value}`
+        .trim()
+        .split('')
+        .map(digitToAscii)
+        .join('')
+        // Remove grouping separators commonly used in Persian/Arabic numerals.
+        .replace(/[\u066c\u060c,\s]/g, '')
+        // Normalize Arabic decimal separator.
+        .replace(/\u066b/g, '.');
+
+    const numeric = Number(normalized);
     if (Number.isNaN(numeric)) return fallback;
     return numeric;
 };
