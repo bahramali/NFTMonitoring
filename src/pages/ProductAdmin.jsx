@@ -42,10 +42,10 @@ const normalizePermissionDefinitions = (payload) => {
 
 const digitToAscii = (char) => {
     const code = char.charCodeAt(0);
-    const persianZero = 0x06f0; // ۰
-    const persianNine = 0x06f9; // ۹
-    const arabicZero = 0x0660; // ٠
-    const arabicNine = 0x0669; // ٩
+    const persianZero = 0x06f0; // Persian zero
+    const persianNine = 0x06f9; // Persian nine
+    const arabicZero = 0x0660; // Arabic-indic zero
+    const arabicNine = 0x0669; // Arabic-indic nine
 
     if (code >= persianZero && code <= persianNine) return String(code - persianZero);
     if (code >= arabicZero && code <= arabicNine) return String(code - arabicZero);
