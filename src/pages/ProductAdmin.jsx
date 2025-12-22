@@ -95,14 +95,8 @@ export default function ProductAdmin() {
             }
         }
 
-        if (nextList.length > 0) {
-            const first = nextList[0];
-            setSelectedId(first.id);
-            setFormState({ ...emptyForm, ...first, price: first.price ?? '', stock: first.stock ?? 0, active: first.active !== false });
-        } else {
-            setSelectedId(null);
-            setFormState(emptyForm);
-        }
+        setSelectedId(null);
+        setFormState(emptyForm);
     }, [selectedId]);
 
     const loadProducts = useCallback(async (options = {}) => {
