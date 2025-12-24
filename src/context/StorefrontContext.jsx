@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import {
     addItemToCart,
     checkoutCart as checkoutCartApi,
+    createCheckoutSession as createCheckoutSessionApi,
     createStoreCart,
     fetchStoreCart,
     normalizeCartResponse,
@@ -32,6 +33,7 @@ const StorefrontContext = createContext({
     updateItemQuantity: async () => {},
     removeItem: async () => {},
     checkout: async () => ({}),
+    createCheckoutSession: async () => ({}),
     clearToast: () => {},
 });
 
@@ -261,6 +263,24 @@ export function StorefrontProvider({ children }) {
         [applyCartResponse],
     );
 
+    const createCheckoutSession = useCallback(
+        async (payload) => {
+            if (!cartStateRef.current.cartId || !cartStateRef.current.sessionId) {
+                throw new Error('Cart session is not ready yet. Please try again.');
+            }
+            const response = await createCheckoutSessionApi(
+                cartStateRef.current.cartId,
+                cartStateRef.current.sessionId,
+                payload,
+            );
+            if (response?.cart || response?.cartId) {
+                applyCartResponse(response, { silent: true });
+            }
+            return response;
+        },
+        [applyCartResponse],
+    );
+
     const closeCart = useCallback(() => setIsCartOpen(false), []);
     const openCart = useCallback(() => setIsCartOpen(true), []);
     const clearToast = useCallback(() => setToast(null), []);
@@ -282,6 +302,7 @@ export function StorefrontProvider({ children }) {
             updateItemQuantity,
             removeItem,
             checkout,
+            createCheckoutSession,
             clearToast,
         }),
         [
@@ -301,6 +322,7 @@ export function StorefrontProvider({ children }) {
             removeItem,
             toast,
             updateItemQuantity,
+            createCheckoutSession,
         ],
     );
 
