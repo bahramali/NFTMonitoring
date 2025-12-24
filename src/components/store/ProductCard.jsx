@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import QuantityStepper from './QuantityStepper.jsx';
 import { currencyLabel, formatCurrency } from '../../utils/currency.js';
+import { getPriceContext } from '../../utils/productCopy.js';
 import styles from './ProductCard.module.css';
 
 export default function ProductCard({ product, onAdd, pending = false }) {
@@ -16,6 +17,7 @@ export default function ProductCard({ product, onAdd, pending = false }) {
         return 'In stock';
     }, [stock]);
     const priceLabel = useMemo(() => formatCurrency(price, currency || 'SEK'), [currency, price]);
+    const priceContext = useMemo(() => getPriceContext(product), [product]);
 
     return (
         <article className={styles.card}>
@@ -38,6 +40,7 @@ export default function ProductCard({ product, onAdd, pending = false }) {
                     <div className={styles.price}>
                         <span className={styles.priceValue}>{priceLabel}</span>
                         <span className={styles.priceCurrency}>{currencyLabel(currency || 'SEK')}</span>
+                        <span className={styles.priceMeta}>{priceContext}</span>
                     </div>
                 </div>
 

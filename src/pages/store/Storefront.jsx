@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { listStoreProducts } from '../../api/store.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import ProductCard from '../../components/store/ProductCard.jsx';
+import TrustBlock from '../../components/store/TrustBlock.jsx';
 import styles from './Storefront.module.css';
 
 export default function Storefront() {
@@ -49,21 +50,21 @@ export default function Storefront() {
             <section className={styles.hero}>
                 <div className={styles.heroCopy}>
                     <p className={styles.kicker}>HydroLeaf Store</p>
-                    <h1 className={styles.title}>Fresh basil &amp; packaging</h1>
+                    <h1 className={styles.title}>Fresh basil for home cooking and busy kitchens</h1>
                     <p className={styles.valueProp}>
-                        Order greenhouse basil, clean packaging, and hydroponic gear in SEK with calm, food-grade handling.
+                        Handled in a clean, controlled environment from harvest to pickup.
                     </p>
                     <div className={styles.pills}>
                         <span>Grown in Sweden</span>
-                        <span>Food-grade handling</span>
-                        <span>Fast pickup</span>
+                        <span>Fresh handling</span>
+                        <span>Pickup-ready</span>
                     </div>
                 </div>
                 <div className={styles.heroCard}>
                     <p className={styles.heroLabel}>Simple checkout</p>
                     <h3>Built for busy kitchens</h3>
                     <p className={styles.heroText}>
-                        Keep your cart open while you browse. Prices stay in SEK and update as quantities change.
+                        Keep your cart open while you browse. Prices stay in SEK and update with every change.
                     </p>
                     {hasItems ? (
                         <Link to="/store/checkout" className={styles.heroAction}>
@@ -76,6 +77,13 @@ export default function Storefront() {
                     )}
                 </div>
             </section>
+
+            <TrustBlock
+                companyName="HydroLeaf Farm"
+                contactLine="Contact: reply to your order confirmation email"
+                storageLine="Fresh herbs: store at 4–8°C"
+                originLabel="Grown in Sweden"
+            />
 
             {error && (
                 <div className={styles.alert} role="alert">

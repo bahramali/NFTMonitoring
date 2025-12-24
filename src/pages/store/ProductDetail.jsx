@@ -4,6 +4,7 @@ import { fetchStoreProduct } from '../../api/store.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import QuantityStepper from '../../components/store/QuantityStepper.jsx';
 import { currencyLabel, formatCurrency } from '../../utils/currency.js';
+import { getPriceContext, getProductFacts } from '../../utils/productCopy.js';
 import styles from './ProductDetail.module.css';
 
 export default function ProductDetail() {
@@ -41,6 +42,8 @@ export default function ProductDetail() {
     const isOutOfStock = product?.stock !== undefined && product?.stock <= 0;
     const currency = product?.currency || 'SEK';
     const priceLabel = formatCurrency(product?.price ?? 0, currency);
+    const priceContext = getPriceContext(product);
+    const productFacts = getProductFacts(product);
 
     return (
         <div className={styles.page}>
@@ -70,10 +73,11 @@ export default function ProductDetail() {
                     <div className={styles.panel}>
                         <p className={styles.kicker}>In the HydroLeaf store</p>
                         <h1 className={styles.title}>{product?.name}</h1>
-                        <p className={styles.subtitle}>{product?.description || product?.shortDescription}</p>
+                        <p className={styles.subtitle}>Product details</p>
                         <div className={styles.priceBlock}>
                             <span className={styles.price}>{priceLabel}</span>
                             <span className={styles.currency}>{currencyLabel(currency)}</span>
+                            <span className={styles.priceMeta}>{priceContext}</span>
                             {product?.stock !== undefined && (
                                 <span className={`${styles.badge} ${isOutOfStock ? styles.badgeMuted : styles.badgePositive}`}>
                                     {isOutOfStock ? 'Out of stock' : `${product.stock} in stock`}
@@ -81,13 +85,11 @@ export default function ProductDetail() {
                             )}
                         </div>
 
-                        {product?.highlights?.length ? (
-                            <ul className={styles.list}>
-                                {product.highlights.map((item) => (
-                                    <li key={item}>{item}</li>
-                                ))}
-                            </ul>
-                        ) : null}
+                        <ul className={styles.list}>
+                            {productFacts.map((item) => (
+                                <li key={item}>{item}</li>
+                            ))}
+                        </ul>
 
                         <div className={styles.actions}>
                             <QuantityStepper
