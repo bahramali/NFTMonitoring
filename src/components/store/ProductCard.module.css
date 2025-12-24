@@ -4,7 +4,7 @@
     border-radius: 16px;
     color: var(--text, #111);
     display: grid;
-    grid-template-rows: auto 1fr auto;
+    grid-template-columns: minmax(0, 1fr);
     overflow: hidden;
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.04);
     transition: transform 160ms ease, border-color 160ms ease;
@@ -18,6 +18,8 @@
 .media {
     position: relative;
     aspect-ratio: 4 / 3;
+    height: clamp(200px, 32vw, 240px);
+    max-height: 240px;
     overflow: hidden;
     background: var(--surface, #f7f7f7);
     border-bottom: 1px solid var(--border, #e6e6e6);
@@ -50,7 +52,6 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    min-height: 220px;
 }
 
 .titleRow {
@@ -152,7 +153,6 @@
     justify-content: space-between;
     align-items: center;
     gap: 12px;
-    margin-top: auto;
 }
 
 .addButton {
@@ -179,13 +179,12 @@
 }
 
 .footer {
-    padding: 12px 16px 14px 16px;
+    padding-top: 12px;
     border-top: 1px solid var(--border, #e6e6e6);
     display: flex;
     align-items: center;
     justify-content: space-between;
     color: var(--muted, #666);
-    background: #fafafa;
 }
 
 .link {
@@ -204,6 +203,90 @@
     letter-spacing: 0.05em;
 }
 
+.stickyBar {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid var(--border, #e6e6e6);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.14);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(12px);
+    transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.stickyBarVisible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.stickySummary {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.stickyName {
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.stickyPrice {
+    font-size: 14px;
+    color: var(--muted, #666);
+}
+
+.stickyActions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.stickyAddButton {
+    flex: 1;
+    padding: 10px 14px;
+    min-width: 120px;
+}
+
+@media (min-width: 860px) {
+    .card {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+        align-items: stretch;
+    }
+
+    .media {
+        height: clamp(260px, 28vw, 300px);
+        max-height: 320px;
+        border-bottom: none;
+        border-right: 1px solid var(--border, #e6e6e6);
+    }
+
+    .body {
+        padding: 18px 20px;
+    }
+
+    .stickyBar {
+        left: auto;
+        right: 24px;
+        bottom: 24px;
+        max-width: 520px;
+    }
+}
+
 @media (max-width: 640px) {
     .titleRow {
         flex-direction: column;
@@ -211,5 +294,23 @@
 
     .price {
         text-align: left;
+    }
+
+    .media {
+        height: clamp(200px, 60vw, 220px);
+        max-height: 220px;
+    }
+
+    .stickyBar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .stickyActions {
+        justify-content: space-between;
+    }
+
+    .stickyAddButton {
+        width: 100%;
     }
 }
