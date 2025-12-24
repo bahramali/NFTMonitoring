@@ -26,7 +26,6 @@ export default function CartLineItem({ item, currency = 'SEK', onChangeQuantity,
                 <QuantityStepper
                     value={item?.quantity || 1}
                     min={1}
-                    max={item?.stock || undefined}
                     onChange={(qty) => onChangeQuantity?.(qty)}
                     compact
                     disabled={pending}
