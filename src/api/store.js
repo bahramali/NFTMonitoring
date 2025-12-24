@@ -137,5 +137,38 @@ export function normalizeCartResponse(payload, fallback = {}) {
     const cart = payload.cart ?? payload;
     const cartId = cart.id ?? cart.cartId ?? payload.cartId ?? fallback.cartId ?? null;
     const sessionId = cart.sessionId ?? payload.sessionId ?? fallback.sessionId ?? null;
-    return { ...cart, id: cartId, cartId, sessionId };
+    const normalizedCart = { ...cart, id: cartId, cartId, sessionId };
+    const totals = normalizedCart.totals ?? {};
+    const currency = totals.currency || normalizedCart.currency || 'SEK';
+    const items = Array.isArray(normalizedCart.items) ? normalizedCart.items : [];
+
+    const safeNumber = (value) => {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    const subtotalComputed = items.reduce((sum, item) => {
+        const quantity = safeNumber(item?.quantity ?? 1);
+        const unitPrice = safeNumber(item?.price ?? item?.unitPrice ?? item?.amount ?? 0);
+        const lineTotal = item?.total ?? item?.lineTotal;
+        const lineValue = lineTotal != null ? safeNumber(lineTotal) : unitPrice * quantity;
+        return sum + lineValue;
+    }, 0);
+
+    const shipping = totals.shipping != null ? safeNumber(totals.shipping) : 0;
+    const totalComputed = subtotalComputed + shipping;
+
+    const subtotalNeedsFallback = totals.subtotal == null || (totals.subtotal === 0 && subtotalComputed > 0);
+    const totalNeedsFallback = totals.total == null || (totals.total === 0 && totalComputed > 0);
+
+    if (subtotalNeedsFallback || totalNeedsFallback) {
+        normalizedCart.totals = {
+            ...totals,
+            currency,
+            subtotal: subtotalNeedsFallback ? subtotalComputed : totals.subtotal,
+            total: totalNeedsFallback ? totalComputed : totals.total,
+        };
+    }
+
+    return normalizedCart;
 }
