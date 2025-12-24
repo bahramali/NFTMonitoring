@@ -17,7 +17,7 @@ const initialForm = {
 };
 
 export default function Checkout() {
-    const { cart, checkout } = useStorefront();
+    const { cart, createCheckoutSession } = useStorefront();
     const [form, setForm] = useState(initialForm);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
@@ -38,7 +38,7 @@ export default function Checkout() {
         setSubmitting(true);
         setError(null);
         try {
-            const response = await checkout({
+            const response = await createCheckoutSession({
                 email: form.email,
                 fullName: form.fullName,
                 phone: form.phone,
@@ -51,8 +51,10 @@ export default function Checkout() {
                 },
                 notes: form.notes,
             });
-            if (response?.paymentUrl) {
-                window.location.assign(response.paymentUrl);
+            if (response?.redirectUrl) {
+                window.location.assign(response.redirectUrl);
+            } else {
+                throw new Error('Checkout session did not return a redirect URL.');
             }
         } catch (err) {
             setError(err?.message || 'Checkout failed. Please try again.');
@@ -136,7 +138,7 @@ export default function Checkout() {
                         </div>
                         {error ? <p className={styles.error}>{error}</p> : null}
                         <button type="submit" className={styles.submit} disabled={submitting}>
-                            {submitting ? 'Submitting…' : 'Submit and pay'}
+                            {submitting ? 'Starting checkout…' : 'Pay'}
                         </button>
                     </form>
 

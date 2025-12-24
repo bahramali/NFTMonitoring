@@ -108,6 +108,30 @@ export async function checkoutCart(cartId, sessionId, payload = {}, { signal } =
     return parseApiResponse(res, 'Checkout failed');
 }
 
+export async function createCheckoutSession(cartId, sessionId, payload = {}, { signal } = {}) {
+    const res = await fetch(`${API_BASE}/api/checkout/sessions`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...buildCartHeaders(cartId, sessionId),
+        },
+        body: JSON.stringify({
+            ...payload,
+            cartId,
+            sessionId,
+        }),
+        signal,
+    });
+
+    return parseApiResponse(res, 'Failed to start checkout');
+}
+
+export async function fetchOrderStatus(orderId, { signal } = {}) {
+    if (!orderId) throw new Error('Order ID is required');
+    const res = await fetch(`${API_BASE}/api/orders/${encodeURIComponent(orderId)}`, { signal });
+    return parseApiResponse(res, 'Failed to load order status');
+}
+
 export function normalizeCartResponse(payload, fallback = {}) {
     if (!payload) return null;
     const cart = payload.cart ?? payload;

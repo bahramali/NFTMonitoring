@@ -34,6 +34,8 @@ import CartPage from './pages/store/CartPage.jsx';
 import Checkout from './pages/store/Checkout.jsx';
 import OrderStatus from './pages/store/OrderStatus.jsx';
 import ProductAdmin from './pages/ProductAdmin.jsx';
+import PaymentSuccess from './pages/payment/PaymentSuccess.jsx';
+import PaymentCancel from './pages/payment/PaymentCancel.jsx';
 
 function App() {
     const rawBase = import.meta?.env?.BASE_URL || '/';
@@ -52,6 +54,8 @@ function App() {
                     <Route path="order/:orderId/success" element={<OrderStatus status="success" />} />
                     <Route path="order/:orderId/cancel" element={<OrderStatus status="cancel" />} />
                 </Route>
+                <Route path="/payment/success" element={<PaymentSuccess />} />
+                <Route path="/payment/cancel" element={<PaymentCancel />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/not-authorized" element={<NotAuthorized />} />
