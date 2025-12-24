@@ -27,7 +27,7 @@
 .container {
     max-width: 1160px;
     margin: 0 auto;
-    padding: 16px 20px;
+    padding: 18px 20px;
     display: grid;
     grid-template-columns: 1fr auto;
     align-items: center;
@@ -37,26 +37,28 @@
 .brand {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     cursor: pointer;
     user-select: none;
 }
 
 .brand img {
-    width: 44px;
-    height: 44px;
+    width: 54px;
+    height: 54px;
 }
 
 .brandName {
     display: block;
     font-weight: 800;
     color: var(--text);
+    font-size: 18px;
+    letter-spacing: 0.01em;
 }
 
 .brandNote {
     display: block;
     color: var(--muted);
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .actions {

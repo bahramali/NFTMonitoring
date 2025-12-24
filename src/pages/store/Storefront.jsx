@@ -6,7 +6,7 @@ import ProductCard from '../../components/store/ProductCard.jsx';
 import styles from './Storefront.module.css';
 
 export default function Storefront() {
-    const { addToCart, pendingProductId } = useStorefront();
+    const { addToCart, pendingProductId, cart } = useStorefront();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -19,6 +19,9 @@ export default function Storefront() {
         }
         return list.sort((a, b) => (a?.name || '').localeCompare(b?.name || ''));
     }, [products, sortBy]);
+
+    const itemCount = useMemo(() => cart?.items?.reduce((acc, item) => acc + (item.quantity || 0), 0) || 0, [cart]);
+    const hasItems = itemCount > 0;
 
     const inStock = useMemo(() => sortedProducts.filter((product) => product.stock === undefined || product.stock > 0), [sortedProducts]);
     const lowStock = useMemo(() => sortedProducts.filter((product) => product.stock !== undefined && product.stock <= 0), [sortedProducts]);
@@ -47,7 +50,7 @@ export default function Storefront() {
                 <div className={styles.heroCopy}>
                     <p className={styles.kicker}>HydroLeaf Store</p>
                     <h1 className={styles.title}>Fresh basil &amp; packaging</h1>
-                    <p className={styles.subtitle}>
+                    <p className={styles.valueProp}>
                         Order greenhouse basil, clean packaging, and hydroponic gear in SEK with calm, food-grade handling.
                     </p>
                     <div className={styles.pills}>
@@ -62,9 +65,15 @@ export default function Storefront() {
                     <p className={styles.heroText}>
                         Keep your cart open while you browse. Prices stay in SEK and update as quantities change.
                     </p>
-                    <Link to="/store/checkout" className={styles.heroAction}>
-                        Review cart &amp; checkout
-                    </Link>
+                    {hasItems ? (
+                        <Link to="/store/checkout" className={styles.heroAction}>
+                            Checkout
+                        </Link>
+                    ) : (
+                        <a href="#products" className={styles.heroAction}>
+                            Start shopping
+                        </a>
+                    )}
                 </div>
             </section>
 
@@ -75,7 +84,7 @@ export default function Storefront() {
                 </div>
             )}
 
-            <section className={styles.section}>
+            <section className={styles.section} id="products">
                 <div className={styles.sectionHead}>
                     <div>
                         <p className={styles.sectionKicker}>Available now</p>

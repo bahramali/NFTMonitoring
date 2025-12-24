@@ -1,7 +1,7 @@
 .page {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 32px;
     color: var(--text, #111);
 }
 
@@ -9,16 +9,16 @@
     background: #fff;
     border: 1px solid var(--border, #e6e6e6);
     border-radius: 20px;
-    padding: 32px;
+    padding: 40px;
     display: grid;
     grid-template-columns: 1.4fr 1fr;
-    gap: 24px;
+    gap: 28px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
 }
 
 .heroCopy {
     display: grid;
-    gap: 10px;
+    gap: 12px;
 }
 
 .kicker {
@@ -32,14 +32,17 @@
 
 .title {
     margin: 0;
-    font-size: 32px;
+    font-size: 40px;
     color: var(--text);
+    letter-spacing: -0.02em;
 }
 
-.subtitle {
+.valueProp {
     margin: 0;
     color: var(--muted, #666);
     max-width: 760px;
+    font-size: 17px;
+    font-weight: 600;
 }
 
 .pills {
@@ -63,10 +66,11 @@
     background: var(--surface, #f7f7f7);
     border: 1px solid var(--border, #e6e6e6);
     border-radius: 18px;
-    padding: 20px;
+    padding: 22px;
     color: var(--text);
     display: grid;
-    gap: 10px;
+    gap: 12px;
+    align-content: start;
 }
 
 .heroLabel {
@@ -88,12 +92,21 @@
     align-items: center;
     background: var(--accent, #3a9d5b);
     border-radius: 12px;
-    padding: 12px 14px;
+    padding: 14px 18px;
     color: #fff;
     text-decoration: none;
     font-weight: 700;
+    font-size: 16px;
     text-align: center;
     border: 1px solid var(--accent, #3a9d5b);
+    box-shadow: 0 10px 24px rgba(58, 157, 91, 0.25);
+    transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.heroAction:hover {
+    transform: translateY(-1px);
+    background: #338a51;
+    box-shadow: 0 12px 28px rgba(58, 157, 91, 0.3);
 }
 
 .alert {
@@ -121,18 +134,17 @@
     background: #fff;
     border: 1px solid var(--border, #e6e6e6);
     border-radius: 18px;
-    padding: 20px;
+    padding: 24px;
     display: grid;
     gap: 16px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
 }
 
 .sectionHead {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 16px;
 }
 
 .sectionKicker {
@@ -145,6 +157,7 @@
 
 .sectionHead h2 {
     margin: 4px 0 0;
+    font-size: 26px;
 }
 
 .sectionNote {
@@ -154,10 +167,10 @@
 }
 
 .controls {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
+    display: grid;
+    justify-items: end;
+    gap: 8px;
+    text-align: right;
 }
 
 .controls p {
@@ -167,6 +180,7 @@
 .field {
     display: grid;
     gap: 6px;
+    min-width: 160px;
 }
 
 .field label {
@@ -180,6 +194,7 @@
     border: 1px solid var(--border, #e6e6e6);
     background: #fff;
     color: var(--text, #111);
+    width: 100%;
 }
 
 .grid {
@@ -199,6 +214,11 @@
     }
 
     .sectionHead {
-        flex-direction: column;
+        grid-template-columns: 1fr;
+    }
+
+    .controls {
+        justify-items: start;
+        text-align: left;
     }
 }
