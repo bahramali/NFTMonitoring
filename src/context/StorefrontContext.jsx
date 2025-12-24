@@ -115,7 +115,8 @@ export function StorefrontProvider({ children }) {
                     return item.productId === expectation.productId;
                 });
 
-                if (matchedItem && expectation.quantity !== undefined && matchedItem.quantity !== expectation.quantity) {
+                const matchedQuantity = matchedItem?.quantity ?? matchedItem?.qty;
+                if (matchedItem && expectation.quantity !== undefined && matchedQuantity !== expectation.quantity) {
                     showToast('warning', 'Quantity was adjusted based on current stock.');
                 }
             }

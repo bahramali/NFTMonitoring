@@ -147,8 +147,23 @@ export function normalizeCartResponse(payload, fallback = {}) {
         return Number.isFinite(parsed) ? parsed : 0;
     };
 
-    const subtotalComputed = items.reduce((sum, item) => {
-        const quantity = safeNumber(item?.quantity ?? 1);
+    const mappedItems = items.map((item) => {
+        const quantity = item?.quantity ?? item?.qty ?? 1;
+        const unitPrice = item?.price ?? item?.unitPrice ?? (item?.unitPriceCents != null ? item.unitPriceCents / 100 : undefined);
+        const lineTotal = item?.total ?? item?.lineTotal ?? (item?.lineTotalCents != null ? item.lineTotalCents / 100 : undefined);
+
+        return {
+            ...item,
+            quantity,
+            unitPrice,
+            lineTotal,
+        };
+    });
+
+    normalizedCart.items = mappedItems;
+
+    const subtotalComputed = mappedItems.reduce((sum, item) => {
+        const quantity = safeNumber(item?.quantity ?? item?.qty ?? 1);
         const unitPrice = safeNumber(item?.price ?? item?.unitPrice ?? item?.amount ?? 0);
         const lineTotal = item?.total ?? item?.lineTotal;
         const lineValue = lineTotal != null ? safeNumber(lineTotal) : unitPrice * quantity;
