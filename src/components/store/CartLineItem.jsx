@@ -8,6 +8,14 @@ export default function CartLineItem({ item, currency = 'SEK', onChangeQuantity,
     const lineTotal = item?.total ?? item?.lineTotal ?? null;
     const priceLabel = formatCurrency(unitPrice, currency);
     const totalLabel = lineTotal !== null ? formatCurrency(lineTotal, currency) : formatCurrency(unitPrice * (item?.quantity || 1), currency);
+    const maxQuantity = item?.stock ?? item?.availableStock ?? item?.product?.stock;
+    const handleQuantityChange = (nextQuantity) => {
+        if (nextQuantity <= 0) {
+            onRemove?.();
+            return;
+        }
+        onChangeQuantity?.(nextQuantity);
+    };
 
     return (
         <div className={styles.item}>
@@ -25,8 +33,9 @@ export default function CartLineItem({ item, currency = 'SEK', onChangeQuantity,
             <div className={styles.controls}>
                 <QuantityStepper
                     value={item?.quantity || 1}
-                    min={1}
-                    onChange={(qty) => onChangeQuantity?.(qty)}
+                    min={0}
+                    max={maxQuantity ?? undefined}
+                    onChange={handleQuantityChange}
                     compact
                     disabled={pending}
                 />
