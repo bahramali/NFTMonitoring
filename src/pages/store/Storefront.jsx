@@ -21,7 +21,7 @@ export default function Storefront() {
         return list.sort((a, b) => (a?.name || '').localeCompare(b?.name || ''));
     }, [products, sortBy]);
 
-    const itemCount = useMemo(() => cart?.items?.reduce((acc, item) => acc + (item.quantity || 0), 0) || 0, [cart]);
+    const itemCount = useMemo(() => cart?.items?.reduce((acc, item) => acc + (item.quantity ?? item.qty ?? 0), 0) || 0, [cart]);
     const hasItems = itemCount > 0;
 
     const inStock = useMemo(() => sortedProducts.filter((product) => product.stock === undefined || product.stock > 0), [sortedProducts]);

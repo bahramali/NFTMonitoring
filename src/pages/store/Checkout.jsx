@@ -149,9 +149,9 @@ export default function Checkout() {
                                 <div key={item.id || item.productId} className={styles.item}>
                                     <div>
                                         <p className={styles.itemName}>{item.name}</p>
-                                        <p className={styles.itemMeta}>{item.quantity} × {formatCurrency(item.price ?? item.unitPrice ?? 0, currency)}</p>
+                                        <p className={styles.itemMeta}>{item.quantity ?? item.qty ?? 1} × {formatCurrency(item.price ?? item.unitPrice ?? 0, currency)}</p>
                                     </div>
-                                    <span>{formatCurrency(item.total ?? item.lineTotal ?? (item.quantity || 1) * (item.price ?? 0), currency)}</span>
+                                    <span>{formatCurrency(item.total ?? item.lineTotal ?? (item.quantity ?? item.qty ?? 1) * (item.price ?? 0), currency)}</span>
                                 </div>
                             ))}
                         </div>

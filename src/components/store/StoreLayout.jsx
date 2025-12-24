@@ -12,7 +12,7 @@ export default function StoreLayout() {
     const navigate = useNavigate();
     const { cart, isCartOpen, openCart, closeCart, toast, clearToast } = useStorefront();
 
-    const itemCount = useMemo(() => cart?.items?.reduce((acc, item) => acc + (item.quantity || 0), 0) || 0, [cart]);
+    const itemCount = useMemo(() => cart?.items?.reduce((acc, item) => acc + (item.quantity ?? item.qty ?? 0), 0) || 0, [cart]);
     const totalLabel = useMemo(
         () => formatCurrency(cart?.totals?.total ?? cart?.totals?.subtotal ?? 0, cart?.totals?.currency || 'SEK'),
         [cart?.totals?.currency, cart?.totals?.subtotal, cart?.totals?.total],

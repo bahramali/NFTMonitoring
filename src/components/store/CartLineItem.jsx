@@ -4,10 +4,11 @@ import { currencyLabel, formatCurrency } from '../../utils/currency.js';
 import styles from './CartLineItem.module.css';
 
 export default function CartLineItem({ item, currency = 'SEK', onChangeQuantity, onRemove, pending }) {
+    const quantity = item?.quantity ?? item?.qty ?? 1;
     const unitPrice = item?.price ?? item?.unitPrice ?? 0;
     const lineTotal = item?.total ?? item?.lineTotal ?? null;
     const priceLabel = formatCurrency(unitPrice, currency);
-    const totalLabel = lineTotal !== null ? formatCurrency(lineTotal, currency) : formatCurrency(unitPrice * (item?.quantity || 1), currency);
+    const totalLabel = lineTotal !== null ? formatCurrency(lineTotal, currency) : formatCurrency(unitPrice * quantity, currency);
     const maxQuantity = item?.stock ?? item?.availableStock ?? item?.product?.stock;
     const handleQuantityChange = (nextQuantity) => {
         if (nextQuantity <= 0) {
@@ -32,7 +33,7 @@ export default function CartLineItem({ item, currency = 'SEK', onChangeQuantity,
             </div>
             <div className={styles.controls}>
                 <QuantityStepper
-                    value={item?.quantity || 1}
+                    value={quantity}
                     min={0}
                     max={maxQuantity ?? undefined}
                     onChange={handleQuantityChange}
