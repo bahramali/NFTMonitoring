@@ -8,11 +8,6 @@ const initialForm = {
     email: '',
     fullName: '',
     phone: '',
-    addressLine1: '',
-    addressLine2: '',
-    city: '',
-    postalCode: '',
-    country: 'Sweden',
     notes: '',
 };
 
@@ -42,13 +37,6 @@ export default function Checkout() {
                 email: form.email,
                 fullName: form.fullName,
                 phone: form.phone,
-                address: {
-                    line1: form.addressLine1,
-                    line2: form.addressLine2,
-                    city: form.city,
-                    postalCode: form.postalCode,
-                    country: form.country,
-                },
                 notes: form.notes,
             });
             if (response?.redirectUrl) {
@@ -69,7 +57,7 @@ export default function Checkout() {
                 <div>
                     <p className={styles.kicker}>Checkout</p>
                     <h1>Confirm your order</h1>
-                    <p className={styles.subtitle}>Enter delivery details to confirm your SEK total.</p>
+                    <p className={styles.subtitle}>Share your contact details for local pickup in Stockholm.</p>
                 </div>
                 <Link to="/store/cart" className={styles.link}>View cart</Link>
             </header>
@@ -82,6 +70,9 @@ export default function Checkout() {
             ) : (
                 <div className={styles.layout}>
                     <form className={styles.form} onSubmit={handleSubmit}>
+                        <p className={styles.inlineLink}>
+                            Already have an account? <Link to="/login">Log in</Link>
+                        </p>
                         <div className={styles.fieldGroup}>
                             <label htmlFor="email">Email</label>
                             <input id="email" name="email" type="email" required value={form.email} onChange={handleChange} />
@@ -90,47 +81,9 @@ export default function Checkout() {
                             <label htmlFor="fullName">Full name</label>
                             <input id="fullName" name="fullName" type="text" required value={form.fullName} onChange={handleChange} />
                         </div>
-                        <div className={styles.inlineFields}>
-                            <div className={styles.fieldGroup}>
-                                <label htmlFor="phone">Phone</label>
-                                <input id="phone" name="phone" type="tel" value={form.phone} onChange={handleChange} />
-                            </div>
-                            <div className={styles.fieldGroup}>
-                                <label htmlFor="country">Country</label>
-                                <input id="country" name="country" type="text" value={form.country} onChange={handleChange} />
-                            </div>
-                        </div>
                         <div className={styles.fieldGroup}>
-                            <label htmlFor="addressLine1">Address</label>
-                            <input
-                                id="addressLine1"
-                                name="addressLine1"
-                                type="text"
-                                required
-                                value={form.addressLine1}
-                                onChange={handleChange}
-                            />
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label htmlFor="addressLine2">Apartment, suite, etc.</label>
-                            <input id="addressLine2" name="addressLine2" type="text" value={form.addressLine2} onChange={handleChange} />
-                        </div>
-                        <div className={styles.inlineFields}>
-                            <div className={styles.fieldGroup}>
-                                <label htmlFor="city">City</label>
-                                <input id="city" name="city" type="text" required value={form.city} onChange={handleChange} />
-                            </div>
-                            <div className={styles.fieldGroup}>
-                                <label htmlFor="postalCode">Postal code</label>
-                                <input
-                                    id="postalCode"
-                                    name="postalCode"
-                                    type="text"
-                                    required
-                                    value={form.postalCode}
-                                    onChange={handleChange}
-                                />
-                            </div>
+                            <label htmlFor="phone">Phone</label>
+                            <input id="phone" name="phone" type="tel" required value={form.phone} onChange={handleChange} />
                         </div>
                         <div className={styles.fieldGroup}>
                             <label htmlFor="notes">Notes</label>
@@ -138,7 +91,7 @@ export default function Checkout() {
                         </div>
                         {error ? <p className={styles.error}>{error}</p> : null}
                         <button type="submit" className={styles.submit} disabled={submitting}>
-                            {submitting ? 'Starting checkout…' : 'Pay'}
+                            {submitting ? 'Starting checkout…' : `Pay ${formatCurrency(totals.total ?? totals.subtotal ?? 0, currency)}`}
                         </button>
                     </form>
 
@@ -159,12 +112,11 @@ export default function Checkout() {
                             <span>Subtotal</span>
                             <span>{formatCurrency(totals.subtotal ?? totals.total ?? 0, currency)}</span>
                         </div>
-                        {totals.shipping !== undefined && (
-                            <div className={styles.row}>
-                                <span>Shipping</span>
-                                <span>{formatCurrency(totals.shipping, currency)}</span>
-                            </div>
-                        )}
+                        <div className={styles.row}>
+                            <span>Fulfillment</span>
+                            <span>Local pickup (Stockholm) – free</span>
+                        </div>
+                        <div className={styles.pickupNote}>Pickup confirmed after payment. We&apos;ll email the details.</div>
                         <div className={`${styles.row} ${styles.total}`}>
                             <span>Total ({currencyLabel(currency)})</span>
                             <span>{formatCurrency(totals.total ?? totals.subtotal ?? 0, currency)}</span>
