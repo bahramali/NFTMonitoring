@@ -226,7 +226,9 @@ export default function Navbar() {
                         <button type="button" className={styles.storeCartButton} onClick={openCart}>
                             <span className={styles.storeCartLabel}>Cart</span>
                             <span className={styles.storeCartBadge}>{itemCount}</span>
-                            <span className={styles.storeCartTotal}>{totalLabel}</span>
+                            {itemCount > 0 && (
+                                <span className={styles.storeCartTotal}>{totalLabel}</span>
+                            )}
                         </button>
                     )}
                     {isAuthenticated ? (
