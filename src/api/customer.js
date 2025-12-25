@@ -42,6 +42,23 @@ export async function fetchCustomerProfile(token, { signal, onUnauthorized } = {
     }
 }
 
+export async function updateCustomerProfile(token, updates, { signal, onUnauthorized } = {}) {
+    if (!token) throw new Error('Authentication is required to update the profile');
+    const res = await fetch(PROFILE_URL, {
+        method: 'PUT',
+        headers: authHeaders(token),
+        body: JSON.stringify(updates ?? {}),
+        signal,
+    });
+
+    try {
+        return await parseApiResponse(res, 'Failed to update profile');
+    } catch (error) {
+        if (handleUnauthorized(error, onUnauthorized)) return null;
+        throw error;
+    }
+}
+
 export async function fetchMyDevices(token, { signal, onUnauthorized } = {}) {
     if (!token) throw new Error('Authentication is required to load devices');
     const res = await fetch(MY_DEVICES_URL, { headers: authHeaders(token), signal });

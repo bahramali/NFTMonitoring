@@ -70,7 +70,8 @@
     outline-offset: 2px;
 }
 
-.readonly {
+.readonlyInput {
+    width: 100%;
     border: 1px solid #e2e8f0;
     background: #f8fafc;
     padding: 10px 12px;
@@ -145,6 +146,20 @@
     transform: translateX(18px);
 }
 
+.actionRow {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.actionStack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+
 .securityRow {
     display: flex;
     align-items: center;
@@ -166,10 +181,32 @@
     cursor: pointer;
 }
 
+.primaryButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.successMessage {
+    margin: 0;
+    color: #059669;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.errorMessage {
+    margin: 4px 0 0;
+    color: #dc2626;
+    font-size: 13px;
+}
+
 @media (max-width: 720px) {
     .toggleRow,
     .securityRow {
         flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .actionRow {
         align-items: flex-start;
     }
 }
