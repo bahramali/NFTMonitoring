@@ -45,7 +45,7 @@ export async function fetchCustomerProfile(token, { signal, onUnauthorized } = {
 export async function updateCustomerProfile(token, updates, { signal, onUnauthorized } = {}) {
     if (!token) throw new Error('Authentication is required to update the profile');
     const res = await fetch(PROFILE_URL, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: authHeaders(token),
         body: JSON.stringify(updates ?? {}),
         signal,
@@ -62,14 +62,14 @@ export async function updateCustomerProfile(token, updates, { signal, onUnauthor
                 ? error.payload.slice(0, 200)
                 : JSON.stringify(error?.payload ?? {}, null, 2).slice(0, 200);
         console.error('Profile update failed', {
-            method: 'PUT',
+            method: 'PATCH',
             url: PROFILE_URL,
             payloadKeys,
             status: error?.status,
             responseSnippet,
         });
         if (error?.status === 405) {
-            error.message = 'Profile update is not supported by the backend (405).';
+            error.message = 'Backend does not support profile update yet.';
         }
         throw error;
     }
