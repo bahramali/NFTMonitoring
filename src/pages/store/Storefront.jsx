@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { listStoreProducts } from '../../api/store.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import ProductCard from '../../components/store/ProductCard.jsx';
-import TrustBlock from '../../components/store/TrustBlock.jsx';
 import styles from './Storefront.module.css';
 
 export default function Storefront() {
@@ -77,13 +76,6 @@ export default function Storefront() {
                     )}
                 </div>
             </section>
-
-            <TrustBlock
-                companyName="HydroLeaf Farm"
-                contactLine="Contact: reply to your order confirmation email"
-                storageLine="Fresh herbs: store at 4–8°C"
-                originLabel="Grown in Sweden"
-            />
 
             {error && (
                 <div className={styles.alert} role="alert">
