@@ -21,10 +21,10 @@
     background: #fff;
     border: 1px solid var(--border, #e6e6e6);
     border-radius: 20px;
-    padding: 28px 32px;
+    padding: 20px 28px;
     display: grid;
-    min-height: min(38vh, 360px);
-    align-items: center;
+    min-height: min(35vh, 320px);
+    align-items: start;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
 }
 

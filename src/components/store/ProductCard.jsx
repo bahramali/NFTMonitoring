@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import QuantityStepper from './QuantityStepper.jsx';
 import { currencyLabel, formatCurrency } from '../../utils/currency.js';
@@ -7,11 +7,6 @@ import styles from './ProductCard.module.css';
 
 export default function ProductCard({ product, onAdd, pending = false }) {
     const [quantity, setQuantity] = useState(1);
-    const [showSticky, setShowSticky] = useState(false);
-    const [isCtaVisible, setIsCtaVisible] = useState(true);
-    const [isCardVisible, setIsCardVisible] = useState(false);
-    const ctaRef = useRef(null);
-    const cardRef = useRef(null);
 
     const { name, id, imageUrl, shortDescription, price, currency, stock, badges = [], tags = [] } = product || {};
     const isOutOfStock = stock !== undefined && stock <= 0;
@@ -24,38 +19,8 @@ export default function ProductCard({ product, onAdd, pending = false }) {
     const priceLabel = useMemo(() => formatCurrency(price, currency || 'SEK'), [currency, price]);
     const priceContext = useMemo(() => getPriceContext(product), [product]);
 
-    useEffect(() => {
-        if (!ctaRef.current || !cardRef.current) return undefined;
-
-        const ctaObserver = new IntersectionObserver(
-            ([entry]) => {
-                setIsCtaVisible(entry.isIntersecting);
-            },
-            { threshold: 0.6 }
-        );
-
-        const cardObserver = new IntersectionObserver(
-            ([entry]) => {
-                setIsCardVisible(entry.isIntersecting);
-            },
-            { threshold: 0.1 }
-        );
-
-        ctaObserver.observe(ctaRef.current);
-        cardObserver.observe(cardRef.current);
-
-        return () => {
-            ctaObserver.disconnect();
-            cardObserver.disconnect();
-        };
-    }, []);
-
-    useEffect(() => {
-        setShowSticky(isCardVisible && !isCtaVisible);
-    }, [isCardVisible, isCtaVisible]);
-
     return (
-        <article ref={cardRef} className={styles.card}>
+        <article className={styles.card}>
             <div className={styles.media}>
                 {imageUrl ? (
                     <img src={imageUrl} alt={name} />
@@ -95,7 +60,7 @@ export default function ProductCard({ product, onAdd, pending = false }) {
                     <span className={styles.unitLabel}>{currencyLabel(currency || 'SEK')}</span>
                 </div>
 
-                <div ref={ctaRef} className={styles.actions}>
+                <div className={styles.actions}>
                     <QuantityStepper
                         value={quantity}
                         min={1}
@@ -120,30 +85,6 @@ export default function ProductCard({ product, onAdd, pending = false }) {
                 </footer>
             </div>
 
-            <div className={`${styles.stickyBar} ${showSticky ? styles.stickyBarVisible : ''}`}>
-                <div className={styles.stickySummary}>
-                    <span className={styles.stickyName}>{name}</span>
-                    <span className={styles.stickyPrice}>{priceLabel}</span>
-                </div>
-                <div className={styles.stickyActions}>
-                    <QuantityStepper
-                        value={quantity}
-                        min={1}
-                        max={stock || undefined}
-                        onChange={setQuantity}
-                        compact
-                        disabled={pending || isOutOfStock}
-                    />
-                    <button
-                        type="button"
-                        className={`${styles.addButton} ${styles.stickyAddButton}`}
-                        onClick={() => onAdd?.(quantity)}
-                        disabled={pending || isOutOfStock}
-                    >
-                        {pending ? 'Adding…' : 'Add'}
-                    </button>
-                </div>
-            </div>
         </article>
     );
 }
