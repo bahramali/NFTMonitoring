@@ -261,17 +261,23 @@ export default function Navbar() {
                                     <span className={styles.mutedLabel}>Account</span>
                                 </div>
                                 {role === 'CUSTOMER' && (
-                                    <Link
-                                        to="/my-page"
-                                        className={styles.menuLink}
-                                        onClick={handleNavLinkClick}
-                                    >
-                                        My Page
-                                    </Link>
+                                    <>
+                                        <Link
+                                            to="/my-page"
+                                            className={styles.menuLink}
+                                            onClick={handleNavLinkClick}
+                                        >
+                                            My Page
+                                        </Link>
+                                        <Link
+                                            to="/my-page/settings"
+                                            className={styles.menuLink}
+                                            onClick={handleNavLinkClick}
+                                        >
+                                            Settings
+                                        </Link>
+                                    </>
                                 )}
-                                <button type="button" className={styles.menuLink} disabled>
-                                    Settings (coming soon)
-                                </button>
                                 <button
                                     type="button"
                                     className={styles.menuAction}
