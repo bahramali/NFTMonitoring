@@ -2,6 +2,11 @@ import { parseApiResponse } from './http.js';
 
 const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
 const PROFILE_URL = `${API_BASE}/api/me`;
+const PROFILE_UPDATE_URL = `${API_BASE}/api/me/profile`;
+const PROFILE_UPDATE_METHOD = 'PATCH';
+
+export const CUSTOMER_PROFILE_UPDATE_PATH = '/api/me/profile';
+export const CUSTOMER_PROFILE_UPDATE_METHOD = PROFILE_UPDATE_METHOD;
 const MY_DEVICES_URL = `${API_BASE}/api/my/devices`;
 const MY_ORDERS_URL = `${API_BASE}/api/store/orders/my`;
 
@@ -44,8 +49,8 @@ export async function fetchCustomerProfile(token, { signal, onUnauthorized } = {
 
 export async function updateCustomerProfile(token, updates, { signal, onUnauthorized } = {}) {
     if (!token) throw new Error('Authentication is required to update the profile');
-    const res = await fetch(PROFILE_URL, {
-        method: 'PATCH',
+    const res = await fetch(PROFILE_UPDATE_URL, {
+        method: PROFILE_UPDATE_METHOD,
         headers: authHeaders(token),
         body: JSON.stringify(updates ?? {}),
         signal,
@@ -55,22 +60,25 @@ export async function updateCustomerProfile(token, updates, { signal, onUnauthor
         return await parseApiResponse(res, 'Failed to update profile');
     } catch (error) {
         if (handleUnauthorized(error, onUnauthorized)) return null;
-        // TODO(backend): Expose a supported profile update endpoint and document it in an OpenAPI spec.
+        const isUnsupported = [404, 405, 501].includes(error?.status);
+        if (isUnsupported) {
+            error.isUnsupported = true;
+            error.message = 'Profile updates are not available yet.';
+            throw error;
+        }
+
         const payloadKeys = updates && typeof updates === 'object' ? Object.keys(updates) : [];
         const responseSnippet =
             typeof error?.payload === 'string'
                 ? error.payload.slice(0, 200)
                 : JSON.stringify(error?.payload ?? {}, null, 2).slice(0, 200);
         console.error('Profile update failed', {
-            method: 'PATCH',
-            url: PROFILE_URL,
+            method: PROFILE_UPDATE_METHOD,
+            url: PROFILE_UPDATE_URL,
             payloadKeys,
             status: error?.status,
             responseSnippet,
         });
-        if (error?.status === 405) {
-            error.message = 'Backend does not support profile update yet.';
-        }
         throw error;
     }
 }

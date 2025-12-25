@@ -32,6 +32,7 @@ export default function CustomerSettings() {
     });
     const [saveState, setSaveState] = useState({ status: 'idle', message: '' });
     const [saveError, setSaveError] = useState('');
+    const [profileUpdateSupported, setProfileUpdateSupported] = useState(true);
     const [resetState, setResetState] = useState({ status: 'idle', message: '' });
     const [resetError, setResetError] = useState('');
     const [resetCooldown, setResetCooldown] = useState(false);
@@ -89,6 +90,10 @@ export default function CustomerSettings() {
     }, [email, loadingProfile]);
 
     const handleSave = async () => {
+        if (!profileUpdateSupported) {
+            setSaveError('Profile updates are not available yet. Please contact support for help.');
+            return;
+        }
         if (!token) {
             setSaveError('You must be logged in to update your settings.');
             return;
@@ -114,6 +119,12 @@ export default function CustomerSettings() {
             setInitialSettings(updatedSettings);
             setSaveState({ status: 'success', message: 'Saved' });
         } catch (error) {
+            if (error?.isUnsupported) {
+                setProfileUpdateSupported(false);
+                setSaveState({ status: 'error', message: '' });
+                setSaveError('Profile updates are not available yet. Please contact support for help.');
+                return;
+            }
             setSaveState({ status: 'error', message: '' });
             setSaveError(error?.message || 'Unable to save changes.');
         }
@@ -144,7 +155,7 @@ export default function CustomerSettings() {
     };
 
     const isSaving = saveState.status === 'saving';
-    const canSave = isDirty && !isSaving;
+    const canSave = isDirty && !isSaving && profileUpdateSupported;
     const resetDisabled = resetState.status === 'sending' || resetCooldown;
 
     return (
@@ -252,6 +263,11 @@ export default function CustomerSettings() {
                                 <p className={styles.successMessage}>Saved</p>
                             ) : null}
                             {saveError ? <p className={styles.errorMessage}>{saveError}</p> : null}
+                            {!profileUpdateSupported && !saveError ? (
+                                <p className={styles.errorMessage}>
+                                    Profile updates are not available yet. Please contact support for help.
+                                </p>
+                            ) : null}
                         </div>
                     </div>
                 </div>
