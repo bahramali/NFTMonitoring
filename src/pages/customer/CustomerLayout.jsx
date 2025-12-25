@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { fetchCustomerProfile, fetchMyOrders } from '../../api/customer.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
@@ -25,7 +25,6 @@ const normalizeProfile = (payload) => {
 export default function CustomerLayout() {
     const { token } = useAuth();
     const redirectToLogin = useRedirectToLogin();
-    const location = useLocation();
 
     const [profile, setProfile] = useState(null);
     const [profileError, setProfileError] = useState(null);
@@ -122,20 +121,15 @@ export default function CustomerLayout() {
         [loadOrders, loadingProfile, ordersState, profile, profileError, redirectToLogin],
     );
 
-    const headline = profile?.displayName || 'My account';
-    const subhead = profile?.email || 'Manage your account details and orders here.';
+    const headline = 'My Account';
+    const subhead = 'Manage your account details and orders in one place.';
 
     return (
         <div className={styles.page}>
             <div className={styles.hero}>
                 <div>
-                    <p className={styles.kicker}>My account</p>
                     <h1 className={styles.title}>{headline}</h1>
                     <p className={styles.subtitle}>{subhead}</p>
-                </div>
-                <div className={styles.heroMeta}>
-                    <span className={styles.metaLabel}>Current route</span>
-                    <span className={styles.metaValue}>{location.pathname}</span>
                 </div>
             </div>
 

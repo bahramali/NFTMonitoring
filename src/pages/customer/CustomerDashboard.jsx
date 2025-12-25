@@ -31,7 +31,6 @@ export default function CustomerDashboard() {
         [ordersState.items],
     );
 
-    const accountName = loadingProfile ? 'Loading…' : profile?.displayName || '—';
     const accountEmail = loadingProfile ? 'Loading…' : profile?.email || '—';
 
     return (
@@ -47,16 +46,12 @@ export default function CustomerDashboard() {
 
                 <div className={styles.accountGrid}>
                     <div className={styles.field}>
-                        <label>Display name</label>
-                        <div className={styles.readonly}>{accountName}</div>
-                    </div>
-                    <div className={styles.field}>
                         <label>Email</label>
                         <div className={styles.readonly}>{accountEmail}</div>
                     </div>
                 </div>
                 <div className={styles.accountActions}>
-                    <button type="button" className={styles.dangerButton} onClick={() => logout()}>
+                    <button type="button" className={styles.subtleButton} onClick={() => logout()}>
                         Sign out
                     </button>
                 </div>
@@ -90,8 +85,10 @@ export default function CustomerDashboard() {
                         ) : null}
                         {!ordersState.loading && !ordersState.error && sortedOrders.length === 0 ? (
                             <div className={styles.empty}>
-                                <p>No orders found.</p>
-                                <p className={styles.muted}>Your purchases will appear here.</p>
+                                <p>You have no orders yet. Browse the store to place your first order.</p>
+                                <Link to="/store" className={styles.primaryButton}>
+                                    Browse the store
+                                </Link>
                             </div>
                         ) : null}
 
