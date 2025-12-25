@@ -73,6 +73,17 @@
     gap: 10px;
 }
 
+.inlineLink {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--muted, #666);
+}
+
+.inlineLink a {
+    color: inherit;
+    text-decoration: underline;
+}
+
 .submit {
     background: var(--accent, #3a9d5b);
     border: 1px solid var(--accent, #3a9d5b);
@@ -129,6 +140,11 @@
 .row {
     display: flex;
     justify-content: space-between;
+    color: var(--muted, #666);
+}
+
+.pickupNote {
+    font-size: 0.9rem;
     color: var(--muted, #666);
 }
 
