@@ -78,6 +78,7 @@
     color: #fff;
     cursor: pointer;
     box-shadow: 0 8px 22px rgba(58, 157, 91, 0.18);
+    font-variant-numeric: tabular-nums;
 }
 
 .cartLabel {
@@ -88,14 +89,19 @@
     background: rgba(255, 255, 255, 0.18);
     border-radius: 999px;
     padding: 4px 10px;
+    min-width: 28px;
     font-size: 13px;
     color: #fff;
+    display: inline-flex;
+    justify-content: center;
 }
 
 .cartTotal {
     font-size: 13px;
     letter-spacing: 0.01em;
     color: rgba(255, 255, 255, 0.88);
+    min-width: 72px;
+    text-align: right;
 }
 
 .main {
