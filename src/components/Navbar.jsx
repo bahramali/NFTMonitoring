@@ -6,7 +6,7 @@ import styles from './Navbar.module.css';
 import { hasStoreAdminAccess, STORE_PERMISSION_KEY } from '../utils/permissions.js';
 
 const NAV_ITEMS = [
-    { path: '/store', label: 'Store', requiresAuth: false },
+    { path: '/store', label: 'Store', requiresAuth: true },
     {
         path: '/my-page',
         label: 'My Page',
