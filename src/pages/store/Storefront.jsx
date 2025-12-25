@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { listStoreProducts } from '../../api/store.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import ProductCard from '../../components/store/ProductCard.jsx';
 import styles from './Storefront.module.css';
 
 export default function Storefront() {
-    const { addToCart, pendingProductId, cart } = useStorefront();
+    const { addToCart, pendingProductId } = useStorefront();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -20,8 +19,7 @@ export default function Storefront() {
         return list.sort((a, b) => (a?.name || '').localeCompare(b?.name || ''));
     }, [products, sortBy]);
 
-    const itemCount = useMemo(() => cart?.items?.reduce((acc, item) => acc + (item.quantity ?? item.qty ?? 0), 0) || 0, [cart]);
-    const hasItems = itemCount > 0;
+    const showSort = (products?.length ?? 0) > 1;
 
     const inStock = useMemo(() => sortedProducts.filter((product) => product.stock === undefined || product.stock > 0), [sortedProducts]);
     const lowStock = useMemo(() => sortedProducts.filter((product) => product.stock !== undefined && product.stock <= 0), [sortedProducts]);
@@ -59,22 +57,6 @@ export default function Storefront() {
                         <span>Pickup-ready</span>
                     </div>
                 </div>
-                <div className={styles.heroCard}>
-                    <p className={styles.heroLabel}>Simple checkout</p>
-                    <h3>Built for busy kitchens</h3>
-                    <p className={styles.heroText}>
-                        Keep your cart open while you browse. Prices stay in SEK and update with every change.
-                    </p>
-                    {hasItems ? (
-                        <Link to="/store/checkout" className={styles.heroAction}>
-                            Checkout
-                        </Link>
-                    ) : (
-                        <a href="#products" className={styles.heroAction}>
-                            Start shopping
-                        </a>
-                    )}
-                </div>
             </section>
 
             {error && (
@@ -91,13 +73,15 @@ export default function Storefront() {
                         <h2>Products in stock</h2>
                     </div>
                     <div className={styles.controls}>
-                        <div className={styles.field}>
-                            <label htmlFor="sort">Sort</label>
-                            <select id="sort" value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
-                                <option value="name">Name</option>
-                                <option value="price">Price</option>
-                            </select>
-                        </div>
+                        {showSort ? (
+                            <div className={styles.field}>
+                                <label htmlFor="sort">Sort</label>
+                                <select id="sort" value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+                                    <option value="name">Name</option>
+                                    <option value="price">Price</option>
+                                </select>
+                            </div>
+                        ) : null}
                         <p className={styles.sectionNote}>Prices shown in SEK · Stock updates after each add</p>
                     </div>
                 </div>
