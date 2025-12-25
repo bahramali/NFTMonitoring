@@ -15,95 +15,6 @@
     line-height: 1.6;
 }
 
-.header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    border-bottom: 1px solid var(--border, #e6e6e6);
-    background: rgba(255, 255, 255, 0.94);
-    backdrop-filter: blur(10px);
-}
-
-.container {
-    max-width: 1160px;
-    margin: 0 auto;
-    padding: 18px 20px;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: center;
-    gap: 18px;
-}
-
-.brand {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    cursor: pointer;
-    user-select: none;
-}
-
-.brand img {
-    width: 54px;
-    height: 54px;
-}
-
-.brandName {
-    display: block;
-    font-weight: 800;
-    color: var(--text);
-    font-size: 18px;
-    letter-spacing: 0.01em;
-}
-
-.brandNote {
-    display: block;
-    color: var(--muted);
-    font-size: 14px;
-}
-
-.actions {
-    display: flex;
-    justify-content: flex-end;
-}
-
-.cartButton {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--accent, #3a9d5b);
-    border: 1px solid var(--accent, #3a9d5b);
-    border-radius: 999px;
-    padding: 10px 14px;
-    font-weight: 800;
-    color: #fff;
-    cursor: pointer;
-    box-shadow: 0 8px 22px rgba(58, 157, 91, 0.18);
-    font-variant-numeric: tabular-nums;
-}
-
-.cartLabel {
-    letter-spacing: 0.01em;
-}
-
-.cartBadge {
-    background: rgba(255, 255, 255, 0.18);
-    border-radius: 999px;
-    padding: 4px 10px;
-    min-width: 28px;
-    font-size: 13px;
-    color: #fff;
-    display: inline-flex;
-    justify-content: center;
-}
-
-.cartTotal {
-    font-size: 13px;
-    letter-spacing: 0.01em;
-    color: rgba(255, 255, 255, 0.88);
-    min-width: 72px;
-    text-align: right;
-}
-
 .main {
     padding: 32px 20px 48px;
     display: flex;
@@ -114,16 +25,4 @@
 .content {
     width: 100%;
     max-width: 1160px;
-}
-
-@media (max-width: 900px) {
-    .container {
-        grid-template-columns: 1fr;
-        align-items: start;
-        gap: 12px;
-    }
-
-    .actions {
-        justify-content: flex-start;
-    }
 }

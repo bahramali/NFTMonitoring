@@ -5,6 +5,18 @@
     color: var(--text, #111);
 }
 
+.pageHeader {
+    display: flex;
+    align-items: center;
+}
+
+.pageTitle {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text, #111);
+}
+
 .hero {
     background: #fff;
     border: 1px solid var(--border, #e6e6e6);

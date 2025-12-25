@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useStorefront } from '../context/StorefrontContext.jsx';
 import hydroleafLogo from '../assets/hydroleaf_logo.png';
 import styles from './Navbar.module.css';
 import { hasStoreAdminAccess, STORE_PERMISSION_KEY } from '../utils/permissions.js';
+import { formatCurrency } from '../utils/currency.js';
 
 const NAV_ITEMS = [
     { path: '/store', label: 'Store', requiresAuth: true },
@@ -61,6 +63,7 @@ const hasAccess = (item, role, permissions = []) => {
 
 export default function Navbar() {
     const { isAuthenticated, userId, role, permissions, logout } = useAuth();
+    const { cart, openCart } = useStorefront();
     const [isNavOpen, setIsNavOpen] = useState(false);
     const [isAdminOpen, setIsAdminOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -68,6 +71,7 @@ export default function Navbar() {
     const userMenuRef = useRef(null);
     const location = useLocation();
     const isAdminRoute = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
+    const isStoreRoute = location.pathname === '/store' || location.pathname.startsWith('/store/');
 
     const roleLabel = role ? role.replace('_', ' ') : '';
     const userLabel = userId ? `User #${userId}` : 'Account';
@@ -79,6 +83,15 @@ export default function Navbar() {
             return hasAccess(item, role, permissions);
         });
     }, [isAuthenticated, permissions, role]);
+
+    const itemCount = useMemo(
+        () => cart?.items?.reduce((acc, item) => acc + (item.quantity ?? item.qty ?? 0), 0) || 0,
+        [cart],
+    );
+    const totalLabel = useMemo(
+        () => formatCurrency(cart?.totals?.total ?? cart?.totals?.subtotal ?? 0, cart?.totals?.currency || 'SEK'),
+        [cart?.totals?.currency, cart?.totals?.subtotal, cart?.totals?.total],
+    );
 
     const adminLinks = useMemo(() => {
         if (!isAuthenticated) return [];
@@ -209,6 +222,13 @@ export default function Navbar() {
                 </div>
 
                 <div className={styles.authSection}>
+                    {isStoreRoute && (
+                        <button type="button" className={styles.storeCartButton} onClick={openCart}>
+                            <span className={styles.storeCartLabel}>Cart</span>
+                            <span className={styles.storeCartBadge}>{itemCount}</span>
+                            <span className={styles.storeCartTotal}>{totalLabel}</span>
+                        </button>
+                    )}
                     {isAuthenticated ? (
                         <div className={styles.userArea} ref={userMenuRef}>
                             <button

@@ -199,6 +199,44 @@
     justify-content: flex-end;
     align-items: center;
     min-width: 240px;
+    gap: 12px;
+}
+
+.storeCartButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(34, 197, 94, 0.5);
+    background: rgba(34, 197, 94, 0.18);
+    color: #dcfce7;
+    font-weight: 700;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+    transition: all 0.2s ease;
+}
+
+.storeCartButton:hover {
+    background: rgba(34, 197, 94, 0.3);
+}
+
+.storeCartLabel {
+    letter-spacing: 0.02em;
+}
+
+.storeCartBadge {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    padding: 2px 8px;
+    min-width: 24px;
+    text-align: center;
+    font-size: 12px;
+}
+
+.storeCartTotal {
+    font-size: 12px;
+    color: rgba(226, 232, 240, 0.85);
 }
 
 .authActions {
@@ -314,6 +352,7 @@
 .navLink:focus-visible,
 .dropdownTrigger:focus-visible,
 .userButton:focus-visible,
+.storeCartButton:focus-visible,
 .ghostButton:focus-visible,
 .primaryButton:focus-visible {
     outline: 2px solid rgba(94, 234, 212, 0.6);
