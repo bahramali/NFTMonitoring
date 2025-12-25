@@ -53,6 +53,21 @@
     cursor: pointer;
 }
 
+.primaryButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #0ea5e9;
+    color: #fff;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
 .loading {
     padding: 12px;
     color: #475569;
@@ -107,12 +122,12 @@
     flex-wrap: wrap;
 }
 
-.dangerButton {
-    border: 1px solid #f87171;
-    background: transparent;
-    color: #dc2626;
-    padding: 10px 12px;
-    border-radius: 10px;
+.subtleButton {
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    color: #0f172a;
+    padding: 8px 12px;
+    border-radius: 999px;
     cursor: pointer;
 }
 
