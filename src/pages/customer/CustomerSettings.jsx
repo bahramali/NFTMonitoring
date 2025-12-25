@@ -99,7 +99,8 @@ export default function CustomerSettings() {
             const payload = {
                 fullName,
                 phoneNumber,
-                notifications,
+                orderConfirmationEmails: notifications.orderEmails,
+                pickupReadyNotification: notifications.pickupReady,
             };
             const response = await updateCustomerProfile(token, payload, { onUnauthorized: redirectToLogin });
             if (response === null) {
