@@ -71,7 +71,7 @@ export default function Checkout() {
                 <div className={styles.layout}>
                     <form className={styles.form} onSubmit={handleSubmit}>
                         <p className={styles.inlineLink}>
-                            Already have an account? <Link to="/login">Log in</Link>
+                            Already have an account? <Link to="/login?returnUrl=/store/checkout">Log in</Link>
                         </p>
                         <div className={styles.fieldGroup}>
                             <label htmlFor="email">Email</label>

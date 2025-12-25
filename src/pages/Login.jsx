@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import styles from './Login.module.css';
@@ -13,12 +13,20 @@ export default function Login() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
+    const returnUrl = useMemo(() => {
+        const value = new URLSearchParams(location.search).get('returnUrl');
+        if (!value || !value.startsWith('/')) {
+            return null;
+        }
+        return value;
+    }, [location.search]);
+
     useEffect(() => {
         if (isAuthenticated) {
-            const target = getDefaultRouteForRole(role);
+            const target = returnUrl || getDefaultRouteForRole(role);
             navigate(target, { replace: true });
         }
-    }, [isAuthenticated, navigate, role]);
+    }, [isAuthenticated, navigate, returnUrl, role]);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -30,7 +38,7 @@ export default function Login() {
 
         const resolvedRole = result.role || role;
         const roleRedirect = getDefaultRouteForRole(resolvedRole);
-        const redirect = location.state?.from?.pathname || roleRedirect;
+        const redirect = returnUrl || location.state?.from?.pathname || roleRedirect;
         navigate(redirect, { replace: true });
     };
 
