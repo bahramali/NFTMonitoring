@@ -55,6 +55,22 @@ export async function updateCustomerProfile(token, updates, { signal, onUnauthor
         return await parseApiResponse(res, 'Failed to update profile');
     } catch (error) {
         if (handleUnauthorized(error, onUnauthorized)) return null;
+        // TODO(backend): Expose a supported profile update endpoint and document it in an OpenAPI spec.
+        const payloadKeys = updates && typeof updates === 'object' ? Object.keys(updates) : [];
+        const responseSnippet =
+            typeof error?.payload === 'string'
+                ? error.payload.slice(0, 200)
+                : JSON.stringify(error?.payload ?? {}, null, 2).slice(0, 200);
+        console.error('Profile update failed', {
+            method: 'PUT',
+            url: PROFILE_URL,
+            payloadKeys,
+            status: error?.status,
+            responseSnippet,
+        });
+        if (error?.status === 405) {
+            error.message = 'Profile update is not supported by the backend (405).';
+        }
         throw error;
     }
 }
