@@ -1,6 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { fetchCustomerProfile } from '../../api/customer.js';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
+import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
 import { currencyLabel, formatCurrency } from '../../utils/currency.js';
 import styles from './Checkout.module.css';
 
@@ -11,17 +14,66 @@ const initialForm = {
     notes: '',
 };
 
+const normalizeProfile = (payload) => {
+    const source = payload?.user ?? payload ?? {};
+    const email = source.email ?? source.username ?? '';
+    const fullName = source.fullName ?? source.name ?? source.displayName ?? '';
+    const phone = source.phone ?? source.phoneNumber ?? '';
+
+    return {
+        email,
+        fullName,
+        phone,
+    };
+};
+
 export default function Checkout() {
     const { cart, createCheckoutSession } = useStorefront();
+    const { isAuthenticated, token, logout } = useAuth();
+    const redirectToLogin = useRedirectToLogin();
     const [form, setForm] = useState(initialForm);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
+    const [profile, setProfile] = useState(null);
+    const [loadingProfile, setLoadingProfile] = useState(false);
 
     const totals = cart?.totals || {};
     const currency = totals.currency || cart?.currency || 'SEK';
     const hasItems = (cart?.items?.length ?? 0) > 0;
 
     const summaryItems = useMemo(() => cart?.items ?? [], [cart?.items]);
+    const profileEmail = profile?.email || '';
+    const orderEmail = isAuthenticated ? profileEmail : form.email;
+    const canSubmit = !submitting && (!isAuthenticated || Boolean(orderEmail));
+
+    useEffect(() => {
+        if (!isAuthenticated || !token) {
+            setProfile(null);
+            return;
+        }
+
+        const controller = new AbortController();
+        setLoadingProfile(true);
+        fetchCustomerProfile(token, { signal: controller.signal, onUnauthorized: redirectToLogin })
+            .then((payload) => {
+                if (!payload) return;
+                const normalized = normalizeProfile(payload);
+                setProfile(normalized);
+                setForm((prev) => ({
+                    ...prev,
+                    fullName: prev.fullName || normalized.fullName,
+                    phone: prev.phone || normalized.phone,
+                }));
+            })
+            .catch((err) => {
+                if (err?.name !== 'AbortError') {
+                    setError(err?.message || 'Unable to load your account details.');
+                }
+            })
+            .finally(() => setLoadingProfile(false));
+
+        return () => controller.abort();
+    }, [isAuthenticated, redirectToLogin, token]);
 
     const handleChange = (event) => {
         const { name, value } = event.target;
@@ -32,9 +84,14 @@ export default function Checkout() {
         event.preventDefault();
         setSubmitting(true);
         setError(null);
+        if (!orderEmail) {
+            setError('Please provide an email address to continue.');
+            setSubmitting(false);
+            return;
+        }
         try {
             const response = await createCheckoutSession({
-                email: form.email,
+                email: orderEmail,
                 fullName: form.fullName,
                 phone: form.phone,
                 notes: form.notes,
@@ -70,13 +127,26 @@ export default function Checkout() {
             ) : (
                 <div className={styles.layout}>
                     <form className={styles.form} onSubmit={handleSubmit}>
-                        <p className={styles.inlineLink}>
-                            Already have an account? <Link to="/login?returnUrl=/store/checkout">Log in</Link>
-                        </p>
-                        <div className={styles.fieldGroup}>
-                            <label htmlFor="email">Email</label>
-                            <input id="email" name="email" type="email" required value={form.email} onChange={handleChange} />
-                        </div>
+                        {isAuthenticated ? (
+                            <div className={styles.accountNote}>
+                                <span>
+                                    Ordering as {profileEmail || 'your account'}.
+                                </span>
+                                <button type="button" className={styles.logoutLink} onClick={() => logout({ redirect: false })}>
+                                    Log out
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <p className={styles.inlineLink}>
+                                    Already have an account? <Link to="/login?returnUrl=/store/checkout">Log in</Link>
+                                </p>
+                                <div className={styles.fieldGroup}>
+                                    <label htmlFor="email">Email</label>
+                                    <input id="email" name="email" type="email" required value={form.email} onChange={handleChange} />
+                                </div>
+                            </>
+                        )}
                         <div className={styles.fieldGroup}>
                             <label htmlFor="fullName">Full name</label>
                             <input id="fullName" name="fullName" type="text" required value={form.fullName} onChange={handleChange} />
@@ -90,7 +160,7 @@ export default function Checkout() {
                             <textarea id="notes" name="notes" value={form.notes} onChange={handleChange} rows={3} />
                         </div>
                         {error ? <p className={styles.error}>{error}</p> : null}
-                        <button type="submit" className={styles.submit} disabled={submitting}>
+                        <button type="submit" className={styles.submit} disabled={!canSubmit || loadingProfile}>
                             {submitting ? 'Starting checkout…' : `Pay ${formatCurrency(totals.total ?? totals.subtotal ?? 0, currency)}`}
                         </button>
                     </form>
