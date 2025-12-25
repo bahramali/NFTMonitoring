@@ -44,25 +44,6 @@ export default function Storefront() {
 
     return (
         <div className={styles.page}>
-            <header className={styles.pageHeader}>
-                <h1 className={styles.pageTitle}>Store</h1>
-            </header>
-
-            <section className={styles.hero}>
-                <div className={styles.heroCopy}>
-                    <p className={styles.kicker}>HydroLeaf Store</p>
-                    <h2 className={styles.title}>Fresh basil for home cooking and busy kitchens</h2>
-                    <p className={styles.valueProp}>
-                        Handled in a clean, controlled environment from harvest to pickup.
-                    </p>
-                    <div className={styles.pills}>
-                        <span>Grown in Sweden</span>
-                        <span>Fresh handling</span>
-                        <span>Pickup-ready</span>
-                    </div>
-                </div>
-            </section>
-
             {error && (
                 <div className={styles.alert} role="alert">
                     <span>{error}</span>

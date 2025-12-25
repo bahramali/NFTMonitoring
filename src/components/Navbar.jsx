@@ -286,7 +286,7 @@ export default function Navbar() {
                             <Link to="/login" className={styles.ghostButton}>
                                 Login
                             </Link>
-                            <Link to="/register" className={styles.primaryButton}>
+                            <Link to="/register" className={`${styles.ghostButton} ${styles.subtleButton}`}>
                                 Create account
                             </Link>
                         </div>
