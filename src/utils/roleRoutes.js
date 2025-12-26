@@ -1,6 +1,6 @@
 const ROLE_ROUTES = {
-    SUPER_ADMIN: '/super-admin',
-    ADMIN: '/admin',
+    SUPER_ADMIN: '/admin/home',
+    ADMIN: '/admin/overview',
     WORKER: '/worker/dashboard',
     CUSTOMER: '/my-page',
 };

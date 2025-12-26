@@ -161,7 +161,7 @@ export default function CustomerDeviceDetails() {
                         <Link to="/my-page" className={styles.secondaryButton}>Back to account</Link>
                         {reportsEnabled ? (
                             <Link
-                                to={`/dashboard/reports?deviceId=${encodeURIComponent(device.id)}`}
+                                to={`/monitoring/reports?deviceId=${encodeURIComponent(device.id)}`}
                                 className={styles.ghostButton}
                             >
                                 Reports

@@ -292,6 +292,24 @@
     gap: 8px;
 }
 
+.dangerZone {
+    margin-top: 12px;
+    border-top: 1px solid #fecdd3;
+    background: #fff7ed;
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.dangerZoneLabel {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #b91c1c;
+    margin-bottom: 6px;
+}
+
 .closeButton {
     border: none;
     background: transparent;

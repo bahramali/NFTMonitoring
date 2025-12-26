@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import styles from './AccessDenied.module.css';
 
-export default function AccessDenied({ title = 'Access denied', message = 'You do not have permission to view this page.', actionHref = '/dashboard/overview', actionLabel = 'Back to monitoring', secondaryActionHref = '/login', secondaryActionLabel = 'Login again' }) {
+export default function AccessDenied({ title = 'Access denied', message = 'You do not have permission to view this page.', actionHref = '/monitoring/overview', actionLabel = 'Back to monitoring', secondaryActionHref = '/login', secondaryActionLabel = 'Login again' }) {
     return (
         <div className={styles.wrapper}>
             <div className={styles.card} role="alert" aria-live="polite">
