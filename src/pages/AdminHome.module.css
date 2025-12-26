@@ -1,0 +1,100 @@
+.page {
+    padding: 24px;
+    background: #f8fafc;
+    min-height: 100vh;
+}
+
+.header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.kicker {
+    color: #0ea5e9;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    margin: 0 0 6px;
+}
+
+.title {
+    margin: 0 0 8px;
+    font-size: 32px;
+    color: #0f172a;
+}
+
+.subtitle {
+    margin: 0;
+    color: #475569;
+    max-width: 520px;
+}
+
+.badge {
+    background: #0f172a;
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.card {
+    border-radius: 16px;
+    padding: 18px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 18px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card h2 {
+    margin: 0 0 6px;
+    font-size: 20px;
+    color: #0f172a;
+}
+
+.card p {
+    margin: 0;
+    color: #64748b;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+}
+
+.primary {
+    border-color: #bae6fd;
+    background: #f0f9ff;
+}
+
+.secondary {
+    border-color: #d1fae5;
+    background: #ecfdf5;
+}
+
+.ghost {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+}
+
+.cta {
+    font-weight: 700;
+    color: #0ea5e9;
+}

@@ -80,7 +80,7 @@ export default function Shop() {
 
     useEffect(() => {
         if (isAuthenticated) {
-            navigate('/dashboard/overview', { replace: true });
+            navigate('/monitoring/overview', { replace: true });
         }
     }, [isAuthenticated, navigate]);
 
@@ -101,7 +101,7 @@ export default function Shop() {
                         type="button"
                         className={styles.navButton}
                         onClick={() =>
-                            navigate(isAuthenticated ? '/dashboard/overview' : '/login', { replace: true })
+                            navigate(isAuthenticated ? '/monitoring/overview' : '/login', { replace: true })
                         }
                     >
                         {isAuthenticated ? 'Go to dashboard' : 'Manager login'}
@@ -202,7 +202,7 @@ export default function Shop() {
                             type="button"
                             className={styles.secondaryAction}
                             onClick={() =>
-                                navigate(isAuthenticated ? '/dashboard/overview' : '/login', { replace: true })
+                                navigate(isAuthenticated ? '/monitoring/overview' : '/login', { replace: true })
                             }
                         >
                             View dashboard after login

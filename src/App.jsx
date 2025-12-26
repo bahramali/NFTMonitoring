@@ -1,6 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Navbar from './components/Navbar.jsx';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import CustomerRoute from './components/CustomerRoute.jsx';
 import Home from './pages/Home.jsx';
@@ -11,13 +10,14 @@ import SuperAdminDashboard from './pages/SuperAdminDashboard.jsx';
 import AdminManagement from './pages/AdminManagement.jsx';
 import AdminOverview from './pages/AdminOverview.jsx';
 import AdminTeam from './pages/AdminTeam.jsx';
+import AdminHome from './pages/AdminHome.jsx';
 import WorkerDashboard from './pages/WorkerDashboard.jsx';
 import CustomerLayout from './pages/customer/CustomerLayout.jsx';
 import CustomerDashboard from './pages/customer/CustomerDashboard.jsx';
 import CustomerOrders from './pages/customer/CustomerOrders.jsx';
 import CustomerOrderDetails from './pages/customer/CustomerOrderDetails.jsx';
 import CustomerSettings from './pages/customer/CustomerSettings.jsx';
-import MainLayout from './layouts/MainLayout.jsx';
+import AppShellLayout from './layouts/AppShellLayout.jsx';
 import Overview from './pages/Overview/index.jsx';
 import ControlPanel from './pages/ControlPanel/index.jsx';
 import LiveDashboard from './pages/Live/index.jsx';
@@ -37,6 +37,23 @@ import OrderStatus from './pages/store/OrderStatus.jsx';
 import ProductAdmin from './pages/ProductAdmin.jsx';
 import PaymentSuccess from './pages/payment/PaymentSuccess.jsx';
 import PaymentCancel from './pages/payment/PaymentCancel.jsx';
+import { useAuth } from './context/AuthContext.jsx';
+
+function ProtectedOutlet({ requiredRoles = [], requiredPermissions = [] }) {
+    return (
+        <ProtectedRoute requiredRoles={requiredRoles} requiredPermissions={requiredPermissions}>
+            <Outlet />
+        </ProtectedRoute>
+    );
+}
+
+function AdminIndexRedirect() {
+    const { role } = useAuth();
+    if (role === 'SUPER_ADMIN') {
+        return <Navigate to="home" replace />;
+    }
+    return <Navigate to="overview" replace />;
+}
 
 function App() {
     const rawBase = import.meta?.env?.BASE_URL || '/';
@@ -44,17 +61,8 @@ function App() {
 
     return (
         <BrowserRouter basename={base}>
-            <Navbar />
             <Routes>
                 <Route path="/" element={<Home />} />
-                <Route path="/store" element={<StoreLayout />}>
-                    <Route index element={<Storefront />} />
-                    <Route path="product/:productId" element={<ProductDetail />} />
-                    <Route path="cart" element={<CartPage />} />
-                    <Route path="checkout" element={<Checkout />} />
-                    <Route path="order/:orderId/success" element={<OrderStatus status="success" />} />
-                    <Route path="order/:orderId/cancel" element={<OrderStatus status="cancel" />} />
-                </Route>
                 <Route path="/payment/success" element={<PaymentSuccess />} />
                 <Route path="/payment/cancel" element={<PaymentCancel />} />
                 <Route path="/login" element={<Login />} />
@@ -64,78 +72,91 @@ function App() {
                 <Route path="/auth/accept-invite" element={<AcceptInvite />} />
                 <Route path="/auth/accept-invite/:token" element={<AcceptInvite />} />
 
-                <Route
-                    path="/super-admin"
-                    element={(
-                        <ProtectedRoute requiredRoles={["SUPER_ADMIN"]}>
-                            <SuperAdminDashboard />
-                        </ProtectedRoute>
-                    )}
-                />
-                <Route
-                    path="/super-admin/admins"
-                    element={(
-                        <ProtectedRoute requiredRoles={["SUPER_ADMIN"]}>
-                            <AdminManagement />
-                        </ProtectedRoute>
-                    )}
-                />
+                <Route element={<AppShellLayout />}>
+                    <Route path="/store" element={<StoreLayout />}>
+                        <Route index element={<Storefront />} />
+                        <Route path="product/:productId" element={<ProductDetail />} />
+                        <Route path="cart" element={<CartPage />} />
+                        <Route path="checkout" element={<Checkout />} />
+                        <Route path="order/:orderId/success" element={<OrderStatus status="success" />} />
+                        <Route path="order/:orderId/cancel" element={<OrderStatus status="cancel" />} />
+                        <Route path="admin/products" element={<ProductAdmin />} />
+                    </Route>
 
-                <Route
-                    path="/admin"
-                    element={(
-                        <ProtectedRoute requiredRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermissions={["ADMIN_DASHBOARD"]}>
-                            <AdminOverview />
-                        </ProtectedRoute>
-                    )}
-                />
-                <Route path="/admin/dashboard" element={<Navigate to="/admin" replace />} />
-                <Route
-                    path="/admin/team"
-                    element={(
-                        <ProtectedRoute requiredRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermissions={["ADMIN_TEAM"]}>
-                            <AdminTeam />
-                        </ProtectedRoute>
-                    )}
-                />
-
-                <Route
-                    path="/team"
-                    element={(
-                        <ProtectedRoute requiredRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermissions={["ADMIN_TEAM"]}>
-                            <AdminTeam />
-                        </ProtectedRoute>
-                    )}
-                />
-
-                <Route
-                    path="/dashboard/*"
-                    element={(
-                        <ProtectedRoute
-                            requiredRoles={["SUPER_ADMIN", "ADMIN", "WORKER"]}
-                            requiredPermissions={["ADMIN_DASHBOARD"]}
-                        >
-                            <MainLayout />
-                        </ProtectedRoute>
-                    )}
-                >
-                    <Route index element={<Navigate to="overview" replace />} />
-                    <Route path="overview" element={<Overview />} />
-                    <Route path="control-panel" element={<ControlPanel />} />
-                    <Route path="shelly-control" element={<ShellyControlPage />} />
-                    <Route path="live" element={<LiveDashboard />} />
-                    <Route path="germination" element={<Germination />} />
-                    <Route path="cameras" element={<Cameras />} />
                     <Route
-                        path="reports"
+                        path="/monitoring"
                         element={(
-                            <ProtectedRoute requiredRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermissions={["ADMIN_REPORTS"]}>
-                                <Reports />
-                            </ProtectedRoute>
+                            <ProtectedOutlet
+                                requiredRoles={["SUPER_ADMIN", "ADMIN", "WORKER"]}
+                                requiredPermissions={["ADMIN_DASHBOARD"]}
+                            />
                         )}
-                    />
-                    <Route path="note" element={<Note />} />
-                    <Route path="sensor-config" element={<SensorConfig />} />
+                    >
+                        <Route index element={<Navigate to="overview" replace />} />
+                        <Route path="overview" element={<Overview />} />
+                        <Route path="control-panel" element={<ControlPanel />} />
+                        <Route path="shelly-control" element={<ShellyControlPage />} />
+                        <Route path="live" element={<LiveDashboard />} />
+                        <Route path="germination" element={<Germination />} />
+                        <Route path="cameras" element={<Cameras />} />
+                        <Route
+                            path="reports"
+                            element={(
+                                <ProtectedRoute requiredRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermissions={["ADMIN_REPORTS"]}>
+                                    <Reports />
+                                </ProtectedRoute>
+                            )}
+                        />
+                        <Route path="note" element={<Note />} />
+                        <Route path="sensor-config" element={<SensorConfig />} />
+                    </Route>
+
+                    <Route
+                        path="/admin"
+                        element={<ProtectedOutlet requiredRoles={["SUPER_ADMIN", "ADMIN"]} />}
+                    >
+                        <Route index element={<AdminIndexRedirect />} />
+                        <Route
+                            path="home"
+                            element={(
+                                <ProtectedRoute requiredRoles={["SUPER_ADMIN"]}>
+                                    <AdminHome />
+                                </ProtectedRoute>
+                            )}
+                        />
+                        <Route
+                            path="overview"
+                            element={(
+                                <ProtectedRoute requiredRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermissions={["ADMIN_DASHBOARD"]}>
+                                    <AdminOverview />
+                                </ProtectedRoute>
+                            )}
+                        />
+                        <Route
+                            path="team"
+                            element={(
+                                <ProtectedRoute requiredRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermissions={["ADMIN_TEAM"]}>
+                                    <AdminTeam />
+                                </ProtectedRoute>
+                            )}
+                        />
+                        <Route
+                            path="tools"
+                            element={(
+                                <ProtectedRoute requiredRoles={["SUPER_ADMIN"]}>
+                                    <SuperAdminDashboard />
+                                </ProtectedRoute>
+                            )}
+                        />
+                        <Route
+                            path="directory"
+                            element={(
+                                <ProtectedRoute requiredRoles={["SUPER_ADMIN"]}>
+                                    <AdminManagement />
+                                </ProtectedRoute>
+                            )}
+                        />
+                    </Route>
                 </Route>
 
                 <Route
@@ -161,8 +182,12 @@ function App() {
                     <Route path="settings" element={<CustomerSettings />} />
                 </Route>
 
-                <Route path="/monitoring" element={<Navigate to="/dashboard/overview" replace />} />
-                <Route path="/monitoring/admin/products" element={<ProductAdmin />} />
+                <Route path="/dashboard/*" element={<Navigate to="/monitoring/overview" replace />} />
+                <Route path="/monitoring/admin/products" element={<Navigate to="/store/admin/products" replace />} />
+                <Route path="/admin/dashboard" element={<Navigate to="/admin/overview" replace />} />
+                <Route path="/team" element={<Navigate to="/admin/team" replace />} />
+                <Route path="/super-admin" element={<Navigate to="/admin/home" replace />} />
+                <Route path="/super-admin/admins" element={<Navigate to="/admin/directory" replace />} />
 
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

@@ -43,6 +43,7 @@ export default function AdminManagement() {
     const [editModalAdmin, setEditModalAdmin] = useState(null);
     const [editPermissions, setEditPermissions] = useState([]);
     const [confirmAdmin, setConfirmAdmin] = useState(null);
+    const [confirmPermissions, setConfirmPermissions] = useState(null);
 
     const showToast = useCallback((type, message) => {
         setToast({ type, message });
@@ -291,14 +292,21 @@ export default function AdminManagement() {
         });
     };
 
-    const savePermissions = async () => {
-        if (!editModalAdmin) return;
-        if (editPermissions.length === 0) {
+    const savePermissions = async (payload = {}) => {
+        const admin = payload.admin || editModalAdmin;
+        const permissionsToSave = payload.permissions || editPermissions;
+        if (!admin) return;
+        if (permissionsToSave.length === 0) {
             showToast('error', 'Select at least one permission.');
             return;
         }
 
-        const unknownSelection = editPermissions.filter((permission) => !permissionLabels[permission]);
+        const permissionLabels = permissionsToSave.reduce((acc, key) => {
+            acc[key] = permissionLabelMap[key] || key;
+            return acc;
+        }, {});
+
+        const unknownSelection = permissionsToSave.filter((permission) => !permissionLabels[permission]);
         if (unknownSelection.length > 0) {
             const message = 'Selected permissions are no longer valid. Refreshing permissions.';
             showToast('error', message);
@@ -307,7 +315,7 @@ export default function AdminManagement() {
         }
 
         try {
-            await updateAdminPermissions(editModalAdmin.id, editPermissions, token);
+            await updateAdminPermissions(admin.id, permissionsToSave, token);
             showToast('success', 'Permissions updated');
             setEditModalAdmin(null);
             setEditPermissions([]);
@@ -333,12 +341,17 @@ export default function AdminManagement() {
         }
     };
 
-    const confirmRemoval = async () => {
+    const confirmAdminAction = async () => {
         if (!confirmAdmin) return;
         try {
-            await deleteAdmin(confirmAdmin.admin.id, token);
-            const successMessage = confirmAdmin.intent === 'revoke' ? 'Invite revoked' : 'Admin removed';
-            showToast('success', successMessage);
+            if (confirmAdmin.intent === 'disable') {
+                await updateAdminStatus(confirmAdmin.admin.id, 'DISABLED', token);
+                showToast('success', 'Admin disabled');
+            } else {
+                await deleteAdmin(confirmAdmin.admin.id, token);
+                const successMessage = confirmAdmin.intent === 'revoke' ? 'Invite revoked' : 'Admin removed';
+                showToast('success', successMessage);
+            }
             setConfirmAdmin(null);
             loadAdmins();
         } catch (error) {
@@ -545,7 +558,7 @@ export default function AdminManagement() {
                                                             </button>
                                                             <button
                                                                 type="button"
-                                                                onClick={() => updateStatus(admin, 'DISABLED')}
+                                                                onClick={() => setConfirmAdmin({ admin, intent: 'disable' })}
                                                                 className={styles.softDanger}
                                                             >
                                                                 Disable
@@ -594,7 +607,11 @@ export default function AdminManagement() {
                             <button type="button" onClick={() => setEditModalAdmin(null)} className={styles.subtleButton}>
                                 Cancel
                             </button>
-                            <button type="button" className={styles.button} onClick={savePermissions}>
+                            <button
+                                type="button"
+                                className={styles.button}
+                                onClick={() => setConfirmPermissions({ admin: editModalAdmin, permissions: editPermissions })}
+                            >
                                 Save permissions
                             </button>
                         </div>
@@ -608,7 +625,11 @@ export default function AdminManagement() {
                         <div className={styles.modalHeader}>
                             <div>
                                 <p className={styles.kicker}>
-                                    {confirmAdmin.intent === 'revoke' ? 'Revoke invite' : 'Delete admin'}
+                                    {confirmAdmin.intent === 'revoke'
+                                        ? 'Revoke invite'
+                                        : confirmAdmin.intent === 'disable'
+                                            ? 'Disable admin'
+                                            : 'Delete admin'}
                                 </p>
                                 <h3>{confirmAdmin.admin.email}</h3>
                             </div>
@@ -616,17 +637,66 @@ export default function AdminManagement() {
                                 ✕
                             </button>
                         </div>
+                        <div className={styles.dangerZone}>
+                            <span className={styles.dangerZoneLabel}>Danger zone</span>
+                            <p className={styles.helper}>
+                                {confirmAdmin.intent === 'disable'
+                                    ? 'Disabling an admin immediately blocks access until they are re-enabled.'
+                                    : 'This action affects access and cannot be undone easily.'}
+                            </p>
+                        </div>
                         <p className={styles.helper}>
                             {confirmAdmin.intent === 'revoke'
                                 ? 'This cancels the invitation. The admin will need a new invite to join later.'
-                                : 'This removes the admin and revokes all access. Are you sure?'}
+                                : confirmAdmin.intent === 'disable'
+                                    ? 'You can re-enable the admin later if needed.'
+                                    : 'This removes the admin and revokes all access. Are you sure?'}
                         </p>
                         <div className={styles.modalActions}>
                             <button type="button" onClick={() => setConfirmAdmin(null)} className={styles.subtleButton}>
                                 Cancel
                             </button>
-                            <button type="button" className={styles.danger} onClick={confirmRemoval}>
-                                {confirmAdmin.intent === 'revoke' ? 'Revoke invite' : 'Delete admin'}
+                            <button type="button" className={styles.danger} onClick={confirmAdminAction}>
+                                {confirmAdmin.intent === 'revoke'
+                                    ? 'Revoke invite'
+                                    : confirmAdmin.intent === 'disable'
+                                        ? 'Disable admin'
+                                        : 'Delete admin'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {confirmPermissions && (
+                <div className={styles.modalBackdrop}>
+                    <div className={styles.modal}>
+                        <div className={styles.modalHeader}>
+                            <div>
+                                <p className={styles.kicker}>Confirm permissions</p>
+                                <h3>{confirmPermissions.admin?.email}</h3>
+                            </div>
+                            <button type="button" className={styles.closeButton} onClick={() => setConfirmPermissions(null)}>
+                                ✕
+                            </button>
+                        </div>
+                        <div className={styles.dangerZone}>
+                            <span className={styles.dangerZoneLabel}>Danger zone</span>
+                            <p className={styles.helper}>Changing permissions affects access immediately.</p>
+                        </div>
+                        <div className={styles.modalActions}>
+                            <button type="button" onClick={() => setConfirmPermissions(null)} className={styles.subtleButton}>
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.button}
+                                onClick={() => {
+                                    savePermissions(confirmPermissions);
+                                    setConfirmPermissions(null);
+                                }}
+                            >
+                                Confirm changes
                             </button>
                         </div>
                     </div>
