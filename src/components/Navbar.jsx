@@ -16,7 +16,7 @@ const NAV_ITEMS = [
         roles: ['CUSTOMER'],
     },
     {
-        path: '/dashboard/overview',
+        path: '/monitoring/overview',
         label: 'Monitoring',
         requiresAuth: true,
         roles: ['SUPER_ADMIN', 'ADMIN', 'WORKER'],
@@ -26,7 +26,7 @@ const NAV_ITEMS = [
 
 const ADMIN_MENU = [
     {
-        path: '/admin',
+        path: '/admin/overview',
         label: 'Admin Overview',
         roles: ['SUPER_ADMIN', 'ADMIN'],
         permissions: ['ADMIN_DASHBOARD'],
@@ -38,13 +38,13 @@ const ADMIN_MENU = [
         permissions: ['ADMIN_TEAM'],
     },
     {
-        path: '/monitoring/admin/products',
+        path: '/store/admin/products',
         label: 'Products',
         roles: ['SUPER_ADMIN', 'ADMIN'],
         permissions: [STORE_PERMISSION_KEY],
     },
-    { path: '/super-admin', label: 'Super Admin Tools', roles: ['SUPER_ADMIN'] },
-    { path: '/super-admin/admins', label: 'Admin Directory', roles: ['SUPER_ADMIN'] },
+    { path: '/admin/tools', label: 'Super Admin Tools', roles: ['SUPER_ADMIN'] },
+    { path: '/admin/directory', label: 'Admin Directory', roles: ['SUPER_ADMIN'] },
 ];
 
 const hasAccess = (item, role, permissions = []) => {

@@ -86,6 +86,7 @@ export default function ProductAdmin() {
     const [sortBy, setSortBy] = useState('updated_desc');
     const [permissionDefinitions, setPermissionDefinitions] = useState([]);
     const [confirmingDelete, setConfirmingDelete] = useState(null);
+    const [confirmingStatus, setConfirmingStatus] = useState(null);
     const [actioningId, setActioningId] = useState(null);
 
     const hasAccess = hasStoreAdminAccess(role, permissions);
@@ -197,9 +198,13 @@ export default function ProductAdmin() {
         setFormState({ ...emptyForm, ...product, price: product.price ?? '', stock: product.stock ?? 0, active: product.active !== false });
     }, []);
 
-    const handleToggleActive = useCallback(async (product) => {
+    const handleToggleActive = useCallback(async (product, confirmed = false) => {
         if (!product?.id || saving) return;
         const nextActive = !(product.active ?? true);
+        if (!confirmed && (product.active ?? true)) {
+            setConfirmingStatus(product);
+            return;
+        }
         setActioningId(product.id);
         try {
             await toggleProductActive(product.id, nextActive, token);
@@ -251,6 +256,12 @@ export default function ProductAdmin() {
             setSaving(false);
         }
     }, [confirmingDelete, loadProducts, showToast, token]);
+
+    const confirmDeactivate = () => {
+        if (!confirmingStatus) return;
+        handleToggleActive(confirmingStatus, true);
+        setConfirmingStatus(null);
+    };
 
     const validateForm = () => {
         if (!formState.name || formState.name.trim().length < 2) return 'Name must be at least 2 characters.';
@@ -317,7 +328,7 @@ export default function ProductAdmin() {
         return (
             <AccessDenied
                 message={`You need ${storePermissionLabel} permissions to manage products.`}
-                actionHref="/monitoring"
+                actionHref="/monitoring/overview"
                 actionLabel="Back to monitoring"
                 secondaryActionHref="/login"
             />
@@ -328,7 +339,7 @@ export default function ProductAdmin() {
         <div className={styles.page}>
             <header className={styles.header}>
                 <div>
-                    <p className={styles.kicker}>Monitoring / Admin</p>
+                    <p className={styles.kicker}>Store / Admin</p>
                     <h1 className={styles.title}>Product Admin</h1>
                     <p className={styles.subtitle}>Create, edit, and activate store products. Data is secured by backend permissions.</p>
                 </div>
@@ -585,6 +596,35 @@ export default function ProductAdmin() {
                 </section>
             </div>
 
+            {confirmingStatus && (
+                <div className={styles.modalBackdrop}>
+                    <div className={styles.modal} role="dialog" aria-modal="true">
+                        <div className={styles.modalHeader}>
+                            <div>
+                                <p className={styles.kickerSmall}>Deactivate product</p>
+                                <h3>{confirmingStatus.name}</h3>
+                                <p className={styles.muted}>This removes the product from the storefront until reactivated.</p>
+                            </div>
+                            <button type="button" className={styles.closeButton} onClick={() => setConfirmingStatus(null)}>
+                                ✕
+                            </button>
+                        </div>
+                        <div className={styles.dangerZone}>
+                            <span className={styles.dangerZoneLabel}>Danger zone</span>
+                            <p className={styles.muted}>Confirm you want to deactivate this product.</p>
+                        </div>
+                        <div className={styles.modalActions}>
+                            <button type="button" className={styles.secondaryButton} onClick={() => setConfirmingStatus(null)} disabled={saving}>
+                                Cancel
+                            </button>
+                            <button type="button" className={styles.danger} onClick={confirmDeactivate} disabled={saving}>
+                                Deactivate
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {confirmingDelete && (
                 <div className={styles.modalBackdrop}>
                     <div className={styles.modal} role="dialog" aria-modal="true">
@@ -597,6 +637,10 @@ export default function ProductAdmin() {
                             <button type="button" className={styles.closeButton} onClick={() => setConfirmingDelete(null)}>
                                 ✕
                             </button>
+                        </div>
+                        <div className={styles.dangerZone}>
+                            <span className={styles.dangerZoneLabel}>Danger zone</span>
+                            <p className={styles.muted}>Deleting products cannot be undone.</p>
                         </div>
                         <div className={styles.modalActions}>
                             <button type="button" className={styles.secondaryButton} onClick={() => setConfirmingDelete(null)} disabled={saving}>
