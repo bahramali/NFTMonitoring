@@ -10,6 +10,10 @@ const defaultNotifications = {
 };
 
 const RESET_COOLDOWN_MS = 8000;
+const API_BASE =
+    import.meta?.env?.VITE_API_BASE ||
+    import.meta?.env?.VITE_API_URL ||
+    'https://api.hydroleaf.se';
 
 const getNotificationDefaults = (raw = {}) => ({
     orderEmails: raw.orderEmails ?? raw.orderConfirmationEmails ?? defaultNotifications.orderEmails,
@@ -155,13 +159,24 @@ export default function CustomerSettings() {
         setResetState({ status: 'sending', message: '' });
         setResetError('');
         try {
-            const res = await fetch('/api/auth/password-reset', {
+            const res = await fetch(`${API_BASE}/api/auth/password-reset`, {
                 method: 'POST',
-                headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                headers: {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
             });
             if (!res.ok) {
-                const message = (await res.text()) || 'Unable to send reset link.';
-                throw new Error(message);
+                let errorMessage = 'Could not start password reset. Please try again.';
+                const contentType = res.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    const body = await res.json().catch(() => null);
+                    if (body?.message) {
+                        errorMessage = body.message;
+                    }
+                }
+                setResetState({ status: 'error', message: '' });
+                setResetError(errorMessage);
+                return;
             }
             setResetState({ status: 'sent', message: 'Reset link sent to your email' });
             setResetCooldown(true);
