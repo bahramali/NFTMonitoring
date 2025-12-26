@@ -35,6 +35,8 @@ import CartPage from './pages/store/CartPage.jsx';
 import Checkout from './pages/store/Checkout.jsx';
 import OrderStatus from './pages/store/OrderStatus.jsx';
 import ProductAdmin from './pages/ProductAdmin.jsx';
+import CustomersList from './pages/store/CustomersList.jsx';
+import CustomerDetails from './pages/store/CustomerDetails.jsx';
 import PaymentSuccess from './pages/payment/PaymentSuccess.jsx';
 import PaymentCancel from './pages/payment/PaymentCancel.jsx';
 import { useAuth } from './context/AuthContext.jsx';
@@ -82,6 +84,22 @@ function App() {
                         <Route path="order/:orderId/success" element={<OrderStatus status="success" />} />
                         <Route path="order/:orderId/cancel" element={<OrderStatus status="cancel" />} />
                         <Route path="admin/products" element={<ProductAdmin />} />
+                        <Route
+                            path="admin/customers"
+                            element={(
+                                <ProtectedRoute requiredRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermissions={["CUSTOMERS_VIEW"]}>
+                                    <CustomersList />
+                                </ProtectedRoute>
+                            )}
+                        />
+                        <Route
+                            path="admin/customers/:customerId"
+                            element={(
+                                <ProtectedRoute requiredRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermissions={["CUSTOMERS_VIEW"]}>
+                                    <CustomerDetails />
+                                </ProtectedRoute>
+                            )}
+                        />
                     </Route>
 
                     <Route

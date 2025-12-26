@@ -43,6 +43,12 @@ const ADMIN_MENU = [
         roles: ['SUPER_ADMIN', 'ADMIN'],
         permissions: [STORE_PERMISSION_KEY],
     },
+    {
+        path: '/store/admin/customers',
+        label: 'Customers',
+        roles: ['SUPER_ADMIN', 'ADMIN'],
+        permissions: ['CUSTOMERS_VIEW'],
+    },
     { path: '/admin/tools', label: 'Super Admin Tools', roles: ['SUPER_ADMIN'] },
     { path: '/admin/directory', label: 'Admin Directory', roles: ['SUPER_ADMIN'] },
 ];

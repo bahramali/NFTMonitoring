@@ -1,0 +1,173 @@
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.backLink {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.backLink:hover {
+    text-decoration: underline;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+}
+
+.eyebrow {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6b7280;
+    margin: 0 0 8px 0;
+}
+
+.subtitle {
+    margin: 8px 0 0 0;
+    color: #4b5563;
+}
+
+.status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.statusActive {
+    background: #ecfdf3;
+    color: #047857;
+}
+
+.statusAtrisk {
+    background: #fff7ed;
+    color: #b45309;
+}
+
+.statusInactive {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.profileGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+}
+
+.profileCard {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+    padding: 20px;
+}
+
+.profileCard h2 {
+    margin-top: 0;
+}
+
+.profileCard dl {
+    display: grid;
+    gap: 12px;
+}
+
+.profileCard dt {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b7280;
+}
+
+.profileCard dd {
+    margin: 4px 0 0;
+    font-size: 1rem;
+    color: #111827;
+}
+
+.profileCard ul {
+    margin: 12px 0 0;
+    padding-left: 20px;
+    color: #4b5563;
+}
+
+.ordersSection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ordersHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.orderCount {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.ordersTable {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+    padding: 4px 16px 16px;
+    overflow-x: auto;
+}
+
+.ordersTable table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ordersTable th {
+    text-align: left;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b7280;
+    padding: 16px 8px 12px;
+}
+
+.ordersTable td {
+    padding: 14px 8px;
+    border-top: 1px solid #f3f4f6;
+    font-size: 0.95rem;
+    color: #111827;
+}
+
+.orderStatus {
+    display: inline-flex;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #374151;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.emptyState {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+    padding: 32px;
+}
+
+@media (max-width: 720px) {
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
