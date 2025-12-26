@@ -431,10 +431,10 @@ export default function AdminManagement() {
         if (formState.expiresInHours) {
             payload.expiresInHours = Number(formState.expiresInHours);
         }
+        const permissionsToSend = Array.from(new Set(effectivePermissions));
+        payload.permissions = permissionsToSend;
         if (selectedPreset && selectedPreset !== 'CUSTOM') {
             payload.preset = selectedPreset;
-        } else {
-            payload.permissions = Array.from(new Set(selectedPermissionKeys));
         }
 
         try {
