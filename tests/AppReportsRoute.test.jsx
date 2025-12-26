@@ -27,7 +27,7 @@ beforeEach(() => {
 });
 
 test('reports link retains base path and is active when served from subdirectory', () => {
-  window.history.pushState({}, '', '/NFTMonitoring/dashboard/reports');
+  window.history.pushState({}, '', '/NFTMonitoring/monitoring/reports');
   renderWithProviders(
       <AuthProvider>
           <App />
@@ -36,7 +36,7 @@ test('reports link retains base path and is active when served from subdirectory
   const links = screen.getAllByRole('link', { name: /reports/i });
   expect(links.length).toBeGreaterThan(0);
   links.forEach((link) => {
-      expect(link).toHaveAttribute('href', '/NFTMonitoring/dashboard/reports');
+      expect(link).toHaveAttribute('href', '/NFTMonitoring/monitoring/reports');
   });
   expect(links.some((link) => link.getAttribute('aria-current') === 'page')).toBe(true);
 });

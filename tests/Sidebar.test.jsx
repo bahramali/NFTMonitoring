@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
+import { AuthProvider } from '../src/context/AuthContext.jsx';
 
 const mockLocation = { pathname: '/' };
 
@@ -29,47 +30,52 @@ import { MemoryRouter } from 'react-router-dom';
 import Sidebar from '../src/pages/common/Sidebar';
 import { ReportsFiltersProvider } from '../src/pages/Reports/context/ReportsFiltersContext.jsx';
 
-test('renders NFT Channels link', () => {
-    mockLocation.pathname = '/';
-    render(
+const renderSidebar = () => {
+    window.localStorage.setItem(
+        'authSession',
+        JSON.stringify({
+            isAuthenticated: true,
+            token: 'token',
+            userId: 'admin-1',
+            role: 'ADMIN',
+            permissions: ['ADMIN_DASHBOARD', 'ADMIN_REPORTS'],
+            expiry: Date.now() + 60_000,
+        }),
+    );
+
+    return render(
         <MemoryRouter>
-            <ReportsFiltersProvider>
-                <Sidebar />
-            </ReportsFiltersProvider>
+            <AuthProvider>
+                <ReportsFiltersProvider>
+                    <Sidebar />
+                </ReportsFiltersProvider>
+            </AuthProvider>
         </MemoryRouter>
     );
+};
+
+test('renders NFT Channels link', () => {
+    mockLocation.pathname = '/';
+    renderSidebar();
 
     const nftLink = screen.getByRole('link', { name: /nft channels/i });
     expect(nftLink).toBeInTheDocument();
-    expect(nftLink).toHaveAttribute('href', '/dashboard/live');
+    expect(nftLink).toHaveAttribute('href', '/monitoring/live');
 });
 
 test('renders Note link', () => {
     mockLocation.pathname = '/';
-    render(
-        <MemoryRouter>
-            <ReportsFiltersProvider>
-                <Sidebar />
-            </ReportsFiltersProvider>
-        </MemoryRouter>
-    );
+    renderSidebar();
 
     const noteLink = screen.getByRole('link', { name: /note/i });
     expect(noteLink).toBeInTheDocument();
-    expect(noteLink).toHaveAttribute('href', '/dashboard/note');
+    expect(noteLink).toHaveAttribute('href', '/monitoring/note');
 });
 
 test('does not render report filters in the sidebar on reports route', () => {
-    mockLocation.pathname = '/dashboard/reports';
-    render(
-        <MemoryRouter>
-            <ReportsFiltersProvider>
-                <Sidebar />
-            </ReportsFiltersProvider>
-        </MemoryRouter>
-    );
+    mockLocation.pathname = '/monitoring/reports';
+    renderSidebar();
 
     expect(screen.queryByText(/filters/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/timing/i)).not.toBeInTheDocument();
 });
-
