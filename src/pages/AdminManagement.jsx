@@ -184,7 +184,7 @@ export default function AdminManagement() {
             const normalized = normalizePermissionDefinitions(payload);
             setPermissionDefs(normalized);
             setHasFetchedPermissions(true);
-            setPermissionLoadError(null);
+            setPermissionLoadError(normalized.length > 0 ? null : 'Permissions not loaded');
         } catch (error) {
             console.error('Failed to load permissions', error);
             setPermissionLoadError(error?.message || 'Failed to load permissions');
@@ -304,7 +304,7 @@ export default function AdminManagement() {
             return (
                 <>
                     {errorBanner}
-                    <p className={styles.helper}>No permissions available.</p>
+                    <p className={styles.helper}>Permissions not loaded.</p>
                 </>
             );
         }
@@ -407,6 +407,12 @@ export default function AdminManagement() {
 
     const handleInvite = async (event) => {
         event.preventDefault();
+        if (!permissionDefs.length) {
+            const message = 'Permissions not loaded';
+            showToast('error', message);
+            setInviteFeedback({ type: 'error', message });
+            return;
+        }
         if (!formState.email) {
             showToast('error', 'Email is required.');
             setInviteFeedback({ type: 'error', message: 'Email is required.' });
@@ -633,7 +639,13 @@ export default function AdminManagement() {
                         ))}
                     </select>
 
-                    <button className={styles.button} type="submit">Send invite</button>
+                    <button
+                        className={styles.button}
+                        type="submit"
+                        disabled={loadingPermissions || !permissionDefs.length}
+                    >
+                        Send invite
+                    </button>
 
                     <div className={styles.notice} role="status">
                         Admin will receive an email to set their password securely after accepting the invite.
