@@ -19,7 +19,7 @@ const getNotificationDefaults = (raw = {}) => ({
 const areNotificationsEqual = (a, b) => a.orderEmails === b.orderEmails && a.pickupReady === b.pickupReady;
 
 export default function CustomerSettings() {
-    const { profile, loadingProfile, redirectToLogin } = useOutletContext();
+    const { profile, loadingProfile, redirectToLogin, refreshProfile } = useOutletContext();
     const { token } = useAuth();
     const [fullName, setFullName] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
@@ -33,6 +33,9 @@ export default function CustomerSettings() {
     const [saveState, setSaveState] = useState({ status: 'idle', message: '' });
     const [saveError, setSaveError] = useState('');
     const [profileUpdateSupported, setProfileUpdateSupported] = useState(true);
+    const [profileUpdateMessage, setProfileUpdateMessage] = useState(
+        'Profile updates are not available yet. Please contact support for help.',
+    );
     const [resetState, setResetState] = useState({ status: 'idle', message: '' });
     const [resetError, setResetError] = useState('');
     const [resetCooldown, setResetCooldown] = useState(false);
@@ -91,7 +94,7 @@ export default function CustomerSettings() {
 
     const handleSave = async () => {
         if (!profileUpdateSupported) {
-            setSaveError('Profile updates are not available yet. Please contact support for help.');
+            setSaveError(profileUpdateMessage);
             return;
         }
         if (!token) {
@@ -111,18 +114,35 @@ export default function CustomerSettings() {
             if (response === null) {
                 return;
             }
-            const updatedSettings = {
-                fullName,
-                phoneNumber,
-                notifications,
-            };
-            setInitialSettings(updatedSettings);
+            const responseData = response?.user ?? response;
+            if (responseData && typeof responseData === 'object') {
+                const raw = responseData?.raw ?? responseData ?? {};
+                const updatedSettings = {
+                    fullName: raw.fullName ?? raw.name ?? fullName,
+                    phoneNumber: raw.phoneNumber ?? raw.phone ?? phoneNumber,
+                    notifications: getNotificationDefaults(
+                        raw.notifications ?? raw.notificationPreferences ?? raw.preferences?.notifications ?? {},
+                    ),
+                };
+                setEmail(responseData?.email ?? responseData?.username ?? email);
+                setInitialSettings(updatedSettings);
+                setFullName(updatedSettings.fullName);
+                setPhoneNumber(updatedSettings.phoneNumber);
+                setNotifications(updatedSettings.notifications);
+            } else {
+                await refreshProfile?.();
+            }
             setSaveState({ status: 'success', message: 'Saved' });
         } catch (error) {
             if (error?.isUnsupported) {
                 setProfileUpdateSupported(false);
+                setProfileUpdateMessage(
+                    error?.message || 'Profile updates are not available yet. Please contact support for help.',
+                );
                 setSaveState({ status: 'error', message: '' });
-                setSaveError('Profile updates are not available yet. Please contact support for help.');
+                setSaveError(
+                    error?.message || 'Profile updates are not available yet. Please contact support for help.',
+                );
                 return;
             }
             setSaveState({ status: 'error', message: '' });
@@ -264,9 +284,7 @@ export default function CustomerSettings() {
                             ) : null}
                             {saveError ? <p className={styles.errorMessage}>{saveError}</p> : null}
                             {!profileUpdateSupported && !saveError ? (
-                                <p className={styles.errorMessage}>
-                                    Profile updates are not available yet. Please contact support for help.
-                                </p>
+                                <p className={styles.errorMessage}>{profileUpdateMessage}</p>
                             ) : null}
                         </div>
                     </div>

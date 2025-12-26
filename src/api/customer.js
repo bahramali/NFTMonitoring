@@ -3,8 +3,7 @@ import { parseApiResponse } from './http.js';
 const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
 const PROFILE_URL = `${API_BASE}/api/me`;
 const PROFILE_UPDATE_URL = PROFILE_URL;
-const PROFILE_UPDATE_METHOD = 'PATCH';
-const PROFILE_UPDATE_FALLBACK_METHOD = 'PUT';
+const PROFILE_UPDATE_METHOD = 'PUT';
 
 export const CUSTOMER_PROFILE_UPDATE_PATH = '/api/me';
 export const CUSTOMER_PROFILE_UPDATE_METHOD = PROFILE_UPDATE_METHOD;
@@ -50,45 +49,26 @@ export async function fetchCustomerProfile(token, { signal, onUnauthorized } = {
 
 export async function updateCustomerProfile(token, updates, { signal, onUnauthorized } = {}) {
     if (!token) throw new Error('Authentication is required to update the profile');
-    const attemptUpdate = async (method) => {
-        const res = await fetch(PROFILE_UPDATE_URL, {
-            method,
-            headers: authHeaders(token),
-            body: JSON.stringify(updates ?? {}),
-            signal,
-        });
-
-        try {
-            return await parseApiResponse(res, 'Failed to update profile');
-        } catch (error) {
-            if (handleUnauthorized(error, onUnauthorized)) return null;
-            throw error;
-        }
-    };
+    const res = await fetch(PROFILE_UPDATE_URL, {
+        method: PROFILE_UPDATE_METHOD,
+        headers: authHeaders(token),
+        body: JSON.stringify(updates ?? {}),
+        signal,
+    });
 
     try {
-        return await attemptUpdate(PROFILE_UPDATE_METHOD);
+        return await parseApiResponse(res, 'Failed to update profile');
     } catch (error) {
-        const shouldFallback = [405, 501].includes(error?.status);
-        if (shouldFallback) {
-            try {
-                return await attemptUpdate(PROFILE_UPDATE_FALLBACK_METHOD);
-            } catch (fallbackError) {
-                if (handleUnauthorized(fallbackError, onUnauthorized)) return null;
-                const isUnsupported = [404, 405, 501].includes(fallbackError?.status);
-                if (isUnsupported) {
-                    fallbackError.isUnsupported = true;
-                    fallbackError.message = 'Profile updates are not available yet.';
-                    throw fallbackError;
-                }
-                throw fallbackError;
-            }
-        }
+        if (handleUnauthorized(error, onUnauthorized)) return null;
 
         const isUnsupported = [404, 405, 501].includes(error?.status);
         if (isUnsupported) {
             error.isUnsupported = true;
-            error.message = 'Profile updates are not available yet.';
+            if (error?.status === 405) {
+                error.message = 'Server does not allow PUT /api/me (405). Backend endpoint is missing or not enabled.';
+            } else {
+                error.message = 'Profile updates are not available yet.';
+            }
             throw error;
         }
 
