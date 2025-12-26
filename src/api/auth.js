@@ -2,6 +2,7 @@ import { parseApiResponse } from './http.js';
 
 const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
 const AUTH_BASE = `${API_BASE}/api/auth`;
+const PROFILE_URL = `${API_BASE}/api/me`;
 
 export async function fetchInviteDetails(token) {
     if (!token) {
@@ -24,4 +25,20 @@ export async function completeInvite(token, password) {
     });
 
     return parseApiResponse(res, 'Failed to accept invite');
+}
+
+export async function fetchSessionProfile(token, { signal } = {}) {
+    if (!token) {
+        throw new Error('Authentication is required to load the profile.');
+    }
+
+    const res = await fetch(PROFILE_URL, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        },
+        signal,
+    });
+
+    return parseApiResponse(res, 'Failed to load profile');
 }

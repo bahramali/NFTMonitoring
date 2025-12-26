@@ -108,6 +108,26 @@
     margin: 8px 0 12px 0;
 }
 
+.permissionGroup {
+    margin-bottom: 16px;
+}
+
+.permissionGroupHeader {
+    font-weight: 700;
+    color: #0f172a;
+    margin: 8px 0;
+}
+
+.dangerGroupHeader {
+    color: #b91c1c;
+}
+
+.dangerHelper {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    color: #9f1239;
+}
+
 .checkboxRow {
     display: flex;
     align-items: flex-start;
@@ -115,6 +135,11 @@
     background: #f8fafc;
     padding: 8px;
     border-radius: 8px;
+}
+
+.dangerCheckboxRow {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
 }
 
 .permissionDescription {

@@ -25,6 +25,16 @@ const STATUS_META = {
     DISABLED: { icon: '🔴', label: 'Disabled', description: 'Login blocked' },
 };
 
+const DANGEROUS_PERMISSIONS = new Set(['ADMIN_PERMISSIONS_MANAGE', 'ADMIN_DISABLE']);
+
+const PRESET_OPTIONS = [
+    { value: 'ADMIN_STANDARD', label: 'Admin (Standard)' },
+    { value: 'OPERATOR_READ_ONLY', label: 'Operator (Read-only)' },
+    { value: 'ADMIN_STORE_ONLY', label: 'Admin (Store only)' },
+    { value: 'ADMIN_MONITORING_ONLY', label: 'Admin (Monitoring only)' },
+    { value: 'CUSTOM', label: 'Custom' },
+];
+
 const emptyForm = { email: '', displayName: '', expiresInHours: '' };
 
 export default function AdminManagement() {
@@ -33,6 +43,7 @@ export default function AdminManagement() {
     const [loading, setLoading] = useState(false);
     const [permissionDefs, setPermissionDefs] = useState([]);
     const [selectedPermissionKeys, setSelectedPermissionKeys] = useState([]);
+    const [selectedPreset, setSelectedPreset] = useState('ADMIN_STANDARD');
     const [hasFetchedPermissions, setHasFetchedPermissions] = useState(false);
     const [hasAppliedDefaultPermissions, setHasAppliedDefaultPermissions] = useState(false);
     const [permissionLoadError, setPermissionLoadError] = useState(null);
@@ -44,6 +55,7 @@ export default function AdminManagement() {
     const [editPermissions, setEditPermissions] = useState([]);
     const [confirmAdmin, setConfirmAdmin] = useState(null);
     const [confirmPermissions, setConfirmPermissions] = useState(null);
+    const [confirmDangerPermission, setConfirmDangerPermission] = useState(null);
 
     const showToast = useCallback((type, message) => {
         setToast({ type, message });
@@ -60,6 +72,18 @@ export default function AdminManagement() {
     const normalizePermissionDefinitions = useCallback((payload) => {
         if (Array.isArray(payload)) return payload;
         if (payload && Array.isArray(payload.permissions)) return payload.permissions;
+        if (payload?.data && Array.isArray(payload.data)) return payload.data;
+        if (payload?.data?.permissions && Array.isArray(payload.data.permissions)) {
+            return payload.data.permissions;
+        }
+        const groupedPermissions = payload?.permissions || payload?.permissionGroups || payload?.groups;
+        if (groupedPermissions && typeof groupedPermissions === 'object' && !Array.isArray(groupedPermissions)) {
+            return Object.entries(groupedPermissions).flatMap(([domain, permissions]) =>
+                Array.isArray(permissions)
+                    ? permissions.map((permission) => ({ ...permission, domain }))
+                    : [],
+            );
+        }
         return [];
     }, []);
 
@@ -71,6 +95,72 @@ export default function AdminManagement() {
                 .filter(Boolean),
         [],
     );
+
+    const resolvePermissionDomain = useCallback((permission) => {
+        const domain = `${permission?.domain || permission?.group || permission?.category || ''}`.toLowerCase();
+        if (domain.includes('monitor')) return 'monitoring';
+        if (domain.includes('store')) return 'store';
+        if (domain.includes('admin')) return 'admin';
+
+        const key = `${permission?.key || ''}`.toUpperCase();
+        if (key.includes('STORE')) return 'store';
+        if (key.includes('MONITOR') || key.includes('REPORT')) return 'monitoring';
+        return 'admin';
+    }, []);
+
+    const groupedPermissions = useMemo(() => {
+        const groups = {
+            monitoring: [],
+            store: [],
+            admin: [],
+            danger: [],
+        };
+
+        permissionDefs.forEach((permission) => {
+            if (!permission?.key) return;
+            if (DANGEROUS_PERMISSIONS.has(permission.key)) {
+                groups.danger.push(permission);
+                return;
+            }
+            const domain = resolvePermissionDomain(permission);
+            if (groups[domain]) {
+                groups[domain].push(permission);
+            } else {
+                groups.admin.push(permission);
+            }
+        });
+
+        return groups;
+    }, [permissionDefs, resolvePermissionDomain]);
+
+    const presetPermissions = useMemo(() => {
+        const allSafePermissions = permissionDefs
+            .filter((permission) => permission?.key && !DANGEROUS_PERMISSIONS.has(permission.key))
+            .map((permission) => permission.key)
+            .filter(Boolean);
+        const monitoringKeys = groupedPermissions.monitoring.map((permission) => permission.key).filter(Boolean);
+        const storeKeys = groupedPermissions.store.map((permission) => permission.key).filter(Boolean);
+        const adminKeys = groupedPermissions.admin.map((permission) => permission.key).filter(Boolean);
+        const defaultKeys = deriveDefaultPermissionKeys(permissionDefs);
+        const readOnlyKeys = monitoringKeys.filter((key) => !/MANAGE|WRITE|DELETE|DISABLE|CREATE|UPDATE/i.test(key));
+
+        return {
+            ADMIN_STANDARD: defaultKeys.length > 0 ? defaultKeys : [...new Set([...adminKeys, ...monitoringKeys, ...storeKeys])],
+            OPERATOR_READ_ONLY: readOnlyKeys.length > 0 ? readOnlyKeys : monitoringKeys,
+            ADMIN_STORE_ONLY: storeKeys,
+            ADMIN_MONITORING_ONLY: monitoringKeys,
+            CUSTOM: allSafePermissions,
+        };
+    }, [deriveDefaultPermissionKeys, groupedPermissions, permissionDefs]);
+
+    const presetHelperText = useMemo(() => {
+        const selected = PRESET_OPTIONS.find((option) => option.value === selectedPreset);
+        if (!selected) return '';
+        if (selected.value === 'CUSTOM') {
+            return 'Select individual permissions below.';
+        }
+        return 'Permissions are pre-filled from the selected preset. You can still adjust them manually.';
+    }, [selectedPreset]);
 
     const loadAdmins = useCallback(async () => {
         if (!token) return;
@@ -121,13 +211,16 @@ export default function AdminManagement() {
         setHasAppliedDefaultPermissions(false);
         setPermissionDefs([]);
         setSelectedPermissionKeys([]);
+        setSelectedPreset('ADMIN_STANDARD');
     }, [token]);
 
     useEffect(() => {
         if (!hasFetchedPermissions || hasAppliedDefaultPermissions) return;
-        setSelectedPermissionKeys(deriveDefaultPermissionKeys(permissionDefs));
+        const standardKeys = presetPermissions.ADMIN_STANDARD || [];
+        setSelectedPermissionKeys(standardKeys);
+        setSelectedPreset(standardKeys.length > 0 ? 'ADMIN_STANDARD' : 'CUSTOM');
         setHasAppliedDefaultPermissions(true);
-    }, [deriveDefaultPermissionKeys, hasAppliedDefaultPermissions, hasFetchedPermissions, permissionDefs]);
+    }, [hasAppliedDefaultPermissions, hasFetchedPermissions, presetPermissions]);
 
     useEffect(() => {
         if (!hasFetchedPermissions) return;
@@ -150,9 +243,14 @@ export default function AdminManagement() {
         return map;
     }, [permissionDefs]);
 
+    const dangerPermissionLabel = useMemo(() => {
+        if (!confirmDangerPermission?.permissionKey) return '';
+        return permissionLabelMap[confirmDangerPermission.permissionKey] || confirmDangerPermission.permissionKey;
+    }, [confirmDangerPermission, permissionLabelMap]);
+
     const defaultPermissionKeys = useMemo(
-        () => deriveDefaultPermissionKeys(permissionDefs),
-        [deriveDefaultPermissionKeys, permissionDefs],
+        () => presetPermissions.ADMIN_STANDARD || [],
+        [presetPermissions],
     );
 
     const hasUnknownPermissions = useMemo(
@@ -166,6 +264,26 @@ export default function AdminManagement() {
         const parsed = new Date(value);
         if (Number.isNaN(parsed.getTime())) return 'Unknown';
         return parsed.toLocaleString();
+    };
+
+    const requestPermissionToggle = (permissionKey, selectedKeys, setKeys, contextLabel) => {
+        const applyToggle = () => {
+            setKeys((previous) => {
+                const hasPermission = previous.includes(permissionKey);
+                return hasPermission ? previous.filter((item) => item !== permissionKey) : [...previous, permissionKey];
+            });
+        };
+
+        if (DANGEROUS_PERMISSIONS.has(permissionKey) && !selectedKeys.includes(permissionKey)) {
+            setConfirmDangerPermission({
+                permissionKey,
+                contextLabel,
+                onConfirm: applyToggle,
+            });
+            return;
+        }
+
+        applyToggle();
     };
 
     const renderPermissionCheckboxes = (selectedKeys, toggleHandler) => {
@@ -191,30 +309,72 @@ export default function AdminManagement() {
             );
         }
 
+        const sections = [
+            { id: 'monitoring', label: 'Monitoring', items: groupedPermissions.monitoring },
+            { id: 'store', label: 'Store', items: groupedPermissions.store },
+            { id: 'admin', label: 'Admin', items: groupedPermissions.admin },
+        ].filter((section) => section.items.length > 0);
+
         return (
             <>
                 {errorBanner}
-                <div className={styles.permissions}>
-                    {permissionDefs.map((permission, index) => (
-                        <label
-                            key={permission.key || permission.label || `permission-${index}`}
-                            className={styles.checkboxRow}
-                            title={permission.description || undefined}
-                        >
-                            <input
-                                type="checkbox"
-                                checked={selectedKeys.includes(permission.key)}
-                                onChange={() => toggleHandler(permission.key)}
-                            />
-                            <div>
-                                <div>{permission.label || permission.key}</div>
-                                {permission.description ? (
-                                    <div className={styles.permissionDescription}>{permission.description}</div>
-                                ) : null}
-                            </div>
-                        </label>
-                    ))}
-                </div>
+                {sections.map((section) => (
+                    <div key={section.id} className={styles.permissionGroup}>
+                        <div className={styles.permissionGroupHeader}>{section.label}</div>
+                        <div className={styles.permissions}>
+                            {section.items.map((permission, index) => (
+                                <label
+                                    key={permission.key || permission.label || `${section.id}-permission-${index}`}
+                                    className={styles.checkboxRow}
+                                    title={permission.description || undefined}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedKeys.includes(permission.key)}
+                                        onChange={() => toggleHandler(permission.key)}
+                                    />
+                                    <div>
+                                        <div>{permission.label || permission.key}</div>
+                                        {permission.description ? (
+                                            <div className={styles.permissionDescription}>{permission.description}</div>
+                                        ) : null}
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+                {groupedPermissions.danger.length > 0 && (
+                    <div className={styles.permissionGroup}>
+                        <div className={`${styles.permissionGroupHeader} ${styles.dangerGroupHeader}`}>
+                            Danger zone
+                        </div>
+                        <p className={styles.dangerHelper}>
+                            These permissions can disable admins or manage other admins. Confirm before enabling.
+                        </p>
+                        <div className={styles.permissions}>
+                            {groupedPermissions.danger.map((permission, index) => (
+                                <label
+                                    key={permission.key || permission.label || `danger-permission-${index}`}
+                                    className={`${styles.checkboxRow} ${styles.dangerCheckboxRow}`}
+                                    title={permission.description || undefined}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedKeys.includes(permission.key)}
+                                        onChange={() => toggleHandler(permission.key)}
+                                    />
+                                    <div>
+                                        <div>{permission.label || permission.key}</div>
+                                        {permission.description ? (
+                                            <div className={styles.permissionDescription}>{permission.description}</div>
+                                        ) : null}
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </>
         );
     };
@@ -233,10 +393,16 @@ export default function AdminManagement() {
 
     const togglePermission = (permission) => {
         setInviteFeedback(null);
-        setSelectedPermissionKeys((previous) => {
-            const hasPermission = previous.includes(permission);
-            return hasPermission ? previous.filter((item) => item !== permission) : [...previous, permission];
-        });
+        setSelectedPreset('CUSTOM');
+        requestPermissionToggle(permission, selectedPermissionKeys, setSelectedPermissionKeys, 'invite');
+    };
+
+    const applyPresetSelection = (presetValue) => {
+        setInviteFeedback(null);
+        setSelectedPreset(presetValue);
+        if (presetValue === 'CUSTOM') return;
+        const nextPermissions = Array.from(new Set(presetPermissions[presetValue] || []));
+        setSelectedPermissionKeys(nextPermissions);
     };
 
     const handleInvite = async (event) => {
@@ -247,7 +413,10 @@ export default function AdminManagement() {
             return;
         }
 
-        if (selectedPermissionKeys.length === 0) {
+        const effectivePermissions =
+            selectedPreset === 'CUSTOM' ? selectedPermissionKeys : presetPermissions[selectedPreset] || [];
+
+        if (effectivePermissions.length === 0) {
             const message = 'Select at least one permission';
             showToast('error', message);
             setInviteFeedback({ type: 'error', message });
@@ -257,11 +426,15 @@ export default function AdminManagement() {
         const payload = {
             email: formState.email.trim(),
             displayName: formState.displayName?.trim() || undefined,
-            permissions: Array.from(new Set(selectedPermissionKeys)),
         };
 
         if (formState.expiresInHours) {
             payload.expiresInHours = Number(formState.expiresInHours);
+        }
+        if (selectedPreset && selectedPreset !== 'CUSTOM') {
+            payload.preset = selectedPreset;
+        } else {
+            payload.permissions = Array.from(new Set(selectedPermissionKeys));
         }
 
         try {
@@ -269,10 +442,14 @@ export default function AdminManagement() {
             setInviteFeedback({ type: 'success', message: 'Invite sent successfully. Email sent to admin.' });
             setFormState(emptyForm);
             setSelectedPermissionKeys(defaultPermissionKeys);
+            setSelectedPreset(defaultPermissionKeys.length > 0 ? 'ADMIN_STANDARD' : 'CUSTOM');
             loadAdmins();
         } catch (error) {
             console.error('Failed to invite admin', error);
-            const message = error?.payload?.message || error?.message || 'Failed to send invite';
+            const message =
+                error?.status === 403
+                    ? 'You cannot grant permissions you do not have.'
+                    : error?.payload?.message || error?.message || 'Failed to send invite';
             setInviteFeedback({ type: 'error', message });
             if (error?.payload?.invalidPermissions || `${error?.message}`.toLowerCase().includes('permission')) {
                 loadPermissions();
@@ -286,10 +463,7 @@ export default function AdminManagement() {
     };
 
     const toggleEditPermission = (permission) => {
-        setEditPermissions((previous) => {
-            const hasPermission = previous.includes(permission);
-            return hasPermission ? previous.filter((item) => item !== permission) : [...previous, permission];
-        });
+        requestPermissionToggle(permission, editPermissions, setEditPermissions, 'edit');
     };
 
     const savePermissions = async (payload = {}) => {
@@ -423,6 +597,21 @@ export default function AdminManagement() {
                             setFormState((previous) => ({ ...previous, displayName: event.target.value }));
                         }}
                     />
+
+                    <label className={styles.label} htmlFor="invitePreset">Permission preset</label>
+                    <select
+                        id="invitePreset"
+                        className={styles.input}
+                        value={selectedPreset}
+                        onChange={(event) => applyPresetSelection(event.target.value)}
+                    >
+                        {PRESET_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </select>
+                    {presetHelperText && <p className={styles.helper}>{presetHelperText}</p>}
 
                     <p className={styles.label}>Permissions</p>
                     {renderPermissionCheckboxes(selectedPermissionKeys, togglePermission)}
@@ -697,6 +886,54 @@ export default function AdminManagement() {
                                 }}
                             >
                                 Confirm changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {confirmDangerPermission && (
+                <div className={styles.modalBackdrop}>
+                    <div className={styles.modal}>
+                        <div className={styles.modalHeader}>
+                            <div>
+                                <p className={styles.kicker}>Confirm dangerous permission</p>
+                                <h3>{dangerPermissionLabel}</h3>
+                            </div>
+                            <button
+                                type="button"
+                                className={styles.closeButton}
+                                onClick={() => setConfirmDangerPermission(null)}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div className={styles.dangerZone}>
+                            <span className={styles.dangerZoneLabel}>Danger zone</span>
+                            <p className={styles.helper}>
+                                This permission allows admins to disable accounts or manage permissions. Proceed with care.
+                            </p>
+                        </div>
+                        <p className={styles.helper}>
+                            Confirm that you want to enable {dangerPermissionLabel}.
+                        </p>
+                        <div className={styles.modalActions}>
+                            <button
+                                type="button"
+                                onClick={() => setConfirmDangerPermission(null)}
+                                className={styles.subtleButton}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.danger}
+                                onClick={() => {
+                                    confirmDangerPermission.onConfirm?.();
+                                    setConfirmDangerPermission(null);
+                                }}
+                            >
+                                Enable permission
                             </button>
                         </div>
                     </div>

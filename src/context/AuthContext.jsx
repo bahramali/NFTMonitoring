@@ -6,6 +6,7 @@ import React, {
     useMemo,
     useState,
 } from 'react';
+import { fetchSessionProfile } from '../api/auth.js';
 
 const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
 const AUTH_BASE = `${API_BASE}/api/auth`;
@@ -16,6 +17,7 @@ const defaultAuthValue = {
     token: null,
     userId: null,
     role: null,
+    roles: [],
     permissions: [],
     login: async () => ({ success: false }),
     register: async () => ({ success: false }),
@@ -43,6 +45,7 @@ const readStoredSession = () => {
             token: parsed.token || null,
             userId: parsed.userId || null,
             role: parsed.role || null,
+            roles: Array.isArray(parsed.roles) ? parsed.roles : [],
             permissions: Array.isArray(parsed.permissions) ? parsed.permissions : [],
             expiry: parsed.expiry || null,
         };
@@ -60,8 +63,15 @@ export function AuthProvider({ children }) {
     const [session, setSession] = useState(() => readStoredSession());
 
     const setAuthenticatedSession = useCallback((payload) => {
-        const { token, userId, role, permissions } = payload || {};
-        if (!token || !userId || !role) {
+        const { token, userId, role, roles, permissions } = payload || {};
+        const normalizedRoles = Array.isArray(roles)
+            ? roles.filter(Boolean)
+            : role
+                ? [role]
+                : [];
+        const primaryRole = role || normalizedRoles[0] || null;
+
+        if (!token || !userId || !primaryRole) {
             return { success: false, message: 'Login response is missing required fields.' };
         }
 
@@ -70,7 +80,8 @@ export function AuthProvider({ children }) {
             isAuthenticated: true,
             token,
             userId,
-            role,
+            role: primaryRole,
+            roles: normalizedRoles.length > 0 ? normalizedRoles : [primaryRole],
             permissions: normalizedPermissions,
             expiry: Date.now() + SESSION_DURATION_MS,
         };
@@ -196,18 +207,83 @@ export function AuthProvider({ children }) {
         return () => window.clearTimeout(timeoutId);
     }, [logout, session.expiry, session.isAuthenticated]);
 
+    useEffect(() => {
+        if (!session.isAuthenticated || !session.token) return undefined;
+
+        const controller = new AbortController();
+        let active = true;
+
+        const loadProfile = async () => {
+            try {
+                const payload = await fetchSessionProfile(session.token, { signal: controller.signal });
+                if (!active || !payload) return;
+
+                const payloadRoles = Array.isArray(payload?.roles)
+                    ? payload.roles
+                    : Array.isArray(payload?.role)
+                        ? payload.role
+                        : payload?.role
+                            ? [payload.role]
+                            : Array.isArray(payload?.user?.roles)
+                                ? payload.user.roles
+                                : [];
+                const payloadPermissions = Array.isArray(payload?.permissions)
+                    ? payload.permissions
+                    : Array.isArray(payload?.user?.permissions)
+                        ? payload.user.permissions
+                        : [];
+                const payloadRole = payload?.role || payloadRoles[0] || payload?.user?.role || session.role;
+
+                setSession((prev) => {
+                    const nextRoles = payloadRoles.length > 0 ? payloadRoles : prev.roles;
+                    const nextPermissions = payloadPermissions.length > 0 ? payloadPermissions : prev.permissions;
+                    const nextRole = payloadRole || prev.role;
+                    const nextSession = {
+                        ...prev,
+                        role: nextRole,
+                        roles: nextRoles,
+                        permissions: nextPermissions,
+                    };
+                    persistSession(nextSession);
+                    return nextSession;
+                });
+            } catch (error) {
+                if (error?.status === 401 || error?.status === 403) {
+                    logout({ redirect: false });
+                }
+            }
+        };
+
+        loadProfile();
+        return () => {
+            active = false;
+            controller.abort();
+        };
+    }, [logout, session.isAuthenticated, session.token]);
+
     const value = useMemo(
         () => ({
             isAuthenticated: session.isAuthenticated,
             token: session.token,
             userId: session.userId,
             role: session.role,
+            roles: session.roles,
             permissions: session.permissions,
             login,
             register,
             logout,
         }),
-        [session.isAuthenticated, session.token, session.userId, session.role, session.permissions, login, register, logout],
+        [
+            session.isAuthenticated,
+            session.token,
+            session.userId,
+            session.role,
+            session.roles,
+            session.permissions,
+            login,
+            register,
+            logout,
+        ],
     );
 
     return (
