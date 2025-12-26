@@ -11,13 +11,18 @@ const getWindowWidth = () => (typeof window === "undefined" ? DEFAULT_VIEWPORT_W
 
 const MONITORING_BASE = "/monitoring";
 
-const hasAccess = (item, role, permissions = []) => {
+const hasAccess = (item, role, roles = [], permissions = []) => {
     if (!item?.roles || item.roles.length === 0) return true;
-    if (!role || !item.roles.includes(role)) return false;
+    const availableRoles = roles.length > 0 ? roles : role ? [role] : [];
+    const matchesRole = availableRoles.some((userRole) => item.roles.includes(userRole));
+    if (!matchesRole) return false;
 
-    if (item.permissions && item.permissions.length > 0 && role === "ADMIN") {
+    const isAdmin = availableRoles.includes("ADMIN");
+    const isSuperAdmin = availableRoles.includes("SUPER_ADMIN");
+
+    if (item.permissions && item.permissions.length > 0 && isAdmin && !isSuperAdmin) {
         if (item.permissions.includes(STORE_PERMISSION_KEY)) {
-            return hasStoreAdminAccess(role, permissions);
+            return hasStoreAdminAccess("ADMIN", permissions);
         }
         return item.permissions.every((permission) => permissions?.includes(permission));
     }
@@ -63,7 +68,7 @@ const NAV_SECTIONS = [
 ];
 
 export default function Sidebar() {
-    const { role, permissions } = useAuth();
+    const { role, roles, permissions } = useAuth();
     const [isMobile, setIsMobile] = useState(() => getWindowWidth() < BREAKPOINTS.mobile);
     const [collapsed, setCollapsed] = useState(() => {
         const width = getWindowWidth();
@@ -109,7 +114,9 @@ export default function Sidebar() {
             .join(" ");
     }, [collapsed, isMobile]);
 
-    const storeTarget = hasStoreAdminAccess(role, permissions) ? "/store/admin/products" : "/store";
+    const storeTarget = hasStoreAdminAccess(roles?.includes("SUPER_ADMIN") ? "SUPER_ADMIN" : role, permissions)
+        ? "/store/admin/products"
+        : "/store";
 
     const sections = useMemo(
         () =>
@@ -132,12 +139,12 @@ export default function Sidebar() {
             .map((section) => {
                 const visibleItems = section.items.filter((item) => {
                     if (item.disabled) return true;
-                    return hasAccess(item, role, permissions);
+                    return hasAccess(item, role, roles, permissions);
                 });
                 return { ...section, items: visibleItems };
             })
             .filter((section) => section.items.length > 0);
-    }, [permissions, role, sections]);
+    }, [permissions, role, roles, sections]);
 
     return (
         <aside className={sidebarClassName}>

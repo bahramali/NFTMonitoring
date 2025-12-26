@@ -47,13 +47,18 @@ const ADMIN_MENU = [
     { path: '/admin/directory', label: 'Admin Directory', roles: ['SUPER_ADMIN'] },
 ];
 
-const hasAccess = (item, role, permissions = []) => {
+const hasAccess = (item, role, roles = [], permissions = []) => {
     if (!item?.roles || item.roles.length === 0) return true;
-    if (!role || !item.roles.includes(role)) return false;
+    const availableRoles = roles.length > 0 ? roles : role ? [role] : [];
+    const matchesRole = availableRoles.some((userRole) => item.roles.includes(userRole));
+    if (!matchesRole) return false;
 
-    if (item.permissions && item.permissions.length > 0 && role === 'ADMIN') {
+    const isAdmin = availableRoles.includes('ADMIN');
+    const isSuperAdmin = availableRoles.includes('SUPER_ADMIN');
+
+    if (item.permissions && item.permissions.length > 0 && isAdmin && !isSuperAdmin) {
         if (item.permissions.includes(STORE_PERMISSION_KEY)) {
-            return hasStoreAdminAccess(role, permissions);
+            return hasStoreAdminAccess('ADMIN', permissions);
         }
         return item.permissions.every((permission) => permissions?.includes(permission));
     }
@@ -62,7 +67,7 @@ const hasAccess = (item, role, permissions = []) => {
 };
 
 export default function Navbar() {
-    const { isAuthenticated, userId, role, permissions, logout } = useAuth();
+    const { isAuthenticated, userId, role, roles, permissions, logout } = useAuth();
     const { cart, openCart } = useStorefront();
     const [isNavOpen, setIsNavOpen] = useState(false);
     const [isAdminOpen, setIsAdminOpen] = useState(false);
@@ -80,9 +85,9 @@ export default function Navbar() {
     const primaryLinks = useMemo(() => {
         return NAV_ITEMS.filter((item) => {
             if (item.requiresAuth && !isAuthenticated) return false;
-            return hasAccess(item, role, permissions);
+            return hasAccess(item, role, roles, permissions);
         });
-    }, [isAuthenticated, permissions, role]);
+    }, [isAuthenticated, permissions, role, roles]);
 
     const itemCount = useMemo(
         () => cart?.items?.reduce((acc, item) => acc + (item.quantity ?? item.qty ?? 0), 0) || 0,
@@ -95,8 +100,8 @@ export default function Navbar() {
 
     const adminLinks = useMemo(() => {
         if (!isAuthenticated) return [];
-        return ADMIN_MENU.filter((item) => hasAccess(item, role, permissions));
-    }, [isAuthenticated, permissions, role]);
+        return ADMIN_MENU.filter((item) => hasAccess(item, role, roles, permissions));
+    }, [isAuthenticated, permissions, role, roles]);
 
     useEffect(() => {
         setIsNavOpen(false);
