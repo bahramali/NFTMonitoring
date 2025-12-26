@@ -52,7 +52,7 @@ const NAV_SECTIONS = [
         items: [
             { to: "/store", icon: "🛍️", label: "Products" },
             { icon: "📦", label: "Orders", disabled: true },
-            { icon: "👥", label: "Customers", disabled: true },
+            { to: "/store/admin/customers", icon: "👥", label: "Customers", roles: ["SUPER_ADMIN", "ADMIN"], permissions: ["CUSTOMERS_VIEW"] },
         ],
     },
     {

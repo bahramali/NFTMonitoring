@@ -1,0 +1,203 @@
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+}
+
+.eyebrow {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #6b7280;
+    margin: 0 0 8px 0;
+}
+
+.subtitle {
+    margin: 8px 0 0 0;
+    color: #4b5563;
+}
+
+.summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+    gap: 16px;
+    padding: 16px 20px;
+    background: #f9fafb;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+}
+
+.summaryLabel {
+    display: block;
+    font-size: 0.75rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.summaryValue {
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+.filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.filters label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: #374151;
+}
+
+.filters input,
+.filters select {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    font-size: 0.95rem;
+    background: #fff;
+}
+
+.searchField input {
+    width: 100%;
+}
+
+.filterLabel {
+    font-weight: 600;
+}
+
+.tableWrapper {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+    padding: 4px 16px 16px;
+    overflow-x: auto;
+}
+
+.tableWrapper table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.tableWrapper th {
+    text-align: left;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b7280;
+    padding: 16px 8px 12px;
+}
+
+.tableWrapper td {
+    padding: 14px 8px;
+    border-top: 1px solid #f3f4f6;
+    font-size: 0.95rem;
+    color: #111827;
+}
+
+.customerCell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.customerName {
+    font-weight: 600;
+}
+
+.customerEmail {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.statusActive {
+    background: #ecfdf3;
+    color: #047857;
+}
+
+.statusAtrisk {
+    background: #fff7ed;
+    color: #b45309;
+}
+
+.statusInactive {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.detailLink {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.detailLink:hover {
+    text-decoration: underline;
+}
+
+.emptyState {
+    padding: 24px 8px 8px;
+    color: #6b7280;
+    font-size: 0.95rem;
+}
+
+.pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.pagination button {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    cursor: pointer;
+}
+
+.pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pageInfo {
+    font-size: 0.9rem;
+    color: #4b5563;
+}
+
+@media (max-width: 700px) {
+    .summary {
+        width: 100%;
+    }
+
+    .pagination {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
