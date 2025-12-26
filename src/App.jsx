@@ -48,8 +48,9 @@ function ProtectedOutlet({ requiredRoles = [], requiredPermissions = [] }) {
 }
 
 function AdminIndexRedirect() {
-    const { role } = useAuth();
-    if (role === 'SUPER_ADMIN') {
+    const { role, roles } = useAuth();
+    const availableRoles = roles?.length ? roles : role ? [role] : [];
+    if (availableRoles.includes('SUPER_ADMIN')) {
         return <Navigate to="home" replace />;
     }
     return <Navigate to="overview" replace />;

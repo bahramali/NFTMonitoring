@@ -37,6 +37,16 @@ const normalizeProducts = (payload) => {
 const normalizePermissionDefinitions = (payload) => {
     if (Array.isArray(payload)) return payload;
     if (Array.isArray(payload?.permissions)) return payload.permissions;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload?.data?.permissions)) return payload.data.permissions;
+    const groupedPermissions = payload?.permissions || payload?.permissionGroups || payload?.groups;
+    if (groupedPermissions && typeof groupedPermissions === 'object' && !Array.isArray(groupedPermissions)) {
+        return Object.entries(groupedPermissions).flatMap(([domain, permissions]) =>
+            Array.isArray(permissions)
+                ? permissions.map((permission) => ({ ...permission, domain }))
+                : [],
+        );
+    }
     return [];
 };
 
