@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { listAdminCustomers } from '../../api/adminCustomers.js';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { formatCurrency } from '../../utils/currency.js';
-import { customers as customerData } from './customerData.js';
 import styles from './CustomersList.module.css';
 
 const STATUS_OPTIONS = ['all', 'Active', 'At risk', 'Inactive'];
@@ -23,45 +24,62 @@ const formatDate = (value) => {
 };
 
 export default function CustomersList() {
+    const { token } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
     const [sortBy, setSortBy] = useState('last_order_desc');
     const [page, setPage] = useState(1);
+    const [customers, setCustomers] = useState([]);
+    const [summary, setSummary] = useState({ totalCustomers: 0, activeCustomers: 0 });
+    const [totalPages, setTotalPages] = useState(1);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
 
-    const filteredCustomers = useMemo(() => {
-        const term = searchTerm.trim().toLowerCase();
-        let list = customerData.filter((customer) => {
-            const matchesTerm =
-                !term ||
-                customer.name.toLowerCase().includes(term) ||
-                customer.email.toLowerCase().includes(term);
-            const matchesStatus = statusFilter === 'all' || customer.status === statusFilter;
-            const matchesType = typeFilter === 'all' || customer.type === typeFilter;
-            return matchesTerm && matchesStatus && matchesType;
-        });
+    const queryParams = useMemo(() => {
+        const normalizeParam = (value) => (value ? value.toLowerCase().replace(/\s+/g, '_') : value);
+        return {
+            q: searchTerm.trim() || undefined,
+            status: statusFilter === 'all' ? undefined : normalizeParam(statusFilter),
+            type: typeFilter === 'all' ? undefined : normalizeParam(typeFilter),
+            sort: sortBy,
+            page,
+            size: PAGE_SIZE,
+        };
+    }, [page, searchTerm, sortBy, statusFilter, typeFilter]);
 
-        list = [...list].sort((a, b) => {
-            if (sortBy.startsWith('last_order')) {
-                const aTime = new Date(a.lastOrderDate).getTime();
-                const bTime = new Date(b.lastOrderDate).getTime();
-                return sortBy.endsWith('asc') ? aTime - bTime : bTime - aTime;
-            }
-            if (sortBy.startsWith('total_spent')) {
-                return sortBy.endsWith('asc') ? a.totalSpent - b.totalSpent : b.totalSpent - a.totalSpent;
-            }
-            return 0;
-        });
+    const loadCustomers = useCallback(async () => {
+        if (!token) return;
+        setLoading(true);
+        setError('');
+        try {
+            const response = await listAdminCustomers(token, queryParams);
+            setCustomers(response.customers);
+            setSummary({
+                totalCustomers: response.totalCustomers ?? response.total ?? response.customers.length,
+                activeCustomers: response.activeCustomers ?? response.customers.filter((customer) => customer.status === 'Active').length,
+            });
+            setTotalPages(Math.max(1, response.totalPages ?? 1));
+        } catch (loadError) {
+            console.error('Failed to load customers', loadError);
+            setError(loadError?.message || 'Unable to load customers right now. Please try again.');
+            setCustomers([]);
+            setSummary({ totalCustomers: 0, activeCustomers: 0 });
+            setTotalPages(1);
+        } finally {
+            setLoading(false);
+        }
+    }, [queryParams, token]);
 
-        return list;
-    }, [searchTerm, sortBy, statusFilter, typeFilter]);
+    useEffect(() => {
+        loadCustomers();
+    }, [loadCustomers]);
 
-    const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / PAGE_SIZE));
-
-    const pagedCustomers = useMemo(() => {
-        const start = (page - 1) * PAGE_SIZE;
-        return filteredCustomers.slice(start, start + PAGE_SIZE);
-    }, [filteredCustomers, page]);
+    useEffect(() => {
+        if (page > totalPages) {
+            setPage(totalPages);
+        }
+    }, [page, totalPages]);
 
     const handlePageChange = (nextPage) => {
         const clamped = Math.min(Math.max(nextPage, 1), totalPages);
@@ -79,13 +97,11 @@ export default function CustomersList() {
                 <div className={styles.summary}>
                     <div>
                         <span className={styles.summaryLabel}>Total customers</span>
-                        <span className={styles.summaryValue}>{filteredCustomers.length}</span>
+                        <span className={styles.summaryValue}>{summary.totalCustomers}</span>
                     </div>
                     <div>
                         <span className={styles.summaryLabel}>Active</span>
-                        <span className={styles.summaryValue}>
-                            {filteredCustomers.filter((customer) => customer.status === 'Active').length}
-                        </span>
+                        <span className={styles.summaryValue}>{summary.activeCustomers}</span>
                     </div>
                 </div>
             </div>
@@ -139,7 +155,10 @@ export default function CustomersList() {
                     <span className={styles.filterLabel}>Sort by</span>
                     <select
                         value={sortBy}
-                        onChange={(event) => setSortBy(event.target.value)}
+                        onChange={(event) => {
+                            setSortBy(event.target.value);
+                            setPage(1);
+                        }}
                     >
                         {SORT_OPTIONS.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -151,6 +170,8 @@ export default function CustomersList() {
             </div>
 
             <div className={styles.tableWrapper}>
+                {error && <div className={styles.emptyState}>{error}</div>}
+                {loading && <div className={styles.emptyState}>Loading customers…</div>}
                 <table>
                     <thead>
                         <tr>
@@ -163,8 +184,11 @@ export default function CustomersList() {
                         </tr>
                     </thead>
                     <tbody>
-                        {pagedCustomers.map((customer) => (
-                            <tr key={customer.id}>
+                        {customers.map((customer) => {
+                            const statusLabel = customer.status || '—';
+                            const statusKey = `${customer.status || ''}`.replace(' ', '');
+                            return (
+                                <tr key={customer.id}>
                                 <td>
                                     <div className={styles.customerCell}>
                                         <div className={styles.customerName}>{customer.name}</div>
@@ -172,35 +196,36 @@ export default function CustomersList() {
                                     </div>
                                 </td>
                                 <td>
-                                    <span className={`${styles.status} ${styles[`status${customer.status.replace(' ', '')}`]}`}>
-                                        {customer.status}
+                                    <span className={`${styles.status} ${styles[`status${statusKey}`]}`}>
+                                        {statusLabel}
                                     </span>
                                 </td>
-                                <td>{customer.type}</td>
+                                <td>{customer.type || '—'}</td>
                                 <td>{formatDate(customer.lastOrderDate)}</td>
-                                <td>{formatCurrency(customer.totalSpent, 'SEK')}</td>
+                                <td>{formatCurrency(customer.totalSpent, customer.currency || 'SEK')}</td>
                                 <td>
                                     <Link to={`/store/admin/customers/${customer.id}`} className={styles.detailLink}>
                                         View details
                                     </Link>
                                 </td>
                             </tr>
-                        ))}
+                            );
+                        })}
                     </tbody>
                 </table>
-                {pagedCustomers.length === 0 && (
-                    <div className={styles.emptyState}>No customers match your filters.</div>
+                {!error && !loading && customers.length === 0 && (
+                    <div className={styles.emptyState}>No customers yet.</div>
                 )}
             </div>
 
             <div className={styles.pagination}>
-                <button type="button" onClick={() => handlePageChange(page - 1)} disabled={page === 1}>
+                <button type="button" onClick={() => handlePageChange(page - 1)} disabled={page === 1 || loading}>
                     Previous
                 </button>
                 <div className={styles.pageInfo}>
                     Page {page} of {totalPages}
                 </div>
-                <button type="button" onClick={() => handlePageChange(page + 1)} disabled={page >= totalPages}>
+                <button type="button" onClick={() => handlePageChange(page + 1)} disabled={page >= totalPages || loading}>
                     Next
                 </button>
             </div>
