@@ -53,3 +53,8 @@ export async function parseApiResponse(response, defaultError = 'Request failed'
 
     return data;
 }
+
+export const buildAuthHeaders = (token) => ({
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+});

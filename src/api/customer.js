@@ -1,4 +1,4 @@
-import { parseApiResponse } from './http.js';
+import { buildAuthHeaders, parseApiResponse } from './http.js';
 
 const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
 const PROFILE_URL = `${API_BASE}/api/me`;
@@ -12,11 +12,6 @@ const MY_ORDERS_URL = `${API_BASE}/api/store/orders/my`;
 
 const unauthorizedStatuses = new Set([401, 403]);
 const unsupportedStatuses = new Set([404, 501]);
-
-const authHeaders = (token) => ({
-    Authorization: `Bearer ${token}`,
-    'Content-Type': 'application/json',
-});
 
 const handleUnauthorized = (error, onUnauthorized) => {
     if (unauthorizedStatuses.has(error?.status)) {
@@ -37,7 +32,7 @@ const markUnsupported = (error) => {
 
 export async function fetchCustomerProfile(token, { signal, onUnauthorized } = {}) {
     if (!token) throw new Error('Authentication is required to load the profile');
-    const res = await fetch(PROFILE_URL, { headers: authHeaders(token), signal });
+    const res = await fetch(PROFILE_URL, { headers: buildAuthHeaders(token), signal });
 
     try {
         return await parseApiResponse(res, 'Failed to load profile');
@@ -51,7 +46,7 @@ export async function updateCustomerProfile(token, updates, { signal, onUnauthor
     if (!token) throw new Error('Authentication is required to update the profile');
     const res = await fetch(PROFILE_UPDATE_URL, {
         method: PROFILE_UPDATE_METHOD,
-        headers: authHeaders(token),
+        headers: buildAuthHeaders(token),
         body: JSON.stringify(updates ?? {}),
         signal,
     });
@@ -90,7 +85,7 @@ export async function updateCustomerProfile(token, updates, { signal, onUnauthor
 
 export async function fetchMyDevices(token, { signal, onUnauthorized } = {}) {
     if (!token) throw new Error('Authentication is required to load devices');
-    const res = await fetch(MY_DEVICES_URL, { headers: authHeaders(token), signal });
+    const res = await fetch(MY_DEVICES_URL, { headers: buildAuthHeaders(token), signal });
 
     try {
         return await parseApiResponse(res, 'Failed to load devices');
@@ -105,7 +100,7 @@ export async function fetchDeviceDetails(token, deviceId, { signal, onUnauthoriz
     if (!deviceId) throw new Error('Device ID is required');
 
     const url = `${MY_DEVICES_URL}/${encodeURIComponent(deviceId)}`;
-    const res = await fetch(url, { headers: authHeaders(token), signal });
+    const res = await fetch(url, { headers: buildAuthHeaders(token), signal });
 
     try {
         return await parseApiResponse(res, 'Failed to load device details');
@@ -117,7 +112,7 @@ export async function fetchDeviceDetails(token, deviceId, { signal, onUnauthoriz
 
 export async function fetchMyOrders(token, { signal, onUnauthorized } = {}) {
     if (!token) throw new Error('Authentication is required to load orders');
-    const res = await fetch(MY_ORDERS_URL, { headers: authHeaders(token), signal });
+    const res = await fetch(MY_ORDERS_URL, { headers: buildAuthHeaders(token), signal });
 
     try {
         return await parseApiResponse(res, 'Failed to load your orders');
@@ -133,7 +128,7 @@ export async function fetchOrderDetail(token, orderId, { signal, onUnauthorized 
     if (!orderId) throw new Error('Order ID is required');
 
     const url = `${API_BASE}/api/store/orders/${encodeURIComponent(orderId)}`;
-    const res = await fetch(url, { headers: authHeaders(token), signal });
+    const res = await fetch(url, { headers: buildAuthHeaders(token), signal });
 
     try {
         return await parseApiResponse(res, 'Failed to load order details');
