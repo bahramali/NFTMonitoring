@@ -148,7 +148,8 @@ export async function listAdminCustomers(token, params = {}, { signal } = {}) {
     });
     const payload = await parseApiResponse(res, 'Failed to load customers');
     const customers = normalizeCustomersPayload(payload);
-    const pagination = extractPagination(payload, params.page ?? 1, params.size ?? customers.length || 1);
+    const sizeFallback = params.size ?? (customers.length || 1);
+    const pagination = extractPagination(payload, params.page ?? 1, sizeFallback);
     const kpis = extractKpis(payload, customers, pagination.total);
 
     return {
