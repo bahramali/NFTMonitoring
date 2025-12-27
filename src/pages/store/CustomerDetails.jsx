@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { fetchAdminCustomer } from '../../api/adminCustomers.js';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { formatCurrency } from '../../utils/currency.js';
-import { customers } from './customerData.js';
 import styles from './CustomerDetails.module.css';
 
 const formatDate = (value) => {
@@ -13,13 +14,49 @@ const formatDate = (value) => {
 
 export default function CustomerDetails() {
     const { customerId } = useParams();
+    const { token } = useAuth();
+    const [customer, setCustomer] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
 
-    const customer = useMemo(
-        () => customers.find((entry) => entry.id === customerId),
-        [customerId],
-    );
+    useEffect(() => {
+        if (!token || !customerId) return;
+        const controller = new AbortController();
+        const loadCustomer = async () => {
+            setLoading(true);
+            setError('');
+            try {
+                const payload = await fetchAdminCustomer(customerId, token, { signal: controller.signal });
+                setCustomer(payload);
+            } catch (loadError) {
+                console.error('Failed to load customer details', loadError);
+                setError(loadError?.message || 'Unable to load customer details right now.');
+                setCustomer(null);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    if (!customer) {
+        loadCustomer();
+
+        return () => controller.abort();
+    }, [customerId, token]);
+
+    if (loading) {
+        return (
+            <section className={styles.wrapper}>
+                <Link to="/store/admin/customers" className={styles.backLink}>
+                    ← Back to customers
+                </Link>
+                <div className={styles.emptyState}>
+                    <h1>Loading customer</h1>
+                    <p>Fetching the latest customer details…</p>
+                </div>
+            </section>
+        );
+    }
+
+    if (error || !customer) {
         return (
             <section className={styles.wrapper}>
                 <Link to="/store/admin/customers" className={styles.backLink}>
@@ -27,11 +64,13 @@ export default function CustomerDetails() {
                 </Link>
                 <div className={styles.emptyState}>
                     <h1>Customer not found</h1>
-                    <p>We couldn’t locate that customer. Please return to the list and try again.</p>
+                    <p>{error || 'We couldn’t locate that customer. Please return to the list and try again.'}</p>
                 </div>
             </section>
         );
     }
+
+    const statusKey = `${customer.status || ''}`.replace(' ', '');
 
     return (
         <section className={styles.wrapper}>
@@ -45,8 +84,8 @@ export default function CustomerDetails() {
                     <h1>{customer.name}</h1>
                     <p className={styles.subtitle}>Read-only profile overview and order history.</p>
                 </div>
-                <span className={`${styles.status} ${styles[`status${customer.status.replace(' ', '')}`]}`}>
-                    {customer.status}
+                <span className={`${styles.status} ${styles[`status${statusKey}`]}`}>
+                    {customer.status || '—'}
                 </span>
             </div>
 
@@ -64,7 +103,7 @@ export default function CustomerDetails() {
                         </div>
                         <div>
                             <dt>Customer type</dt>
-                            <dd>{customer.type}</dd>
+                            <dd>{customer.type || '—'}</dd>
                         </div>
                         <div>
                             <dt>Last order</dt>
@@ -72,7 +111,7 @@ export default function CustomerDetails() {
                         </div>
                         <div>
                             <dt>Total spent</dt>
-                            <dd>{formatCurrency(customer.totalSpent, 'SEK')}</dd>
+                            <dd>{formatCurrency(customer.totalSpent, customer.currency || 'SEK')}</dd>
                         </div>
                     </dl>
                 </div>
@@ -89,7 +128,7 @@ export default function CustomerDetails() {
             <div className={styles.ordersSection}>
                 <div className={styles.ordersHeader}>
                     <h2>Orders</h2>
-                    <span className={styles.orderCount}>{customer.orders.length} total</span>
+                    <span className={styles.orderCount}>{customer.orders?.length ?? 0} total</span>
                 </div>
                 <div className={styles.ordersTable}>
                     <table>
@@ -102,18 +141,21 @@ export default function CustomerDetails() {
                             </tr>
                         </thead>
                         <tbody>
-                            {customer.orders.map((order) => (
-                                <tr key={`${customer.id}-${order.date}-${order.total}`}>
+                            {(customer.orders || []).map((order) => (
+                                <tr key={order.id || `${customer.id}-${order.date}-${order.total}`}>
                                     <td>{formatDate(order.date)}</td>
-                                    <td>{order.items}</td>
+                                    <td>{order.items || '—'}</td>
                                     <td>
-                                        <span className={styles.orderStatus}>{order.status}</span>
+                                        <span className={styles.orderStatus}>{order.status || '—'}</span>
                                     </td>
-                                    <td>{formatCurrency(order.total, 'SEK')}</td>
+                                    <td>{formatCurrency(order.total, order.currency || customer.currency || 'SEK')}</td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
+                    {!customer.orders?.length && (
+                        <div className={styles.emptyState}>No orders found for this customer.</div>
+                    )}
                 </div>
             </div>
         </section>
