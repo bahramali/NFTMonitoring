@@ -132,13 +132,19 @@ const extractKpis = (payload, customers, totalFromMeta) => {
 };
 
 export async function listAdminCustomers(token, params = {}, { signal } = {}) {
+    const resolvedParams = {
+        sort: 'last_order_desc',
+        page: 1,
+        size: 6,
+        ...params,
+    };
     const searchParams = new URLSearchParams();
-    if (params.q) searchParams.set('q', params.q);
-    if (params.status && params.status !== 'all') searchParams.set('status', params.status);
-    if (params.type && params.type !== 'all') searchParams.set('type', params.type);
-    if (params.sort) searchParams.set('sort', params.sort);
-    if (params.page) searchParams.set('page', params.page);
-    if (params.size) searchParams.set('size', params.size);
+    if (resolvedParams.q) searchParams.set('q', resolvedParams.q);
+    if (resolvedParams.status && resolvedParams.status !== 'all') searchParams.set('status', resolvedParams.status);
+    if (resolvedParams.type && resolvedParams.type !== 'all') searchParams.set('type', resolvedParams.type);
+    if (resolvedParams.sort) searchParams.set('sort', resolvedParams.sort);
+    if (resolvedParams.page) searchParams.set('page', resolvedParams.page);
+    if (resolvedParams.size) searchParams.set('size', resolvedParams.size);
 
     const url = `${ADMIN_CUSTOMERS_URL}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
     const res = await fetch(url, {
@@ -148,8 +154,8 @@ export async function listAdminCustomers(token, params = {}, { signal } = {}) {
     });
     const payload = await parseApiResponse(res, 'Failed to load customers');
     const customers = normalizeCustomersPayload(payload);
-    const sizeFallback = params.size ?? (customers.length || 1);
-    const pagination = extractPagination(payload, params.page ?? 1, sizeFallback);
+    const sizeFallback = resolvedParams.size ?? (customers.length || 1);
+    const pagination = extractPagination(payload, resolvedParams.page ?? 1, sizeFallback);
     const kpis = extractKpis(payload, customers, pagination.total);
 
     return {
