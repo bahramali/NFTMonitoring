@@ -1,4 +1,4 @@
-import { parseApiResponse } from './http.js';
+import { buildAuthHeaders, parseApiResponse } from './http.js';
 
 const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
 const AUTH_BASE = `${API_BASE}/api/auth`;
@@ -33,10 +33,7 @@ export async function fetchSessionProfile(token, { signal } = {}) {
     }
 
     const res = await fetch(PROFILE_URL, {
-        headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-        },
+        headers: buildAuthHeaders(token),
         signal,
     });
 

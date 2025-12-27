@@ -1,12 +1,7 @@
-import { parseApiResponse } from './http.js';
+import { buildAuthHeaders, parseApiResponse } from './http.js';
 
 const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
 const ADMIN_CUSTOMERS_URL = `${API_BASE}/api/admin/customers`;
-
-const authHeaders = (token) => ({
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-});
 
 const normalizeStatus = (status) => {
     if (!status) return '';
@@ -132,6 +127,7 @@ const extractKpis = (payload, customers, totalFromMeta) => {
 };
 
 export async function listAdminCustomers(token, params = {}, { signal } = {}) {
+    if (!token) throw new Error('Authentication is required to load customers');
     const resolvedParams = {
         sort: 'last_order_desc',
         page: 1,
@@ -149,7 +145,7 @@ export async function listAdminCustomers(token, params = {}, { signal } = {}) {
     const url = `${ADMIN_CUSTOMERS_URL}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
     const res = await fetch(url, {
         method: 'GET',
-        headers: authHeaders(token),
+        headers: buildAuthHeaders(token),
         signal,
     });
     const payload = await parseApiResponse(res, 'Failed to load customers');
@@ -166,10 +162,11 @@ export async function listAdminCustomers(token, params = {}, { signal } = {}) {
 }
 
 export async function fetchAdminCustomer(customerId, token, { signal } = {}) {
+    if (!token) throw new Error('Authentication is required to load customer details');
     if (!customerId) throw new Error('Customer ID is required');
     const res = await fetch(`${ADMIN_CUSTOMERS_URL}/${encodeURIComponent(customerId)}`, {
         method: 'GET',
-        headers: authHeaders(token),
+        headers: buildAuthHeaders(token),
         signal,
     });
     const payload = await parseApiResponse(res, 'Failed to load customer');
