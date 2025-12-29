@@ -37,6 +37,83 @@ const PRESET_OPTIONS = [
 
 const emptyForm = { email: '', displayName: '', expiresInHours: '' };
 
+const PermissionsSelector = ({ available, selectedPermissionCodes, onToggle }) => {
+    const groupedPermissions = available.reduce((acc, permission) => {
+        if (!permission?.key) return acc;
+        if (DANGEROUS_PERMISSIONS.has(permission.key)) return acc;
+        const groupName = permission?.group || permission?.domain || permission?.category || 'Other';
+        if (!acc.has(groupName)) {
+            acc.set(groupName, []);
+        }
+        acc.get(groupName).push(permission);
+        return acc;
+    }, new Map());
+
+    const dangerPermissions = available.filter((permission) => DANGEROUS_PERMISSIONS.has(permission?.key));
+
+    return (
+        <>
+            {Array.from(groupedPermissions.entries()).map(([name, items]) => (
+                <div key={name} className={styles.permissionGroup}>
+                    <div className={styles.permissionGroupHeader}>{name}</div>
+                    <div className={styles.permissions}>
+                        {items.map((permission, index) => (
+                            <label
+                                key={permission.key || permission.label || `${name}-permission-${index}`}
+                                className={styles.checkboxRow}
+                                title={permission.description || undefined}
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={selectedPermissionCodes.includes(permission.key)}
+                                    onChange={() => onToggle(permission.key)}
+                                />
+                                <div>
+                                    <div>{permission.label || permission.key}</div>
+                                    {permission.description ? (
+                                        <div className={styles.permissionDescription}>{permission.description}</div>
+                                    ) : null}
+                                </div>
+                            </label>
+                        ))}
+                    </div>
+                </div>
+            ))}
+            {dangerPermissions.length > 0 && (
+                <div className={styles.permissionGroup}>
+                    <div className={`${styles.permissionGroupHeader} ${styles.dangerGroupHeader}`}>
+                        Danger zone
+                    </div>
+                    <p className={styles.dangerHelper}>
+                        These permissions can disable admins or manage other admins. Confirm before enabling.
+                    </p>
+                    <div className={styles.permissions}>
+                        {dangerPermissions.map((permission, index) => (
+                            <label
+                                key={permission.key || permission.label || `danger-permission-${index}`}
+                                className={`${styles.checkboxRow} ${styles.dangerCheckboxRow}`}
+                                title={permission.description || undefined}
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={selectedPermissionCodes.includes(permission.key)}
+                                    onChange={() => onToggle(permission.key)}
+                                />
+                                <div>
+                                    <div>{permission.label || permission.key}</div>
+                                    {permission.description ? (
+                                        <div className={styles.permissionDescription}>{permission.description}</div>
+                                    ) : null}
+                                </div>
+                            </label>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </>
+    );
+};
+
 export default function AdminManagement() {
     const { token } = useAuth();
     const [admins, setAdmins] = useState([]);
@@ -98,6 +175,12 @@ export default function AdminManagement() {
             }
         }
 
+        const normalizedDefinitions = (definitions || []).map((permission) => ({
+            ...permission,
+            key: permission?.key || permission?.code,
+            code: permission?.code || permission?.key,
+        }));
+
         const presets = hasPresets
             ? Object.entries(payload.presets).reduce((acc, [key, value]) => {
                 if (Array.isArray(value)) {
@@ -111,9 +194,9 @@ export default function AdminManagement() {
         const normalizedPresets = presets && Object.keys(presets).length > 0 ? presets : null;
 
         return {
-            definitions,
+            definitions: normalizedDefinitions,
             presets: normalizedPresets,
-            hasRequiredKeys: hasAvailableItems && Boolean(normalizedPresets),
+            hasAvailableItems,
         };
     }, []);
 
@@ -162,6 +245,7 @@ export default function AdminManagement() {
 
         return groups;
     }, [permissionDefs, resolvePermissionDomain]);
+
 
     const presetPermissions = useMemo(() => {
         const allSafePermissions = permissionDefs
@@ -215,15 +299,16 @@ export default function AdminManagement() {
         setLoadingPermissions(true);
         try {
             const payload = await fetchPermissionDefinitions(token);
-            const { definitions, presets, hasRequiredKeys } = normalizePermissionDefinitions(payload);
-            setPermissionDefs(definitions);
+            const { definitions, presets, hasAvailableItems } = normalizePermissionDefinitions(payload);
+            setPermissionDefs(hasAvailableItems ? definitions : []);
             setPermissionPresets(presets);
             setHasFetchedPermissions(true);
-            setPermissionLoadError(hasRequiredKeys ? null : 'Permissions not loaded');
+            setPermissionLoadError(hasAvailableItems ? null : 'Permissions not loaded');
         } catch (error) {
             console.error('Failed to load permissions', error);
             setPermissionLoadError(error?.message || 'Failed to load permissions');
             showToast('error', error?.message || 'Failed to load permissions');
+            setHasFetchedPermissions(true);
         } finally {
             setLoadingPermissions(false);
         }
@@ -334,7 +419,7 @@ export default function AdminManagement() {
             <div className={`${styles.banner} ${styles.bannerError}`}>{permissionLoadError}</div>
         ) : null;
 
-        if (!permissionDefs.length && loadingPermissions) {
+        if (!hasFetchedPermissions || (!permissionDefs.length && loadingPermissions)) {
             return (
                 <>
                     {errorBanner}
@@ -352,72 +437,14 @@ export default function AdminManagement() {
             );
         }
 
-        const sections = [
-            { id: 'monitoring', label: 'Monitoring', items: groupedPermissions.monitoring },
-            { id: 'store', label: 'Store', items: groupedPermissions.store },
-            { id: 'admin', label: 'Admin', items: groupedPermissions.admin },
-        ].filter((section) => section.items.length > 0);
-
         return (
             <>
                 {errorBanner}
-                {sections.map((section) => (
-                    <div key={section.id} className={styles.permissionGroup}>
-                        <div className={styles.permissionGroupHeader}>{section.label}</div>
-                        <div className={styles.permissions}>
-                            {section.items.map((permission, index) => (
-                                <label
-                                    key={permission.key || permission.label || `${section.id}-permission-${index}`}
-                                    className={styles.checkboxRow}
-                                    title={permission.description || undefined}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedKeys.includes(permission.key)}
-                                        onChange={() => toggleHandler(permission.key)}
-                                    />
-                                    <div>
-                                        <div>{permission.label || permission.key}</div>
-                                        {permission.description ? (
-                                            <div className={styles.permissionDescription}>{permission.description}</div>
-                                        ) : null}
-                                    </div>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-                ))}
-                {groupedPermissions.danger.length > 0 && (
-                    <div className={styles.permissionGroup}>
-                        <div className={`${styles.permissionGroupHeader} ${styles.dangerGroupHeader}`}>
-                            Danger zone
-                        </div>
-                        <p className={styles.dangerHelper}>
-                            These permissions can disable admins or manage other admins. Confirm before enabling.
-                        </p>
-                        <div className={styles.permissions}>
-                            {groupedPermissions.danger.map((permission, index) => (
-                                <label
-                                    key={permission.key || permission.label || `danger-permission-${index}`}
-                                    className={`${styles.checkboxRow} ${styles.dangerCheckboxRow}`}
-                                    title={permission.description || undefined}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedKeys.includes(permission.key)}
-                                        onChange={() => toggleHandler(permission.key)}
-                                    />
-                                    <div>
-                                        <div>{permission.label || permission.key}</div>
-                                        {permission.description ? (
-                                            <div className={styles.permissionDescription}>{permission.description}</div>
-                                        ) : null}
-                                    </div>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-                )}
+                <PermissionsSelector
+                    available={permissionDefs}
+                    selectedPermissionCodes={selectedKeys}
+                    onToggle={toggleHandler}
+                />
             </>
         );
     };
