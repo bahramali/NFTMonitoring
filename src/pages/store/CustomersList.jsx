@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { listAdminCustomers } from '../../api/adminCustomers.js';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -49,6 +49,11 @@ export default function CustomersList() {
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const fetchCountRef = useRef(0);
+
+    useEffect(() => {
+        console.debug('[CustomersList] mounted');
+    }, []);
 
     useEffect(() => {
         if (hasInitializedFromUrl.current) return;
@@ -111,32 +116,44 @@ export default function CustomersList() {
         };
     }, [page, searchTerm, sortBy, statusFilter, typeFilter]);
 
-    const loadCustomers = useCallback(async () => {
-        if (!token) return;
+    useEffect(() => {
+        if (!token || !hasInitializedFromUrl.current) return undefined;
+        const controller = new AbortController();
+        const requestId = fetchCountRef.current + 1;
+        fetchCountRef.current = requestId;
+        console.debug(`[CustomersList] fetch #${requestId}`, queryParams);
         setLoading(true);
         setError('');
-        try {
-            const response = await listAdminCustomers(token, queryParams);
-            setCustomers(response.customers);
-            setSummary({
-                totalCustomers: response.totalCustomers ?? response.total ?? response.customers.length,
-                activeCustomers: response.activeCustomers ?? response.customers.filter((customer) => customer.status === 'Active').length,
-            });
-            setTotalPages(Math.max(1, response.totalPages ?? 1));
-        } catch (loadError) {
-            console.error('Failed to load customers', loadError);
-            setError(loadError?.message || 'Unable to load customers right now. Please try again.');
-            setCustomers([]);
-            setSummary({ totalCustomers: 0, activeCustomers: 0 });
-            setTotalPages(1);
-        } finally {
-            setLoading(false);
-        }
-    }, [queryParams, token]);
 
-    useEffect(() => {
-        loadCustomers();
-    }, [loadCustomers]);
+        listAdminCustomers(token, queryParams, { signal: controller.signal })
+            .then((response) => {
+                setCustomers(response.customers);
+                setSummary({
+                    totalCustomers: response.totalCustomers ?? response.total ?? response.customers.length,
+                    activeCustomers:
+                        response.activeCustomers ??
+                        response.customers.filter((customer) => customer.status === 'Active').length,
+                });
+                setTotalPages(Math.max(1, response.totalPages ?? 1));
+            })
+            .catch((loadError) => {
+                if (loadError?.name === 'AbortError') return;
+                console.error('Failed to load customers', loadError);
+                setError(loadError?.message || 'Unable to load customers right now. Please try again.');
+                setCustomers([]);
+                setSummary({ totalCustomers: 0, activeCustomers: 0 });
+                setTotalPages(1);
+            })
+            .finally(() => {
+                if (!controller.signal.aborted) {
+                    setLoading(false);
+                }
+            });
+
+        return () => {
+            controller.abort();
+        };
+    }, [queryParams, token]);
 
     useEffect(() => {
         if (page > totalPages) {
