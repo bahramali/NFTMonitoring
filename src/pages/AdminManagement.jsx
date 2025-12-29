@@ -43,6 +43,7 @@ export default function AdminManagement() {
     const [loading, setLoading] = useState(false);
     const [permissionDefs, setPermissionDefs] = useState([]);
     const [selectedPermissionKeys, setSelectedPermissionKeys] = useState([]);
+    const [permissionPresets, setPermissionPresets] = useState(null);
     const [selectedPreset, setSelectedPreset] = useState('ADMIN_STANDARD');
     const [hasFetchedPermissions, setHasFetchedPermissions] = useState(false);
     const [hasAppliedDefaultPermissions, setHasAppliedDefaultPermissions] = useState(false);
@@ -70,21 +71,50 @@ export default function AdminManagement() {
     }, []);
 
     const normalizePermissionDefinitions = useCallback((payload) => {
-        if (Array.isArray(payload)) return payload;
-        if (payload && Array.isArray(payload.permissions)) return payload.permissions;
-        if (payload?.data && Array.isArray(payload.data)) return payload.data;
-        if (payload?.data?.permissions && Array.isArray(payload.data.permissions)) {
-            return payload.data.permissions;
+        const hasAvailable = Array.isArray(payload?.available);
+        const hasAvailableItems = hasAvailable && payload.available.length > 0;
+        const hasPresets =
+            payload?.presets && typeof payload.presets === 'object' && !Array.isArray(payload.presets);
+        let definitions = [];
+
+        if (hasAvailable) {
+            definitions = payload.available;
+        } else if (Array.isArray(payload)) {
+            definitions = payload;
+        } else if (payload && Array.isArray(payload.permissions)) {
+            definitions = payload.permissions;
+        } else if (payload?.data && Array.isArray(payload.data)) {
+            definitions = payload.data;
+        } else if (payload?.data?.permissions && Array.isArray(payload.data.permissions)) {
+            definitions = payload.data.permissions;
+        } else {
+            const groupedPermissions = payload?.permissions || payload?.permissionGroups || payload?.groups;
+            if (groupedPermissions && typeof groupedPermissions === 'object' && !Array.isArray(groupedPermissions)) {
+                definitions = Object.entries(groupedPermissions).flatMap(([domain, permissions]) =>
+                    Array.isArray(permissions)
+                        ? permissions.map((permission) => ({ ...permission, domain }))
+                        : [],
+                );
+            }
         }
-        const groupedPermissions = payload?.permissions || payload?.permissionGroups || payload?.groups;
-        if (groupedPermissions && typeof groupedPermissions === 'object' && !Array.isArray(groupedPermissions)) {
-            return Object.entries(groupedPermissions).flatMap(([domain, permissions]) =>
-                Array.isArray(permissions)
-                    ? permissions.map((permission) => ({ ...permission, domain }))
-                    : [],
-            );
-        }
-        return [];
+
+        const presets = hasPresets
+            ? Object.entries(payload.presets).reduce((acc, [key, value]) => {
+                if (Array.isArray(value)) {
+                    acc[key] = value;
+                } else if (Array.isArray(value?.permissions)) {
+                    acc[key] = value.permissions;
+                }
+                return acc;
+            }, {})
+            : null;
+        const normalizedPresets = presets && Object.keys(presets).length > 0 ? presets : null;
+
+        return {
+            definitions,
+            presets: normalizedPresets,
+            hasRequiredKeys: hasAvailableItems && Boolean(normalizedPresets),
+        };
     }, []);
 
     const deriveDefaultPermissionKeys = useCallback(
@@ -143,15 +173,19 @@ export default function AdminManagement() {
         const adminKeys = groupedPermissions.admin.map((permission) => permission.key).filter(Boolean);
         const defaultKeys = deriveDefaultPermissionKeys(permissionDefs);
         const readOnlyKeys = monitoringKeys.filter((key) => !/MANAGE|WRITE|DELETE|DISABLE|CREATE|UPDATE/i.test(key));
-
-        return {
+        const fallbackPresets = {
             ADMIN_STANDARD: defaultKeys.length > 0 ? defaultKeys : [...new Set([...adminKeys, ...monitoringKeys, ...storeKeys])],
             OPERATOR_READ_ONLY: readOnlyKeys.length > 0 ? readOnlyKeys : monitoringKeys,
             ADMIN_STORE_ONLY: storeKeys,
             ADMIN_MONITORING_ONLY: monitoringKeys,
             CUSTOM: allSafePermissions,
         };
-    }, [deriveDefaultPermissionKeys, groupedPermissions, permissionDefs]);
+
+        return {
+            ...fallbackPresets,
+            ...(permissionPresets || {}),
+        };
+    }, [deriveDefaultPermissionKeys, groupedPermissions, permissionDefs, permissionPresets]);
 
     const presetHelperText = useMemo(() => {
         const selected = PRESET_OPTIONS.find((option) => option.value === selectedPreset);
@@ -181,10 +215,11 @@ export default function AdminManagement() {
         setLoadingPermissions(true);
         try {
             const payload = await fetchPermissionDefinitions(token);
-            const normalized = normalizePermissionDefinitions(payload);
-            setPermissionDefs(normalized);
+            const { definitions, presets, hasRequiredKeys } = normalizePermissionDefinitions(payload);
+            setPermissionDefs(definitions);
+            setPermissionPresets(presets);
             setHasFetchedPermissions(true);
-            setPermissionLoadError(normalized.length > 0 ? null : 'Permissions not loaded');
+            setPermissionLoadError(hasRequiredKeys ? null : 'Permissions not loaded');
         } catch (error) {
             console.error('Failed to load permissions', error);
             setPermissionLoadError(error?.message || 'Failed to load permissions');
@@ -210,6 +245,7 @@ export default function AdminManagement() {
         setHasFetchedPermissions(false);
         setHasAppliedDefaultPermissions(false);
         setPermissionDefs([]);
+        setPermissionPresets(null);
         setSelectedPermissionKeys([]);
         setSelectedPreset('ADMIN_STANDARD');
     }, [token]);
