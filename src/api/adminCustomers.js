@@ -96,7 +96,14 @@ const normalizeCustomersPayload = (payload) => {
 
 const extractPagination = (payload, fallbackPage, fallbackSize) => {
     const meta = payload?.meta ?? payload?.pagination ?? payload?.page ?? payload?.paging ?? {};
-    const total = payload?.total ?? payload?.totalCount ?? meta?.total ?? meta?.totalCount ?? null;
+    const total =
+        payload?.total ??
+        payload?.totalCount ??
+        payload?.totalElements ??
+        meta?.total ??
+        meta?.totalCount ??
+        meta?.totalElements ??
+        null;
     const page = payload?.page ?? meta?.page ?? meta?.currentPage ?? fallbackPage;
     const size = payload?.size ?? meta?.size ?? meta?.pageSize ?? fallbackSize;
     const totalPages = payload?.totalPages ?? meta?.totalPages ?? meta?.pageCount ?? null;
