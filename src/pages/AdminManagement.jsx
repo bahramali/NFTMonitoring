@@ -42,7 +42,7 @@ export default function AdminManagement() {
     const [admins, setAdmins] = useState([]);
     const [loading, setLoading] = useState(false);
     const [permissionDefs, setPermissionDefs] = useState([]);
-    const [selectedPermissionKeys, setSelectedPermissionKeys] = useState([]);
+    const [selectedPermissionCodes, setSelectedPermissionCodes] = useState([]);
     const [permissionPresets, setPermissionPresets] = useState(null);
     const [selectedPreset, setSelectedPreset] = useState('ADMIN_STANDARD');
     const [hasFetchedPermissions, setHasFetchedPermissions] = useState(false);
@@ -246,22 +246,29 @@ export default function AdminManagement() {
         setHasAppliedDefaultPermissions(false);
         setPermissionDefs([]);
         setPermissionPresets(null);
-        setSelectedPermissionKeys([]);
+        setSelectedPermissionCodes([]);
         setSelectedPreset('ADMIN_STANDARD');
     }, [token]);
 
     useEffect(() => {
         if (!hasFetchedPermissions || hasAppliedDefaultPermissions) return;
         const standardKeys = presetPermissions.ADMIN_STANDARD || [];
-        setSelectedPermissionKeys(standardKeys);
         setSelectedPreset(standardKeys.length > 0 ? 'ADMIN_STANDARD' : 'CUSTOM');
         setHasAppliedDefaultPermissions(true);
     }, [hasAppliedDefaultPermissions, hasFetchedPermissions, presetPermissions]);
 
     useEffect(() => {
         if (!hasFetchedPermissions) return;
+        if (selectedPreset && selectedPreset !== 'CUSTOM') {
+            const presetSelection = presetPermissions[selectedPreset] || [];
+            setSelectedPermissionCodes([...presetSelection]);
+        }
+    }, [hasFetchedPermissions, presetPermissions, selectedPreset]);
+
+    useEffect(() => {
+        if (!hasFetchedPermissions) return;
         const validKeys = new Set(permissionDefs.map((permission) => permission?.key).filter(Boolean));
-        setSelectedPermissionKeys((previous) => previous.filter((key) => validKeys.has(key)));
+        setSelectedPermissionCodes((previous) => previous.filter((key) => validKeys.has(key)));
     }, [permissionDefs, hasFetchedPermissions]);
 
     const sortedAdmins = useMemo(
@@ -430,15 +437,12 @@ export default function AdminManagement() {
     const togglePermission = (permission) => {
         setInviteFeedback(null);
         setSelectedPreset('CUSTOM');
-        requestPermissionToggle(permission, selectedPermissionKeys, setSelectedPermissionKeys, 'invite');
+        requestPermissionToggle(permission, selectedPermissionCodes, setSelectedPermissionCodes, 'invite');
     };
 
     const applyPresetSelection = (presetValue) => {
         setInviteFeedback(null);
         setSelectedPreset(presetValue);
-        if (presetValue === 'CUSTOM') return;
-        const nextPermissions = Array.from(new Set(presetPermissions[presetValue] || []));
-        setSelectedPermissionKeys(nextPermissions);
     };
 
     const handleInvite = async (event) => {
@@ -455,10 +459,7 @@ export default function AdminManagement() {
             return;
         }
 
-        const effectivePermissions =
-            selectedPreset === 'CUSTOM' ? selectedPermissionKeys : presetPermissions[selectedPreset] || [];
-
-        if (effectivePermissions.length === 0) {
+        if (selectedPermissionCodes.length === 0) {
             const message = 'Select at least one permission';
             showToast('error', message);
             setInviteFeedback({ type: 'error', message });
@@ -473,7 +474,7 @@ export default function AdminManagement() {
         if (formState.expiresInHours) {
             payload.expiresInHours = Number(formState.expiresInHours);
         }
-        const permissionsToSend = Array.from(new Set(effectivePermissions));
+        const permissionsToSend = Array.from(new Set(selectedPermissionCodes));
         payload.permissions = permissionsToSend;
         if (selectedPreset && selectedPreset !== 'CUSTOM') {
             payload.preset = selectedPreset;
@@ -483,7 +484,7 @@ export default function AdminManagement() {
             await inviteAdmin(payload, token);
             setInviteFeedback({ type: 'success', message: 'Invite sent successfully. Email sent to admin.' });
             setFormState(emptyForm);
-            setSelectedPermissionKeys(defaultPermissionKeys);
+            setSelectedPermissionCodes(defaultPermissionKeys);
             setSelectedPreset(defaultPermissionKeys.length > 0 ? 'ADMIN_STANDARD' : 'CUSTOM');
             loadAdmins();
         } catch (error) {
@@ -656,7 +657,7 @@ export default function AdminManagement() {
                     {presetHelperText && <p className={styles.helper}>{presetHelperText}</p>}
 
                     <p className={styles.label}>Permissions</p>
-                    {renderPermissionCheckboxes(selectedPermissionKeys, togglePermission)}
+                    {renderPermissionCheckboxes(selectedPermissionCodes, togglePermission)}
 
                     <label className={styles.label} htmlFor="inviteExpiry">Invite expiry</label>
                     <select
