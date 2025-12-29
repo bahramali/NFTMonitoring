@@ -100,8 +100,11 @@ export default function CustomersList() {
         if (sortBy) nextParams.set('sort', sortBy);
         nextParams.set('page', page);
         nextParams.set('size', PAGE_SIZE);
+        if (searchParams.toString() === nextParams.toString()) {
+            return;
+        }
         setSearchParams(nextParams, { replace: true });
-    }, [page, searchTerm, setSearchParams, sortBy, statusFilter, typeFilter]);
+    }, [page, searchParams, searchTerm, setSearchParams, sortBy, statusFilter, typeFilter]);
 
     const queryParams = useMemo(() => {
         const statusOption = STATUS_OPTIONS.find((option) => option.value === statusFilter);
