@@ -1,12 +1,22 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { listAdminCustomers } from '../../api/adminCustomers.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { formatCurrency } from '../../utils/currency.js';
 import styles from './CustomersList.module.css';
 
-const STATUS_OPTIONS = ['all', 'Active', 'At risk', 'Inactive'];
-const TYPE_OPTIONS = ['all', 'Retail', 'Wholesale', 'Subscriber'];
+const STATUS_OPTIONS = [
+    { value: 'all', label: 'All statuses' },
+    { value: 'active', label: 'Active', queryValue: 'ACTIVE' },
+    { value: 'at_risk', label: 'At risk', queryValue: 'AT_RISK' },
+    { value: 'inactive', label: 'Inactive', queryValue: 'INACTIVE' },
+];
+const TYPE_OPTIONS = [
+    { value: 'all', label: 'All types' },
+    { value: 'retail', label: 'Retail', queryValue: 'RETAIL' },
+    { value: 'wholesale', label: 'Wholesale', queryValue: 'WHOLESALE' },
+    { value: 'subscriber', label: 'Subscriber', queryValue: 'SUBSCRIBER' },
+];
 const SORT_OPTIONS = [
     { value: 'last_order_desc', label: 'Last order (newest)' },
     { value: 'last_order_asc', label: 'Last order (oldest)' },
@@ -15,6 +25,7 @@ const SORT_OPTIONS = [
 ];
 
 const PAGE_SIZE = 6;
+const SEARCH_DEBOUNCE_MS = 300;
 
 const formatDate = (value) => {
     if (!value) return '—';
@@ -25,6 +36,9 @@ const formatDate = (value) => {
 
 export default function CustomersList() {
     const { token } = useAuth();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const hasInitializedFromUrl = useRef(false);
+    const [searchInput, setSearchInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [typeFilter, setTypeFilter] = useState('all');
@@ -36,12 +50,61 @@ export default function CustomersList() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    useEffect(() => {
+        if (hasInitializedFromUrl.current) return;
+        const initialSearch = searchParams.get('q') ?? '';
+        const statusParam = searchParams.get('status');
+        const typeParam = searchParams.get('type');
+        const sortParam = searchParams.get('sort');
+        const pageParam = Number(searchParams.get('page'));
+
+        const statusFromUrl =
+            STATUS_OPTIONS.find((option) => option.queryValue?.toLowerCase() === statusParam?.toLowerCase())?.value ??
+            'all';
+        const typeFromUrl =
+            TYPE_OPTIONS.find((option) => option.queryValue?.toLowerCase() === typeParam?.toLowerCase())?.value ??
+            'all';
+        const sortFromUrl = SORT_OPTIONS.some((option) => option.value === sortParam) ? sortParam : 'last_order_desc';
+
+        setSearchInput(initialSearch);
+        setSearchTerm(initialSearch);
+        setStatusFilter(statusFromUrl);
+        setTypeFilter(typeFromUrl);
+        setSortBy(sortFromUrl);
+        if (Number.isInteger(pageParam) && pageParam > 0) {
+            setPage(pageParam);
+        }
+        hasInitializedFromUrl.current = true;
+    }, [searchParams]);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setSearchTerm(searchInput.trim());
+        }, SEARCH_DEBOUNCE_MS);
+        return () => clearTimeout(handler);
+    }, [searchInput]);
+
+    useEffect(() => {
+        if (!hasInitializedFromUrl.current) return;
+        const nextParams = new URLSearchParams();
+        if (searchTerm) nextParams.set('q', searchTerm);
+        const statusOption = STATUS_OPTIONS.find((option) => option.value === statusFilter);
+        if (statusOption?.queryValue) nextParams.set('status', statusOption.queryValue);
+        const typeOption = TYPE_OPTIONS.find((option) => option.value === typeFilter);
+        if (typeOption?.queryValue) nextParams.set('type', typeOption.queryValue);
+        if (sortBy) nextParams.set('sort', sortBy);
+        nextParams.set('page', page);
+        nextParams.set('size', PAGE_SIZE);
+        setSearchParams(nextParams, { replace: true });
+    }, [page, searchTerm, setSearchParams, sortBy, statusFilter, typeFilter]);
+
     const queryParams = useMemo(() => {
-        const normalizeParam = (value) => (value ? value.toLowerCase().replace(/\s+/g, '_') : value);
+        const statusOption = STATUS_OPTIONS.find((option) => option.value === statusFilter);
+        const typeOption = TYPE_OPTIONS.find((option) => option.value === typeFilter);
         return {
             q: searchTerm.trim() || undefined,
-            status: statusFilter === 'all' ? undefined : normalizeParam(statusFilter),
-            type: typeFilter === 'all' ? undefined : normalizeParam(typeFilter),
+            status: statusOption?.queryValue,
+            type: typeOption?.queryValue,
             sort: sortBy,
             page,
             size: PAGE_SIZE,
@@ -112,9 +175,9 @@ export default function CustomersList() {
                     <input
                         type="search"
                         placeholder="Search by name or email"
-                        value={searchTerm}
+                        value={searchInput}
                         onChange={(event) => {
-                            setSearchTerm(event.target.value);
+                            setSearchInput(event.target.value);
                             setPage(1);
                         }}
                     />
@@ -129,8 +192,8 @@ export default function CustomersList() {
                         }}
                     >
                         {STATUS_OPTIONS.map((status) => (
-                            <option key={status} value={status}>
-                                {status === 'all' ? 'All statuses' : status}
+                            <option key={status.value} value={status.value}>
+                                {status.label}
                             </option>
                         ))}
                     </select>
@@ -145,8 +208,8 @@ export default function CustomersList() {
                         }}
                     >
                         {TYPE_OPTIONS.map((type) => (
-                            <option key={type} value={type}>
-                                {type === 'all' ? 'All types' : type}
+                            <option key={type.value} value={type.value}>
+                                {type.label}
                             </option>
                         ))}
                     </select>
@@ -214,7 +277,11 @@ export default function CustomersList() {
                     </tbody>
                 </table>
                 {!error && !loading && customers.length === 0 && (
-                    <div className={styles.emptyState}>No customers yet.</div>
+                    <div className={styles.emptyState}>
+                        {searchTerm || statusFilter !== 'all' || typeFilter !== 'all'
+                            ? 'No customers match your filters.'
+                            : 'No customers yet.'}
+                    </div>
                 )}
             </div>
 
