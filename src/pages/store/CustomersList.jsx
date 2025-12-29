@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { listAdminCustomers } from '../../api/adminCustomers.js';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -37,6 +37,7 @@ const formatDate = (value) => {
 export default function CustomersList() {
     const { token } = useAuth();
     const [searchParams, setSearchParams] = useSearchParams();
+    const searchParamsString = searchParams.toString();
     const hasInitializedFromUrl = useRef(false);
     const [searchInput, setSearchInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -49,7 +50,6 @@ export default function CustomersList() {
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const fetchCountRef = useRef(0);
 
     useEffect(() => {
         console.debug('[CustomersList] mounted');
@@ -80,7 +80,7 @@ export default function CustomersList() {
             setPage(pageParam);
         }
         hasInitializedFromUrl.current = true;
-    }, [searchParams]);
+    }, [searchParamsString]);
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -100,13 +100,17 @@ export default function CustomersList() {
         if (sortBy) nextParams.set('sort', sortBy);
         nextParams.set('page', page);
         nextParams.set('size', PAGE_SIZE);
+        const nextQuery = nextParams.toString();
+        if (nextQuery === searchParamsString) return;
         setSearchParams(nextParams, { replace: true });
-    }, [page, searchTerm, setSearchParams, sortBy, statusFilter, typeFilter]);
+    }, [page, searchParamsString, searchTerm, setSearchParams, sortBy, statusFilter, typeFilter]);
 
-    const queryParams = useMemo(() => {
+    useEffect(() => {
+        if (!token || !hasInitializedFromUrl.current) return undefined;
+        const controller = new AbortController();
         const statusOption = STATUS_OPTIONS.find((option) => option.value === statusFilter);
         const typeOption = TYPE_OPTIONS.find((option) => option.value === typeFilter);
-        return {
+        const queryParams = {
             q: searchTerm.trim() || undefined,
             status: statusOption?.queryValue,
             type: typeOption?.queryValue,
@@ -114,17 +118,10 @@ export default function CustomersList() {
             page,
             size: PAGE_SIZE,
         };
-    }, [page, searchTerm, sortBy, statusFilter, typeFilter]);
-
-    useEffect(() => {
-        if (!token || !hasInitializedFromUrl.current) return undefined;
-        const controller = new AbortController();
-        const requestId = fetchCountRef.current + 1;
-        fetchCountRef.current = requestId;
-        console.debug(`[CustomersList] fetch #${requestId}`, queryParams);
         setLoading(true);
         setError('');
 
+        console.count('Customers fetch triggered');
         listAdminCustomers(token, queryParams, { signal: controller.signal })
             .then((response) => {
                 setCustomers(response.customers);
@@ -153,7 +150,7 @@ export default function CustomersList() {
         return () => {
             controller.abort();
         };
-    }, [queryParams, token]);
+    }, [page, searchTerm, sortBy, statusFilter, token, typeFilter]);
 
     useEffect(() => {
         if (page > totalPages) {
