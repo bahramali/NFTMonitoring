@@ -26,10 +26,23 @@ describe('AdminManagement', () => {
             if (url.includes('/permissions')) {
                 return Promise.resolve(
                     createJsonResponse({
-                        permissions: [
-                            { key: 'ADMIN_DASHBOARD', label: 'Admin Overview', description: 'Overview access', defaultSelected: true },
-                            { key: 'ADMIN_REPORTS', label: 'Reports', description: 'Reports access', defaultSelected: false },
+                        available: [
+                            {
+                                code: 'ADMIN_DASHBOARD',
+                                label: 'Admin Overview',
+                                description: 'Overview access',
+                                group: 'Admin',
+                                defaultSelected: true,
+                            },
+                            {
+                                code: 'ADMIN_REPORTS',
+                                label: 'Reports',
+                                description: 'Reports access',
+                                group: 'Admin',
+                                defaultSelected: false,
+                            },
                         ],
+                        presets: { ADMIN_STANDARD: ['ADMIN_DASHBOARD'] },
                     }),
                 );
             }
@@ -83,7 +96,16 @@ describe('AdminManagement', () => {
             if (url.includes('/permissions')) {
                 return Promise.resolve(
                     createJsonResponse({
-                        permissions: [{ key: 'ADMIN_DASHBOARD', label: 'Admin Overview', description: '', defaultSelected: true }],
+                        available: [
+                            {
+                                code: 'ADMIN_DASHBOARD',
+                                label: 'Admin Overview',
+                                description: '',
+                                group: 'Admin',
+                                defaultSelected: true,
+                            },
+                        ],
+                        presets: { ADMIN_STANDARD: ['ADMIN_DASHBOARD'] },
                     }),
                 );
             }
@@ -124,10 +146,17 @@ describe('AdminManagement', () => {
             if (url.includes('/permissions')) {
                 return Promise.resolve(
                     createJsonResponse({
-                        permissions: [
-                            { key: 'ADMIN_DASHBOARD', label: 'Admin Overview', defaultSelected: true },
-                            { key: 'ADMIN_INSIGHTS', label: 'Insights', description: 'Newly added permission', defaultSelected: false },
+                        available: [
+                            { code: 'ADMIN_DASHBOARD', label: 'Admin Overview', group: 'Admin', defaultSelected: true },
+                            {
+                                code: 'ADMIN_INSIGHTS',
+                                label: 'Insights',
+                                description: 'Newly added permission',
+                                group: 'Admin',
+                                defaultSelected: false,
+                            },
                         ],
+                        presets: { ADMIN_STANDARD: ['ADMIN_DASHBOARD'] },
                     }),
                 );
             }
