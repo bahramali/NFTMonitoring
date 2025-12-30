@@ -16,7 +16,9 @@ import CustomerLayout from './pages/customer/CustomerLayout.jsx';
 import CustomerDashboard from './pages/customer/CustomerDashboard.jsx';
 import CustomerOrders from './pages/customer/CustomerOrders.jsx';
 import CustomerOrderDetails from './pages/customer/CustomerOrderDetails.jsx';
+import CustomerAddresses from './pages/customer/CustomerAddresses.jsx';
 import CustomerSettings from './pages/customer/CustomerSettings.jsx';
+import CustomerSecurity from './pages/customer/CustomerSecurity.jsx';
 import AppShellLayout from './layouts/AppShellLayout.jsx';
 import Overview from './pages/Overview/index.jsx';
 import ControlPanel from './pages/ControlPanel/index.jsx';
@@ -215,7 +217,9 @@ function App() {
                     <Route index element={<CustomerDashboard />} />
                     <Route path="orders" element={<CustomerOrders />} />
                     <Route path="orders/:orderId" element={<CustomerOrderDetails />} />
+                    <Route path="addresses" element={<CustomerAddresses />} />
                     <Route path="settings" element={<CustomerSettings />} />
+                    <Route path="security" element={<CustomerSecurity />} />
                 </Route>
 
                 <Route path="/dashboard/*" element={<Navigate to="/monitoring/overview" replace />} />

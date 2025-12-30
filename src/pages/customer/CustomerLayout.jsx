@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { fetchCustomerProfile, fetchMyOrders } from '../../api/customer.js';
+import Navbar from '../../components/Navbar.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
 import { normalizeOrderList } from './orderUtils.js';
@@ -8,16 +9,21 @@ import styles from './CustomerLayout.module.css';
 
 const normalizeProfile = (payload) => {
     const source = payload?.user ?? payload ?? {};
+    const raw = source.raw ?? source;
     const email = source.email ?? source.username ?? '';
+    const fullName = raw.fullName ?? source.fullName ?? source.displayName ?? '';
+    const phoneNumber = raw.phoneNumber ?? source.phoneNumber ?? raw.phone ?? source.phone ?? '';
     const displayName =
-        (source.displayName ?? source.name ?? source.fullName ?? source.nickname ?? email) || 'Customer';
+        fullName || source.displayName || source.name || source.fullName || source.nickname || email || 'Customer';
 
     return {
         id: source.id ?? source.userId ?? null,
         email,
+        fullName,
+        phoneNumber,
         displayName,
         role: source.role ?? 'CUSTOMER',
-        raw: source,
+        raw,
         features: source.features ?? source.capabilities ?? [],
     };
 };
@@ -25,6 +31,8 @@ const normalizeProfile = (payload) => {
 export default function CustomerLayout() {
     const { token } = useAuth();
     const redirectToLogin = useRedirectToLogin();
+    const location = useLocation();
+    const [isSubnavOpen, setIsSubnavOpen] = useState(false);
 
     const [profile, setProfile] = useState(null);
     const [profileError, setProfileError] = useState(null);
@@ -61,6 +69,10 @@ export default function CustomerLayout() {
         loadProfile(controller.signal);
         return () => controller.abort();
     }, [loadProfile]);
+
+    useEffect(() => {
+        setIsSubnavOpen(false);
+    }, [location.pathname]);
 
     const loadOrders = useCallback(
         async ({ silent = false, signal } = {}) => {
@@ -123,13 +135,52 @@ export default function CustomerLayout() {
 
     const headline = 'My Account';
     const subhead = 'Manage your account details and orders in one place.';
+    const navItems = [
+        { to: '/my-page', label: 'Overview', end: true },
+        { to: '/my-page/orders', label: 'Orders' },
+        { to: '/my-page/addresses', label: 'Addresses' },
+        { to: '/my-page/settings', label: 'Settings' },
+        { to: '/my-page/security', label: 'Security' },
+    ];
+    const activeLabel =
+        navItems.find((item) => (item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)))
+            ?.label || 'Overview';
 
     return (
         <div className={styles.page}>
+            <Navbar />
             <div className={styles.hero}>
                 <div>
                     <h1 className={styles.title}>{headline}</h1>
                     <p className={styles.subtitle}>{subhead}</p>
+                </div>
+            </div>
+
+            <div className={styles.subnav}>
+                <div className={styles.subnavInner}>
+                    <button
+                        type="button"
+                        className={styles.subnavToggle}
+                        onClick={() => setIsSubnavOpen((prev) => !prev)}
+                        aria-expanded={isSubnavOpen}
+                    >
+                        {activeLabel}
+                        <span className={styles.subnavCaret} aria-hidden="true" />
+                    </button>
+                    <div className={`${styles.subnavList} ${isSubnavOpen ? styles.subnavListOpen : ''}`}>
+                        {navItems.map((item) => (
+                            <NavLink
+                                key={item.to}
+                                to={item.to}
+                                end={item.end}
+                                className={({ isActive }) =>
+                                    `${styles.subnavLink} ${isActive ? styles.subnavLinkActive : ''}`
+                                }
+                            >
+                                {item.label}
+                            </NavLink>
+                        ))}
+                    </div>
                 </div>
             </div>
 

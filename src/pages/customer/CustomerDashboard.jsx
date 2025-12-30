@@ -1,7 +1,10 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
+import { fetchCustomerAddresses } from '../../api/customerAddresses.js';
 import { useAuth } from '../../context/AuthContext.jsx';
+import usePasswordReset from '../../hooks/usePasswordReset.js';
 import { formatCurrency } from '../../utils/currency.js';
+import { extractAddressList, formatAddressLine, normalizeAddress } from './addressUtils.js';
 import styles from './CustomerDashboard.module.css';
 
 const statusTone = (status) => {
@@ -12,14 +15,41 @@ const statusTone = (status) => {
 };
 
 export default function CustomerDashboard() {
-    const { logout } = useAuth();
-    const { profile, loadingProfile, ordersState, loadOrders } = useOutletContext();
+    const { logout, token } = useAuth();
+    const { profile, loadingProfile, ordersState, loadOrders, redirectToLogin } = useOutletContext();
+    const { resetState, resetError, resetDisabled, handlePasswordReset } = usePasswordReset({ token });
+    const [addressesState, setAddressesState] = useState({
+        loading: false,
+        error: null,
+        items: [],
+    });
 
     useEffect(() => {
         if (ordersState.supported === null && !ordersState.loading) {
             loadOrders({ silent: true }).catch(() => {});
         }
     }, [loadOrders, ordersState.loading, ordersState.supported]);
+
+    useEffect(() => {
+        if (!token) return undefined;
+        const controller = new AbortController();
+        setAddressesState((prev) => ({ ...prev, loading: true, error: null }));
+        fetchCustomerAddresses(token, { signal: controller.signal, onUnauthorized: redirectToLogin })
+            .then((payload) => {
+                if (payload === null) return;
+                const list = extractAddressList(payload).map(normalizeAddress);
+                setAddressesState({ loading: false, error: null, items: list });
+            })
+            .catch((error) => {
+                if (error?.name === 'AbortError') return;
+                if (error?.isUnsupported) {
+                    setAddressesState({ loading: false, error: 'Address book is not enabled yet.', items: [] });
+                    return;
+                }
+                setAddressesState({ loading: false, error: error?.message || 'Failed to load addresses', items: [] });
+            });
+        return () => controller.abort();
+    }, [redirectToLogin, token]);
 
     const sortedOrders = useMemo(
         () =>
@@ -32,29 +62,79 @@ export default function CustomerDashboard() {
     );
 
     const accountEmail = loadingProfile ? 'Loading…' : profile?.email || '—';
+    const accountName = loadingProfile ? 'Loading…' : profile?.fullName || profile?.displayName || '—';
+    const accountPhone = loadingProfile ? 'Loading…' : profile?.phoneNumber || '—';
+
+    const defaultAddress = useMemo(() => {
+        if (!addressesState.items.length) return null;
+        return addressesState.items.find((address) => address.isDefault) || addressesState.items[0];
+    }, [addressesState.items]);
+
+    const addressSummary = defaultAddress ? formatAddressLine(defaultAddress) : '—';
 
     return (
         <div className={styles.grid}>
             <section className={styles.card}>
                 <div className={styles.sectionHeader}>
                     <div>
-                        <p className={styles.kicker}>Account</p>
-                        <h2>Account details</h2>
-                        <p className={styles.muted}>Your profile and sign out controls.</p>
+                        <p className={styles.kicker}>Profile</p>
+                        <h2>Account overview</h2>
+                        <p className={styles.muted}>Quick snapshot of your account details.</p>
                     </div>
+                    <Link to="/my-page/settings" className={styles.linkButton}>
+                        Edit profile
+                    </Link>
                 </div>
 
-                <div className={styles.accountGrid}>
-                    <div className={styles.field}>
+                <div className={styles.summaryGrid}>
+                    <div className={styles.summaryItem}>
+                        <label>Full name</label>
+                        <p>{accountName}</p>
+                    </div>
+                    <div className={styles.summaryItem}>
                         <label>Email</label>
-                        <div className={styles.readonly}>{accountEmail}</div>
+                        <p>{accountEmail}</p>
+                    </div>
+                    <div className={styles.summaryItem}>
+                        <label>Phone</label>
+                        <p>{accountPhone}</p>
                     </div>
                 </div>
-                <div className={styles.accountActions}>
-                    <button type="button" className={styles.subtleButton} onClick={() => logout()}>
-                        Sign out
-                    </button>
+            </section>
+
+            <section className={styles.card}>
+                <div className={styles.sectionHeader}>
+                    <div>
+                        <p className={styles.kicker}>Addresses</p>
+                        <h2>Default address</h2>
+                        <p className={styles.muted}>Manage where orders should be shipped.</p>
+                    </div>
+                    <Link to="/my-page/addresses" className={styles.linkButton}>
+                        Manage addresses
+                    </Link>
                 </div>
+
+                {addressesState.loading ? <p className={styles.loading}>Loading addresses…</p> : null}
+                {addressesState.error ? (
+                    <p className={styles.error} role="alert">
+                        {addressesState.error}
+                    </p>
+                ) : null}
+                {!addressesState.loading && !addressesState.error ? (
+                    <div className={styles.addressSummary}>
+                        <div>
+                            <p className={styles.summaryTitle}>
+                                {defaultAddress?.label || defaultAddress?.fullName || 'Primary address'}
+                            </p>
+                            <p className={styles.muted}>{addressSummary}</p>
+                        </div>
+                        {!defaultAddress ? (
+                            <Link to="/my-page/addresses" className={styles.primaryButton}>
+                                Add an address
+                            </Link>
+                        ) : null}
+                    </div>
+                ) : null}
             </section>
 
             <section className={styles.card}>
@@ -62,7 +142,7 @@ export default function CustomerDashboard() {
                     <div>
                         <p className={styles.kicker}>Orders</p>
                         <h2>Recent orders</h2>
-                        <p className={styles.muted}>Track your store purchases.</p>
+                        <p className={styles.muted}>Track your latest purchases.</p>
                     </div>
                     {ordersState.supported ? (
                         <Link to="/my-page/orders" className={styles.linkButton}>
@@ -93,7 +173,7 @@ export default function CustomerDashboard() {
                         ) : null}
 
                         <div className={styles.orderList}>
-                            {sortedOrders.map((order) => (
+                            {sortedOrders.slice(0, 3).map((order) => (
                                 <Link
                                     key={order.id}
                                     to={`/my-page/orders/${encodeURIComponent(order.id)}`}
@@ -118,6 +198,35 @@ export default function CustomerDashboard() {
                         </div>
                     </>
                 )}
+            </section>
+
+            <section className={styles.card}>
+                <div className={styles.sectionHeader}>
+                    <div>
+                        <p className={styles.kicker}>Quick actions</p>
+                        <h2>Keep things moving</h2>
+                        <p className={styles.muted}>Common tasks at your fingertips.</p>
+                    </div>
+                </div>
+
+                <div className={styles.actionGrid}>
+                    <Link to="/store" className={styles.primaryButton}>
+                        Browse store
+                    </Link>
+                    <button
+                        type="button"
+                        className={styles.subtleButton}
+                        onClick={handlePasswordReset}
+                        disabled={resetDisabled}
+                    >
+                        {resetState.status === 'sending' ? 'Sending…' : 'Reset password'}
+                    </button>
+                    <button type="button" className={styles.ghostButton} onClick={() => logout()}>
+                        Sign out
+                    </button>
+                </div>
+                {resetState.status === 'sent' ? <p className={styles.successMessage}>{resetState.message}</p> : null}
+                {resetError ? <p className={styles.errorMessage}>{resetError}</p> : null}
             </section>
         </div>
     );

@@ -1,7 +1,6 @@
 .page {
-    padding: 32px 24px 48px;
     background: #f6f8fb;
-    min-height: calc(100vh - 64px);
+    min-height: 100vh;
 }
 
 .hero {
@@ -15,6 +14,7 @@
     color: #f8fbff;
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
+    margin: 24px 24px 0;
 }
 
 .title {
@@ -30,7 +30,7 @@
 }
 
 .banner {
-    margin-top: 18px;
+    margin: 18px 24px 0;
     padding: 14px 16px;
     border-radius: 12px;
     border: 1px solid #cbd5e1;
@@ -57,21 +57,127 @@
 }
 
 .content {
-    margin-top: 24px;
+    margin: 24px 24px 48px;
+}
+
+.subnav {
+    margin: 18px 24px 0;
+    position: sticky;
+    top: 72px;
+    z-index: 4;
+}
+
+.subnavInner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 10px 12px;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+.subnavToggle {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #0f172a;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.subnavCaret {
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    margin-top: -2px;
+}
+
+.subnavList {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.subnavLink {
+    padding: 8px 14px;
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 600;
+    color: #0f172a;
+    border: 1px solid transparent;
+    background: transparent;
+}
+
+.subnavLink:hover {
+    background: #f1f5f9;
+}
+
+.subnavLinkActive {
+    background: rgba(14, 165, 233, 0.12);
+    border-color: rgba(14, 165, 233, 0.4);
+    color: #0369a1;
 }
 
 @media (max-width: 768px) {
     .page {
-        padding: 20px 16px 32px;
+        min-height: 100vh;
     }
 
     .hero {
         flex-direction: column;
         gap: 8px;
+        margin: 20px 16px 0;
     }
 
     .heroMeta {
         width: 100%;
         align-items: flex-start;
+    }
+
+    .subnav {
+        margin: 16px;
+        position: static;
+    }
+
+    .subnavInner {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .subnavToggle {
+        display: inline-flex;
+        justify-content: space-between;
+    }
+
+    .subnavList {
+        display: none;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .subnavListOpen {
+        display: flex;
+    }
+
+    .subnavLink {
+        border-radius: 10px;
+    }
+
+    .banner {
+        margin: 16px;
+    }
+
+    .content {
+        margin: 20px 16px 32px;
     }
 }

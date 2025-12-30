@@ -1,19 +1,14 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { updateCustomerProfile } from '../../api/customer.js';
 import { useAuth } from '../../context/AuthContext.jsx';
+import usePasswordReset from '../../hooks/usePasswordReset.js';
 import styles from './CustomerSettings.module.css';
 
 const defaultNotifications = {
     orderEmails: true,
     pickupReady: true,
 };
-
-const RESET_COOLDOWN_MS = 8000;
-const API_BASE =
-    import.meta?.env?.VITE_API_BASE ||
-    import.meta?.env?.VITE_API_URL ||
-    'https://api.hydroleaf.se';
 
 const getNotificationDefaults = (raw = {}) => ({
     orderEmails: raw.orderEmails ?? raw.orderConfirmationEmails ?? defaultNotifications.orderEmails,
@@ -40,10 +35,7 @@ export default function CustomerSettings() {
     const [profileUpdateMessage, setProfileUpdateMessage] = useState(
         'Profile updates are not available yet. Please contact support for help.',
     );
-    const [resetState, setResetState] = useState({ status: 'idle', message: '' });
-    const [resetError, setResetError] = useState('');
-    const [resetCooldown, setResetCooldown] = useState(false);
-    const resetTimerRef = useRef(null);
+    const { resetState, resetError, resetDisabled, handlePasswordReset } = usePasswordReset({ token });
 
     useEffect(() => {
         if (!profile) return;
@@ -63,14 +55,6 @@ export default function CustomerSettings() {
         setSaveState({ status: 'idle', message: '' });
         setSaveError('');
     }, [profile]);
-
-    useEffect(() => {
-        return () => {
-            if (resetTimerRef.current) {
-                window.clearTimeout(resetTimerRef.current);
-            }
-        };
-    }, []);
 
     const clearSaveFeedback = () => {
         if (saveState.status !== 'idle' || saveError) {
@@ -154,44 +138,8 @@ export default function CustomerSettings() {
         }
     };
 
-    const handlePasswordReset = async () => {
-        if (resetState.status === 'sending' || resetCooldown) return;
-        setResetState({ status: 'sending', message: '' });
-        setResetError('');
-        try {
-            const res = await fetch(`${API_BASE}/api/auth/password-reset`, {
-                method: 'POST',
-                headers: {
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                },
-            });
-            if (!res.ok) {
-                let errorMessage = 'Could not start password reset. Please try again.';
-                const contentType = res.headers.get('content-type') || '';
-                if (contentType.includes('application/json')) {
-                    const body = await res.json().catch(() => null);
-                    if (body?.message) {
-                        errorMessage = body.message;
-                    }
-                }
-                setResetState({ status: 'error', message: '' });
-                setResetError(errorMessage);
-                return;
-            }
-            setResetState({ status: 'sent', message: 'Reset link sent to your email' });
-            setResetCooldown(true);
-            resetTimerRef.current = window.setTimeout(() => {
-                setResetCooldown(false);
-            }, RESET_COOLDOWN_MS);
-        } catch (error) {
-            setResetState({ status: 'error', message: '' });
-            setResetError(error?.message || 'Unable to send reset link.');
-        }
-    };
-
     const isSaving = saveState.status === 'saving';
     const canSave = isDirty && !isSaving && profileUpdateSupported;
-    const resetDisabled = resetState.status === 'sending' || resetCooldown;
 
     return (
         <div className={styles.grid}>

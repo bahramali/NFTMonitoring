@@ -65,7 +65,26 @@
     font-weight: 700;
     text-decoration: none;
     cursor: pointer;
-    margin-top: 10px;
+}
+
+.subtleButton {
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    color: #0f172a;
+    padding: 10px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.ghostButton {
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #0f172a;
+    padding: 10px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 600;
 }
 
 .loading {
@@ -95,40 +114,42 @@
     background: #f8fafc;
 }
 
-.accountGrid {
+.summaryGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 12px;
-    margin: 12px 0;
 }
 
-.field label {
+.summaryItem label {
     display: block;
     font-weight: 600;
     margin-bottom: 4px;
     color: #0f172a;
 }
 
-.readonly {
-    border: 1px solid #e2e8f0;
-    background: #f8fafc;
+.summaryItem p {
+    margin: 0;
     padding: 10px 12px;
     border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
 }
 
-.accountActions {
+.addressSummary {
     display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
 }
 
-.subtleButton {
-    border: 1px solid #cbd5e1;
-    background: #fff;
+.summaryTitle {
+    margin: 0 0 4px;
+    font-weight: 700;
     color: #0f172a;
-    padding: 8px 12px;
-    border-radius: 999px;
-    cursor: pointer;
 }
 
 .orderList {
@@ -207,6 +228,23 @@
     color: #0f172a;
 }
 
+.actionGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.successMessage {
+    margin: 10px 0 0;
+    color: #15803d;
+    font-weight: 600;
+}
+
+.errorMessage {
+    margin: 10px 0 0;
+    color: #b91c1c;
+}
+
 @media (max-width: 640px) {
     .sectionHeader {
         flex-direction: column;
@@ -220,5 +258,10 @@
     .orderStatus {
         width: 100%;
         justify-content: space-between;
+    }
+
+    .addressSummary {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }
