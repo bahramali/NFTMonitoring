@@ -38,7 +38,7 @@ const renderSidebar = () => {
             token: 'token',
             userId: 'admin-1',
             role: 'ADMIN',
-            permissions: ['ADMIN_DASHBOARD', 'ADMIN_REPORTS'],
+            permissions: ['MONITORING_VIEW'],
             expiry: Date.now() + 60_000,
         }),
     );

@@ -1,10 +1,10 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { getDefaultRouteForRole } from '../utils/roleRoutes.js';
+import { getDefaultRouteForUser } from '../utils/roleRoutes.js';
 
 export default function CustomerRoute({ children }) {
-    const { isAuthenticated, role } = useAuth();
+    const { isAuthenticated, role, roles, permissions } = useAuth();
     const location = useLocation();
 
     if (!isAuthenticated) {
@@ -12,7 +12,7 @@ export default function CustomerRoute({ children }) {
     }
 
     if (role !== 'CUSTOMER') {
-        const target = getDefaultRouteForRole(role);
+        const target = getDefaultRouteForUser({ role, roles, permissions });
         return <Navigate to={target} replace />;
     }
 

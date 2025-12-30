@@ -2,10 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import styles from './Login.module.css';
-import { getDefaultRouteForRole } from '../utils/roleRoutes.js';
+import { getDefaultRouteForUser } from '../utils/roleRoutes.js';
 
 export default function Login() {
-    const { isAuthenticated, login, role } = useAuth();
+    const { isAuthenticated, login, role, roles, permissions } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -23,10 +23,10 @@ export default function Login() {
 
     useEffect(() => {
         if (isAuthenticated) {
-            const target = returnUrl || getDefaultRouteForRole(role);
+            const target = returnUrl || getDefaultRouteForUser({ role, roles, permissions });
             navigate(target, { replace: true });
         }
-    }, [isAuthenticated, navigate, returnUrl, role]);
+    }, [isAuthenticated, navigate, returnUrl, role, roles, permissions]);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -36,9 +36,13 @@ export default function Login() {
             return;
         }
 
-        const resolvedRole = result.role || role;
-        const roleRedirect = getDefaultRouteForRole(resolvedRole);
-        const redirect = returnUrl || location.state?.from?.pathname || roleRedirect;
+        const resolvedPermissions = result.permissions || permissions;
+        const redirectTarget = getDefaultRouteForUser({
+            role: result.role || role,
+            roles,
+            permissions: resolvedPermissions,
+        });
+        const redirect = returnUrl || location.state?.from?.pathname || redirectTarget;
         navigate(redirect, { replace: true });
     };
 
