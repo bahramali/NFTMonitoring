@@ -39,3 +39,17 @@ export async function fetchSessionProfile(token, { signal } = {}) {
 
     return parseApiResponse(res, 'Failed to load profile');
 }
+
+export async function confirmPasswordReset(token, password) {
+    if (!token) {
+        throw new Error('Reset token is required.');
+    }
+
+    const res = await fetch(`${AUTH_BASE}/password-reset/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password }),
+    });
+
+    return parseApiResponse(res, 'Failed to reset password');
+}
