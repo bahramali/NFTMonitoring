@@ -14,6 +14,7 @@ export default function Register() {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
+    const passwordRequirement = 'Password must be at least 8 characters long.';
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -24,12 +25,25 @@ export default function Register() {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        if (password !== confirmPassword) {
+        const trimmedPassword = password.trim();
+        const trimmedConfirmPassword = confirmPassword.trim();
+
+        if (!trimmedPassword) {
+            setError('Password is required.');
+            return;
+        }
+
+        if (trimmedPassword.length < 8) {
+            setError(passwordRequirement);
+            return;
+        }
+
+        if (trimmedPassword !== trimmedConfirmPassword) {
             setError('Passwords do not match.');
             return;
         }
 
-        const result = await register(email, password);
+        const result = await register(email, trimmedPassword);
         if (result.success) {
             setError('');
             navigate(DEFAULT_ROUTE, { replace: true });
@@ -58,7 +72,10 @@ export default function Register() {
                         autoComplete="email"
                     />
 
-                    <label className={styles.label} htmlFor="password">Password</label>
+                    <label className={styles.label} htmlFor="password">
+                        Password
+                        <span className={styles.labelHint}>(min. 8 characters)</span>
+                    </label>
                     <input
                         id="password"
                         className={styles.input}

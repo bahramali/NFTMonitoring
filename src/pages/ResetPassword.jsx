@@ -39,7 +39,11 @@ export default function ResetPassword() {
             await confirmPasswordReset(token, trimmedPassword);
             setStatus('success');
         } catch (error) {
-            const message = error?.payload?.message || error?.message || 'Could not reset password.';
+            const message =
+                error?.payload?.message
+                || (error?.status === 400 ? 'Password must be at least 8 characters long.' : '')
+                || error?.message
+                || 'Could not reset password.';
             setFeedback(message);
             setStatus('ready');
         }

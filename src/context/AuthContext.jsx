@@ -12,6 +12,7 @@ import normalizeProfile from '../utils/normalizeProfile.js';
 const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
 const AUTH_BASE = `${API_BASE}/api/auth`;
 const SESSION_DURATION_MS = 30 * 60 * 1000;
+const PASSWORD_REQUIREMENTS_MESSAGE = 'Password must be at least 8 characters long.';
 
 const defaultAuthValue = {
     isAuthenticated: false,
@@ -171,7 +172,10 @@ export function AuthProvider({ children }) {
                 }
 
                 if (!response.ok) {
-                    const message = payload?.message || `Registration failed (${response.status})`;
+                    const message =
+                        payload?.message
+                        || (response.status === 400 ? PASSWORD_REQUIREMENTS_MESSAGE : '')
+                        || `Registration failed (${response.status})`;
                     return { success: false, message };
                 }
 

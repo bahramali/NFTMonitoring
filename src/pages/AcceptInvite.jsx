@@ -67,7 +67,11 @@ export default function AcceptInvite() {
             await completeInvite(token, trimmedPassword);
             setStatus('success');
         } catch (error) {
-            const message = error?.payload?.message || error?.message || 'Could not complete invite.';
+            const message =
+                error?.payload?.message
+                || (error?.status === 400 ? 'Password must be at least 8 characters long.' : '')
+                || error?.message
+                || 'Could not complete invite.';
             setFeedback(message);
             setStatus('ready');
         }
