@@ -19,9 +19,21 @@ const emptyForm = {
     city: '',
     state: '',
     postalCode: '',
-    country: '',
+    country: 'SE',
     phone: '',
 };
+
+const toBackendPayload = (values) => ({
+    label: values.label?.trim() || null,
+    fullName: values.fullName?.trim() || null,
+    street1: values.line1?.trim() || '',
+    street2: values.line2?.trim() || null,
+    postalCode: values.postalCode?.trim() || '',
+    city: values.city?.trim() || '',
+    region: values.state?.trim() || null,
+    countryCode: (values.country || '').trim().length === 2 ? values.country.trim().toUpperCase() : '',
+    phoneNumber: values.phone?.trim() || null,
+});
 
 export default function CustomerAddresses() {
     const { token } = useAuth();
@@ -66,7 +78,7 @@ export default function CustomerAddresses() {
                 city: address.city || '',
                 state: address.state || '',
                 postalCode: address.postalCode || '',
-                country: address.country || '',
+                country: address.country || 'SE',
                 phone: address.phone || '',
             },
             error: '',
@@ -91,7 +103,7 @@ export default function CustomerAddresses() {
         event.preventDefault();
         if (!token) return;
         setFormState((prev) => ({ ...prev, saving: true, error: '' }));
-        const payload = { ...formState.values };
+        const payload = toBackendPayload(formState.values);
         try {
             if (formState.mode === 'edit') {
                 await updateCustomerAddress(token, formState.id, payload, { onUnauthorized: redirectToLogin });
@@ -257,14 +269,15 @@ export default function CustomerAddresses() {
                             />
                         </div>
                         <div className={styles.field}>
-                            <label htmlFor="address-country">Country</label>
-                            <input
+                            <label htmlFor="address-country">Country code (ISO-2)</label>
+                            <select
                                 id="address-country"
-                                type="text"
                                 value={formState.values.country}
                                 onChange={(event) => handleChange('country', event.target.value)}
                                 required
-                            />
+                            >
+                                <option value="SE">SE</option>
+                            </select>
                         </div>
                         <div className={styles.field}>
                             <label htmlFor="address-phone">Phone</label>
