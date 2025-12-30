@@ -7,6 +7,7 @@ import React, {
     useState,
 } from 'react';
 import { fetchSessionProfile } from '../api/auth.js';
+import normalizeProfile from '../utils/normalizeProfile.js';
 
 const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
 const AUTH_BASE = `${API_BASE}/api/auth`;
@@ -19,9 +20,13 @@ const defaultAuthValue = {
     role: null,
     roles: [],
     permissions: [],
+    profile: null,
+    profileError: null,
+    loadingProfile: false,
     login: async () => ({ success: false }),
     register: async () => ({ success: false }),
     logout: () => {},
+    refreshProfile: () => {},
 };
 
 const AuthContext = createContext(defaultAuthValue);
@@ -61,6 +66,9 @@ const persistSession = (session) => {
 
 export function AuthProvider({ children }) {
     const [session, setSession] = useState(() => readStoredSession());
+    const [profile, setProfile] = useState(null);
+    const [profileError, setProfileError] = useState(null);
+    const [loadingProfile, setLoadingProfile] = useState(false);
 
     const setAuthenticatedSession = useCallback((payload) => {
         const { token, userId, role, roles, permissions } = payload || {};
@@ -184,6 +192,9 @@ export function AuthProvider({ children }) {
     const logout = useCallback((options = {}) => {
         const { redirect = true } = options;
         setSession(defaultAuthValue);
+        setProfile(null);
+        setProfileError(null);
+        setLoadingProfile(false);
         if (typeof window !== 'undefined') {
             window.localStorage.removeItem('authSession');
             if (redirect) {
@@ -207,16 +218,15 @@ export function AuthProvider({ children }) {
         return () => window.clearTimeout(timeoutId);
     }, [logout, session.expiry, session.isAuthenticated]);
 
-    useEffect(() => {
-        if (!session.isAuthenticated || !session.token) return undefined;
+    const loadProfile = useCallback(
+        async (signal) => {
+            if (!session.isAuthenticated || !session.token) return;
+            setLoadingProfile(true);
+            setProfileError(null);
 
-        const controller = new AbortController();
-        let active = true;
-
-        const loadProfile = async () => {
             try {
-                const payload = await fetchSessionProfile(session.token, { signal: controller.signal });
-                if (!active || !payload) return;
+                const payload = await fetchSessionProfile(session.token, { signal });
+                if (signal?.aborted || !payload) return;
 
                 const payloadRoles = Array.isArray(payload?.roles)
                     ? payload.roles
@@ -234,6 +244,7 @@ export function AuthProvider({ children }) {
                         : [];
                 const payloadRole = payload?.role || payloadRoles[0] || payload?.user?.role || session.role;
 
+                setProfile(normalizeProfile(payload));
                 setSession((prev) => {
                     const nextRoles = payloadRoles.length > 0 ? payloadRoles : prev.roles;
                     const nextPermissions = payloadPermissions.length > 0 ? payloadPermissions : prev.permissions;
@@ -248,18 +259,35 @@ export function AuthProvider({ children }) {
                     return nextSession;
                 });
             } catch (error) {
+                if (error?.name === 'AbortError') return;
                 if (error?.status === 401 || error?.status === 403) {
                     logout({ redirect: false });
+                    return;
+                }
+                setProfileError(error?.message || 'Failed to load profile');
+            } finally {
+                if (!signal?.aborted) {
+                    setLoadingProfile(false);
                 }
             }
-        };
+        },
+        [logout, session.isAuthenticated, session.role, session.token],
+    );
 
-        loadProfile();
+    useEffect(() => {
+        if (!session.isAuthenticated || !session.token) {
+            setProfile(null);
+            setProfileError(null);
+            setLoadingProfile(false);
+            return;
+        }
+
+        const controller = new AbortController();
+        loadProfile(controller.signal);
         return () => {
-            active = false;
             controller.abort();
         };
-    }, [logout, session.isAuthenticated, session.token]);
+    }, [loadProfile, session.isAuthenticated, session.token]);
 
     const value = useMemo(
         () => ({
@@ -269,9 +297,13 @@ export function AuthProvider({ children }) {
             role: session.role,
             roles: session.roles,
             permissions: session.permissions,
+            profile,
+            profileError,
+            loadingProfile,
             login,
             register,
             logout,
+            refreshProfile: () => loadProfile(),
         }),
         [
             session.isAuthenticated,
@@ -280,9 +312,13 @@ export function AuthProvider({ children }) {
             session.role,
             session.roles,
             session.permissions,
+            profile,
+            profileError,
+            loadingProfile,
             login,
             register,
             logout,
+            loadProfile,
         ],
     );
 
