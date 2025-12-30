@@ -65,7 +65,7 @@ const hasAccess = (item, role, roles = [], permissions = []) => {
 };
 
 export default function Navbar() {
-    const { isAuthenticated, userId, role, roles, permissions, logout } = useAuth();
+    const { isAuthenticated, role, roles, permissions, logout, profile, loadingProfile } = useAuth();
     const { cart, openCart } = useStorefront();
     const [isNavOpen, setIsNavOpen] = useState(false);
     const [isAdminOpen, setIsAdminOpen] = useState(false);
@@ -77,8 +77,10 @@ export default function Navbar() {
     const isStoreRoute = location.pathname === '/store' || location.pathname.startsWith('/store/');
 
     const roleLabel = role ? role.replace('_', ' ') : '';
-    const userLabel = userId ? `User #${userId}` : 'Account';
-    const userInitial = userLabel?.trim()?.charAt(0)?.toUpperCase() || 'U';
+    const profileLabel = profile?.username || profile?.fullName || profile?.displayName || profile?.email || '';
+    const userLabel = profileLabel || 'User';
+    const userInitial = profileLabel?.trim()?.charAt(0)?.toUpperCase() || 'U';
+    const showProfileSkeleton = loadingProfile && !profileLabel;
 
     const primaryLinks = useMemo(() => {
         return NAV_ITEMS.filter((item) => {
@@ -248,7 +250,15 @@ export default function Navbar() {
                                 <span className={styles.avatar} aria-hidden="true">
                                     {userInitial}
                                 </span>
-                                <span className={styles.userName}>{userLabel}</span>
+                                {showProfileSkeleton ? (
+                                    <span
+                                        className={styles.userNameSkeleton}
+                                        role="status"
+                                        aria-label="Loading profile"
+                                    />
+                                ) : (
+                                    <span className={styles.userName}>{userLabel}</span>
+                                )}
                                 <span className={styles.caret} aria-hidden="true" />
                             </button>
                             <div
@@ -258,7 +268,15 @@ export default function Navbar() {
                             >
                                 <div className={styles.userMenuMeta}>
                                     <div className={styles.userIdentity}>
-                                        <span className={styles.metaValue}>{userLabel}</span>
+                                        {showProfileSkeleton ? (
+                                            <span
+                                                className={styles.metaValueSkeleton}
+                                                role="status"
+                                                aria-label="Loading profile"
+                                            />
+                                        ) : (
+                                            <span className={styles.metaValue}>{userLabel}</span>
+                                        )}
                                         {roleLabel && <span className={styles.roleBadge}>{roleLabel}</span>}
                                     </div>
                                     <span className={styles.mutedLabel}>Account</span>

@@ -308,6 +308,14 @@
     font-size: 14px;
 }
 
+.userNameSkeleton {
+    width: 96px;
+    height: 14px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.35);
+    display: inline-block;
+}
+
 .userMenu {
     position: absolute;
     right: 0;
@@ -345,6 +353,14 @@
 
 .metaValue {
     font-weight: 700;
+}
+
+.metaValueSkeleton {
+    width: 120px;
+    height: 14px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.35);
+    display: inline-block;
 }
 
 .roleBadge {
