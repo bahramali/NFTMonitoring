@@ -6,6 +6,7 @@ import hydroleafLogo from '../assets/hydroleaf_logo.png';
 import styles from './Navbar.module.css';
 import { PERMISSIONS, hasPerm } from '../utils/permissions.js';
 import { formatCurrency } from '../utils/currency.js';
+import { getDefaultRouteForUser } from '../utils/roleRoutes.js';
 
 const NAV_ITEMS = [
     { path: '/store', label: 'Store', requiresAuth: true, permissions: [PERMISSIONS.STORE_VIEW] },
@@ -151,7 +152,11 @@ export default function Navbar() {
     ]
         .filter(Boolean)
         .join(' ');
-    const storeHomePath = '/store';
+    const storeHomePath = useMemo(() => {
+        if (!isAuthenticated) return '/';
+        const defaultRoute = getDefaultRouteForUser({ role, roles, permissions });
+        return defaultRoute === '/not-authorized' ? '/' : defaultRoute;
+    }, [isAuthenticated, permissions, role, roles]);
 
     return (
         <header className={styles.header}>
