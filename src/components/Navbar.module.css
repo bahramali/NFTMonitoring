@@ -26,6 +26,15 @@
     gap: 10px;
     color: inherit;
     text-decoration: none;
+    cursor: pointer;
+}
+
+.brand:hover .brandName {
+    color: #ffffff;
+}
+
+.brand:hover .brandSubtitle {
+    color: rgba(148, 163, 184, 0.85);
 }
 
 .brandLogo {
@@ -384,6 +393,7 @@
 .menuLink:focus-visible,
 .menuAction:focus-visible,
 .navLink:focus-visible,
+.brand:focus-visible,
 .dropdownTrigger:focus-visible,
 .userButton:focus-visible,
 .storeCartButton:focus-visible,

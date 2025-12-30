@@ -151,12 +151,13 @@ export default function Navbar() {
     ]
         .filter(Boolean)
         .join(' ');
+    const storeHomePath = '/store';
 
     return (
         <header className={styles.header}>
             <div className={styles.container}>
                 <div className={styles.brandBlock}>
-                    <Link to="/" className={styles.brand}>
+                    <Link to={storeHomePath} className={styles.brand} aria-label="Go to store">
                         <img src={hydroleafLogo} alt="HydroLeaf logo" className={styles.brandLogo} />
                         <div className={styles.brandCopy}>
                             <span className={styles.brandName}>HydroLeaf</span>
