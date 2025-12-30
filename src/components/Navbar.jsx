@@ -6,7 +6,6 @@ import hydroleafLogo from '../assets/hydroleaf_logo.png';
 import styles from './Navbar.module.css';
 import { PERMISSIONS, hasPerm } from '../utils/permissions.js';
 import { formatCurrency } from '../utils/currency.js';
-import { getDefaultRouteForUser } from '../utils/roleRoutes.js';
 
 const NAV_ITEMS = [
     { path: '/store', label: 'Store', requiresAuth: true, permissions: [PERMISSIONS.STORE_VIEW] },
@@ -152,23 +151,17 @@ export default function Navbar() {
     ]
         .filter(Boolean)
         .join(' ');
-    const storeHomePath = useMemo(() => {
-        if (!isAuthenticated) return '/';
-        const defaultRoute = getDefaultRouteForUser({ role, roles, permissions });
-        return defaultRoute === '/not-authorized' ? '/' : defaultRoute;
-    }, [isAuthenticated, permissions, role, roles]);
-
     return (
         <header className={styles.header}>
             <div className={styles.container}>
                 <div className={styles.brandBlock}>
-                    <Link to={storeHomePath} className={styles.brand} aria-label="Go to store">
+                    <a href="https://hydroleaf.se/store" className={styles.brand} aria-label="Go to store">
                         <img src={hydroleafLogo} alt="HydroLeaf logo" className={styles.brandLogo} />
                         <div className={styles.brandCopy}>
                             <span className={styles.brandName}>HydroLeaf</span>
                             <span className={styles.brandSubtitle}>NFT Monitoring</span>
                         </div>
-                    </Link>
+                    </a>
                 </div>
 
                 <div className={styles.navSection}>
