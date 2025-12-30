@@ -87,7 +87,7 @@ function App() {
                     <Route
                         path="/store"
                         element={(
-                            <ProtectedRoute requiredPermissions={[PERMISSIONS.STORE_VIEW]}>
+                            <ProtectedRoute>
                                 <StoreLayout />
                             </ProtectedRoute>
                         )}

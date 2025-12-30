@@ -8,7 +8,7 @@ import { PERMISSIONS, hasPerm } from '../utils/permissions.js';
 import { formatCurrency } from '../utils/currency.js';
 
 const NAV_ITEMS = [
-    { path: '/store', label: 'Store', requiresAuth: true, permissions: [PERMISSIONS.STORE_VIEW] },
+    { path: '/store', label: 'Store', requiresAuth: true },
     {
         path: '/my-page',
         label: 'My Page',
@@ -155,13 +155,18 @@ export default function Navbar() {
         <header className={styles.header}>
             <div className={styles.container}>
                 <div className={styles.brandBlock}>
-                    <a href="https://hydroleaf.se/store" className={styles.brand} aria-label="Go to store">
+                    <Link
+                        to="/store"
+                        className={styles.brand}
+                        aria-label="Go to store"
+                        onClick={handleNavLinkClick}
+                    >
                         <img src={hydroleafLogo} alt="HydroLeaf logo" className={styles.brandLogo} />
                         <div className={styles.brandCopy}>
                             <span className={styles.brandName}>HydroLeaf</span>
                             <span className={styles.brandSubtitle}>NFT Monitoring</span>
                         </div>
-                    </a>
+                    </Link>
                 </div>
 
                 <div className={styles.navSection}>
