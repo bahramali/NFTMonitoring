@@ -40,6 +40,7 @@ import CustomerDetails from './pages/store/CustomerDetails.jsx';
 import PaymentSuccess from './pages/payment/PaymentSuccess.jsx';
 import PaymentCancel from './pages/payment/PaymentCancel.jsx';
 import { useAuth } from './context/AuthContext.jsx';
+import { PERMISSIONS, hasPerm } from './utils/permissions.js';
 
 function ProtectedOutlet({ requiredRoles = [], requiredPermissions = [] }) {
     return (
@@ -50,12 +51,15 @@ function ProtectedOutlet({ requiredRoles = [], requiredPermissions = [] }) {
 }
 
 function AdminIndexRedirect() {
-    const { role, roles } = useAuth();
+    const { role, roles, permissions } = useAuth();
     const availableRoles = roles?.length ? roles : role ? [role] : [];
     if (availableRoles.includes('SUPER_ADMIN')) {
         return <Navigate to="home" replace />;
     }
-    return <Navigate to="overview" replace />;
+    if (hasPerm({ permissions }, PERMISSIONS.ADMIN_OVERVIEW_VIEW)) {
+        return <Navigate to="overview" replace />;
+    }
+    return <Navigate to="/not-authorized" replace />;
 }
 
 function App() {
@@ -76,18 +80,32 @@ function App() {
                 <Route path="/auth/accept-invite/:token" element={<AcceptInvite />} />
 
                 <Route element={<AppShellLayout />}>
-                    <Route path="/store" element={<StoreLayout />}>
+                    <Route
+                        path="/store"
+                        element={(
+                            <ProtectedRoute requiredPermissions={[PERMISSIONS.STORE_VIEW]}>
+                                <StoreLayout />
+                            </ProtectedRoute>
+                        )}
+                    >
                         <Route index element={<Storefront />} />
                         <Route path="product/:productId" element={<ProductDetail />} />
                         <Route path="cart" element={<CartPage />} />
                         <Route path="checkout" element={<Checkout />} />
                         <Route path="order/:orderId/success" element={<OrderStatus status="success" />} />
                         <Route path="order/:orderId/cancel" element={<OrderStatus status="cancel" />} />
-                        <Route path="admin/products" element={<ProductAdmin />} />
+                        <Route
+                            path="admin/products"
+                            element={(
+                                <ProtectedRoute requiredPermissions={[PERMISSIONS.PRODUCTS_MANAGE]}>
+                                    <ProductAdmin />
+                                </ProtectedRoute>
+                            )}
+                        />
                         <Route
                             path="admin/customers"
                             element={(
-                                <ProtectedRoute requiredRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermissions={["CUSTOMERS_VIEW"]}>
+                                <ProtectedRoute requiredPermissions={[PERMISSIONS.CUSTOMERS_VIEW]}>
                                     <CustomersList />
                                 </ProtectedRoute>
                             )}
@@ -95,7 +113,7 @@ function App() {
                         <Route
                             path="admin/customers/:customerId"
                             element={(
-                                <ProtectedRoute requiredRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermissions={["CUSTOMERS_VIEW"]}>
+                                <ProtectedRoute requiredPermissions={[PERMISSIONS.CUSTOMERS_VIEW]}>
                                     <CustomerDetails />
                                 </ProtectedRoute>
                             )}
@@ -106,8 +124,7 @@ function App() {
                         path="/monitoring"
                         element={(
                             <ProtectedOutlet
-                                requiredRoles={["SUPER_ADMIN", "ADMIN", "WORKER"]}
-                                requiredPermissions={["ADMIN_DASHBOARD"]}
+                                requiredPermissions={[PERMISSIONS.MONITORING_VIEW]}
                             />
                         )}
                     >
@@ -121,7 +138,7 @@ function App() {
                         <Route
                             path="reports"
                             element={(
-                                <ProtectedRoute requiredRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermissions={["ADMIN_REPORTS"]}>
+                                <ProtectedRoute requiredPermissions={[PERMISSIONS.MONITORING_VIEW]}>
                                     <Reports />
                                 </ProtectedRoute>
                             )}
@@ -132,7 +149,7 @@ function App() {
 
                     <Route
                         path="/admin"
-                        element={<ProtectedOutlet requiredRoles={["SUPER_ADMIN", "ADMIN"]} />}
+                        element={<ProtectedOutlet requiredPermissions={[PERMISSIONS.ADMIN_OVERVIEW_VIEW]} />}
                     >
                         <Route index element={<AdminIndexRedirect />} />
                         <Route
@@ -146,7 +163,7 @@ function App() {
                         <Route
                             path="overview"
                             element={(
-                                <ProtectedRoute requiredRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermissions={["ADMIN_DASHBOARD"]}>
+                                <ProtectedRoute requiredPermissions={[PERMISSIONS.ADMIN_OVERVIEW_VIEW]}>
                                     <AdminOverview />
                                 </ProtectedRoute>
                             )}
@@ -154,7 +171,7 @@ function App() {
                         <Route
                             path="team"
                             element={(
-                                <ProtectedRoute requiredRoles={["SUPER_ADMIN", "ADMIN"]} requiredPermissions={["ADMIN_TEAM"]}>
+                                <ProtectedRoute requiredPermissions={[PERMISSIONS.ADMIN_PERMISSIONS_MANAGE]}>
                                     <AdminTeam />
                                 </ProtectedRoute>
                             )}
@@ -181,7 +198,7 @@ function App() {
                 <Route
                     path="/worker/dashboard"
                     element={(
-                        <ProtectedRoute requiredRoles={["SUPER_ADMIN", "WORKER"]}>
+                        <ProtectedRoute requiredPermissions={[PERMISSIONS.MONITORING_VIEW]}>
                             <WorkerDashboard />
                         </ProtectedRoute>
                     )}

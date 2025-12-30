@@ -4,11 +4,11 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useStorefront } from '../context/StorefrontContext.jsx';
 import hydroleafLogo from '../assets/hydroleaf_logo.png';
 import styles from './Navbar.module.css';
-import { hasStoreAdminAccess, STORE_PERMISSION_KEY } from '../utils/permissions.js';
+import { PERMISSIONS, hasPerm } from '../utils/permissions.js';
 import { formatCurrency } from '../utils/currency.js';
 
 const NAV_ITEMS = [
-    { path: '/store', label: 'Store', requiresAuth: true },
+    { path: '/store', label: 'Store', requiresAuth: true, permissions: [PERMISSIONS.STORE_VIEW] },
     {
         path: '/my-page',
         label: 'My Page',
@@ -19,8 +19,7 @@ const NAV_ITEMS = [
         path: '/monitoring/overview',
         label: 'Monitoring',
         requiresAuth: true,
-        roles: ['SUPER_ADMIN', 'ADMIN', 'WORKER'],
-        permissions: ['ADMIN_DASHBOARD'],
+        permissions: [PERMISSIONS.MONITORING_VIEW],
     },
 ];
 
@@ -28,48 +27,41 @@ const ADMIN_MENU = [
     {
         path: '/admin/overview',
         label: 'Admin Overview',
-        roles: ['SUPER_ADMIN', 'ADMIN'],
-        permissions: ['ADMIN_DASHBOARD'],
+        permissions: [PERMISSIONS.ADMIN_OVERVIEW_VIEW],
     },
     {
         path: '/admin/team',
         label: 'Admin Management',
-        roles: ['SUPER_ADMIN', 'ADMIN'],
-        permissions: ['ADMIN_TEAM'],
+        permissions: [PERMISSIONS.ADMIN_PERMISSIONS_MANAGE],
     },
     {
         path: '/store/admin/products',
         label: 'Products',
-        roles: ['SUPER_ADMIN', 'ADMIN'],
-        permissions: [STORE_PERMISSION_KEY],
+        permissions: [PERMISSIONS.PRODUCTS_MANAGE],
     },
     {
         path: '/store/admin/customers',
         label: 'Customers',
-        roles: ['SUPER_ADMIN', 'ADMIN'],
-        permissions: ['CUSTOMERS_VIEW'],
+        permissions: [PERMISSIONS.CUSTOMERS_VIEW],
     },
     { path: '/admin/tools', label: 'Super Admin Tools', roles: ['SUPER_ADMIN'] },
     { path: '/admin/directory', label: 'Admin Directory', roles: ['SUPER_ADMIN'] },
 ];
 
 const hasAccess = (item, role, roles = [], permissions = []) => {
-    if (!item?.roles || item.roles.length === 0) return true;
     const availableRoles = roles.length > 0 ? roles : role ? [role] : [];
-    const matchesRole = availableRoles.some((userRole) => item.roles.includes(userRole));
-    if (!matchesRole) return false;
-
-    const isAdmin = availableRoles.includes('ADMIN');
     const isSuperAdmin = availableRoles.includes('SUPER_ADMIN');
 
-    if (item.permissions && item.permissions.length > 0 && isAdmin && !isSuperAdmin) {
-        if (item.permissions.includes(STORE_PERMISSION_KEY)) {
-            return hasStoreAdminAccess('ADMIN', permissions);
-        }
-        return item.permissions.every((permission) => permissions?.includes(permission));
+    if (item?.roles?.length > 0) {
+        const matchesRole = availableRoles.some((userRole) => item.roles.includes(userRole));
+        if (!matchesRole) return false;
     }
 
-    return true;
+    if (!item?.permissions || item.permissions.length === 0) return true;
+    if (isSuperAdmin) return true;
+
+    const me = { permissions };
+    return item.permissions.every((permission) => hasPerm(me, permission));
 };
 
 export default function Navbar() {

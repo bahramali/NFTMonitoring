@@ -1,11 +1,22 @@
-export const STORE_PERMISSION_KEY = 'ADMIN_STORE';
-export const STORE_PERMISSION_FALLBACK = 'ADMIN_DASHBOARD';
+export const PERMISSIONS = {
+    STORE_VIEW: 'STORE_VIEW',
+    CUSTOMERS_VIEW: 'CUSTOMERS_VIEW',
+    PRODUCTS_MANAGE: 'PRODUCTS_MANAGE',
+    ORDERS_MANAGE: 'ORDERS_MANAGE',
+    ADMIN_OVERVIEW_VIEW: 'ADMIN_OVERVIEW_VIEW',
+    ADMIN_PERMISSIONS_MANAGE: 'ADMIN_PERMISSIONS_MANAGE',
+    MONITORING_VIEW: 'MONITORING_VIEW',
+};
 
-export function hasStoreAdminAccess(role, permissions = []) {
-    if (role === 'SUPER_ADMIN') return true;
-    if (role !== 'ADMIN') return false;
+export const hasPerm = (me, perm) => me?.permissions?.includes(perm);
+
+export function hasStoreAdminAccess(permissions = []) {
     if (!Array.isArray(permissions)) return false;
-    return permissions.includes(STORE_PERMISSION_KEY) || permissions.includes(STORE_PERMISSION_FALLBACK);
+    return [
+        PERMISSIONS.PRODUCTS_MANAGE,
+        PERMISSIONS.CUSTOMERS_VIEW,
+        PERMISSIONS.ORDERS_MANAGE,
+    ].some((permission) => permissions.includes(permission));
 }
 
 export function findPermissionLabel(definitions = [], key) {

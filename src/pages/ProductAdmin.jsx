@@ -5,7 +5,7 @@ import { fetchPermissionDefinitions } from '../api/admins.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import AccessDenied from '../components/AccessDenied.jsx';
 import { formatCurrency } from '../utils/currency.js';
-import { findPermissionLabel, hasStoreAdminAccess, STORE_PERMISSION_FALLBACK, STORE_PERMISSION_KEY } from '../utils/permissions.js';
+import { PERMISSIONS, findPermissionLabel, hasPerm } from '../utils/permissions.js';
 import styles from './ProductAdmin.module.css';
 
 const CATEGORY_OPTIONS = ['Basil', 'Packaging', 'Hydroponic gear'];
@@ -81,7 +81,7 @@ const normalizeNumber = (value, fallback = 0) => {
 };
 
 export default function ProductAdmin() {
-    const { isAuthenticated, token, role, permissions } = useAuth();
+    const { isAuthenticated, token, permissions } = useAuth();
     const [products, setProducts] = useState([]);
     const [selectedId, setSelectedId] = useState(null);
     const [formState, setFormState] = useState(emptyForm);
@@ -99,12 +99,11 @@ export default function ProductAdmin() {
     const [confirmingStatus, setConfirmingStatus] = useState(null);
     const [actioningId, setActioningId] = useState(null);
 
-    const hasAccess = hasStoreAdminAccess(role, permissions);
+    const hasAccess = hasPerm({ permissions }, PERMISSIONS.PRODUCTS_MANAGE);
 
     const storePermissionLabel = useMemo(() => {
         const labels = [
-            findPermissionLabel(permissionDefinitions, STORE_PERMISSION_KEY),
-            findPermissionLabel(permissionDefinitions, STORE_PERMISSION_FALLBACK),
+            findPermissionLabel(permissionDefinitions, PERMISSIONS.PRODUCTS_MANAGE),
         ].filter(Boolean);
         if (labels.length > 0) return labels[0];
         return 'store admin';

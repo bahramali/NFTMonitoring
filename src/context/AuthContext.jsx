@@ -88,7 +88,7 @@ export function AuthProvider({ children }) {
 
         setSession(nextSession);
         persistSession(nextSession);
-        return { success: true, role };
+        return { success: true, role: primaryRole, roles: normalizedRoles, permissions: normalizedPermissions };
     }, []);
 
     const login = useCallback(

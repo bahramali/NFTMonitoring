@@ -28,21 +28,21 @@ describe('AdminManagement', () => {
                     createJsonResponse({
                         available: [
                             {
-                                code: 'ADMIN_DASHBOARD',
+                                code: 'ADMIN_OVERVIEW_VIEW',
                                 label: 'Admin Overview',
                                 description: 'Overview access',
                                 group: 'Admin',
                                 defaultSelected: true,
                             },
                             {
-                                code: 'ADMIN_REPORTS',
-                                label: 'Reports',
-                                description: 'Reports access',
-                                group: 'Admin',
+                                code: 'MONITORING_VIEW',
+                                label: 'Monitoring',
+                                description: 'Monitoring access',
+                                group: 'Monitoring',
                                 defaultSelected: false,
                             },
                         ],
-                        presets: { ADMIN_STANDARD: ['ADMIN_DASHBOARD'] },
+                        presets: { ADMIN_STANDARD: ['ADMIN_OVERVIEW_VIEW'] },
                     }),
                 );
             }
@@ -86,7 +86,7 @@ describe('AdminManagement', () => {
         const body = JSON.parse(options.body);
         expect(body.email).toBe('test@example.com');
         expect(body.displayName).toBe('Test Admin');
-        expect(body.permissions).toEqual(['ADMIN_DASHBOARD']);
+        expect(body.permissions).toEqual(['ADMIN_OVERVIEW_VIEW']);
         expect(options.headers.Authorization).toBe('Bearer token-123');
         await screen.findByText(/Invite sent successfully/i);
     });
@@ -98,14 +98,14 @@ describe('AdminManagement', () => {
                     createJsonResponse({
                         available: [
                             {
-                                code: 'ADMIN_DASHBOARD',
+                                code: 'ADMIN_OVERVIEW_VIEW',
                                 label: 'Admin Overview',
                                 description: '',
                                 group: 'Admin',
                                 defaultSelected: true,
                             },
                         ],
-                        presets: { ADMIN_STANDARD: ['ADMIN_DASHBOARD'] },
+                        presets: { ADMIN_STANDARD: ['ADMIN_OVERVIEW_VIEW'] },
                     }),
                 );
             }
@@ -147,16 +147,23 @@ describe('AdminManagement', () => {
                 return Promise.resolve(
                     createJsonResponse({
                         available: [
-                            { code: 'ADMIN_DASHBOARD', label: 'Admin Overview', group: 'Admin', defaultSelected: true },
+                            { code: 'ADMIN_OVERVIEW_VIEW', label: 'Admin Overview', group: 'Admin', defaultSelected: true },
                             {
-                                code: 'ADMIN_INSIGHTS',
-                                label: 'Insights',
-                                description: 'Newly added permission',
+                                code: 'ADMIN_PERMISSIONS_MANAGE',
+                                label: 'Admin Management',
+                                description: 'Manage admin permissions',
                                 group: 'Admin',
                                 defaultSelected: false,
                             },
+                            {
+                                code: 'MONITORING_INSIGHTS',
+                                label: 'Insights',
+                                description: 'Newly added permission',
+                                group: 'Monitoring',
+                                defaultSelected: false,
+                            },
                         ],
-                        presets: { ADMIN_STANDARD: ['ADMIN_DASHBOARD'] },
+                        presets: { ADMIN_STANDARD: ['ADMIN_OVERVIEW_VIEW'] },
                     }),
                 );
             }

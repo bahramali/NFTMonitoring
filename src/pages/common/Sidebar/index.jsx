@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
-import { hasStoreAdminAccess, STORE_PERMISSION_KEY } from "../../../utils/permissions.js";
+import { PERMISSIONS, hasPerm, hasStoreAdminAccess } from "../../../utils/permissions.js";
 import styles from "./Sidebar.module.css";
 
 const DEFAULT_VIEWPORT_WIDTH = 1024;
@@ -12,22 +12,19 @@ const getWindowWidth = () => (typeof window === "undefined" ? DEFAULT_VIEWPORT_W
 const MONITORING_BASE = "/monitoring";
 
 const hasAccess = (item, role, roles = [], permissions = []) => {
-    if (!item?.roles || item.roles.length === 0) return true;
     const availableRoles = roles.length > 0 ? roles : role ? [role] : [];
-    const matchesRole = availableRoles.some((userRole) => item.roles.includes(userRole));
-    if (!matchesRole) return false;
-
-    const isAdmin = availableRoles.includes("ADMIN");
     const isSuperAdmin = availableRoles.includes("SUPER_ADMIN");
 
-    if (item.permissions && item.permissions.length > 0 && isAdmin && !isSuperAdmin) {
-        if (item.permissions.includes(STORE_PERMISSION_KEY)) {
-            return hasStoreAdminAccess("ADMIN", permissions);
-        }
-        return item.permissions.every((permission) => permissions?.includes(permission));
+    if (item?.roles?.length > 0) {
+        const matchesRole = availableRoles.some((userRole) => item.roles.includes(userRole));
+        if (!matchesRole) return false;
     }
 
-    return true;
+    if (!item?.permissions || item.permissions.length === 0) return true;
+    if (isSuperAdmin) return true;
+
+    const me = { permissions };
+    return item.permissions.every((permission) => hasPerm(me, permission));
 };
 
 const NAV_SECTIONS = [
@@ -35,32 +32,32 @@ const NAV_SECTIONS = [
         id: "monitoring",
         label: "Monitoring",
         items: [
-            { to: `${MONITORING_BASE}/overview`, icon: "🏠", label: "Overview", roles: ["SUPER_ADMIN", "ADMIN", "WORKER"], permissions: ["ADMIN_DASHBOARD"] },
-            { to: `${MONITORING_BASE}/control-panel`, icon: "💡", label: "Control Panel", roles: ["SUPER_ADMIN", "ADMIN", "WORKER"], permissions: ["ADMIN_DASHBOARD"] },
-            { to: `${MONITORING_BASE}/shelly-control`, icon: "🔌", label: "Shelly Control", roles: ["SUPER_ADMIN", "ADMIN", "WORKER"], permissions: ["ADMIN_DASHBOARD"] },
-            { to: `${MONITORING_BASE}/live`, icon: "📡", label: "NFT Channels", roles: ["SUPER_ADMIN", "ADMIN", "WORKER"], permissions: ["ADMIN_DASHBOARD"] },
-            { to: `${MONITORING_BASE}/germination`, icon: "🌱", label: "Germination", roles: ["SUPER_ADMIN", "ADMIN", "WORKER"], permissions: ["ADMIN_DASHBOARD"] },
-            { to: `${MONITORING_BASE}/cameras`, icon: "📷", label: "Cameras", roles: ["SUPER_ADMIN", "ADMIN", "WORKER"], permissions: ["ADMIN_DASHBOARD"] },
-            { to: `${MONITORING_BASE}/reports`, icon: "📈", label: "Reports", roles: ["SUPER_ADMIN", "ADMIN"], permissions: ["ADMIN_REPORTS"] },
-            { to: `${MONITORING_BASE}/note`, icon: "📝", label: "Note", roles: ["SUPER_ADMIN", "ADMIN", "WORKER"], permissions: ["ADMIN_DASHBOARD"] },
-            { to: `${MONITORING_BASE}/sensor-config`, icon: "⚙️", label: "Sensor Config", roles: ["SUPER_ADMIN", "ADMIN", "WORKER"], permissions: ["ADMIN_DASHBOARD"] },
+            { to: `${MONITORING_BASE}/overview`, icon: "🏠", label: "Overview", permissions: [PERMISSIONS.MONITORING_VIEW] },
+            { to: `${MONITORING_BASE}/control-panel`, icon: "💡", label: "Control Panel", permissions: [PERMISSIONS.MONITORING_VIEW] },
+            { to: `${MONITORING_BASE}/shelly-control`, icon: "🔌", label: "Shelly Control", permissions: [PERMISSIONS.MONITORING_VIEW] },
+            { to: `${MONITORING_BASE}/live`, icon: "📡", label: "NFT Channels", permissions: [PERMISSIONS.MONITORING_VIEW] },
+            { to: `${MONITORING_BASE}/germination`, icon: "🌱", label: "Germination", permissions: [PERMISSIONS.MONITORING_VIEW] },
+            { to: `${MONITORING_BASE}/cameras`, icon: "📷", label: "Cameras", permissions: [PERMISSIONS.MONITORING_VIEW] },
+            { to: `${MONITORING_BASE}/reports`, icon: "📈", label: "Reports", permissions: [PERMISSIONS.MONITORING_VIEW] },
+            { to: `${MONITORING_BASE}/note`, icon: "📝", label: "Note", permissions: [PERMISSIONS.MONITORING_VIEW] },
+            { to: `${MONITORING_BASE}/sensor-config`, icon: "⚙️", label: "Sensor Config", permissions: [PERMISSIONS.MONITORING_VIEW] },
         ],
     },
     {
         id: "store",
         label: "Store",
         items: [
-            { to: "/store", icon: "🛍️", label: "Products" },
+            { to: "/store", icon: "🛍️", label: "Products", permissions: [PERMISSIONS.STORE_VIEW] },
             { icon: "📦", label: "Orders", disabled: true },
-            { to: "/store/admin/customers", icon: "👥", label: "Customers", roles: ["SUPER_ADMIN", "ADMIN"], permissions: ["CUSTOMERS_VIEW"] },
+            { to: "/store/admin/customers", icon: "👥", label: "Customers", permissions: [PERMISSIONS.CUSTOMERS_VIEW] },
         ],
     },
     {
         id: "admin",
         label: "Admin",
         items: [
-            { to: "/admin/overview", icon: "📊", label: "Admin Overview", roles: ["SUPER_ADMIN", "ADMIN"], permissions: ["ADMIN_DASHBOARD"] },
-            { to: "/admin/team", icon: "🧭", label: "Admin Management", roles: ["SUPER_ADMIN", "ADMIN"], permissions: ["ADMIN_TEAM"] },
+            { to: "/admin/overview", icon: "📊", label: "Admin Overview", permissions: [PERMISSIONS.ADMIN_OVERVIEW_VIEW] },
+            { to: "/admin/team", icon: "🧭", label: "Admin Management", permissions: [PERMISSIONS.ADMIN_PERMISSIONS_MANAGE] },
             { to: "/admin/tools", icon: "🛡️", label: "Super Admin Tools", roles: ["SUPER_ADMIN"] },
             { to: "/admin/directory", icon: "🗂️", label: "Admin Directory", roles: ["SUPER_ADMIN"] },
         ],
@@ -114,7 +111,7 @@ export default function Sidebar() {
             .join(" ");
     }, [collapsed, isMobile]);
 
-    const storeTarget = hasStoreAdminAccess(roles?.includes("SUPER_ADMIN") ? "SUPER_ADMIN" : role, permissions)
+    const storeTarget = hasStoreAdminAccess(permissions)
         ? "/store/admin/products"
         : "/store";
 

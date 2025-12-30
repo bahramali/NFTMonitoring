@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { hasPerm } from '../utils/permissions.js';
 
 export default function ProtectedRoute({ children, requiredRoles = [], requiredPermissions = [] }) {
     const { isAuthenticated, role, roles, permissions } = useAuth();
@@ -20,11 +21,11 @@ export default function ProtectedRoute({ children, requiredRoles = [], requiredP
         return <Navigate to="/not-authorized" replace />;
     }
 
-    const hasAdminRole = availableRoles.includes('ADMIN');
     const hasSuperAdminRole = availableRoles.includes('SUPER_ADMIN');
 
-    if (requiredPermissions.length > 0 && hasAdminRole && !hasSuperAdminRole) {
-        const hasAllPermissions = requiredPermissions.every((permission) => permissions?.includes(permission));
+    if (requiredPermissions.length > 0 && !hasSuperAdminRole) {
+        const me = { permissions };
+        const hasAllPermissions = requiredPermissions.every((permission) => hasPerm(me, permission));
         if (!hasAllPermissions) {
             return <Navigate to="/not-authorized" replace />;
         }
