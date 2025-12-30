@@ -288,14 +288,7 @@ export default function Navbar() {
                                             className={styles.menuLink}
                                             onClick={handleNavLinkClick}
                                         >
-                                            My Page
-                                        </Link>
-                                        <Link
-                                            to="/my-page/settings"
-                                            className={styles.menuLink}
-                                            onClick={handleNavLinkClick}
-                                        >
-                                            Settings
+                                            My Account
                                         </Link>
                                     </>
                                 )}
