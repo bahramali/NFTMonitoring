@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useStorefront } from '../context/StorefrontContext.jsx';
-import hydroleafLogo from '../assets/hydroleaf_logo.png';
+import hydroleafLogo from 'https://pic.hydroleaf.se/logo%402x.png';
 import styles from './Navbar.module.css';
 import { PERMISSIONS, hasPerm } from '../utils/permissions.js';
 import { formatCurrency } from '../utils/currency.js';
