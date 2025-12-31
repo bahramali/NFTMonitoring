@@ -125,6 +125,8 @@
   object-fit: cover;
   display: block;
   filter: saturate(1.1) contrast(1.05);
+  border: 0;
+  pointer-events: none;
 }
 
 .cameraPreviewDetails {
