@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import hydroleafLogo from 'https://pic.hydroleaf.se/logo%402x.png';
+const hydroleafLogo = 'https://pic.hydroleaf.se/logo%402x.png';
 import styles from './Shop.module.css';
 
 const HYDROPONIC_ITEMS = [
