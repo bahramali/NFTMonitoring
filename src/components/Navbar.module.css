@@ -1,9 +1,9 @@
 :global(.topbar) {
     background: linear-gradient(135deg, #0b1224, #0f172a);
     color: #e2e8f0;
-    padding: 16px 20px;
+    padding: 0 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    min-height: 164px;
+    height: 56px;
 }
 
 :global(.topbar__inner) {
@@ -25,9 +25,9 @@
 }
 
 .brand {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
     color: inherit;
     text-decoration: none;
     cursor: pointer;
@@ -42,11 +42,13 @@
 }
 
 .brandLogo {
-    height: 144px;
-    width: 144px;
-    border-radius: 24px;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.06);
+    height: 28px;
+    width: auto;
+    max-width: 28px;
+    object-fit: contain;
+    padding: 0;
+    background: none;
+    border-radius: 0;
 }
 
 .brandCopy {
@@ -56,14 +58,14 @@
 }
 
 .brandName {
-    font-weight: 800;
-    font-size: 1.35rem;
+    font-weight: 700;
+    font-size: 1.1rem;
     letter-spacing: 0.2px;
 }
 
 .brandSubtitle {
-    font-size: 0.9rem;
-    color: rgba(148, 163, 184, 0.6);
+    font-size: 0.75rem;
+    opacity: 0.65;
     letter-spacing: 0.3px;
 }
 
