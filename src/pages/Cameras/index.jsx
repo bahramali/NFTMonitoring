@@ -1,7 +1,8 @@
 // pages/Cameras/index.jsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import styles from "./Cameras.module.css";
 import { CAMERA_CONFIG } from "../../config/cameras";
+import PageHeader from "../../components/PageHeader.jsx";
 
 const STATUS_MESSAGES = {
     playing: "Live stream",
@@ -71,9 +72,17 @@ export default function Cameras() {
     const viewerPosition = selectedCameraIndex >= 0 ? selectedCameraIndex + 1 : 1;
     const hasMultipleCameras = CAMERA_SOURCES.length > 1;
     const [reloadKey, setReloadKey] = useState(0);
+    const [isReloading, setIsReloading] = useState(false);
+    const reloadTimeoutRef = useRef(null);
+    const videoRef = useRef(null);
 
     const handleReload = () => {
         setReloadKey((key) => key + 1);
+        setIsReloading(true);
+        if (reloadTimeoutRef.current) {
+            clearTimeout(reloadTimeoutRef.current);
+        }
+        reloadTimeoutRef.current = setTimeout(() => setIsReloading(false), 1500);
     };
 
     const handleCameraSelect = (cameraId) => {
@@ -99,25 +108,55 @@ export default function Cameras() {
     const reloadDisabled = !selectedCamera?.webrtcUrl;
     const canDisplayVideo = Boolean(selectedCamera?.webrtcUrl);
     const statusState = selectedCamera ? "playing" : "error";
+    const statusLabel = isReloading
+        ? "Reconnecting"
+        : canDisplayVideo
+            ? "Online"
+            : "Offline";
+    const statusTone = isReloading ? "reconnecting" : canDisplayVideo ? "online" : "offline";
+
+    useEffect(() => {
+        return () => {
+            if (reloadTimeoutRef.current) {
+                clearTimeout(reloadTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    const handleFullscreen = () => {
+        if (videoRef.current?.requestFullscreen) {
+            videoRef.current.requestFullscreen();
+        }
+    };
 
     return (
         <div className={styles.page}>
             <div className={styles.layout}>
+                <PageHeader
+                    breadcrumbItems={[
+                        { label: "Monitoring", to: "/monitoring" },
+                        { label: "Cameras", to: "/monitoring/cameras" },
+                        { label: selectedCamera?.name || "Camera Stream" },
+                    ]}
+                    title={selectedCamera?.name || "Camera Stream"}
+                    status={{ label: statusLabel, tone: statusTone }}
+                    actions={[
+                        {
+                            label: "Reload",
+                            onClick: handleReload,
+                            disabled: reloadDisabled,
+                            variant: "primary",
+                        },
+                        {
+                            label: "Fullscreen",
+                            onClick: handleFullscreen,
+                            disabled: !canDisplayVideo,
+                            variant: "ghost",
+                        },
+                    ]}
+                    variant="dark"
+                />
                 <section className={styles.viewer}>
-                    <div className={styles.videoHeader}>
-                        <div>
-                            <h2 className={styles.title}>{selectedCamera?.name || "Camera Stream"}</h2>
-                        </div>
-                        <button
-                            type="button"
-                            className={styles.button}
-                            onClick={handleReload}
-                            disabled={reloadDisabled}
-                        >
-                            Reload
-                        </button>
-                    </div>
-
                     {canDisplayVideo ? (
                         <iframe
                             key={`${selectedCamera?.id}-${reloadKey}`}
@@ -126,6 +165,7 @@ export default function Cameras() {
                             className={styles.video}
                             allow="autoplay; fullscreen"
                             allowFullScreen
+                            ref={videoRef}
                         />
                     ) : (
                         <div className={styles.emptyState}>
@@ -158,18 +198,16 @@ export default function Cameras() {
                         </div>
                     ) : null}
 
-                    <div className={styles.statusRow}>
-                        <p
-                            className={`${styles.statusMessage} ${
-                                statusState === "playing"
-                                    ? styles.statusPlaying
-                                    : styles.statusError
-                            }`}
-                            aria-live="polite"
-                        >
-                            {getStatusMessage(statusState, selectedCamera)}
-                        </p>
-                    </div>
+                    <p
+                        className={`${styles.statusMessage} ${
+                            statusState === "playing"
+                                ? styles.statusPlaying
+                                : styles.statusError
+                        }`}
+                        aria-live="polite"
+                    >
+                        {getStatusMessage(statusState, selectedCamera)}
+                    </p>
                 </section>
 
                 <section className={styles.selectorPanel}>
