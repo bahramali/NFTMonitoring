@@ -1,21 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useStorefront } from '../context/StorefrontContext.jsx';
 const hydroleafLogo = 'https://pic.hydroleaf.se/logo%402x.png';
 import styles from './Navbar.module.css';
 import { PERMISSIONS, hasPerm } from '../utils/permissions.js';
 import { formatCurrency } from '../utils/currency.js';
-
-const SECTION_LINKS = [
-    { path: '/store', label: 'Store', requiresAuth: true },
-    {
-        path: '/monitoring',
-        label: 'Monitoring',
-        requiresAuth: true,
-        permissions: [PERMISSIONS.MONITORING_VIEW],
-    },
-];
 
 const ADMIN_MENU = [
     {
@@ -72,13 +62,6 @@ export default function Navbar() {
     const userInitial = profileLabel?.trim()?.charAt(0)?.toUpperCase() || 'U';
     const showProfileSkeleton = loadingProfile && !profileLabel;
 
-    const sectionLinks = useMemo(() => {
-        return SECTION_LINKS.filter((item) => {
-            if (item.requiresAuth && !isAuthenticated) return false;
-            return hasAccess(item, role, roles, permissions);
-        });
-    }, [isAuthenticated, permissions, role, roles]);
-
     const itemCount = useMemo(
         () => cart?.items?.reduce((acc, item) => acc + (item.quantity ?? item.qty ?? 0), 0) || 0,
         [cart],
@@ -119,9 +102,6 @@ export default function Navbar() {
         };
     }, []);
 
-    const sectionLinkClassName = ({ isActive }) =>
-        [styles.sectionLink, isActive ? styles.sectionLinkActive : ''].filter(Boolean).join(' ');
-
     const handleNavLinkClick = () => {
         setIsUserMenuOpen(false);
     };
@@ -142,19 +122,6 @@ export default function Navbar() {
                         </div>
                     </Link>
                 </div>
-
-                <nav className={`topbar__center ${styles.sectionSwitch}`} aria-label="Global sections">
-                    {sectionLinks.map((item) => (
-                        <NavLink
-                            key={item.path}
-                            to={item.path}
-                            className={sectionLinkClassName}
-                            onClick={handleNavLinkClick}
-                        >
-                            {item.label}
-                        </NavLink>
-                    ))}
-                </nav>
 
                 <div className="topbar__right">
                     {isStoreRoute && (

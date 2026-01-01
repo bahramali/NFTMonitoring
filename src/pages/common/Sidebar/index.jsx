@@ -64,7 +64,7 @@ const NAV_SECTIONS = [
     },
 ];
 
-export default function Sidebar({ activeSection }) {
+export default function Sidebar() {
     const { role, roles, permissions } = useAuth();
     const [isMobile, setIsMobile] = useState(() => getWindowWidth() < BREAKPOINTS.mobile);
     const [collapsed, setCollapsed] = useState(() => {
@@ -116,10 +116,7 @@ export default function Sidebar({ activeSection }) {
         : "/store";
 
     const sections = useMemo(() => {
-        const scopedSections = activeSection
-            ? NAV_SECTIONS.filter((section) => section.id === activeSection)
-            : NAV_SECTIONS;
-        return scopedSections.map((section) => {
+        return NAV_SECTIONS.map((section) => {
             if (section.id === "store") {
                 return {
                     ...section,
@@ -130,7 +127,7 @@ export default function Sidebar({ activeSection }) {
             }
             return section;
         });
-    }, [activeSection, storeTarget]);
+    }, [storeTarget]);
 
     const filteredSections = useMemo(() => {
         return sections
@@ -182,16 +179,4 @@ export default function Sidebar({ activeSection }) {
             </nav>
         </aside>
     );
-}
-
-export function MonitoringSidebar() {
-    return <Sidebar activeSection="monitoring" />;
-}
-
-export function StoreSidebar() {
-    return <Sidebar activeSection="store" />;
-}
-
-export function AdminSidebar() {
-    return <Sidebar activeSection="admin" />;
 }
