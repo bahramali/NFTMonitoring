@@ -183,3 +183,15 @@ export default function Sidebar({ activeSection }) {
         </aside>
     );
 }
+
+export function MonitoringSidebar() {
+    return <Sidebar activeSection="monitoring" />;
+}
+
+export function StoreSidebar() {
+    return <Sidebar activeSection="store" />;
+}
+
+export function AdminSidebar() {
+    return <Sidebar activeSection="admin" />;
+}
