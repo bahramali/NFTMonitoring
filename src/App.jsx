@@ -86,16 +86,19 @@ function App() {
                 <Route element={<AppShellLayout />}>
                     <Route
                         path="/store"
-                        element={(
-                            <ProtectedRoute>
-                                <StoreLayout />
-                            </ProtectedRoute>
-                        )}
+                        element={<StoreLayout />}
                     >
                         <Route index element={<Storefront />} />
                         <Route path="product/:productId" element={<ProductDetail />} />
                         <Route path="cart" element={<CartPage />} />
-                        <Route path="checkout" element={<Checkout />} />
+                        <Route
+                            path="checkout"
+                            element={(
+                                <ProtectedRoute>
+                                    <Checkout />
+                                </ProtectedRoute>
+                            )}
+                        />
                         <Route path="order/:orderId/success" element={<OrderStatus status="success" />} />
                         <Route path="order/:orderId/cancel" element={<OrderStatus status="cancel" />} />
                         <Route
