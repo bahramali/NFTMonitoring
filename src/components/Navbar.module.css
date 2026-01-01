@@ -1,27 +1,29 @@
-.header {
+:global(.topbar) {
     background: linear-gradient(135deg, #0b1224, #0f172a);
     color: #e2e8f0;
-    padding: 0 20px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    min-height: 56px;
+    height: 56px;
     position: sticky;
     top: 0;
     z-index: 40;
 }
 
-.container {
+:global(.topbar__inner) {
     max-width: 1200px;
     margin: 0 auto;
+    padding: 0 16px;
     display: flex;
     align-items: center;
     gap: 16px;
-    min-height: 56px;
+    height: 56px;
+    justify-content: space-between;
 }
 
-.brandBlock {
+:global(.topbar__left) {
     display: flex;
     align-items: center;
-    min-width: 200px;
+    gap: 10px;
+    min-width: 220px;
 }
 
 .brand {
@@ -42,11 +44,10 @@
 }
 
 .brandLogo {
-    height: 32px;
-    width: 32px;
-    border-radius: 10px;
-    padding: 4px;
-    background: rgba(255, 255, 255, 0.06);
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    border-radius: 8px;
 }
 
 .brandCopy {
@@ -66,12 +67,16 @@
     letter-spacing: 0.3px;
 }
 
+:global(.topbar__center) {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
 .sectionSwitch {
     display: flex;
     align-items: center;
     gap: 10px;
-    flex: 1;
-    justify-content: center;
 }
 
 .sectionLink,
@@ -114,11 +119,11 @@
     color: #ffffff;
 }
 
-.authSection {
+:global(.topbar__right) {
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    min-width: 240px;
+    min-width: 220px;
     gap: 12px;
 }
 
@@ -348,18 +353,24 @@
 }
 
 @media (max-width: 1100px) {
-    .container {
+    :global(.topbar__inner) {
         flex-wrap: wrap;
     }
 
-    .brandBlock {
+    :global(.topbar__left) {
         width: 100%;
         justify-content: space-between;
     }
 }
 
+@media (max-width: 1023px) {
+    .brandSubtitle {
+        display: none;
+    }
+}
+
 @media (max-width: 900px) {
-    .container {
+    :global(.topbar__inner) {
         align-items: flex-start;
         gap: 12px;
     }
@@ -371,7 +382,7 @@
         flex-wrap: wrap;
     }
 
-    .authSection {
+    :global(.topbar__right) {
         order: 2;
         width: 100%;
         justify-content: flex-end;
