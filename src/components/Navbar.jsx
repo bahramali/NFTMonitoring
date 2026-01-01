@@ -7,16 +7,10 @@ import styles from './Navbar.module.css';
 import { PERMISSIONS, hasPerm } from '../utils/permissions.js';
 import { formatCurrency } from '../utils/currency.js';
 
-const NAV_ITEMS = [
+const SECTION_LINKS = [
     { path: '/store', label: 'Store', requiresAuth: true },
     {
-        path: '/my-page',
-        label: 'My Page',
-        requiresAuth: true,
-        roles: ['CUSTOMER'],
-    },
-    {
-        path: '/monitoring/overview',
+        path: '/monitoring',
         label: 'Monitoring',
         requiresAuth: true,
         permissions: [PERMISSIONS.MONITORING_VIEW],
@@ -67,13 +61,9 @@ const hasAccess = (item, role, roles = [], permissions = []) => {
 export default function Navbar() {
     const { isAuthenticated, role, roles, permissions, logout, profile, loadingProfile } = useAuth();
     const { cart, openCart } = useStorefront();
-    const [isNavOpen, setIsNavOpen] = useState(false);
-    const [isAdminOpen, setIsAdminOpen] = useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-    const adminMenuRef = useRef(null);
     const userMenuRef = useRef(null);
     const location = useLocation();
-    const isAdminRoute = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
     const isStoreRoute = location.pathname === '/store' || location.pathname.startsWith('/store/');
 
     const roleLabel = role ? role.replace('_', ' ') : '';
@@ -82,8 +72,8 @@ export default function Navbar() {
     const userInitial = profileLabel?.trim()?.charAt(0)?.toUpperCase() || 'U';
     const showProfileSkeleton = loadingProfile && !profileLabel;
 
-    const primaryLinks = useMemo(() => {
-        return NAV_ITEMS.filter((item) => {
+    const sectionLinks = useMemo(() => {
+        return SECTION_LINKS.filter((item) => {
             if (item.requiresAuth && !isAuthenticated) return false;
             return hasAccess(item, role, roles, permissions);
         });
@@ -102,19 +92,14 @@ export default function Navbar() {
         if (!isAuthenticated) return [];
         return ADMIN_MENU.filter((item) => hasAccess(item, role, roles, permissions));
     }, [isAuthenticated, permissions, role, roles]);
+    const canAccessAdmin = adminLinks.length > 0;
 
     useEffect(() => {
-        setIsNavOpen(false);
-        setIsAdminOpen(false);
         setIsUserMenuOpen(false);
     }, [location.pathname]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (adminMenuRef.current && !adminMenuRef.current.contains(event.target)) {
-                setIsAdminOpen(false);
-            }
-
             if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
                 setIsUserMenuOpen(false);
             }
@@ -122,9 +107,7 @@ export default function Navbar() {
 
         const handleEscape = (event) => {
             if (event.key === 'Escape') {
-                setIsAdminOpen(false);
                 setIsUserMenuOpen(false);
-                setIsNavOpen(false);
             }
         };
 
@@ -136,25 +119,16 @@ export default function Navbar() {
         };
     }, []);
 
-    const navLinkClassName = ({ isActive }) =>
-        [styles.navLink, isActive ? styles.navLinkActive : ''].filter(Boolean).join(' ');
+    const sectionLinkClassName = ({ isActive }) =>
+        [styles.sectionLink, isActive ? styles.sectionLinkActive : ''].filter(Boolean).join(' ');
 
     const handleNavLinkClick = () => {
-        setIsNavOpen(false);
-        setIsAdminOpen(false);
         setIsUserMenuOpen(false);
     };
-
-    const adminTriggerClassName = [
-        styles.dropdownTrigger,
-        isAdminOpen || isAdminRoute ? styles.dropdownTriggerActive : '',
-    ]
-        .filter(Boolean)
-        .join(' ');
     return (
-        <header className={styles.header}>
-            <div className={styles.container}>
-                <div className={styles.brandBlock}>
+        <header className="topbar">
+            <div className="topbar__inner">
+                <div className="topbar__left">
                     <Link
                         to="/store"
                         className={styles.brand}
@@ -169,68 +143,20 @@ export default function Navbar() {
                     </Link>
                 </div>
 
-                <div className={styles.navSection}>
-                    <button
-                        type="button"
-                        className={styles.menuToggle}
-                        aria-label="Toggle navigation"
-                        aria-expanded={isNavOpen}
-                        onClick={() => setIsNavOpen((open) => !open)}
-                    >
-                        <span className={styles.menuIcon} aria-hidden="true" />
-                        <span className={styles.menuLabel}>Menu</span>
-                    </button>
+                <nav className={`topbar__center ${styles.sectionSwitch}`} aria-label="Global sections">
+                    {sectionLinks.map((item) => (
+                        <NavLink
+                            key={item.path}
+                            to={item.path}
+                            className={sectionLinkClassName}
+                            onClick={handleNavLinkClick}
+                        >
+                            {item.label}
+                        </NavLink>
+                    ))}
+                </nav>
 
-                    <nav className={`${styles.nav} ${isNavOpen ? styles.navOpen : ''}`}>
-                        <div className={styles.navList}>
-                            {primaryLinks.map((item) => (
-                                <NavLink
-                                    key={item.path}
-                                    to={item.path}
-                                    className={navLinkClassName}
-                                    onClick={handleNavLinkClick}
-                                >
-                                    {item.label}
-                                </NavLink>
-                            ))}
-
-                            {adminLinks.length > 0 && (
-                                <div className={styles.dropdown} ref={adminMenuRef}>
-                                    <button
-                                        type="button"
-                                        className={adminTriggerClassName}
-                                        aria-expanded={isAdminOpen}
-                                        onClick={() => {
-                                            setIsAdminOpen((open) => !open);
-                                            setIsUserMenuOpen(false);
-                                        }}
-                                    >
-                                        Admin
-                                        <span className={styles.caret} aria-hidden="true" />
-                                    </button>
-                                    <div
-                                        className={`${styles.dropdownMenu} ${
-                                            isAdminOpen ? styles.dropdownMenuOpen : ''
-                                        }`}
-                                    >
-                                        {adminLinks.map((item) => (
-                                            <NavLink
-                                                key={item.path}
-                                                to={item.path}
-                                                className={navLinkClassName}
-                                                onClick={handleNavLinkClick}
-                                            >
-                                                {item.label}
-                                            </NavLink>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </nav>
-                </div>
-
-                <div className={styles.authSection}>
+                <div className="topbar__right">
                     {isStoreRoute && (
                         <button type="button" className={styles.storeCartButton} onClick={openCart}>
                             <span className={styles.storeCartLabel}>Cart</span>
@@ -286,15 +212,22 @@ export default function Navbar() {
                                     <span className={styles.mutedLabel}>Account</span>
                                 </div>
                                 {role === 'CUSTOMER' && (
-                                    <>
-                                        <Link
-                                            to="/my-page"
-                                            className={styles.menuLink}
-                                            onClick={handleNavLinkClick}
-                                        >
-                                            My Account
-                                        </Link>
-                                    </>
+                                    <Link
+                                        to="/my-page"
+                                        className={styles.menuLink}
+                                        onClick={handleNavLinkClick}
+                                    >
+                                        My Account
+                                    </Link>
+                                )}
+                                {canAccessAdmin && (
+                                    <Link
+                                        to="/admin"
+                                        className={styles.menuLink}
+                                        onClick={handleNavLinkClick}
+                                    >
+                                        Admin Console
+                                    </Link>
                                 )}
                                 <button
                                     type="button"

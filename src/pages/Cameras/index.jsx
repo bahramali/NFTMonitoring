@@ -74,6 +74,11 @@ export default function Cameras() {
 
     const handleReload = () => {
         setReloadKey((key) => key + 1);
+        setIsReloading(true);
+        if (reloadTimeoutRef.current) {
+            clearTimeout(reloadTimeoutRef.current);
+        }
+        reloadTimeoutRef.current = setTimeout(() => setIsReloading(false), 1500);
     };
 
     const handleCameraSelect = (cameraId) => {
@@ -103,6 +108,30 @@ export default function Cameras() {
     return (
         <div className={styles.page}>
             <div className={styles.layout}>
+                <PageHeader
+                    breadcrumbItems={[
+                        { label: "Monitoring", to: "/monitoring" },
+                        { label: "Cameras", to: "/monitoring/cameras" },
+                        { label: selectedCamera?.name || "Camera Stream" },
+                    ]}
+                    title={selectedCamera?.name || "Camera Stream"}
+                    status={{ label: statusLabel, tone: statusTone }}
+                    actions={[
+                        {
+                            label: "Reload",
+                            onClick: handleReload,
+                            disabled: reloadDisabled,
+                            variant: "primary",
+                        },
+                        {
+                            label: "Fullscreen",
+                            onClick: handleFullscreen,
+                            disabled: !canDisplayVideo,
+                            variant: "ghost",
+                        },
+                    ]}
+                    variant="dark"
+                />
                 <section className={styles.viewer}>
                     <div className={styles.videoHeader}>
                         <div>

@@ -1,35 +1,37 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar.jsx';
-import Sidebar from '../pages/common/Sidebar';
+import { AdminSidebar, MonitoringSidebar, StoreSidebar } from '../pages/common/Sidebar';
 import { ReportsFiltersProvider } from '../pages/Reports/context/ReportsFiltersContext.jsx';
 import styles from './AppShellLayout.module.css';
-
-const CONTEXT_ROUTES = [
-    { prefix: '/monitoring', label: 'Monitoring' },
-    { prefix: '/store', label: 'Store' },
-    { prefix: '/admin', label: 'Admin' },
-];
 
 export default function AppShellLayout() {
     const location = useLocation();
 
-    const contextLabel = useMemo(() => {
-        const match = CONTEXT_ROUTES.find((route) => location.pathname.startsWith(route.prefix));
-        return match?.label || 'HydroLeaf';
-    }, [location.pathname]);
+    const { pathname } = location;
+    const isStore = pathname.startsWith('/store');
+    const isMonitoring = pathname.startsWith('/monitoring');
+    const isAdmin = pathname.startsWith('/admin');
+
+    useEffect(() => {
+        // Temporary log to confirm runtime is using the updated layout.
+        console.log('USING NEW LAYOUT v2');
+    }, []);
+
+    const sidebar = useMemo(() => {
+        if (isMonitoring) return <MonitoringSidebar />;
+        if (isStore) return <StoreSidebar />;
+        if (isAdmin) return <AdminSidebar />;
+        return null;
+    }, [isAdmin, isMonitoring, isStore]);
 
     return (
         <ReportsFiltersProvider>
             <div className={styles.shell}>
                 <Navbar />
                 <div className={styles.body}>
-                    <Sidebar />
+                    {sidebar}
                     <main className={styles.main}>
-                        <div className={styles.contextBar}>
-                            <span className={styles.contextLabel}>{contextLabel}</span>
-                            <span className={styles.contextHint}>Workspace</span>
-                        </div>
                         <div className={styles.content}>
                             <Outlet />
                         </div>

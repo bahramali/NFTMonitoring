@@ -64,7 +64,7 @@ const NAV_SECTIONS = [
     },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ activeSection }) {
     const { role, roles, permissions } = useAuth();
     const [isMobile, setIsMobile] = useState(() => getWindowWidth() < BREAKPOINTS.mobile);
     const [collapsed, setCollapsed] = useState(() => {
@@ -115,21 +115,22 @@ export default function Sidebar() {
         ? "/store/admin/products"
         : "/store";
 
-    const sections = useMemo(
-        () =>
-            NAV_SECTIONS.map((section) => {
-                if (section.id === "store") {
-                    return {
-                        ...section,
-                        items: section.items.map((item) =>
-                            item.label === "Products" ? { ...item, to: storeTarget } : item,
-                        ),
-                    };
-                }
-                return section;
-            }),
-        [storeTarget],
-    );
+    const sections = useMemo(() => {
+        const scopedSections = activeSection
+            ? NAV_SECTIONS.filter((section) => section.id === activeSection)
+            : NAV_SECTIONS;
+        return scopedSections.map((section) => {
+            if (section.id === "store") {
+                return {
+                    ...section,
+                    items: section.items.map((item) =>
+                        item.label === "Products" ? { ...item, to: storeTarget } : item,
+                    ),
+                };
+            }
+            return section;
+        });
+    }, [activeSection, storeTarget]);
 
     const filteredSections = useMemo(() => {
         return sections
@@ -181,4 +182,16 @@ export default function Sidebar() {
             </nav>
         </aside>
     );
+}
+
+export function MonitoringSidebar() {
+    return <Sidebar activeSection="monitoring" />;
+}
+
+export function StoreSidebar() {
+    return <Sidebar activeSection="store" />;
+}
+
+export function AdminSidebar() {
+    return <Sidebar activeSection="admin" />;
 }
