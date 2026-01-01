@@ -126,9 +126,9 @@ export default function Navbar() {
         setIsUserMenuOpen(false);
     };
     return (
-        <header className={styles.header}>
-            <div className={styles.container}>
-                <div className={styles.brandBlock}>
+        <header className="topbar">
+            <div className="topbar__inner">
+                <div className="topbar__left">
                     <Link
                         to="/store"
                         className={styles.brand}
@@ -143,7 +143,7 @@ export default function Navbar() {
                     </Link>
                 </div>
 
-                <nav className={styles.sectionSwitch} aria-label="Global sections">
+                <nav className={`topbar__center ${styles.sectionSwitch}`} aria-label="Global sections">
                     {sectionLinks.map((item) => (
                         <NavLink
                             key={item.path}
@@ -156,7 +156,7 @@ export default function Navbar() {
                     ))}
                 </nav>
 
-                <div className={styles.authSection}>
+                <div className="topbar__right">
                     {isStoreRoute && (
                         <button type="button" className={styles.storeCartButton} onClick={openCart}>
                             <span className={styles.storeCartLabel}>Cart</span>
