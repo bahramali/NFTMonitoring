@@ -62,6 +62,7 @@ export default function Navbar() {
     const profileLabel = profile?.username || profile?.fullName || profile?.displayName || profile?.email || '';
     const userLabel = profileLabel || 'User';
     const userInitial = profileLabel?.trim()?.charAt(0)?.toUpperCase() || 'U';
+    const emailLabel = profile?.email?.trim() || '';
     const showProfileSkeleton = loadingProfile && !profileLabel;
 
     const itemCount = useMemo(
@@ -217,6 +218,7 @@ export default function Navbar() {
                                         type="button"
                                         className={styles.userButton}
                                         aria-expanded={isUserMenuOpen}
+                                        aria-haspopup="menu"
                                         aria-label="Account menu"
                                         onClick={() => {
                                             setIsUserMenuOpen((open) => !open);
@@ -256,6 +258,9 @@ export default function Navbar() {
                                                     <span className={styles.roleBadge}>{roleLabel}</span>
                                                 )}
                                             </div>
+                                            {emailLabel && (
+                                                <span className={styles.metaEmail}>{emailLabel}</span>
+                                            )}
                                             <span className={styles.mutedLabel}>Account</span>
                                         </div>
                                         {role === 'CUSTOMER' && (

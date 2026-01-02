@@ -222,6 +222,7 @@
 
 .userArea {
     position: relative;
+    z-index: 20;
 }
 
 .userButton {
@@ -277,6 +278,10 @@
 
 .userName {
     font-size: 14px;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .userNameSkeleton {
@@ -290,7 +295,8 @@
 .userMenu {
     position: absolute;
     right: 0;
-    top: calc(100% + 6px);
+    top: 100%;
+    margin-top: 6px;
     background: #0c1528;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 10px;
@@ -324,6 +330,12 @@
 
 .metaValue {
     font-weight: 700;
+}
+
+.metaEmail {
+    font-size: 12px;
+    color: rgba(226, 232, 240, 0.9);
+    word-break: break-word;
 }
 
 .metaValueSkeleton {
@@ -432,6 +444,18 @@
     .moduleTab {
         flex: 0 0 auto;
         min-width: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .userButton {
+        gap: 6px;
+        padding: 6px 8px;
+    }
+
+    .userName,
+    .userNameSkeleton {
+        display: none;
     }
 }
 
