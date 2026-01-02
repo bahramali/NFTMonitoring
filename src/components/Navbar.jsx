@@ -122,10 +122,7 @@ export default function Navbar() {
                         onClick={handleNavLinkClick}
                     >
                         <img src={hydroleafLogo} alt="HydroLeaf logo" className={styles.brandLogo} />
-                        <div className={styles.brandCopy}>
-                            <span className={styles.brandName}>HydroLeaf</span>
-                            <span className={styles.brandSubtitle}>NFT Monitoring</span>
-                        </div>
+                        <span className={styles.brandName}>HydroLeaf</span>
                     </Link>
                 </div>
 
