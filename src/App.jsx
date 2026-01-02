@@ -49,6 +49,7 @@ import Privacy from './pages/store/Privacy.jsx';
 import PaymentSuccess from './pages/payment/PaymentSuccess.jsx';
 import PaymentCancel from './pages/payment/PaymentCancel.jsx';
 import { useAuth } from './context/AuthContext.jsx';
+import { SensorConfigProvider } from './context/SensorConfigContext.jsx';
 import { PERMISSIONS, hasPerm } from './utils/permissions.js';
 
 function ProtectedOutlet({ requiredRoles = [], requiredPermissions = [] }) {
@@ -77,7 +78,8 @@ function App() {
 
     return (
         <BrowserRouter basename={base}>
-            <Routes>
+            <SensorConfigProvider>
+                <Routes>
                 <Route element={<PublicLayout />}>
                     <Route path="/" element={<Home />} />
                     <Route path="/payment/success" element={<PaymentSuccess />} />
@@ -254,8 +256,9 @@ function App() {
                 <Route path="/super-admin" element={<Navigate to="/admin/home" replace />} />
                 <Route path="/super-admin/admins" element={<Navigate to="/admin/directory" replace />} />
 
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            </SensorConfigProvider>
         </BrowserRouter>
     );
 }
