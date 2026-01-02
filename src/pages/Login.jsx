@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import styles from './Login.module.css';
 import { getDefaultRouteForUser } from '../utils/roleRoutes.js';
 import OAuthButton from '../components/OAuthButton.jsx';
-import { fetchOAuthProviders, startOAuthSignIn } from '../api/auth.js';
+import { fetchOAuthProviders, startGoogleSignIn } from '../api/auth.js';
 
 export default function Login() {
     const { isAuthenticated, login, role, roles, permissions } = useAuth();
@@ -79,18 +79,35 @@ export default function Login() {
         setOauthLoading(true);
 
         try {
-            const response = await startOAuthSignIn('google', { returnUrl: resolvedReturnUrl });
+            const redirectPath = resolvedReturnUrl && resolvedReturnUrl.startsWith('/')
+                ? resolvedReturnUrl
+                : '';
+            const redirectUri = new URL(redirectPath, window.location.origin).toString();
+            const response = await startGoogleSignIn({ redirectUri });
+
+            if (response?.mode === 'browser') {
+                window.location.href = response.startUrl;
+                return;
+            }
+
             const authorizationUrl =
-                response?.authorizationUrl
-                || response?.url
-                || response?.redirectUrl
-                || response?.authorization_url;
+                response?.data?.redirectUrl
+                || response?.data?.authorizationUrl
+                || response?.data?.authorization_url
+                || response?.data?.url;
             if (!authorizationUrl) {
                 throw new Error('Missing authorization URL.');
             }
-            window.location.assign(authorizationUrl);
+            window.location.href = authorizationUrl;
         } catch (oauthErrorResponse) {
-            setOauthError('Could not start Google sign-in. Try again.');
+            const status = oauthErrorResponse?.status;
+            if (status === 500) {
+                setOauthError('Server error, try later');
+            } else if (status === 401 || status === 403) {
+                setOauthError('Not authorized');
+            } else {
+                setOauthError('Could not start Google sign-in. Try again.');
+            }
             setOauthLoading(false);
         }
     };
