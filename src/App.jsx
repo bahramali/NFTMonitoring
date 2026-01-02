@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import CustomerRoute from './components/CustomerRoute.jsx';
 import Home from './pages/Home.jsx';
@@ -78,8 +78,17 @@ function App() {
 
     return (
         <BrowserRouter basename={base}>
-            <SensorConfigProvider>
-                <Routes>
+            <AppRoutes />
+        </BrowserRouter>
+    );
+}
+
+function AppRoutes() {
+    const location = useLocation();
+
+    return (
+        <SensorConfigProvider locationPath={location.pathname}>
+            <Routes>
                 <Route element={<PublicLayout />}>
                     <Route path="/" element={<Home />} />
                     <Route path="/payment/success" element={<PaymentSuccess />} />
@@ -256,10 +265,9 @@ function App() {
                 <Route path="/super-admin" element={<Navigate to="/admin/home" replace />} />
                 <Route path="/super-admin/admins" element={<Navigate to="/admin/directory" replace />} />
 
-                    <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-            </SensorConfigProvider>
-        </BrowserRouter>
+                <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+        </SensorConfigProvider>
     );
 }
 

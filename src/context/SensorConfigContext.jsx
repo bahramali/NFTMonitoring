@@ -76,11 +76,10 @@ function normalizeConfig(raw) {
     };
 }
 
-export function SensorConfigProvider({ children }) {
+export function SensorConfigProvider({ children, locationPath }) {
     const [configs, setConfigs] = useState({});
     const [error, setError] = useState('');
     const { isAuthenticated } = useAuth();
-    const location = useLocation();
 
     const loadConfigs = useCallback(async () => {
         try {
@@ -95,7 +94,7 @@ export function SensorConfigProvider({ children }) {
         } catch (e) { setError(e.message || 'Failed to load sensor configs'); }
     }, []);
 
-    const pathname = location?.pathname ?? '';
+    const pathname = locationPath ?? (typeof window !== 'undefined' ? window.location?.pathname : '');
     const isMonitoringRoute = pathname.startsWith('/monitoring');
     const shouldLoadConfigs = isAuthenticated && isMonitoringRoute;
 
