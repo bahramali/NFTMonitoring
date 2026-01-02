@@ -3,18 +3,25 @@
     color: #e2e8f0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     height: 52px;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    overflow-x: hidden;
 }
 
 :global(.topbar__inner) {
     width: 100%;
     max-width: none;
     margin: 0;
-    padding: 0 24px;
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding: 0 clamp(12px, 3vw, 24px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     align-items: center;
     gap: 16px;
     height: 52px;
+    box-sizing: border-box;
+    max-width: 100vw;
 }
 
 :global(.topbar__left) {
@@ -22,6 +29,7 @@
     align-items: center;
     gap: 10px;
     justify-self: start;
+    min-width: 0;
 }
 
 .brand {
@@ -77,18 +85,19 @@
 }
 
 :global(.topbar__center) {
-    justify-self: center;
     display: flex;
     gap: 10px;
     align-items: center;
     min-width: 0;
+    flex: 1;
+    justify-content: center;
 }
 
 :global(.topbar__right) {
     display: flex;
     align-items: center;
-    justify-self: end;
     gap: 12px;
+    flex-wrap: nowrap;
 }
 
 .cartIconButton {
@@ -105,6 +114,7 @@
     font-variant-numeric: tabular-nums;
     transition: all 0.2s ease;
     min-height: 36px;
+    min-width: 0;
 }
 
 .cartIconButton:hover {
@@ -133,16 +143,19 @@
     text-align: center;
     font-size: 11px;
     font-weight: 700;
+    flex: 0 0 auto;
 }
 
 .cartTotal {
     font-size: 11px;
     color: rgba(226, 232, 240, 0.78);
+    white-space: nowrap;
 }
 
 .authActions {
     display: flex;
     gap: 10px;
+    flex-wrap: nowrap;
 }
 
 .primaryButton {
@@ -238,10 +251,15 @@
     color: #e2e8f0;
     cursor: pointer;
     transition: all 0.2s ease;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.25);
 }
 
 .accountIconButton:hover {
     background: rgba(255, 255, 255, 0.12);
+}
+
+.accountIconButton:active {
+    transform: translateY(1px);
 }
 
 .accountIcon {
