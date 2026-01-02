@@ -1,11 +1,19 @@
 // pages/Cameras/index.jsx
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./Cameras.module.css";
 import { CAMERA_CONFIG } from "../../config/cameras";
+import PageHeader from "../../components/PageHeader.jsx";
 
 const STATUS_MESSAGES = {
     playing: "Live stream",
+    reloading: "Refreshing stream",
     error: "No camera feeds are configured.",
+};
+
+const STATUS_CLASS = {
+    playing: styles.statusPlaying,
+    reloading: styles.statusLoading,
+    error: styles.statusError,
 };
 
 const getStatusMessage = (state, camera) => {
@@ -56,6 +64,9 @@ export default function Cameras() {
     const [selectedCameraId, setSelectedCameraId] = useState(
         () => CAMERA_SOURCES[0]?.id ?? null,
     );
+    const [isReloading, setIsReloading] = useState(false);
+    const reloadTimeoutRef = useRef(null);
+    const videoRef = useRef(null);
     const selectedCamera = useMemo(
         () =>
             CAMERA_SOURCES.find((camera) => camera.id === selectedCameraId) ||
@@ -71,6 +82,14 @@ export default function Cameras() {
     const viewerPosition = selectedCameraIndex >= 0 ? selectedCameraIndex + 1 : 1;
     const hasMultipleCameras = CAMERA_SOURCES.length > 1;
     const [reloadKey, setReloadKey] = useState(0);
+
+    useEffect(() => {
+        return () => {
+            if (reloadTimeoutRef.current) {
+                clearTimeout(reloadTimeoutRef.current);
+            }
+        };
+    }, []);
 
     const handleReload = () => {
         setReloadKey((key) => key + 1);
@@ -100,10 +119,28 @@ export default function Cameras() {
     const handlePreviousCamera = () => handleCameraStep(-1);
     const handleNextCamera = () => handleCameraStep(1);
 
+    const handleFullscreen = () => {
+        const element = videoRef.current;
+        if (!element?.requestFullscreen) {
+            return;
+        }
+        if (document.fullscreenElement) {
+            document.exitFullscreen?.();
+            return;
+        }
+        element.requestFullscreen();
+    };
+
     const hasCameraSources = CAMERA_SOURCES.length > 0;
     const reloadDisabled = !selectedCamera?.webrtcUrl;
     const canDisplayVideo = Boolean(selectedCamera?.webrtcUrl);
-    const statusState = selectedCamera ? "playing" : "error";
+    const statusState = isReloading ? "reloading" : selectedCamera ? "playing" : "error";
+    const statusLabel = isReloading
+        ? "Reconnecting"
+        : canDisplayVideo
+            ? "Live"
+            : "Offline";
+    const statusTone = isReloading ? "reconnecting" : canDisplayVideo ? "online" : "offline";
 
     return (
         <div className={styles.page}>
@@ -155,6 +192,7 @@ export default function Cameras() {
                             className={styles.video}
                             allow="autoplay; fullscreen"
                             allowFullScreen
+                            ref={videoRef}
                         />
                     ) : (
                         <div className={styles.emptyState}>
@@ -190,9 +228,7 @@ export default function Cameras() {
                     <div className={styles.statusRow}>
                         <p
                             className={`${styles.statusMessage} ${
-                                statusState === "playing"
-                                    ? styles.statusPlaying
-                                    : styles.statusError
+                                STATUS_CLASS[statusState] || styles.statusError
                             }`}
                             aria-live="polite"
                         >
