@@ -5,8 +5,14 @@
     --text: #111;
     --muted: #666;
     --accent: #3a9d5b;
+    --footer-bg: #0f172a;
+    --footer-border: #1f2937;
+    --footer-text: #9ca3af;
+    --footer-link: #d1d5db;
 
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
     background: var(--bg, #ffffff);
     color: var(--text, #111);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -20,6 +26,7 @@
     display: flex;
     justify-content: center;
     background: var(--surface, #f7f7f7);
+    flex: 1;
 }
 
 .content {

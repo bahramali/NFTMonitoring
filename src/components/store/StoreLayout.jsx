@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import CartDrawer from './CartDrawer.jsx';
 import Toast from './Toast.jsx';
+import Footer from './Footer.jsx';
 import styles from './StoreLayout.module.css';
 
 export default function StoreLayout() {
@@ -16,6 +17,7 @@ export default function StoreLayout() {
                 </div>
             </main>
 
+            <Footer />
             <CartDrawer open={isCartOpen} onClose={closeCart} />
             <Toast toast={toast} onDismiss={clearToast} />
         </div>
