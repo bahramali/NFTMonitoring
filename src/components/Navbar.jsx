@@ -127,18 +127,22 @@ export default function Navbar() {
                 </div>
 
                 <div className="topbar__center">
-                    <NavLink to="/store" className={moduleTabClass} onClick={handleNavLinkClick}>
-                        Store
-                    </NavLink>
-                    {canSeeMonitoring && (
-                        <NavLink to="/monitoring/overview" className={moduleTabClass} onClick={handleNavLinkClick}>
-                            Monitoring
-                        </NavLink>
-                    )}
-                    {canAccessAdmin && (
-                        <NavLink to="/admin/overview" className={moduleTabClass} onClick={handleNavLinkClick}>
-                            Admin
-                        </NavLink>
+                    {!isStoreRoute && (
+                        <>
+                            <NavLink to="/store" className={moduleTabClass} onClick={handleNavLinkClick}>
+                                Store
+                            </NavLink>
+                            {canSeeMonitoring && (
+                                <NavLink to="/monitoring/overview" className={moduleTabClass} onClick={handleNavLinkClick}>
+                                    Monitoring
+                                </NavLink>
+                            )}
+                            {canAccessAdmin && (
+                                <NavLink to="/admin/overview" className={moduleTabClass} onClick={handleNavLinkClick}>
+                                    Admin
+                                </NavLink>
+                            )}
+                        </>
                     )}
                 </div>
 
@@ -147,9 +151,7 @@ export default function Navbar() {
                         <button type="button" className={styles.storeCartButton} onClick={openCart}>
                             <span className={styles.storeCartLabel}>Cart</span>
                             <span className={styles.storeCartBadge}>{itemCount}</span>
-                            {itemCount > 0 && (
-                                <span className={styles.storeCartTotal}>{totalLabel}</span>
-                            )}
+                            <span className={styles.storeCartTotal}>{totalLabel}</span>
                         </button>
                     )}
                     {isAuthenticated ? (
@@ -192,7 +194,9 @@ export default function Navbar() {
                                         ) : (
                                             <span className={styles.metaValue}>{userLabel}</span>
                                         )}
-                                        {roleLabel && <span className={styles.roleBadge}>{roleLabel}</span>}
+                                        {!isStoreRoute && roleLabel && (
+                                            <span className={styles.roleBadge}>{roleLabel}</span>
+                                        )}
                                     </div>
                                     <span className={styles.mutedLabel}>Account</span>
                                 </div>
@@ -205,7 +209,7 @@ export default function Navbar() {
                                         My Account
                                     </Link>
                                 )}
-                                {canAccessAdmin && (
+                                {!isStoreRoute && canAccessAdmin && (
                                     <Link
                                         to="/admin"
                                         className={styles.menuLink}
