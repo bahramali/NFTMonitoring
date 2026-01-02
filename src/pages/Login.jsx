@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import styles from './Login.module.css';
 import { getDefaultRouteForUser } from '../utils/roleRoutes.js';
+import OAuthButton from '../components/OAuthButton.jsx';
+import { fetchOAuthProviders, startOAuthSignIn } from '../api/auth.js';
 
 export default function Login() {
     const { isAuthenticated, login, role, roles, permissions } = useAuth();
@@ -12,6 +14,9 @@ export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [oauthError, setOauthError] = useState('');
+    const [oauthLoading, setOauthLoading] = useState(false);
+    const [oauthProviders, setOauthProviders] = useState(null);
 
     const returnUrl = useMemo(() => {
         const value = new URLSearchParams(location.search).get('returnUrl');
@@ -27,6 +32,68 @@ export default function Login() {
             navigate(target, { replace: true });
         }
     }, [isAuthenticated, navigate, returnUrl, role, roles, permissions]);
+
+    useEffect(() => {
+        let isActive = true;
+        const controller = new AbortController();
+
+        fetchOAuthProviders({ signal: controller.signal })
+            .then((providers) => {
+                if (!isActive) return;
+                setOauthProviders(providers);
+            })
+            .catch(() => {
+                if (!isActive) return;
+                setOauthProviders(null);
+            });
+
+        return () => {
+            isActive = false;
+            controller.abort();
+        };
+    }, []);
+
+    const isGoogleAvailable = useMemo(() => {
+        if (!oauthProviders) return true;
+        if (!Array.isArray(oauthProviders)) return true;
+
+        return oauthProviders.some((provider) => {
+            if (!provider) return false;
+            if (typeof provider === 'string') {
+                return provider.toLowerCase() === 'google';
+            }
+            const raw =
+                provider.id
+                || provider.provider
+                || provider.name
+                || provider.slug
+                || '';
+            return typeof raw === 'string' && raw.toLowerCase() === 'google';
+        });
+    }, [oauthProviders]);
+
+    const resolvedReturnUrl = returnUrl || location.state?.from?.pathname || null;
+
+    const handleGoogleSignIn = async () => {
+        setOauthError('');
+        setOauthLoading(true);
+
+        try {
+            const response = await startOAuthSignIn('google', { returnUrl: resolvedReturnUrl });
+            const authorizationUrl =
+                response?.authorizationUrl
+                || response?.url
+                || response?.redirectUrl
+                || response?.authorization_url;
+            if (!authorizationUrl) {
+                throw new Error('Missing authorization URL.');
+            }
+            window.location.assign(authorizationUrl);
+        } catch (oauthErrorResponse) {
+            setOauthError('Could not start Google sign-in. Try again.');
+            setOauthLoading(false);
+        }
+    };
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -51,9 +118,22 @@ export default function Login() {
             <div className={styles.card}>
                 <h1 className={styles.title}>Sign in</h1>
                 <p className={styles.subtitle}>
-                    Enter your email and password. We&apos;ll call the login API, store your session securely, and
-                    redirect you to the right dashboard for your role.
+                    Choose a sign-in method to access your account securely and continue where you left off.
                 </p>
+                {isGoogleAvailable && (
+                    <div className={styles.oauthSection}>
+                        <OAuthButton
+                            provider="google"
+                            onClick={handleGoogleSignIn}
+                            loading={oauthLoading}
+                            disabled={oauthLoading}
+                        />
+                        {oauthError && <div className={styles.error}>{oauthError}</div>}
+                        <div className={styles.divider}>
+                            <span>Or sign in with email</span>
+                        </div>
+                    </div>
+                )}
                 <form className={styles.form} onSubmit={handleSubmit} autoComplete="off">
                     <label className={styles.label} htmlFor="email">Email</label>
                     <input
