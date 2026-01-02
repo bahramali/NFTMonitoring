@@ -7,12 +7,13 @@ import { hasInternalAccess, isCustomer } from '../utils/roleAccess.js';
 export default function CustomerRoute({ children }) {
     const { isAuthenticated, role, roles, permissions, loadingProfile } = useAuth();
     const location = useLocation();
+    const hasRoleInfo = (roles?.length ?? 0) > 0 || Boolean(role);
 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace state={{ from: location }} />;
     }
 
-    if (loadingProfile) {
+    if (loadingProfile && !hasRoleInfo) {
         return null;
     }
 

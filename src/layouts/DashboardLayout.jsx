@@ -11,12 +11,13 @@ export default function DashboardLayout() {
     const location = useLocation();
     const { isAuthenticated, role, roles, loadingProfile } = useAuth();
     const internalAccess = hasInternalAccess({ role, roles });
+    const hasRoleInfo = (roles?.length ?? 0) > 0 || Boolean(role);
 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace state={{ from: location }} />;
     }
 
-    if (loadingProfile) {
+    if (loadingProfile && !hasRoleInfo) {
         return (
             <div className={styles.shell}>
                 <Navbar />
