@@ -6,6 +6,7 @@ import {
     deleteSensorConfig,
 } from '../api/sensorConfig.js';
 import { getMetricLiveLabel } from '../config/sensorMetrics.js';
+import { useAuth } from './AuthContext.jsx';
 
 const Ctx = createContext(null);
 
@@ -74,13 +75,12 @@ function normalizeConfig(raw) {
     };
 }
 
-export function SensorConfigProvider({ children }) {
+export function SensorConfigProvider({ children, locationPath, allowUnauthenticated = false }) {
     const [configs, setConfigs] = useState({});
     const [error, setError] = useState('');
+    const { isAuthenticated } = useAuth();
 
-    useEffect(() => { loadConfigs(); }, []);
-
-    async function loadConfigs() {
+    const loadConfigs = useCallback(async () => {
         try {
             setError('');
             const data = await getSensorConfigs();
@@ -91,7 +91,20 @@ export function SensorConfigProvider({ children }) {
             }, {});
             setConfigs(map);
         } catch (e) { setError(e.message || 'Failed to load sensor configs'); }
-    }
+    }, []);
+
+    const pathname = locationPath ?? (typeof window !== 'undefined' ? window.location?.pathname : '');
+    const isMonitoringRoute = pathname.startsWith('/monitoring');
+    const shouldLoadConfigs = (isAuthenticated || allowUnauthenticated) && isMonitoringRoute;
+
+    useEffect(() => {
+        if (!shouldLoadConfigs) {
+            setConfigs({});
+            setError('');
+            return;
+        }
+        loadConfigs();
+    }, [loadConfigs, shouldLoadConfigs]);
 
     async function createConfig({ sensorType, topic, minValue, maxValue, description }) {
         try {

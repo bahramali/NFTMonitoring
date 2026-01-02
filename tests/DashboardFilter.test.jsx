@@ -59,7 +59,7 @@ afterEach(() => {
 
 test('filters layers and systems based on selections', () => {
   render(
-    <SensorConfigProvider>
+    <SensorConfigProvider allowUnauthenticated locationPath="/monitoring">
       <TestDashboard />
     </SensorConfigProvider>
   );
