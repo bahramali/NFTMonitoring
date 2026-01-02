@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { listStoreProducts } from '../../api/store.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import ProductCard from '../../components/store/ProductCard.jsx';
-import PageHeader from '../../components/PageHeader.jsx';
 import styles from './Storefront.module.css';
 
 export default function Storefront() {
@@ -45,13 +44,6 @@ export default function Storefront() {
 
     return (
         <div className={styles.page}>
-            <PageHeader
-                breadcrumbItems={[
-                    { label: 'Store', to: '/store' },
-                    { label: 'Products' },
-                ]}
-                title="Products"
-            />
             {error && (
                 <div className={styles.alert} role="alert">
                     <span>{error}</span>
