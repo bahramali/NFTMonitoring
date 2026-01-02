@@ -37,10 +37,6 @@
     color: #ffffff;
 }
 
-.brand:hover .brandSubtitle {
-    color: rgba(148, 163, 184, 0.85);
-}
-
 .brandLogo {
     height: 28px;
     width: auto;
@@ -50,22 +46,10 @@
     border-radius: 0;
 }
 
-.brandCopy {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
 .brandName {
     font-weight: 700;
     font-size: 1.1rem;
     letter-spacing: 0.2px;
-}
-
-.brandSubtitle {
-    font-size: 0.75rem;
-    opacity: 0.65;
-    letter-spacing: 0.3px;
 }
 
 .primaryButton,
@@ -377,12 +361,6 @@
     :global(.topbar__right) {
         width: 100%;
         justify-content: flex-end;
-    }
-}
-
-@media (max-width: 1023px) {
-    .brandSubtitle {
-        display: none;
     }
 }
 
