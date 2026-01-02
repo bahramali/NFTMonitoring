@@ -7,6 +7,7 @@ const hydroleafLogo = 'https://pic.hydroleaf.se/logo-mark.png';
 import styles from './Navbar.module.css';
 import { PERMISSIONS, hasPerm } from '../utils/permissions.js';
 import { formatCurrency } from '../utils/currency.js';
+import { hasInternalAccess } from '../utils/roleAccess.js';
 
 const ADMIN_MENU = [
     {
@@ -60,6 +61,9 @@ export default function Navbar() {
     const isStoreRoute = location.pathname === '/store' || location.pathname.startsWith('/store/');
     const availableRoles = roles?.length ? roles : role ? [role] : [];
     const isSuperAdmin = availableRoles.includes('SUPER_ADMIN');
+    const hasRoleInfo = (roles?.length ?? 0) > 0 || Boolean(role);
+    const canRenderInternalTabs = !loadingProfile || hasRoleInfo;
+    const showInternalTabs = canRenderInternalTabs && isAuthenticated && hasInternalAccess({ role, roles });
 
     const roleLabel = role ? role.replace('_', ' ') : '';
     const profileLabel = profile?.displayName || profile?.fullName || profile?.username || profile?.email || '';
@@ -175,7 +179,7 @@ export default function Navbar() {
                 </div>
 
                 <div className="topbar__center">
-                    {!isStoreRoute && (
+                    {(!isStoreRoute || showInternalTabs) && (
                         <>
                             <NavLink to="/store" className={moduleTabClass} onClick={handleNavLinkClick}>
                                 Store
