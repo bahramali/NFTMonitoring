@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import CustomerRoute from './components/CustomerRoute.jsx';
 import Home from './pages/Home.jsx';
@@ -49,6 +49,7 @@ import Privacy from './pages/store/Privacy.jsx';
 import PaymentSuccess from './pages/payment/PaymentSuccess.jsx';
 import PaymentCancel from './pages/payment/PaymentCancel.jsx';
 import { useAuth } from './context/AuthContext.jsx';
+import { SensorConfigProvider } from './context/SensorConfigContext.jsx';
 import { PERMISSIONS, hasPerm } from './utils/permissions.js';
 
 function ProtectedOutlet({ requiredRoles = [], requiredPermissions = [] }) {
@@ -77,6 +78,16 @@ function App() {
 
     return (
         <BrowserRouter basename={base}>
+            <AppRoutes />
+        </BrowserRouter>
+    );
+}
+
+function AppRoutes() {
+    const location = useLocation();
+
+    return (
+        <SensorConfigProvider locationPath={location.pathname}>
             <Routes>
                 <Route element={<PublicLayout />}>
                     <Route path="/" element={<Home />} />
@@ -256,7 +267,7 @@ function App() {
 
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-        </BrowserRouter>
+        </SensorConfigProvider>
     );
 }
 
