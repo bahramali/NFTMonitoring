@@ -40,6 +40,15 @@ export async function fetchSessionProfile(token, { signal } = {}) {
     return parseApiResponse(res, 'Failed to load profile');
 }
 
+export async function fetchSessionProfileWithCredentials({ signal } = {}) {
+    const res = await fetch(PROFILE_URL, {
+        credentials: 'include',
+        signal,
+    });
+
+    return parseApiResponse(res, 'Failed to load profile');
+}
+
 export async function confirmPasswordReset(token, password) {
     if (!token) {
         throw new Error('Reset token is required.');
@@ -52,4 +61,32 @@ export async function confirmPasswordReset(token, password) {
     });
 
     return parseApiResponse(res, 'Failed to reset password');
+}
+
+export async function startOAuthSignIn(provider, { returnUrl, redirectUri } = {}) {
+    if (!provider) {
+        throw new Error('OAuth provider is required.');
+    }
+
+    const payload = {};
+    if (returnUrl) payload.returnUrl = returnUrl;
+    if (redirectUri) payload.redirectUri = redirectUri;
+
+    const res = await fetch(`${AUTH_BASE}/oauth/${encodeURIComponent(provider)}/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+    });
+
+    return parseApiResponse(res, 'Failed to start OAuth sign-in');
+}
+
+export async function fetchOAuthProviders({ signal } = {}) {
+    const res = await fetch(`${AUTH_BASE}/oauth/providers`, {
+        credentials: 'include',
+        signal,
+    });
+
+    return parseApiResponse(res, 'Failed to load OAuth providers');
 }

@@ -36,6 +36,31 @@
     line-height: 1.4;
 }
 
+.oauthSection {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #6b7280;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e5e7eb;
+}
+
 .form {
     display: flex;
     flex-direction: column;
@@ -146,5 +171,64 @@
     .helper {
         margin-left: 0;
         margin-top: 16px;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .page {
+        background: radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.2), transparent 35%),
+        radial-gradient(circle at 80% 0%, rgba(16, 185, 129, 0.18), transparent 30%),
+        linear-gradient(135deg, #0f172a, #111827);
+    }
+
+    .card {
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .title {
+        color: #f8fafc;
+    }
+
+    .subtitle {
+        color: #cbd5f5;
+    }
+
+    .label {
+        color: #e2e8f0;
+    }
+
+    .input {
+        background: rgba(15, 23, 42, 0.7);
+        border-color: rgba(148, 163, 184, 0.35);
+        color: #f8fafc;
+    }
+
+    .input:focus {
+        border-color: rgba(59, 130, 246, 0.8);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+    }
+
+    .divider {
+        color: #94a3b8;
+    }
+
+    .divider::before,
+    .divider::after {
+        background: rgba(148, 163, 184, 0.3);
+    }
+
+    .linkRow {
+        color: #cbd5f5;
+    }
+
+    .linkRow a {
+        color: #a5b4fc;
+    }
+
+    .helper {
+        background: rgba(14, 116, 144, 0.9);
+        color: #e2e8f0;
     }
 }

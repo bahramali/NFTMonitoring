@@ -6,7 +6,7 @@ import React, {
     useMemo,
     useState,
 } from 'react';
-import { fetchSessionProfile } from '../api/auth.js';
+import { fetchSessionProfile, fetchSessionProfileWithCredentials } from '../api/auth.js';
 import normalizeProfile from '../utils/normalizeProfile.js';
 
 const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
@@ -28,6 +28,7 @@ const defaultAuthValue = {
     register: async () => ({ success: false }),
     logout: () => {},
     refreshProfile: () => {},
+    completeOAuthLogin: async () => ({ success: false }),
 };
 
 const AuthContext = createContext(defaultAuthValue);
@@ -65,6 +66,38 @@ const persistSession = (session) => {
     window.localStorage.setItem('authSession', JSON.stringify(session));
 };
 
+const normalizeRoles = (payload) => {
+    if (!payload) return [];
+    if (Array.isArray(payload)) return payload.filter(Boolean);
+    return payload ? [payload] : [];
+};
+
+const buildSessionPayload = (payload) => {
+    const user = payload?.user ?? payload?.profile ?? payload?.data ?? payload ?? {};
+    const token =
+        payload?.token
+        || payload?.accessToken
+        || payload?.jwt
+        || user?.token
+        || user?.accessToken;
+    const userId = payload?.userId || user?.id || user?.userId || payload?.id || null;
+    const roles = normalizeRoles(payload?.roles || user?.roles || payload?.role || user?.role);
+    const role = payload?.role || user?.role || roles[0] || null;
+    const permissions = Array.isArray(payload?.permissions)
+        ? payload.permissions
+        : Array.isArray(user?.permissions)
+            ? user.permissions
+            : [];
+
+    return {
+        token,
+        userId,
+        role,
+        roles,
+        permissions,
+    };
+};
+
 export function AuthProvider({ children }) {
     const [session, setSession] = useState(() => readStoredSession());
     const [profile, setProfile] = useState(null);
@@ -73,11 +106,7 @@ export function AuthProvider({ children }) {
 
     const setAuthenticatedSession = useCallback((payload) => {
         const { token, userId, role, roles, permissions } = payload || {};
-        const normalizedRoles = Array.isArray(roles)
-            ? roles.filter(Boolean)
-            : role
-                ? [role]
-                : [];
+        const normalizedRoles = Array.isArray(roles) ? roles.filter(Boolean) : normalizeRoles(role);
         const primaryRole = role || normalizedRoles[0] || null;
 
         if (!token || !userId || !primaryRole) {
@@ -140,6 +169,30 @@ export function AuthProvider({ children }) {
             } catch (error) {
                 const message = error?.message || 'Login failed. Please try again.';
                 return { success: false, role: null, message };
+            }
+        },
+        [setAuthenticatedSession],
+    );
+
+    const completeOAuthLogin = useCallback(
+        async ({ signal } = {}) => {
+            try {
+                const payload = await fetchSessionProfileWithCredentials({ signal });
+                if (signal?.aborted) {
+                    return { success: false, message: 'Sign-in cancelled.' };
+                }
+                const sessionPayload = buildSessionPayload(payload);
+                const result = setAuthenticatedSession(sessionPayload);
+                if (!result.success) {
+                    return { success: false, message: 'Sign-in failed. Please try again.' };
+                }
+                setProfile(normalizeProfile(payload));
+                return { ...result, roles: sessionPayload.roles };
+            } catch (error) {
+                if (error?.name === 'AbortError') {
+                    return { success: false, message: 'Sign-in cancelled.' };
+                }
+                return { success: false, message: error?.message || 'Sign-in failed. Please try again.' };
             }
         },
         [setAuthenticatedSession],
@@ -308,6 +361,7 @@ export function AuthProvider({ children }) {
             register,
             logout,
             refreshProfile: () => loadProfile(),
+            completeOAuthLogin,
         }),
         [
             session.isAuthenticated,
@@ -323,6 +377,7 @@ export function AuthProvider({ children }) {
             register,
             logout,
             loadProfile,
+            completeOAuthLogin,
         ],
     );
 

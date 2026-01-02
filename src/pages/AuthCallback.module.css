@@ -1,0 +1,85 @@
+.page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.15), transparent 30%),
+    radial-gradient(circle at 80% 0%, rgba(16, 185, 129, 0.1), transparent 25%),
+    linear-gradient(135deg, #f8fafc, #eef2ff);
+    box-sizing: border-box;
+}
+
+.card {
+    width: 100%;
+    max-width: 420px;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+    text-align: center;
+}
+
+.title {
+    margin: 0 0 0.75rem;
+    font-size: 1.6rem;
+    color: #0f172a;
+}
+
+.message {
+    margin: 0;
+    color: #475569;
+    font-size: 0.95rem;
+}
+
+.actions {
+    margin-top: 1.5rem;
+}
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    border-radius: 999px;
+    background: #111827;
+    color: #f8fafc;
+    text-decoration: none;
+    font-weight: 700;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
+}
+
+.button:hover {
+    background: #1f2937;
+}
+
+@media (prefers-color-scheme: dark) {
+    .page {
+        background: radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.25), transparent 35%),
+        radial-gradient(circle at 80% 0%, rgba(16, 185, 129, 0.2), transparent 30%),
+        linear-gradient(135deg, #0f172a, #111827);
+    }
+
+    .card {
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .title {
+        color: #f8fafc;
+    }
+
+    .message {
+        color: #cbd5f5;
+    }
+
+    .button {
+        background: #38bdf8;
+        color: #0f172a;
+    }
+
+    .button:hover {
+        background: #0ea5e9;
+    }
+}
