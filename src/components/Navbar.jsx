@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useStorefront } from '../context/StorefrontContext.jsx';
@@ -52,7 +53,9 @@ export default function Navbar() {
     const { isAuthenticated, role, roles, permissions, logout, profile, loadingProfile } = useAuth();
     const { cart, openCart } = useStorefront();
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+    const userButtonRef = useRef(null);
     const userMenuRef = useRef(null);
+    const [menuStyles, setMenuStyles] = useState({ visibility: 'hidden' });
     const location = useLocation();
     const isStoreRoute = location.pathname === '/store' || location.pathname.startsWith('/store/');
     const availableRoles = roles?.length ? roles : role ? [role] : [];
@@ -88,7 +91,9 @@ export default function Navbar() {
 
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+            const isButtonClick = userButtonRef.current?.contains(event.target);
+            const isMenuClick = userMenuRef.current?.contains(event.target);
+            if (!isButtonClick && !isMenuClick) {
                 setIsUserMenuOpen(false);
             }
         };
@@ -106,6 +111,45 @@ export default function Navbar() {
             document.removeEventListener('keydown', handleEscape);
         };
     }, []);
+
+    useEffect(() => {
+        if (!isUserMenuOpen) {
+            return;
+        }
+
+        const updateMenuPosition = () => {
+            const button = userButtonRef.current;
+            const menu = userMenuRef.current;
+            if (!button || !menu) return;
+
+            const rect = button.getBoundingClientRect();
+            const menuRect = menu.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const top = rect.bottom + 6;
+            const maxWidth = Math.max(viewportWidth - 16, 0);
+            const menuWidth = Math.min(menuRect.width, maxWidth);
+            const maxRight = Math.max(viewportWidth - menuWidth - 8, 8);
+            const baseRight = viewportWidth - rect.right;
+            const right = Math.min(Math.max(baseRight, 8), maxRight);
+            const maxHeight = Math.max(viewportHeight - top - 12, 0);
+
+            setMenuStyles({
+                top: `${top}px`,
+                right: `${right}px`,
+                maxHeight: maxHeight ? `${maxHeight}px` : undefined,
+                visibility: 'visible',
+            });
+        };
+
+        updateMenuPosition();
+        window.addEventListener('resize', updateMenuPosition);
+        window.addEventListener('scroll', updateMenuPosition, true);
+        return () => {
+            window.removeEventListener('resize', updateMenuPosition);
+            window.removeEventListener('scroll', updateMenuPosition, true);
+        };
+    }, [isUserMenuOpen]);
 
     const handleNavLinkClick = () => {
         setIsUserMenuOpen(false);
@@ -184,7 +228,7 @@ export default function Navbar() {
                         </button>
                     )}
                     {isAuthenticated ? (
-                        <div className={styles.userArea} ref={userMenuRef}>
+                        <div className={styles.userArea}>
                             {isStoreRoute ? (
                                 <Link
                                     to={accountLink}
@@ -220,6 +264,7 @@ export default function Navbar() {
                                         aria-expanded={isUserMenuOpen}
                                         aria-haspopup="menu"
                                         aria-label="Account menu"
+                                        ref={userButtonRef}
                                         onClick={() => {
                                             setIsUserMenuOpen((open) => !open);
                                         }}
@@ -238,57 +283,62 @@ export default function Navbar() {
                                         )}
                                         <span className={styles.caret} aria-hidden="true" />
                                     </button>
-                                    <div
-                                        className={`${styles.userMenu} ${
-                                            isUserMenuOpen ? styles.userMenuOpen : ''
-                                        }`}
-                                    >
-                                        <div className={styles.userMenuMeta}>
-                                            <div className={styles.userIdentity}>
-                                                {showProfileSkeleton ? (
-                                                    <span
-                                                        className={styles.metaValueSkeleton}
-                                                        role="status"
-                                                        aria-label="Loading profile"
-                                                    />
-                                                ) : (
-                                                    <span className={styles.metaValue}>{userLabel}</span>
-                                                )}
-                                                {roleLabel && (
-                                                    <span className={styles.roleBadge}>{roleLabel}</span>
-                                                )}
-                                            </div>
-                                            {emailLabel && (
-                                                <span className={styles.metaEmail}>{emailLabel}</span>
-                                            )}
-                                            <span className={styles.mutedLabel}>Account</span>
-                                        </div>
-                                        {role === 'CUSTOMER' && (
-                                            <Link
-                                                to="/my-page"
-                                                className={styles.menuLink}
-                                                onClick={handleNavLinkClick}
+                                    {isUserMenuOpen &&
+                                        createPortal(
+                                            <div
+                                                className={styles.userMenu}
+                                                ref={userMenuRef}
+                                                style={menuStyles}
+                                                role="menu"
                                             >
-                                                My Account
-                                            </Link>
+                                                <div className={styles.userMenuMeta}>
+                                                    <div className={styles.userIdentity}>
+                                                        {showProfileSkeleton ? (
+                                                            <span
+                                                                className={styles.metaValueSkeleton}
+                                                                role="status"
+                                                                aria-label="Loading profile"
+                                                            />
+                                                        ) : (
+                                                            <span className={styles.metaValue}>{userLabel}</span>
+                                                        )}
+                                                        {roleLabel && (
+                                                            <span className={styles.roleBadge}>{roleLabel}</span>
+                                                        )}
+                                                    </div>
+                                                    {emailLabel && (
+                                                        <span className={styles.metaEmail}>{emailLabel}</span>
+                                                    )}
+                                                    <span className={styles.mutedLabel}>Account</span>
+                                                </div>
+                                                {role === 'CUSTOMER' && (
+                                                    <Link
+                                                        to="/my-page"
+                                                        className={styles.menuLink}
+                                                        onClick={handleNavLinkClick}
+                                                    >
+                                                        My Account
+                                                    </Link>
+                                                )}
+                                                {canAccessAdmin && (
+                                                    <Link
+                                                        to="/admin"
+                                                        className={styles.menuLink}
+                                                        onClick={handleNavLinkClick}
+                                                    >
+                                                        Admin Console
+                                                    </Link>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    className={styles.menuAction}
+                                                    onClick={logout}
+                                                >
+                                                    Logout
+                                                </button>
+                                            </div>,
+                                            document.body,
                                         )}
-                                        {canAccessAdmin && (
-                                            <Link
-                                                to="/admin"
-                                                className={styles.menuLink}
-                                                onClick={handleNavLinkClick}
-                                            >
-                                                Admin Console
-                                            </Link>
-                                        )}
-                                        <button
-                                            type="button"
-                                            className={styles.menuAction}
-                                            onClick={logout}
-                                        >
-                                            Logout
-                                        </button>
-                                    </div>
                                 </>
                             )}
                         </div>
