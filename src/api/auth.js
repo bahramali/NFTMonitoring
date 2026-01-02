@@ -82,6 +82,32 @@ export async function startOAuthSignIn(provider, { returnUrl, redirectUri } = {}
     return parseApiResponse(res, 'Failed to start OAuth sign-in');
 }
 
+export async function startGoogleSignIn({ redirectUri } = {}) {
+    if (!redirectUri) {
+        throw new Error('Redirect URI is required.');
+    }
+
+    const startUrl = new URL(`${AUTH_BASE}/google/start`);
+    startUrl.searchParams.set('redirectUri', redirectUri);
+
+    const res = await fetch(startUrl.toString(), {
+        credentials: 'include',
+        redirect: 'manual',
+        headers: { Accept: 'application/json' },
+    });
+
+    if (res.status >= 300 && res.status < 400) {
+        return { mode: 'browser', startUrl: startUrl.toString(), status: res.status };
+    }
+
+    if (!res.ok) {
+        await parseApiResponse(res, 'Failed to start Google sign-in');
+    }
+
+    const data = await parseApiResponse(res, 'Failed to start Google sign-in');
+    return { mode: 'redirect', data };
+}
+
 export async function fetchOAuthProviders({ signal } = {}) {
     const res = await fetch(`${AUTH_BASE}/oauth/providers`, {
         credentials: 'include',
