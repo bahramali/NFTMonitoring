@@ -21,6 +21,7 @@ import CustomerSettings from './pages/customer/CustomerSettings.jsx';
 import CustomerSecurity from './pages/customer/CustomerSecurity.jsx';
 import DashboardLayout from './layouts/DashboardLayout.jsx';
 import PublicLayout from './layouts/PublicLayout.jsx';
+import StorefrontLayout from './layouts/StorefrontLayout.jsx';
 import Overview from './pages/Overview/index.jsx';
 import ControlPanel from './pages/ControlPanel/index.jsx';
 import LiveDashboard from './pages/Live/index.jsx';
@@ -87,6 +88,9 @@ function App() {
                     <Route path="/auth/accept-invite" element={<AcceptInvite />} />
                     <Route path="/auth/accept-invite/:token" element={<AcceptInvite />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
+                </Route>
+
+                <Route element={<StorefrontLayout />}>
                     <Route
                         path="/store"
                         element={<StoreLayout />}
