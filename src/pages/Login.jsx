@@ -85,16 +85,11 @@ export default function Login() {
             const redirectUri = new URL(redirectPath, window.location.origin).toString();
             const response = await startGoogleSignIn({ redirectUri });
 
-            if (response?.mode === 'browser') {
-                window.location.href = response.startUrl;
-                return;
-            }
-
             const authorizationUrl =
-                response?.data?.redirectUrl
-                || response?.data?.authorizationUrl
-                || response?.data?.authorization_url
-                || response?.data?.url;
+                response?.authorizationUrl
+                || response?.redirectUrl
+                || response?.authorization_url
+                || response?.url;
             if (!authorizationUrl) {
                 throw new Error('Missing authorization URL.');
             }

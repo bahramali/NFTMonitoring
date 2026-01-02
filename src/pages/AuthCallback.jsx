@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getDefaultRouteForUser } from '../utils/roleRoutes.js';
 import styles from './AuthCallback.module.css';
+import { completeOAuthCallback } from '../api/auth.js';
 
 export default function AuthCallback() {
     const { completeOAuthLogin, isAuthenticated, role, roles, permissions } = useAuth();
@@ -21,6 +22,8 @@ export default function AuthCallback() {
     }, [location.search]);
 
     const errorParam = useMemo(() => new URLSearchParams(location.search).get('error'), [location.search]);
+    const codeParam = useMemo(() => new URLSearchParams(location.search).get('code'), [location.search]);
+    const stateParam = useMemo(() => new URLSearchParams(location.search).get('state'), [location.search]);
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -44,6 +47,22 @@ export default function AuthCallback() {
         const completeLogin = async () => {
             setStatus('loading');
             setMessage('Signing you in…');
+            if (codeParam && stateParam) {
+                try {
+                    await completeOAuthCallback('google', {
+                        code: codeParam,
+                        state: stateParam,
+                        signal: controller.signal,
+                    });
+                } catch (callbackError) {
+                    if (callbackError?.name === 'AbortError') {
+                        return;
+                    }
+                    setStatus('error');
+                    setMessage(callbackError?.message || 'Sign-in failed.');
+                    return;
+                }
+            }
             const result = await completeOAuthLogin({ signal: controller.signal });
             if (!result.success) {
                 setStatus('error');
@@ -62,7 +81,18 @@ export default function AuthCallback() {
         completeLogin();
 
         return () => controller.abort();
-    }, [completeOAuthLogin, errorParam, isAuthenticated, navigate, permissions, returnUrl, role, roles]);
+    }, [
+        codeParam,
+        completeOAuthLogin,
+        errorParam,
+        isAuthenticated,
+        navigate,
+        permissions,
+        returnUrl,
+        role,
+        roles,
+        stateParam,
+    ]);
 
     return (
         <div className={styles.page}>
