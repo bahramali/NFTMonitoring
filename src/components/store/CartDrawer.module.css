@@ -15,18 +15,21 @@
 
 .drawer {
     position: absolute;
-    top: 0;
+    top: 4vh;
     right: 0;
-    width: min(440px, 100%);
-    height: 100%;
+    width: min(92vw, 420px);
+    height: auto;
+    max-height: 92vh;
     background: #fff;
     border-left: 1px solid var(--border, #e6e6e6);
     box-shadow: -10px 0 32px rgba(0, 0, 0, 0.08);
     transform: translateX(100%);
     transition: transform 200ms ease;
     color: var(--text, #111);
-    display: grid;
-    grid-template-rows: auto 1fr auto;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .drawerOpen {
@@ -59,15 +62,22 @@
     color: var(--text, #111);
     border: 1px solid var(--border, #e6e6e6);
     border-radius: 10px;
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     font-size: 20px;
     cursor: pointer;
 }
 
-.body {
-    padding: 0 20px;
+.content {
+    flex: 1;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.body {
+    padding: 0 20px 24px;
+    flex: 1;
 }
 
 .empty {
@@ -89,21 +99,31 @@
 }
 
 .footer {
-    padding: 16px 20px 18px;
+    padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--border, #e6e6e6);
     display: grid;
     gap: 8px;
+    position: sticky;
+    bottom: 0;
+    background: #fff;
 }
 
 .summaryRow {
     display: flex;
     justify-content: space-between;
     color: var(--muted, #666);
+    gap: 12px;
+    min-width: 0;
+}
+
+.summaryRow span {
+    min-width: 0;
 }
 
 .value {
     color: var(--text, #111);
     font-weight: 700;
+    text-align: right;
 }
 
 .totalRow {
@@ -113,6 +133,7 @@
 .total {
     font-size: 20px;
     font-weight: 800;
+    text-align: right;
 }
 
 .checkout {
@@ -136,4 +157,11 @@
     text-align: center;
     color: var(--muted, #666);
     font-size: 13px;
+}
+
+@media (max-width: 520px) {
+    .drawer {
+        top: 2vh;
+        max-height: 96vh;
+    }
 }

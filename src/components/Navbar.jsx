@@ -79,6 +79,7 @@ export default function Navbar() {
     }, [isAuthenticated, permissions, role, roles]);
     const canAccessAdmin = adminLinks.length > 0;
     const canSeeMonitoring = isSuperAdmin || hasPerm({ permissions }, PERMISSIONS.MONITORING_VIEW);
+    const accountLink = role === 'CUSTOMER' ? '/my-page' : '/monitoring/overview';
 
     useEffect(() => {
         setIsUserMenuOpen(false);
@@ -178,16 +179,13 @@ export default function Navbar() {
                     )}
                     {isAuthenticated ? (
                         <div className={styles.userArea} ref={userMenuRef}>
-                            <button
-                                type="button"
-                                className={isStoreRoute ? styles.accountIconButton : styles.userButton}
-                                aria-expanded={isUserMenuOpen}
-                                aria-label="Account menu"
-                                onClick={() => {
-                                    setIsUserMenuOpen((open) => !open);
-                                }}
-                            >
-                                {isStoreRoute ? (
+                            {isStoreRoute ? (
+                                <Link
+                                    to={accountLink}
+                                    className={styles.accountIconButton}
+                                    aria-label="Account"
+                                    title="Account"
+                                >
                                     <span className={styles.accountIcon} aria-hidden="true">
                                         <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
                                             <circle
@@ -196,19 +194,29 @@ export default function Navbar() {
                                                 r="3.2"
                                                 fill="none"
                                                 stroke="currentColor"
-                                                strokeWidth="1.6"
+                                                strokeWidth="1.8"
                                             />
                                             <path
                                                 d="M5 19.5c1.7-3.2 5-5.1 7-5.1s5.3 1.9 7 5.1"
                                                 fill="none"
                                                 stroke="currentColor"
-                                                strokeWidth="1.6"
+                                                strokeWidth="1.8"
                                                 strokeLinecap="round"
                                             />
                                         </svg>
                                     </span>
-                                ) : (
-                                    <>
+                                </Link>
+                            ) : (
+                                <>
+                                    <button
+                                        type="button"
+                                        className={styles.userButton}
+                                        aria-expanded={isUserMenuOpen}
+                                        aria-label="Account menu"
+                                        onClick={() => {
+                                            setIsUserMenuOpen((open) => !open);
+                                        }}
+                                    >
                                         <span className={styles.avatar} aria-hidden="true">
                                             {userInitial}
                                         </span>
@@ -222,103 +230,80 @@ export default function Navbar() {
                                             <span className={styles.userName}>{userLabel}</span>
                                         )}
                                         <span className={styles.caret} aria-hidden="true" />
-                                    </>
-                                )}
-                            </button>
-                            <div
-                                className={`${styles.userMenu} ${
-                                    isUserMenuOpen ? styles.userMenuOpen : ''
-                                }`}
-                            >
-                                <div className={styles.userMenuMeta}>
-                                    <div className={styles.userIdentity}>
-                                        {showProfileSkeleton ? (
-                                            <span
-                                                className={styles.metaValueSkeleton}
-                                                role="status"
-                                                aria-label="Loading profile"
-                                            />
-                                        ) : (
-                                            <span className={styles.metaValue}>{userLabel}</span>
+                                    </button>
+                                    <div
+                                        className={`${styles.userMenu} ${
+                                            isUserMenuOpen ? styles.userMenuOpen : ''
+                                        }`}
+                                    >
+                                        <div className={styles.userMenuMeta}>
+                                            <div className={styles.userIdentity}>
+                                                {showProfileSkeleton ? (
+                                                    <span
+                                                        className={styles.metaValueSkeleton}
+                                                        role="status"
+                                                        aria-label="Loading profile"
+                                                    />
+                                                ) : (
+                                                    <span className={styles.metaValue}>{userLabel}</span>
+                                                )}
+                                                {roleLabel && (
+                                                    <span className={styles.roleBadge}>{roleLabel}</span>
+                                                )}
+                                            </div>
+                                            <span className={styles.mutedLabel}>Account</span>
+                                        </div>
+                                        {role === 'CUSTOMER' && (
+                                            <Link
+                                                to="/my-page"
+                                                className={styles.menuLink}
+                                                onClick={handleNavLinkClick}
+                                            >
+                                                My Account
+                                            </Link>
                                         )}
-                                        {!isStoreRoute && roleLabel && (
-                                            <span className={styles.roleBadge}>{roleLabel}</span>
+                                        {canAccessAdmin && (
+                                            <Link
+                                                to="/admin"
+                                                className={styles.menuLink}
+                                                onClick={handleNavLinkClick}
+                                            >
+                                                Admin Console
+                                            </Link>
                                         )}
+                                        <button
+                                            type="button"
+                                            className={styles.menuAction}
+                                            onClick={logout}
+                                        >
+                                            Logout
+                                        </button>
                                     </div>
-                                    <span className={styles.mutedLabel}>Account</span>
-                                </div>
-                                {role === 'CUSTOMER' && (
-                                    <Link
-                                        to="/my-page"
-                                        className={styles.menuLink}
-                                        onClick={handleNavLinkClick}
-                                    >
-                                        My Account
-                                    </Link>
-                                )}
-                                {!isStoreRoute && canAccessAdmin && (
-                                    <Link
-                                        to="/admin"
-                                        className={styles.menuLink}
-                                        onClick={handleNavLinkClick}
-                                    >
-                                        Admin Console
-                                    </Link>
-                                )}
-                                <button
-                                    type="button"
-                                    className={styles.menuAction}
-                                    onClick={logout}
-                                >
-                                    Logout
-                                </button>
-                            </div>
+                                </>
+                            )}
                         </div>
                     ) : isStoreRoute ? (
-                        <div className={styles.userArea} ref={userMenuRef}>
-                            <button
-                                type="button"
-                                className={styles.accountIconButton}
-                                aria-expanded={isUserMenuOpen}
-                                aria-label="Account options"
-                                onClick={() => {
-                                    setIsUserMenuOpen((open) => !open);
-                                }}
-                            >
-                                <span className={styles.accountIcon} aria-hidden="true">
-                                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                                        <circle
-                                            cx="12"
-                                            cy="8"
-                                            r="3.2"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="1.6"
-                                        />
-                                        <path
-                                            d="M5 19.5c1.7-3.2 5-5.1 7-5.1s5.3 1.9 7 5.1"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="1.6"
-                                            strokeLinecap="round"
-                                        />
-                                    </svg>
-                                </span>
-                            </button>
-                            <div
-                                className={`${styles.userMenu} ${
-                                    isUserMenuOpen ? styles.userMenuOpen : ''
-                                }`}
-                            >
-                                <span className={styles.mutedLabel}>Account</span>
-                                <Link to="/login" className={styles.menuLink} onClick={handleNavLinkClick}>
-                                    Sign in
-                                </Link>
-                                <Link to="/register" className={styles.menuLink} onClick={handleNavLinkClick}>
-                                    Create account
-                                </Link>
-                            </div>
-                        </div>
+                        <Link to="/login" className={styles.accountIconButton} aria-label="Login" title="Login">
+                            <span className={styles.accountIcon} aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                                    <circle
+                                        cx="12"
+                                        cy="8"
+                                        r="3.2"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="1.8"
+                                    />
+                                    <path
+                                        d="M5 19.5c1.7-3.2 5-5.1 7-5.1s5.3 1.9 7 5.1"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="1.8"
+                                        strokeLinecap="round"
+                                    />
+                                </svg>
+                            </span>
+                        </Link>
                     ) : (
                         <div className={styles.authActions}>
                             <Link to="/login" className={styles.ghostButton}>
