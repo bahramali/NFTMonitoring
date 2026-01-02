@@ -87,25 +87,14 @@ export async function startGoogleSignIn({ redirectUri } = {}) {
         throw new Error('Redirect URI is required.');
     }
 
-    const startUrl = new URL(`${AUTH_BASE}/google/start`);
-    startUrl.searchParams.set('redirectUri', redirectUri);
-
-    const res = await fetch(startUrl.toString(), {
+    const res = await fetch(`${AUTH_BASE}/oauth/google/start`, {
+        method: 'POST',
         credentials: 'include',
-        redirect: 'manual',
-        headers: { Accept: 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ redirectUri }),
     });
 
-    if (res.status >= 300 && res.status < 400) {
-        return { mode: 'browser', startUrl: startUrl.toString(), status: res.status };
-    }
-
-    if (!res.ok) {
-        await parseApiResponse(res, 'Failed to start Google sign-in');
-    }
-
-    const data = await parseApiResponse(res, 'Failed to start Google sign-in');
-    return { mode: 'redirect', data };
+    return parseApiResponse(res, 'Failed to start Google sign-in');
 }
 
 export async function fetchOAuthProviders({ signal } = {}) {
@@ -115,4 +104,24 @@ export async function fetchOAuthProviders({ signal } = {}) {
     });
 
     return parseApiResponse(res, 'Failed to load OAuth providers');
+}
+
+export async function completeOAuthCallback(provider, { code, state, signal } = {}) {
+    if (!provider) {
+        throw new Error('OAuth provider is required.');
+    }
+    if (!code || !state) {
+        throw new Error('OAuth callback code and state are required.');
+    }
+
+    const callbackUrl = new URL(`${AUTH_BASE}/oauth/${encodeURIComponent(provider)}/callback`);
+    callbackUrl.searchParams.set('code', code);
+    callbackUrl.searchParams.set('state', state);
+
+    const res = await fetch(callbackUrl.toString(), {
+        credentials: 'include',
+        signal,
+    });
+
+    return parseApiResponse(res, 'Failed to complete OAuth sign-in');
 }
