@@ -26,56 +26,58 @@ export default function CartDrawer({ open, onClose }) {
                     </button>
                 </div>
 
-                <div className={styles.body}>
-                    {!hasItems ? (
-                        <div className={styles.empty}>
-                            <p>Cart is empty.</p>
-                            <button type="button" onClick={() => { onClose?.(); navigate('/store'); }}>
-                                Continue shopping
-                            </button>
-                        </div>
-                    ) : (
-                        cart.items.map((item) => (
-                            <CartLineItem
-                                key={item.id || item.productId}
-                                item={item}
-                                currency={currency}
-                                pending={pendingItemId === item.id}
-                                onChangeQuantity={(qty) => updateItemQuantity(item.id, qty)}
-                                onRemove={() => removeItem(item.id)}
-                            />
-                        ))
-                    )}
-                </div>
-
-                <div className={styles.footer}>
-                    <div className={styles.summaryRow}>
-                        <span>Subtotal</span>
-                        <span className={styles.value}>{formatCurrency(totals.subtotal ?? totals.total ?? 0, currency)}</span>
+                <div className={styles.content}>
+                    <div className={styles.body}>
+                        {!hasItems ? (
+                            <div className={styles.empty}>
+                                <p>Cart is empty.</p>
+                                <button type="button" onClick={() => { onClose?.(); navigate('/store'); }}>
+                                    Continue shopping
+                                </button>
+                            </div>
+                        ) : (
+                            cart.items.map((item) => (
+                                <CartLineItem
+                                    key={item.id || item.productId}
+                                    item={item}
+                                    currency={currency}
+                                    pending={pendingItemId === item.id}
+                                    onChangeQuantity={(qty) => updateItemQuantity(item.id, qty)}
+                                    onRemove={() => removeItem(item.id)}
+                                />
+                            ))
+                        )}
                     </div>
-                    {totals.shipping !== undefined && (
+
+                    <div className={styles.footer}>
                         <div className={styles.summaryRow}>
-                            <span>Shipping estimate</span>
-                            <span className={styles.value}>{formatCurrency(totals.shipping, currency)}</span>
+                            <span>Subtotal</span>
+                            <span className={styles.value}>{formatCurrency(totals.subtotal ?? totals.total ?? 0, currency)}</span>
                         </div>
-                    )}
-                    <div className={`${styles.summaryRow} ${styles.totalRow}`}>
-                        <span>Total ({currencyLabel(currency)})</span>
-                        <span className={styles.total}>{formatCurrency(totals.total ?? totals.subtotal ?? 0, currency)}</span>
-                    </div>
+                        {totals.shipping !== undefined && (
+                            <div className={styles.summaryRow}>
+                                <span>Shipping estimate</span>
+                                <span className={styles.value}>{formatCurrency(totals.shipping, currency)}</span>
+                            </div>
+                        )}
+                        <div className={`${styles.summaryRow} ${styles.totalRow}`}>
+                            <span>Total ({currencyLabel(currency)})</span>
+                            <span className={styles.total}>{formatCurrency(totals.total ?? totals.subtotal ?? 0, currency)}</span>
+                        </div>
 
-                    <button
-                        type="button"
-                        className={styles.checkout}
-                        onClick={() => {
-                            onClose?.();
-                            navigate('/store/checkout');
-                        }}
-                        disabled={!hasItems}
-                    >
-                        Go to checkout
-                    </button>
-                    <p className={styles.meta}>Secure checkout · Prices in SEK</p>
+                        <button
+                            type="button"
+                            className={styles.checkout}
+                            onClick={() => {
+                                onClose?.();
+                                navigate('/store/checkout');
+                            }}
+                            disabled={!hasItems}
+                        >
+                            Go to checkout
+                        </button>
+                        <p className={styles.meta}>Secure checkout · Prices in SEK</p>
+                    </div>
                 </div>
             </aside>
         </div>
