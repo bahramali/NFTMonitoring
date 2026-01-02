@@ -40,6 +40,9 @@ import OrderStatus from './pages/store/OrderStatus.jsx';
 import ProductAdmin from './pages/ProductAdmin.jsx';
 import CustomersList from './pages/store/CustomersList.jsx';
 import CustomerDetails from './pages/store/CustomerDetails.jsx';
+import Contact from './pages/store/Contact.jsx';
+import Terms from './pages/store/Terms.jsx';
+import Privacy from './pages/store/Privacy.jsx';
 import PaymentSuccess from './pages/payment/PaymentSuccess.jsx';
 import PaymentCancel from './pages/payment/PaymentCancel.jsx';
 import { useAuth } from './context/AuthContext.jsx';
@@ -125,6 +128,16 @@ function App() {
                                 </ProtectedRoute>
                             )}
                         />
+                    </Route>
+
+                    <Route path="/contact" element={<StoreLayout />}>
+                        <Route index element={<Contact />} />
+                    </Route>
+                    <Route path="/terms" element={<StoreLayout />}>
+                        <Route index element={<Terms />} />
+                    </Route>
+                    <Route path="/privacy" element={<StoreLayout />}>
+                        <Route index element={<Privacy />} />
                     </Route>
 
                     <Route
