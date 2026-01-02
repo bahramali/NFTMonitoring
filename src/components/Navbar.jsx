@@ -138,6 +138,11 @@ export default function Navbar() {
                                     Monitoring
                                 </NavLink>
                             )}
+                            {canSeeMonitoring && (
+                                <NavLink to="/monitoring/reports" className={moduleTabClass} onClick={handleNavLinkClick}>
+                                    Reports
+                                </NavLink>
+                            )}
                             {canAccessAdmin && (
                                 <NavLink to="/admin/overview" className={moduleTabClass} onClick={handleNavLinkClick}>
                                     Admin
