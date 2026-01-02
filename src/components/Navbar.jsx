@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useStorefront } from '../context/StorefrontContext.jsx';
 const hydroleafLogo = 'https://pic.hydroleaf.se/logo%402x.png';
@@ -55,6 +55,8 @@ export default function Navbar() {
     const userMenuRef = useRef(null);
     const location = useLocation();
     const isStoreRoute = location.pathname === '/store' || location.pathname.startsWith('/store/');
+    const availableRoles = roles?.length ? roles : role ? [role] : [];
+    const isSuperAdmin = availableRoles.includes('SUPER_ADMIN');
 
     const roleLabel = role ? role.replace('_', ' ') : '';
     const profileLabel = profile?.username || profile?.fullName || profile?.displayName || profile?.email || '';
@@ -76,6 +78,7 @@ export default function Navbar() {
         return ADMIN_MENU.filter((item) => hasAccess(item, role, roles, permissions));
     }, [isAuthenticated, permissions, role, roles]);
     const canAccessAdmin = adminLinks.length > 0;
+    const canSeeMonitoring = isSuperAdmin || hasPerm({ permissions }, PERMISSIONS.MONITORING_VIEW);
 
     useEffect(() => {
         setIsUserMenuOpen(false);
@@ -105,6 +108,9 @@ export default function Navbar() {
     const handleNavLinkClick = () => {
         setIsUserMenuOpen(false);
     };
+
+    const moduleTabClass = ({ isActive }) => `${styles.moduleTab} ${isActive ? styles.moduleTabActive : ''}`;
+
     return (
         <header className="topbar">
             <div className="topbar__inner">
@@ -121,6 +127,22 @@ export default function Navbar() {
                             <span className={styles.brandSubtitle}>NFT Monitoring</span>
                         </div>
                     </Link>
+                </div>
+
+                <div className="topbar__center">
+                    <NavLink to="/store" className={moduleTabClass} onClick={handleNavLinkClick}>
+                        Store
+                    </NavLink>
+                    {canSeeMonitoring && (
+                        <NavLink to="/monitoring/overview" className={moduleTabClass} onClick={handleNavLinkClick}>
+                            Monitoring
+                        </NavLink>
+                    )}
+                    {canAccessAdmin && (
+                        <NavLink to="/admin/overview" className={moduleTabClass} onClick={handleNavLinkClick}>
+                            Admin
+                        </NavLink>
+                    )}
                 </div>
 
                 <div className="topbar__right">
@@ -141,7 +163,6 @@ export default function Navbar() {
                                 aria-expanded={isUserMenuOpen}
                                 onClick={() => {
                                     setIsUserMenuOpen((open) => !open);
-                                    setIsAdminOpen(false);
                                 }}
                             >
                                 <span className={styles.avatar} aria-hidden="true">

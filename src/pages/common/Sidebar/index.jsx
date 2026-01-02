@@ -47,9 +47,10 @@ const NAV_SECTIONS = [
         id: "store",
         label: "Store",
         items: [
-            { to: "/store", icon: "🛍️", label: "Products", permissions: [PERMISSIONS.STORE_VIEW] },
+            { to: "/store", icon: "🛍️", label: "Products" },
             { icon: "📦", label: "Orders", disabled: true },
             { to: "/store/admin/customers", icon: "👥", label: "Customers", permissions: [PERMISSIONS.CUSTOMERS_VIEW] },
+            { to: "/store/admin/products", icon: "🛍️", label: "Manage Products", permissions: [PERMISSIONS.PRODUCTS_MANAGE] },
         ],
     },
     {
@@ -132,10 +133,23 @@ export default function Sidebar() {
     const filteredSections = useMemo(() => {
         return sections
             .map((section) => {
-                const visibleItems = section.items.filter((item) => {
-                    if (item.disabled) return true;
-                    return hasAccess(item, role, roles, permissions);
+                if (section.id === "admin") {
+                    const visibleItems = section.items.filter((item) => hasAccess(item, role, roles, permissions));
+                    return { ...section, items: visibleItems };
+                }
+
+                const visibleItems = section.items.map((item) => {
+                    if (item.disabled || !item.to) {
+                        return item;
+                    }
+
+                    if (hasAccess(item, role, roles, permissions)) {
+                        return item;
+                    }
+
+                    return { ...item, disabled: true };
                 });
+
                 return { ...section, items: visibleItems };
             })
             .filter((section) => section.items.length > 0);
@@ -160,7 +174,11 @@ export default function Sidebar() {
                             {section.items.map(({ to, icon, label, disabled }) => {
                                 if (disabled || !to) {
                                     return (
-                                        <div key={`${section.id}-${label}`} className={`${styles.menuItem} ${styles.disabledItem}`}>
+                                        <div
+                                            key={`${section.id}-${label}`}
+                                            className={`${styles.menuItem} ${styles.disabledItem}`}
+                                            title="Requires permission"
+                                        >
                                             <span className={styles.icon}>{icon}</span>
                                             {!collapsed && <span className={styles.text}>{label}</span>}
                                         </div>
