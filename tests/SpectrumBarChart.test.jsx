@@ -64,7 +64,7 @@ test('renders spectrum bar chart', () => {
     };
 
     const { container } = render(
-        <SensorConfigProvider>
+        <SensorConfigProvider allowUnauthenticated locationPath="/monitoring">
             <div style={{ width: 800, height: 400 }}>
                 <SpectrumBarChart sensorData={data} />
             </div>
@@ -78,7 +78,7 @@ test('renders reference area when ideal range is provided', async () => {
     const data = { F1: 50 };
 
     const { container } = render(
-        <SensorConfigProvider>
+        <SensorConfigProvider allowUnauthenticated locationPath="/monitoring">
             <div style={{ width: 800, height: 400 }}>
                 <SpectrumBarChart sensorData={data} />
             </div>
@@ -99,7 +99,7 @@ test('renders spectrum bar chart for as7343 data', () => {
     };
 
     const { container } = render(
-        <SensorConfigProvider>
+        <SensorConfigProvider allowUnauthenticated locationPath="/monitoring">
             <div style={{ width: 800, height: 400 }}>
                 <SpectrumBarChart sensorData={data} />
             </div>

@@ -76,7 +76,7 @@ function normalizeConfig(raw) {
     };
 }
 
-export function SensorConfigProvider({ children, locationPath }) {
+export function SensorConfigProvider({ children, locationPath, allowUnauthenticated = false }) {
     const [configs, setConfigs] = useState({});
     const [error, setError] = useState('');
     const { isAuthenticated } = useAuth();
@@ -96,7 +96,7 @@ export function SensorConfigProvider({ children, locationPath }) {
 
     const pathname = locationPath ?? (typeof window !== 'undefined' ? window.location?.pathname : '');
     const isMonitoringRoute = pathname.startsWith('/monitoring');
-    const shouldLoadConfigs = isAuthenticated && isMonitoringRoute;
+    const shouldLoadConfigs = (isAuthenticated || allowUnauthenticated) && isMonitoringRoute;
 
     useEffect(() => {
         if (!shouldLoadConfigs) {

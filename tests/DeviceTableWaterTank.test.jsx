@@ -19,7 +19,9 @@ const devices = {
 };
 
 const renderWithProvider = (ui) => render(
-  <SensorConfigProvider>{ui}</SensorConfigProvider>
+  <SensorConfigProvider allowUnauthenticated locationPath="/monitoring">
+    {ui}
+  </SensorConfigProvider>
 );
 
 beforeEach(() => {
