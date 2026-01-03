@@ -44,7 +44,7 @@ export default function Login() {
             })
             .catch(() => {
                 if (!isActive) return;
-                setOauthProviders(null);
+                setOauthProviders([]);
             });
 
         return () => {
@@ -54,8 +54,7 @@ export default function Login() {
     }, []);
 
     const isGoogleAvailable = useMemo(() => {
-        if (!oauthProviders) return true;
-        if (!Array.isArray(oauthProviders)) return true;
+        if (!Array.isArray(oauthProviders)) return false;
 
         return oauthProviders.some((provider) => {
             if (!provider) return false;
@@ -73,6 +72,13 @@ export default function Login() {
     }, [oauthProviders]);
 
     const resolvedReturnUrl = returnUrl || location.state?.from?.pathname || null;
+
+    const resolveOAuthErrorMessage = (error) => {
+        const payload = error?.payload;
+        const message = payload?.message || payload?.error || payload?.code || error?.message;
+        if (!message) return '';
+        return typeof message === 'string' ? message : JSON.stringify(message);
+    };
 
     const handleGoogleSignIn = async () => {
         setOauthError('');
@@ -97,7 +103,15 @@ export default function Login() {
             window.location.href = authorizationUrl;
         } catch (oauthErrorResponse) {
             const status = oauthErrorResponse?.status;
-            if (status === 500) {
+            const backendMessage = resolveOAuthErrorMessage(oauthErrorResponse);
+            const isProd = import.meta.env?.MODE === 'production';
+
+            if (backendMessage && isProd) {
+                console.error('OAuth sign-in failed', oauthErrorResponse);
+                setOauthError('Could not start Google sign-in. Try again.');
+            } else if (backendMessage) {
+                setOauthError(backendMessage);
+            } else if (status === 500) {
                 setOauthError('Server error, try later');
             } else if (status === 401 || status === 403) {
                 setOauthError('Not authorized');
