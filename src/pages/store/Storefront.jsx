@@ -10,6 +10,8 @@ export default function Storefront() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [sortBy, setSortBy] = useState('name');
+    const [availability, setAvailability] = useState('all');
+    const [tagFilter, setTagFilter] = useState('all');
 
     const sortedProducts = useMemo(() => {
         const list = Array.isArray(products) ? [...products] : [];
@@ -19,10 +21,36 @@ export default function Storefront() {
         return list.sort((a, b) => (a?.name || '').localeCompare(b?.name || ''));
     }, [products, sortBy]);
 
+    const tags = useMemo(() => {
+        const tagSet = new Set();
+        sortedProducts.forEach((product) => {
+            (product?.tags || []).forEach((tag) => tagSet.add(tag));
+        });
+        return Array.from(tagSet).sort((a, b) => a.localeCompare(b));
+    }, [sortedProducts]);
+
+    const filteredProducts = useMemo(() => {
+        return sortedProducts.filter((product) => {
+            const isInStock = product?.stock === undefined || product.stock > 0;
+            const availabilityMatches =
+                availability === 'all'
+                    || (availability === 'inStock' && isInStock)
+                    || (availability === 'outOfStock' && !isInStock);
+            const tagMatches = tagFilter === 'all' || (product?.tags || []).includes(tagFilter);
+            return availabilityMatches && tagMatches;
+        });
+    }, [availability, sortedProducts, tagFilter]);
+
     const showSort = (products?.length ?? 0) > 1;
 
-    const inStock = useMemo(() => sortedProducts.filter((product) => product.stock === undefined || product.stock > 0), [sortedProducts]);
-    const lowStock = useMemo(() => sortedProducts.filter((product) => product.stock !== undefined && product.stock <= 0), [sortedProducts]);
+    const inStock = useMemo(
+        () => filteredProducts.filter((product) => product.stock === undefined || product.stock > 0),
+        [filteredProducts],
+    );
+    const lowStock = useMemo(
+        () => filteredProducts.filter((product) => product.stock !== undefined && product.stock <= 0),
+        [filteredProducts],
+    );
 
     const fetchProducts = async () => {
         setLoading(true);
@@ -58,22 +86,47 @@ export default function Storefront() {
                         <h2>Products in stock</h2>
                     </div>
                     <div className={styles.controls}>
-                        {showSort ? (
+                        <div className={styles.filters}>
                             <div className={styles.field}>
-                                <label htmlFor="sort">Sort</label>
-                                <select id="sort" value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
-                                    <option value="name">Name</option>
-                                    <option value="price">Price</option>
+                                <label htmlFor="availability">Availability</label>
+                                <select
+                                    id="availability"
+                                    value={availability}
+                                    onChange={(event) => setAvailability(event.target.value)}
+                                >
+                                    <option value="all">All</option>
+                                    <option value="inStock">In stock</option>
+                                    <option value="outOfStock">Out of stock</option>
                                 </select>
                             </div>
-                        ) : null}
+                            {tags.length > 0 ? (
+                                <div className={styles.field}>
+                                    <label htmlFor="tag">Tag</label>
+                                    <select id="tag" value={tagFilter} onChange={(event) => setTagFilter(event.target.value)}>
+                                        <option value="all">All</option>
+                                        {tags.map((tag) => (
+                                            <option key={tag} value={tag}>{tag}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            ) : null}
+                            {showSort ? (
+                                <div className={styles.field}>
+                                    <label htmlFor="sort">Sort</label>
+                                    <select id="sort" value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+                                        <option value="name">Name</option>
+                                        <option value="price">Price</option>
+                                    </select>
+                                </div>
+                            ) : null}
+                        </div>
                         <p className={styles.sectionNote}>Prices shown in SEK · Stock updates after each add</p>
                     </div>
                 </div>
 
                 {loading ? (
                     <div className={styles.loading}>Loading products…</div>
-                ) : (
+                ) : inStock.length > 0 ? (
                     <div className={styles.grid}>
                         {inStock.map((product) => (
                             <ProductCard
@@ -84,6 +137,8 @@ export default function Storefront() {
                             />
                         ))}
                     </div>
+                ) : (
+                    <div className={styles.emptyState}>No products match your filters.</div>
                 )}
             </section>
 

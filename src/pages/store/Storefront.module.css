@@ -65,7 +65,7 @@
 .controls {
     display: grid;
     justify-items: end;
-    gap: 8px;
+    gap: 12px;
     text-align: right;
 }
 
@@ -73,10 +73,18 @@
     margin: 0;
 }
 
+.filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    width: 100%;
+    min-width: 240px;
+}
+
 .field {
     display: grid;
     gap: 6px;
-    min-width: 160px;
+    min-width: 150px;
 }
 
 .field label {
@@ -102,6 +110,14 @@
 .loading {
     padding: 20px;
     color: var(--muted, #666);
+}
+
+.emptyState {
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px dashed #cbd5f5;
+    color: #64748b;
 }
 
 @media (max-width: 900px) {
