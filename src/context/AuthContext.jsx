@@ -105,7 +105,7 @@ const buildSessionPayload = (payload) => {
 };
 
 export function AuthProvider({ children }) {
-    const [session, setSession] = useState(() => readStoredSession());
+    const [session, setSession] = useState(defaultSession);
     const [profile, setProfile] = useState(null);
     const [profileError, setProfileError] = useState(null);
     const [loadingProfile, setLoadingProfile] = useState(false);
@@ -292,7 +292,6 @@ export function AuthProvider({ children }) {
             setAuthNotice(null);
         }
         if (typeof window !== 'undefined') {
-            window.localStorage.removeItem('authSession');
             if (redirect) {
                 window.location.assign(redirectTo);
             }
