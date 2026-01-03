@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styles from './LegalPage.module.css';
 
 const subjectOptions = [
@@ -24,6 +24,95 @@ export default function Contact() {
     const [errors, setErrors] = useState({});
     const [status, setStatus] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [turnstileToken, setTurnstileToken] = useState('');
+    const turnstileRef = useRef(null);
+    const turnstileWidgetId = useRef(null);
+    const siteKey = import.meta.env?.VITE_TURNSTILE_SITE_KEY || '';
+
+    useEffect(() => {
+        if (!siteKey) {
+            return undefined;
+        }
+
+        let isActive = true;
+
+        const renderWidget = () => {
+            if (!isActive || !turnstileRef.current || !window.turnstile) {
+                return;
+            }
+
+            if (turnstileWidgetId.current !== null) {
+                window.turnstile.reset(turnstileWidgetId.current);
+                return;
+            }
+
+            turnstileWidgetId.current = window.turnstile.render(turnstileRef.current, {
+                sitekey: siteKey,
+                theme: 'light',
+                callback: (token) => {
+                    if (!isActive) {
+                        return;
+                    }
+                    setTurnstileToken(token);
+                    setErrors((prev) => ({ ...prev, turnstileToken: undefined }));
+                },
+                'error-callback': () => {
+                    if (!isActive) {
+                        return;
+                    }
+                    setTurnstileToken('');
+                    setErrors((prev) => ({
+                        ...prev,
+                        turnstileToken: 'Verification failed. Please try again.',
+                    }));
+                },
+                'expired-callback': () => {
+                    if (!isActive) {
+                        return;
+                    }
+                    setTurnstileToken('');
+                },
+            });
+        };
+
+        if (window.turnstile) {
+            renderWidget();
+            return () => {
+                isActive = false;
+            };
+        }
+
+        const existingScript = document.querySelector('script[data-turnstile]');
+        if (existingScript) {
+            existingScript.addEventListener('load', renderWidget);
+            return () => {
+                isActive = false;
+                existingScript.removeEventListener('load', renderWidget);
+            };
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+        script.async = true;
+        script.defer = true;
+        script.dataset.turnstile = 'true';
+        script.addEventListener('load', renderWidget);
+        script.addEventListener('error', () => {
+            if (!isActive) {
+                return;
+            }
+            setErrors((prev) => ({
+                ...prev,
+                turnstileToken: 'Verification failed to load. Please try again later.',
+            }));
+        });
+        document.body.appendChild(script);
+
+        return () => {
+            isActive = false;
+            script.removeEventListener('load', renderWidget);
+        };
+    }, [siteKey]);
 
     const handleChange = (event) => {
         const { name, value } = event.target;
@@ -57,6 +146,11 @@ export default function Contact() {
         if (values.companyWebsite) {
             nextErrors.companyWebsite = 'Please leave this field blank.';
         }
+        if (!siteKey) {
+            nextErrors.turnstileToken = 'Verification is unavailable. Please try again later.';
+        } else if (!turnstileToken) {
+            nextErrors.turnstileToken = 'Please complete the verification.';
+        }
         return nextErrors;
     };
 
@@ -84,6 +178,7 @@ export default function Contact() {
                     subject: formValues.subject,
                     message: formValues.message.trim(),
                     companyWebsite: formValues.companyWebsite.trim(),
+                    turnstileToken,
                 }),
             });
 
@@ -91,6 +186,10 @@ export default function Contact() {
                 setFormValues(initialFormState);
                 setErrors({});
                 setStatus({ type: 'success', message: "Message sent. We'll reply to your email." });
+                setTurnstileToken('');
+                if (window.turnstile && turnstileWidgetId.current !== null) {
+                    window.turnstile.reset(turnstileWidgetId.current);
+                }
                 return;
             }
 
@@ -102,7 +201,7 @@ export default function Contact() {
                     payload = null;
                 }
 
-                const fieldNames = Object.keys(initialFormState);
+                const fieldNames = [...Object.keys(initialFormState), 'turnstileToken'];
                 const possibleErrors = payload?.errors || payload?.fieldErrors || payload;
                 if (possibleErrors && typeof possibleErrors === 'object') {
                     const fieldErrors = fieldNames.reduce((acc, field) => {
@@ -328,6 +427,12 @@ export default function Contact() {
                         </div>
                         {errors.companyWebsite ? (
                             <span className={styles.fieldError}>{errors.companyWebsite}</span>
+                        ) : null}
+                        <div className={styles.turnstile}>
+                            <div ref={turnstileRef} />
+                        </div>
+                        {errors.turnstileToken ? (
+                            <span className={styles.fieldError}>{errors.turnstileToken}</span>
                         ) : null}
                         {status ? (
                             <div
