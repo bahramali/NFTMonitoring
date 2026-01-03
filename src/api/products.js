@@ -1,4 +1,4 @@
-import { parseApiResponse } from './http.js';
+import { authFetch, parseApiResponse } from './http.js';
 
 const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
 const STORE_PRODUCTS_URL = `${API_BASE}/api/store/products`;
@@ -65,11 +65,15 @@ const useMockFallback = (error) => {
 
 export async function listAdminProducts(token, { signal } = {}) {
     try {
-        const res = await fetch(STORE_PRODUCTS_URL, {
-            method: 'GET',
-            headers: authHeaders(token),
-            signal,
-        });
+        const res = await authFetch(
+            STORE_PRODUCTS_URL,
+            {
+                method: 'GET',
+                headers: authHeaders(token),
+                signal,
+            },
+            { token },
+        );
         const payload = await parseApiResponse(res, 'Failed to load products');
         return normalizeProductsPayload(payload);
     } catch (error) {
@@ -83,11 +87,15 @@ export async function listAdminProducts(token, { signal } = {}) {
 
 export async function createProduct(payload, token) {
     try {
-        const res = await fetch(ADMIN_PRODUCTS_URL, {
-            method: 'POST',
-            headers: authHeaders(token),
-            body: JSON.stringify(payload),
-        });
+        const res = await authFetch(
+            ADMIN_PRODUCTS_URL,
+            {
+                method: 'POST',
+                headers: authHeaders(token),
+                body: JSON.stringify(payload),
+            },
+            { token },
+        );
         const data = await parseApiResponse(res, 'Failed to create product');
         return normalizeProduct(data);
     } catch (error) {
@@ -108,11 +116,15 @@ export async function createProduct(payload, token) {
 export async function updateProduct(productId, payload, token) {
     if (!productId) throw new Error('Product ID is required');
     try {
-        const res = await fetch(`${ADMIN_PRODUCTS_URL}/${encodeURIComponent(productId)}`, {
-            method: 'PUT',
-            headers: authHeaders(token),
-            body: JSON.stringify(payload),
-        });
+        const res = await authFetch(
+            `${ADMIN_PRODUCTS_URL}/${encodeURIComponent(productId)}`,
+            {
+                method: 'PUT',
+                headers: authHeaders(token),
+                body: JSON.stringify(payload),
+            },
+            { token },
+        );
         const data = await parseApiResponse(res, 'Failed to update product');
         return normalizeProduct(data);
     } catch (error) {
@@ -135,11 +147,15 @@ export async function updateProduct(productId, payload, token) {
 export async function toggleProductActive(productId, active, token) {
     if (!productId) throw new Error('Product ID is required');
     try {
-        const res = await fetch(`${ADMIN_PRODUCTS_URL}/${encodeURIComponent(productId)}/active`, {
-            method: 'PATCH',
-            headers: authHeaders(token),
-            body: JSON.stringify({ active }),
-        });
+        const res = await authFetch(
+            `${ADMIN_PRODUCTS_URL}/${encodeURIComponent(productId)}/active`,
+            {
+                method: 'PATCH',
+                headers: authHeaders(token),
+                body: JSON.stringify({ active }),
+            },
+            { token },
+        );
         const data = await parseApiResponse(res, 'Failed to update status');
         return normalizeProduct(data);
     } catch (error) {
@@ -156,11 +172,15 @@ export async function toggleProductActive(productId, active, token) {
 export async function updateProductStock(productId, stock, token) {
     if (!productId) throw new Error('Product ID is required');
     try {
-        const res = await fetch(`${ADMIN_PRODUCTS_URL}/${encodeURIComponent(productId)}/stock`, {
-            method: 'PATCH',
-            headers: authHeaders(token),
-            body: JSON.stringify({ stock }),
-        });
+        const res = await authFetch(
+            `${ADMIN_PRODUCTS_URL}/${encodeURIComponent(productId)}/stock`,
+            {
+                method: 'PATCH',
+                headers: authHeaders(token),
+                body: JSON.stringify({ stock }),
+            },
+            { token },
+        );
         const data = await parseApiResponse(res, 'Failed to update stock');
         return normalizeProduct(data);
     } catch (error) {
@@ -180,10 +200,14 @@ export async function updateProductStock(productId, stock, token) {
 export async function deleteProduct(productId, token) {
     if (!productId) throw new Error('Product ID is required');
     try {
-        const res = await fetch(`${ADMIN_PRODUCTS_URL}/${encodeURIComponent(productId)}`, {
-            method: 'DELETE',
-            headers: authHeaders(token),
-        });
+        const res = await authFetch(
+            `${ADMIN_PRODUCTS_URL}/${encodeURIComponent(productId)}`,
+            {
+                method: 'DELETE',
+                headers: authHeaders(token),
+            },
+            { token },
+        );
         return parseApiResponse(res, 'Failed to delete product');
     } catch (error) {
         if (useMockFallback(error)) {

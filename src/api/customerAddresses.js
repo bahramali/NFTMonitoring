@@ -1,4 +1,4 @@
-import { buildAuthHeaders, parseApiResponse } from './http.js';
+import { authFetch, buildAuthHeaders, parseApiResponse } from './http.js';
 
 const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
 const ADDRESS_URL = `${API_BASE}/api/me/addresses`;
@@ -25,7 +25,14 @@ const markUnsupported = (error) => {
 
 export async function fetchCustomerAddresses(token, { signal, onUnauthorized } = {}) {
     if (!token) throw new Error('Authentication is required to load addresses');
-    const res = await fetch(ADDRESS_URL, { headers: buildAuthHeaders(token), signal });
+    const res = await authFetch(
+        ADDRESS_URL,
+        {
+            headers: buildAuthHeaders(token),
+            signal,
+        },
+        { token },
+    );
 
     try {
         return await parseApiResponse(res, 'Failed to load addresses');
@@ -38,12 +45,16 @@ export async function fetchCustomerAddresses(token, { signal, onUnauthorized } =
 
 export async function createCustomerAddress(token, payload, { signal, onUnauthorized } = {}) {
     if (!token) throw new Error('Authentication is required to create an address');
-    const res = await fetch(ADDRESS_URL, {
-        method: 'POST',
-        headers: buildAuthHeaders(token),
-        body: JSON.stringify(payload ?? {}),
-        signal,
-    });
+    const res = await authFetch(
+        ADDRESS_URL,
+        {
+            method: 'POST',
+            headers: buildAuthHeaders(token),
+            body: JSON.stringify(payload ?? {}),
+            signal,
+        },
+        { token },
+    );
 
     try {
         return await parseApiResponse(res, 'Failed to create address');
@@ -57,12 +68,16 @@ export async function createCustomerAddress(token, payload, { signal, onUnauthor
 export async function updateCustomerAddress(token, addressId, payload, { signal, onUnauthorized } = {}) {
     if (!token) throw new Error('Authentication is required to update an address');
     if (!addressId) throw new Error('Address ID is required');
-    const res = await fetch(`${ADDRESS_URL}/${encodeURIComponent(addressId)}`, {
-        method: 'PUT',
-        headers: buildAuthHeaders(token),
-        body: JSON.stringify(payload ?? {}),
-        signal,
-    });
+    const res = await authFetch(
+        `${ADDRESS_URL}/${encodeURIComponent(addressId)}`,
+        {
+            method: 'PUT',
+            headers: buildAuthHeaders(token),
+            body: JSON.stringify(payload ?? {}),
+            signal,
+        },
+        { token },
+    );
 
     try {
         return await parseApiResponse(res, 'Failed to update address');
@@ -76,11 +91,15 @@ export async function updateCustomerAddress(token, addressId, payload, { signal,
 export async function deleteCustomerAddress(token, addressId, { signal, onUnauthorized } = {}) {
     if (!token) throw new Error('Authentication is required to delete an address');
     if (!addressId) throw new Error('Address ID is required');
-    const res = await fetch(`${ADDRESS_URL}/${encodeURIComponent(addressId)}`, {
-        method: 'DELETE',
-        headers: buildAuthHeaders(token),
-        signal,
-    });
+    const res = await authFetch(
+        `${ADDRESS_URL}/${encodeURIComponent(addressId)}`,
+        {
+            method: 'DELETE',
+            headers: buildAuthHeaders(token),
+            signal,
+        },
+        { token },
+    );
 
     try {
         return await parseApiResponse(res, 'Failed to delete address');
@@ -96,12 +115,16 @@ export async function setDefaultCustomerAddress(token, addressId, { signal, onUn
     if (!addressId) throw new Error('Address ID is required');
 
     const attemptDefaultRoute = async (url, body) => {
-        const res = await fetch(url, {
-            method: 'PUT',
-            headers: buildAuthHeaders(token),
-            body: body ? JSON.stringify(body) : undefined,
-            signal,
-        });
+        const res = await authFetch(
+            url,
+            {
+                method: 'PUT',
+                headers: buildAuthHeaders(token),
+                body: body ? JSON.stringify(body) : undefined,
+                signal,
+            },
+            { token },
+        );
         return parseApiResponse(res, 'Failed to set default address');
     };
 

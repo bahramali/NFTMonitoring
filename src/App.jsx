@@ -264,6 +264,7 @@ function AppRoutes() {
                 <Route path="/team" element={<Navigate to="/admin/team" replace />} />
                 <Route path="/super-admin" element={<Navigate to="/admin/home" replace />} />
                 <Route path="/super-admin/admins" element={<Navigate to="/admin/directory" replace />} />
+                <Route path="/store/home" element={<Navigate to="/store" replace />} />
 
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

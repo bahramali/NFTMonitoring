@@ -4,7 +4,7 @@ const ROLE_ROUTES = {
     SUPER_ADMIN: '/admin/home',
     ADMIN: '/admin/overview',
     WORKER: '/monitoring/overview',
-    CUSTOMER: '/my-page',
+    CUSTOMER: '/store/home',
 };
 
 export function getDefaultRouteForUser({ role, roles = [], permissions = [] } = {}) {
