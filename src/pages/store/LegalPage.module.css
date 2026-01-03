@@ -14,3 +14,46 @@
     margin: 0;
     color: var(--muted, #666);
 }
+
+.cards {
+    margin-top: 24px;
+    display: grid;
+    gap: 16px;
+}
+
+.card {
+    padding: 16px;
+    border: 1px solid rgba(17, 17, 17, 0.08);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(17, 17, 17, 0.06);
+}
+
+.cardTitle {
+    margin: 0 0 8px;
+    font-size: 1.1rem;
+    color: var(--text, #111);
+}
+
+.cardText {
+    margin: 0;
+    color: var(--muted, #555);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.addressLine {
+    margin: 0;
+}
+
+.link {
+    color: inherit;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.link:hover,
+.link:focus {
+    text-decoration: underline;
+}
