@@ -92,10 +92,15 @@ const ensureRefresh = async () => {
 
 export async function authFetch(url, options = {}, { token, retry = true } = {}) {
     const resolvedToken = token ?? authConfig.getAccessToken?.();
-    const headers = new Headers(options.headers || {});
+    const isHeadersInstance = options.headers instanceof Headers;
+    const headers = isHeadersInstance ? options.headers : { ...(options.headers || {}) };
 
-    if (!headers.has('Authorization') && resolvedToken) {
-        headers.set('Authorization', `Bearer ${resolvedToken}`);
+    if (resolvedToken && !(isHeadersInstance ? headers.has('Authorization') : headers.Authorization)) {
+        if (isHeadersInstance) {
+            headers.set('Authorization', `Bearer ${resolvedToken}`);
+        } else {
+            headers.Authorization = `Bearer ${resolvedToken}`;
+        }
     }
 
     const response = await fetch(url, { ...options, headers });
@@ -112,8 +117,12 @@ export async function authFetch(url, options = {}, { token, retry = true } = {})
         }
 
         authConfig.setAccessToken?.(newToken);
-        const retryHeaders = new Headers(headers);
-        retryHeaders.set('Authorization', `Bearer ${newToken}`);
+        const retryHeaders = isHeadersInstance ? new Headers(headers) : { ...headers };
+        if (retryHeaders instanceof Headers) {
+            retryHeaders.set('Authorization', `Bearer ${newToken}`);
+        } else {
+            retryHeaders.Authorization = `Bearer ${newToken}`;
+        }
         return fetch(url, { ...options, headers: retryHeaders });
     } catch (error) {
         authConfig.onAuthFailure?.('refresh_failed', error);

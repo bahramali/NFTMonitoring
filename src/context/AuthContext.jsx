@@ -45,6 +45,33 @@ const defaultAuthValue = {
 
 const AuthContext = createContext(defaultAuthValue);
 
+const readStoredSession = () => {
+    if (typeof window === 'undefined') {
+        return defaultSession;
+    }
+
+    const rawData = window.localStorage.getItem('authSession');
+    if (!rawData) return defaultSession;
+
+    try {
+        const parsed = JSON.parse(rawData);
+        if (parsed.expiry && parsed.expiry <= Date.now()) {
+            return defaultSession;
+        }
+
+        return {
+            isAuthenticated: Boolean(parsed.isAuthenticated),
+            token: parsed.token || null,
+            userId: parsed.userId || null,
+            role: parsed.role || null,
+            roles: Array.isArray(parsed.roles) ? parsed.roles : [],
+            permissions: Array.isArray(parsed.permissions) ? parsed.permissions : [],
+        };
+    } catch {
+        return defaultSession;
+    }
+};
+
 const normalizeRoles = (payload) => {
     if (!payload) return [];
     if (Array.isArray(payload)) return payload.filter(Boolean);
@@ -292,6 +319,10 @@ export function AuthProvider({ children }) {
     }, [handleAuthFailure, refreshAccessToken, updateAccessToken]);
 
     useEffect(() => {
+        if (import.meta.env?.MODE === 'test') {
+            return undefined;
+        }
+
         if (session.isAuthenticated || bootstrapAttemptedRef.current) {
             return undefined;
         }

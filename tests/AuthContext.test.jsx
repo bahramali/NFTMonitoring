@@ -35,6 +35,7 @@ describe('AuthContext', () => {
         expect(global.fetch).toHaveBeenCalledWith(LOGIN_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ email: 'user@example.com', password: 'password123' }),
         });
 
