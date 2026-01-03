@@ -57,3 +57,125 @@
 .link:focus {
     text-decoration: underline;
 }
+
+.formSection {
+    margin-top: 32px;
+    display: grid;
+    gap: 16px;
+}
+
+.sectionHeader {
+    display: grid;
+    gap: 4px;
+}
+
+.sectionTitle {
+    margin: 0;
+    font-size: 1.35rem;
+}
+
+.sectionSubtitle {
+    margin: 0;
+    color: var(--muted, #666);
+}
+
+.formCard {
+    padding: 20px;
+}
+
+.form {
+    position: relative;
+    display: grid;
+    gap: 16px;
+}
+
+.formGrid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.field {
+    display: grid;
+    gap: 6px;
+}
+
+.fieldFull {
+    grid-column: 1 / -1;
+}
+
+.fieldLabel {
+    color: var(--muted, #666);
+    font-weight: 600;
+}
+
+.fieldControl {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(17, 17, 17, 0.12);
+    background: #fff;
+    color: var(--text, #111);
+    font: inherit;
+}
+
+.fieldControl:focus {
+    outline: 2px solid rgba(58, 157, 91, 0.35);
+    outline-offset: 2px;
+}
+
+.fieldControlError {
+    border-color: #cc6154;
+    background: #fff7f5;
+}
+
+.textarea {
+    resize: vertical;
+}
+
+.fieldError {
+    color: #8a3b32;
+    font-size: 0.85rem;
+}
+
+.honeypot {
+    position: absolute;
+    left: -10000px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.alert {
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+.alertSuccess {
+    background: #f0faf3;
+    border: 1px solid #cce9d6;
+    color: #1b6c3d;
+}
+
+.alertError {
+    background: #fef7f6;
+    border: 1px solid #f3c8c2;
+    color: #8a3b32;
+}
+
+.submitButton {
+    background: var(--accent, #3a9d5b);
+    border: 1px solid var(--accent, #3a9d5b);
+    border-radius: 14px;
+    padding: 12px 14px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+}
+
+.submitButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
