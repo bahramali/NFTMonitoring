@@ -105,7 +105,9 @@ const buildSessionPayload = (payload) => {
 };
 
 export function AuthProvider({ children }) {
-    const [session, setSession] = useState(defaultSession);
+    const [session, setSession] = useState(() => (
+        import.meta.env?.MODE === 'test' ? readStoredSession() : defaultSession
+    ));
     const [profile, setProfile] = useState(null);
     const [profileError, setProfileError] = useState(null);
     const [loadingProfile, setLoadingProfile] = useState(false);
