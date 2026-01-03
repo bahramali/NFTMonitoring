@@ -403,9 +403,10 @@ export function AuthProvider({ children }) {
                 }
             } catch (error) {
                 if (error?.name === 'AbortError') return;
-                if (error?.status === 401 || error?.status === 403) {
+                const hadStoredSession = sessionRef.current.isAuthenticated || sessionRef.current.token;
+                if (hadStoredSession && (error?.status === 401 || error?.status === 403)) {
                     setAuthNotice({ type: 'error', message: 'Your session expired. Please sign in again.' });
-                } else if (error) {
+                } else if (hadStoredSession && error) {
                     setAuthNotice({ type: 'error', message: 'Unable to refresh your session. Please sign in again.' });
                 }
             } finally {
