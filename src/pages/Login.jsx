@@ -7,7 +7,7 @@ import OAuthButton from '../components/OAuthButton.jsx';
 import { fetchOAuthProviders, startGoogleSignIn } from '../api/auth.js';
 
 export default function Login() {
-    const { isAuthenticated, login, role, roles, permissions } = useAuth();
+    const { isAuthenticated, login, role, roles, permissions, authNotice, clearAuthNotice } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -77,6 +77,7 @@ export default function Login() {
     const handleGoogleSignIn = async () => {
         setOauthError('');
         setOauthLoading(true);
+        clearAuthNotice();
 
         try {
             const redirectPath = resolvedReturnUrl && resolvedReturnUrl.startsWith('/')
@@ -109,6 +110,7 @@ export default function Login() {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
+        clearAuthNotice();
         const result = await login(email, password);
         if (!result.success) {
             setError(result.message || 'Login failed. Please verify your credentials.');
@@ -132,6 +134,11 @@ export default function Login() {
                 <p className={styles.subtitle}>
                     Choose a sign-in method to access your account securely and continue where you left off.
                 </p>
+                {authNotice?.message && (
+                    <div className={styles.error} role="status" aria-live="polite">
+                        {authNotice.message}
+                    </div>
+                )}
                 {isGoogleAvailable && (
                     <div className={styles.oauthSection}>
                         <OAuthButton

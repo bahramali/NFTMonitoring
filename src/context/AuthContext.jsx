@@ -4,29 +4,41 @@ import React, {
     useContext,
     useEffect,
     useMemo,
+    useRef,
     useState,
 } from 'react';
-import { fetchSessionProfile, fetchSessionProfileWithCredentials } from '../api/auth.js';
+import {
+    fetchSessionProfile,
+    fetchSessionProfileWithCredentials,
+    logoutSession,
+    refreshAccessToken as requestRefreshAccessToken,
+} from '../api/auth.js';
+import { configureAuth } from '../api/http.js';
 import normalizeProfile from '../utils/normalizeProfile.js';
 
 const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
 const AUTH_BASE = `${API_BASE}/api/auth`;
-const SESSION_DURATION_MS = 30 * 60 * 1000;
 const PASSWORD_REQUIREMENTS_MESSAGE = 'Password must be at least 8 characters long.';
 
-const defaultAuthValue = {
+const defaultSession = {
     isAuthenticated: false,
     token: null,
     userId: null,
     role: null,
     roles: [],
     permissions: [],
+};
+
+const defaultAuthValue = {
+    ...defaultSession,
     profile: null,
     profileError: null,
     loadingProfile: false,
+    authNotice: null,
     login: async () => ({ success: false }),
     register: async () => ({ success: false }),
     logout: () => {},
+    clearAuthNotice: () => {},
     refreshProfile: () => {},
     completeOAuthLogin: async () => ({ success: false }),
 };
@@ -35,16 +47,16 @@ const AuthContext = createContext(defaultAuthValue);
 
 const readStoredSession = () => {
     if (typeof window === 'undefined') {
-        return defaultAuthValue;
+        return defaultSession;
     }
 
     const rawData = window.localStorage.getItem('authSession');
-    if (!rawData) return defaultAuthValue;
+    if (!rawData) return defaultSession;
 
     try {
         const parsed = JSON.parse(rawData);
         if (parsed.expiry && parsed.expiry <= Date.now()) {
-            return defaultAuthValue;
+            return defaultSession;
         }
 
         return {
@@ -54,16 +66,10 @@ const readStoredSession = () => {
             role: parsed.role || null,
             roles: Array.isArray(parsed.roles) ? parsed.roles : [],
             permissions: Array.isArray(parsed.permissions) ? parsed.permissions : [],
-            expiry: parsed.expiry || null,
         };
     } catch {
-        return defaultAuthValue;
+        return defaultSession;
     }
-};
-
-const persistSession = (session) => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem('authSession', JSON.stringify(session));
 };
 
 const normalizeRoles = (payload) => {
@@ -103,31 +109,61 @@ export function AuthProvider({ children }) {
     const [profile, setProfile] = useState(null);
     const [profileError, setProfileError] = useState(null);
     const [loadingProfile, setLoadingProfile] = useState(false);
+    const [authNotice, setAuthNotice] = useState(null);
+    const sessionRef = useRef(session);
+    const bootstrapAttemptedRef = useRef(false);
 
-    const setAuthenticatedSession = useCallback((payload) => {
+    useEffect(() => {
+        sessionRef.current = session;
+    }, [session]);
+
+    const setAuthenticatedSession = useCallback((payload, { fallback = {} } = {}) => {
         const { token, userId, role, roles, permissions } = payload || {};
         const normalizedRoles = Array.isArray(roles) ? roles.filter(Boolean) : normalizeRoles(role);
-        const primaryRole = role || normalizedRoles[0] || null;
+        const fallbackRoles = Array.isArray(fallback?.roles) ? fallback.roles : normalizeRoles(fallback?.role);
+        const resolvedRoles = normalizedRoles.length > 0 ? normalizedRoles : fallbackRoles;
+        const primaryRole = role || resolvedRoles[0] || fallback?.role || null;
+        const resolvedToken = token || fallback?.token || null;
+        const resolvedUserId = userId || fallback?.userId || null;
+        const resolvedPermissions = Array.isArray(permissions) && permissions.length > 0
+            ? permissions
+            : Array.isArray(fallback?.permissions)
+                ? fallback.permissions
+                : [];
 
-        if (!token || !userId || !primaryRole) {
+        if (!resolvedToken || !resolvedUserId || !primaryRole) {
             return { success: false, message: 'Login response is missing required fields.' };
         }
 
-        const normalizedPermissions = Array.isArray(permissions) ? permissions : [];
         const nextSession = {
             isAuthenticated: true,
-            token,
-            userId,
+            token: resolvedToken,
+            userId: resolvedUserId,
             role: primaryRole,
-            roles: normalizedRoles.length > 0 ? normalizedRoles : [primaryRole],
-            permissions: normalizedPermissions,
-            expiry: Date.now() + SESSION_DURATION_MS,
+            roles: resolvedRoles.length > 0 ? resolvedRoles : [primaryRole],
+            permissions: resolvedPermissions,
         };
 
         setSession(nextSession);
-        persistSession(nextSession);
-        return { success: true, role: primaryRole, roles: normalizedRoles, permissions: normalizedPermissions };
+        return { success: true, role: primaryRole, roles: nextSession.roles, permissions: resolvedPermissions };
     }, []);
+
+    const clearAuthNotice = useCallback(() => setAuthNotice(null), []);
+
+    const updateAccessToken = useCallback((token) => {
+        setSession((prev) => ({
+            ...prev,
+            token: token || null,
+        }));
+    }, []);
+
+    const refreshAccessToken = useCallback(async () => {
+        const payload = await requestRefreshAccessToken();
+        const sessionPayload = buildSessionPayload(payload);
+        if (!sessionPayload.token) return null;
+        updateAccessToken(sessionPayload.token);
+        return sessionPayload.token;
+    }, [requestRefreshAccessToken, updateAccessToken]);
 
     const login = useCallback(
         async (email, password) => {
@@ -139,9 +175,11 @@ export function AuthProvider({ children }) {
             }
 
             try {
+                clearAuthNotice();
                 const response = await fetch(`${AUTH_BASE}/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ email: trimmedEmail, password: normalizedPassword }),
                 });
 
@@ -160,23 +198,19 @@ export function AuthProvider({ children }) {
                     return { success: false, role: null, message };
                 }
 
-                return setAuthenticatedSession({
-                    token: payload?.token,
-                    userId: payload?.userId,
-                    role: payload?.role,
-                    permissions: payload?.permissions,
-                });
+                return setAuthenticatedSession(buildSessionPayload(payload));
             } catch (error) {
                 const message = error?.message || 'Login failed. Please try again.';
                 return { success: false, role: null, message };
             }
         },
-        [setAuthenticatedSession],
+        [clearAuthNotice, setAuthenticatedSession],
     );
 
     const completeOAuthLogin = useCallback(
         async ({ signal } = {}) => {
             try {
+                clearAuthNotice();
                 const payload = await fetchSessionProfileWithCredentials({ signal });
                 if (signal?.aborted) {
                     return { success: false, message: 'Sign-in cancelled.' };
@@ -195,7 +229,7 @@ export function AuthProvider({ children }) {
                 return { success: false, message: error?.message || 'Sign-in failed. Please try again.' };
             }
         },
-        [setAuthenticatedSession],
+        [clearAuthNotice, setAuthenticatedSession],
     );
 
     const register = useCallback(
@@ -208,9 +242,11 @@ export function AuthProvider({ children }) {
             }
 
             try {
+                clearAuthNotice();
                 const response = await fetch(`${AUTH_BASE}/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ email: trimmedEmail, password: normalizedPassword }),
                 });
 
@@ -232,48 +268,120 @@ export function AuthProvider({ children }) {
                     return { success: false, message };
                 }
 
-                return setAuthenticatedSession({
-                    token: payload?.token,
-                    userId: payload?.userId,
-                    role: payload?.role,
-                    permissions: payload?.permissions,
-                });
+                return setAuthenticatedSession(buildSessionPayload(payload));
             } catch (error) {
                 const message = error?.message || 'Registration failed. Please try again.';
                 return { success: false, message };
             }
         },
-        [setAuthenticatedSession],
+        [clearAuthNotice, setAuthenticatedSession],
     );
 
-    const logout = useCallback((options = {}) => {
-        const { redirect = true } = options;
-        setSession(defaultAuthValue);
+    const logout = useCallback(async (options = {}) => {
+        const { redirect = true, redirectTo = '/', clearNotice = true } = options;
+        try {
+            await logoutSession();
+        } catch (error) {
+            console.warn('Logout request failed', error);
+        }
+        setSession(defaultSession);
         setProfile(null);
         setProfileError(null);
         setLoadingProfile(false);
+        if (clearNotice) {
+            setAuthNotice(null);
+        }
         if (typeof window !== 'undefined') {
             window.localStorage.removeItem('authSession');
             if (redirect) {
-                window.location.assign('/');
+                window.location.assign(redirectTo);
             }
         }
     }, []);
 
+    const handleAuthFailure = useCallback(
+        (reason) => {
+            const message = reason === 'refresh_failed'
+                ? 'Your session refresh failed. Please sign in again.'
+                : 'Your session expired. Please sign in again.';
+            setAuthNotice({ type: 'error', message });
+            logout({ redirectTo: '/login', clearNotice: false });
+        },
+        [logout],
+    );
+
     useEffect(() => {
-        if (!session.isAuthenticated) {
+        configureAuth({
+            getAccessToken: () => sessionRef.current.token,
+            setAccessToken: updateAccessToken,
+            refreshAccessToken,
+            onAuthFailure: handleAuthFailure,
+        });
+    }, [handleAuthFailure, refreshAccessToken, updateAccessToken]);
+
+    useEffect(() => {
+        if (import.meta.env?.MODE === 'test') {
             return undefined;
         }
 
-        const expiry = session.expiry || 0;
-        if (!expiry || expiry <= Date.now()) {
-            logout();
+        if (session.isAuthenticated || bootstrapAttemptedRef.current) {
             return undefined;
         }
 
-        const timeoutId = window.setTimeout(logout, expiry - Date.now());
-        return () => window.clearTimeout(timeoutId);
-    }, [logout, session.expiry, session.isAuthenticated]);
+        bootstrapAttemptedRef.current = true;
+        const controller = new AbortController();
+
+        const bootstrap = async () => {
+            setLoadingProfile(true);
+            setProfileError(null);
+            try {
+                const payload = await requestRefreshAccessToken({ signal: controller.signal });
+                if (controller.signal.aborted) return;
+                const sessionPayload = buildSessionPayload(payload);
+                if (!sessionPayload.token) return;
+                updateAccessToken(sessionPayload.token);
+
+                if (sessionPayload.userId && (sessionPayload.role || sessionPayload.roles?.length)) {
+                    setAuthenticatedSession(sessionPayload, { fallback: sessionRef.current });
+                    setProfile(normalizeProfile(payload));
+                    return;
+                }
+
+                const profilePayload = await fetchSessionProfile(sessionPayload.token, { signal: controller.signal });
+                if (controller.signal.aborted) return;
+                const combined = {
+                    ...buildSessionPayload(profilePayload),
+                    token: sessionPayload.token,
+                };
+                const result = setAuthenticatedSession(combined, { fallback: sessionRef.current });
+                if (result.success) {
+                    setProfile(normalizeProfile(profilePayload));
+                }
+            } catch (error) {
+                if (error?.name === 'AbortError') return;
+                if (error?.status === 401 || error?.status === 403) {
+                    setAuthNotice({ type: 'error', message: 'Your session expired. Please sign in again.' });
+                } else if (error) {
+                    setAuthNotice({ type: 'error', message: 'Unable to refresh your session. Please sign in again.' });
+                }
+            } finally {
+                if (!controller.signal.aborted) {
+                    setLoadingProfile(false);
+                }
+            }
+        };
+
+        bootstrap();
+
+        return () => {
+            controller.abort();
+        };
+    }, [
+        requestRefreshAccessToken,
+        session.isAuthenticated,
+        setAuthenticatedSession,
+        updateAccessToken,
+    ]);
 
     const loadProfile = useCallback(
         async (signal) => {
@@ -302,23 +410,16 @@ export function AuthProvider({ children }) {
                 const payloadRole = payload?.role || payloadRoles[0] || payload?.user?.role || session.role;
 
                 setProfile(normalizeProfile(payload));
-                setSession((prev) => {
-                    const nextRoles = payloadRoles.length > 0 ? payloadRoles : prev.roles;
-                    const nextPermissions = payloadPermissions.length > 0 ? payloadPermissions : prev.permissions;
-                    const nextRole = payloadRole || prev.role;
-                    const nextSession = {
-                        ...prev,
-                        role: nextRole,
-                        roles: nextRoles,
-                        permissions: nextPermissions,
-                    };
-                    persistSession(nextSession);
-                    return nextSession;
-                });
+                setSession((prev) => ({
+                    ...prev,
+                    role: payloadRole || prev.role,
+                    roles: payloadRoles.length > 0 ? payloadRoles : prev.roles,
+                    permissions: payloadPermissions.length > 0 ? payloadPermissions : prev.permissions,
+                }));
             } catch (error) {
                 if (error?.name === 'AbortError') return;
                 if (error?.status === 401 || error?.status === 403) {
-                    logout({ redirect: false });
+                    handleAuthFailure('expired');
                     return;
                 }
                 setProfileError(error?.message || 'Failed to load profile');
@@ -328,7 +429,7 @@ export function AuthProvider({ children }) {
                 }
             }
         },
-        [logout, session.isAuthenticated, session.role, session.token],
+        [handleAuthFailure, session.isAuthenticated, session.role, session.token],
     );
 
     useEffect(() => {
@@ -357,9 +458,11 @@ export function AuthProvider({ children }) {
             profile,
             profileError,
             loadingProfile,
+            authNotice,
             login,
             register,
             logout,
+            clearAuthNotice,
             refreshProfile: () => loadProfile(),
             completeOAuthLogin,
         }),
@@ -373,9 +476,11 @@ export function AuthProvider({ children }) {
             profile,
             profileError,
             loadingProfile,
+            authNotice,
             login,
             register,
             logout,
+            clearAuthNotice,
             loadProfile,
             completeOAuthLogin,
         ],
