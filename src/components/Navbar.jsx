@@ -168,9 +168,9 @@ export default function Navbar() {
             <div className="topbar__inner">
                 <div className="topbar__left">
                     <Link
-                        to="/store"
+                        to="/"
                         className={styles.brand}
-                        aria-label="Go to store"
+                        aria-label="Go to home"
                         onClick={handleNavLinkClick}
                     >
                         <img src={hydroleafLogo} alt="HydroLeaf logo" className={styles.brandLogo} />
@@ -179,11 +179,20 @@ export default function Navbar() {
                 </div>
 
                 <div className="topbar__center">
-                    {(!isStoreRoute || showInternalTabs) && (
+                    <NavLink to="/" className={moduleTabClass} onClick={handleNavLinkClick} end>
+                        Home
+                    </NavLink>
+                    <NavLink to="/store" className={moduleTabClass} onClick={handleNavLinkClick}>
+                        Store
+                    </NavLink>
+                    <NavLink to="/about" className={moduleTabClass} onClick={handleNavLinkClick}>
+                        About
+                    </NavLink>
+                    <NavLink to="/contact" className={moduleTabClass} onClick={handleNavLinkClick}>
+                        Contact
+                    </NavLink>
+                    {showInternalTabs && (
                         <>
-                            <NavLink to="/store" className={moduleTabClass} onClick={handleNavLinkClick}>
-                                Store
-                            </NavLink>
                             {canSeeMonitoring && (
                                 <NavLink to="/monitoring/overview" className={moduleTabClass} onClick={handleNavLinkClick}>
                                     Monitoring

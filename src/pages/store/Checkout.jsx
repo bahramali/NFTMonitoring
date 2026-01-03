@@ -128,19 +128,37 @@ export default function Checkout() {
                 <div className={styles.layout}>
                     <form className={styles.form} onSubmit={handleSubmit}>
                         {isAuthenticated ? (
-                            <div className={styles.accountNote}>
-                                <span>
-                                    Ordering as {profileEmail || 'your account'}.
-                                </span>
-                                <button type="button" className={styles.logoutLink} onClick={() => logout({ redirect: false })}>
-                                    Log out
-                                </button>
-                            </div>
+                            <>
+                                <div className={styles.accountNote}>
+                                    <span>
+                                        Ordering as {profileEmail || 'your account'}.
+                                    </span>
+                                    <button type="button" className={styles.logoutLink} onClick={() => logout({ redirect: false })}>
+                                        Log out
+                                    </button>
+                                </div>
+                                <div className={styles.fieldGroup}>
+                                    <label htmlFor="email">Email</label>
+                                    <input
+                                        id="email"
+                                        name="email"
+                                        type="email"
+                                        value={profileEmail}
+                                        readOnly
+                                    />
+                                </div>
+                            </>
                         ) : (
                             <>
-                                <p className={styles.inlineLink}>
-                                    Already have an account? <Link to="/login?returnUrl=/store/checkout">Log in</Link>
-                                </p>
+                                <div className={styles.guestIntro}>
+                                    <h2 className={styles.guestTitle}>Checkout as guest</h2>
+                                    <p className={styles.guestSubtitle}>
+                                        No account needed. Enter your email to receive order updates.
+                                    </p>
+                                    <Link className={styles.guestLink} to="/login?next=/store/checkout">
+                                        Have an account? Log in
+                                    </Link>
+                                </div>
                                 <div className={styles.fieldGroup}>
                                     <label htmlFor="email">Email</label>
                                     <input id="email" name="email" type="email" required value={form.email} onChange={handleChange} />
@@ -153,7 +171,7 @@ export default function Checkout() {
                         </div>
                         <div className={styles.fieldGroup}>
                             <label htmlFor="phone">Phone</label>
-                            <input id="phone" name="phone" type="tel" required value={form.phone} onChange={handleChange} />
+                            <input id="phone" name="phone" type="tel" value={form.phone} onChange={handleChange} />
                         </div>
                         <div className={styles.fieldGroup}>
                             <label htmlFor="notes">Notes</label>
