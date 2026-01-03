@@ -1,4 +1,4 @@
-import { buildAuthHeaders, parseApiResponse } from './http.js';
+import { authFetch, buildAuthHeaders, parseApiResponse } from './http.js';
 
 const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
 const AUTH_BASE = `${API_BASE}/api/auth`;
@@ -32,10 +32,14 @@ export async function fetchSessionProfile(token, { signal } = {}) {
         throw new Error('Authentication is required to load the profile.');
     }
 
-    const res = await fetch(PROFILE_URL, {
-        headers: buildAuthHeaders(token),
-        signal,
-    });
+    const res = await authFetch(
+        PROFILE_URL,
+        {
+            headers: buildAuthHeaders(token),
+            signal,
+        },
+        { token },
+    );
 
     return parseApiResponse(res, 'Failed to load profile');
 }
@@ -47,6 +51,26 @@ export async function fetchSessionProfileWithCredentials({ signal } = {}) {
     });
 
     return parseApiResponse(res, 'Failed to load profile');
+}
+
+export async function refreshAccessToken({ signal } = {}) {
+    const res = await fetch(`${AUTH_BASE}/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+        signal,
+    });
+
+    return parseApiResponse(res, 'Failed to refresh session');
+}
+
+export async function logoutSession({ signal } = {}) {
+    const res = await fetch(`${AUTH_BASE}/logout`, {
+        method: 'POST',
+        credentials: 'include',
+        signal,
+    });
+
+    return parseApiResponse(res, 'Failed to log out');
 }
 
 export async function confirmPasswordReset(token, password) {

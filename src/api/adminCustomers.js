@@ -1,4 +1,4 @@
-import { buildAuthHeaders, parseApiResponse } from './http.js';
+import { authFetch, buildAuthHeaders, parseApiResponse } from './http.js';
 
 const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
 const ADMIN_CUSTOMERS_URL = `${API_BASE}/api/admin/customers`;
@@ -150,11 +150,15 @@ export async function listAdminCustomers(token, params = {}, { signal } = {}) {
     if (resolvedParams.size) searchParams.set('size', resolvedParams.size);
 
     const url = `${ADMIN_CUSTOMERS_URL}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-    const res = await fetch(url, {
-        method: 'GET',
-        headers: buildAuthHeaders(token),
-        signal,
-    });
+    const res = await authFetch(
+        url,
+        {
+            method: 'GET',
+            headers: buildAuthHeaders(token),
+            signal,
+        },
+        { token },
+    );
     const payload = await parseApiResponse(res, 'Failed to load customers');
     const customers = normalizeCustomersPayload(payload);
     const sizeFallback = resolvedParams.size ?? (customers.length || 1);
@@ -171,11 +175,15 @@ export async function listAdminCustomers(token, params = {}, { signal } = {}) {
 export async function fetchAdminCustomer(customerId, token, { signal } = {}) {
     if (!token) throw new Error('Authentication is required to load customer details');
     if (!customerId) throw new Error('Customer ID is required');
-    const res = await fetch(`${ADMIN_CUSTOMERS_URL}/${encodeURIComponent(customerId)}`, {
-        method: 'GET',
-        headers: buildAuthHeaders(token),
-        signal,
-    });
+    const res = await authFetch(
+        `${ADMIN_CUSTOMERS_URL}/${encodeURIComponent(customerId)}`,
+        {
+            method: 'GET',
+            headers: buildAuthHeaders(token),
+            signal,
+        },
+        { token },
+    );
     const payload = await parseApiResponse(res, 'Failed to load customer');
     return normalizeCustomer(payload?.customer ?? payload?.data ?? payload);
 }
