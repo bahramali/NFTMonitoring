@@ -1,40 +1,34 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import ProtectedRoute from '../src/components/ProtectedRoute.jsx';
-import { AuthProvider } from '../src/context/AuthContext.jsx';
 import { PERMISSIONS } from '../src/utils/permissions.js';
+import { renderWithAuthSession } from './utils/renderWithAuthSession';
 
 const renderWithAuth = (permissions, initialPath = '/store/admin/products') => {
-    window.localStorage.setItem(
-        'authSession',
-        JSON.stringify({
-            isAuthenticated: true,
-            token: 'token',
-            userId: 'admin-1',
-            role: 'ADMIN',
-            permissions,
-            expiry: Date.now() + 60_000,
-        }),
+    const RouterWrapper = ({ children }) => (
+        <MemoryRouter initialEntries={[initialPath]}>{children}</MemoryRouter>
     );
 
-    return render(
-        <MemoryRouter initialEntries={[initialPath]}>
-            <AuthProvider>
-                <Routes>
-                    <Route
-                        path="/store/admin/products"
-                        element={(
-                            <ProtectedRoute requiredPermissions={[PERMISSIONS.PRODUCTS_MANAGE]}>
-                                <div>Products Admin</div>
-                            </ProtectedRoute>
-                        )}
-                    />
-                    <Route path="/not-authorized" element={<div>Not Authorized</div>} />
-                </Routes>
-            </AuthProvider>
-        </MemoryRouter>,
+    return renderWithAuthSession(
+        <Routes>
+            <Route
+                path="/store/admin/products"
+                element={(
+                    <ProtectedRoute requiredPermissions={[PERMISSIONS.PRODUCTS_MANAGE]}>
+                        <div>Products Admin</div>
+                    </ProtectedRoute>
+                )}
+            />
+            <Route path="/not-authorized" element={<div>Not Authorized</div>} />
+        </Routes>,
+        {
+            session: {
+                permissions,
+            },
+            wrapper: RouterWrapper,
+        },
     );
 };
 
