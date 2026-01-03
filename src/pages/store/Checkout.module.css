@@ -67,6 +67,38 @@
     color: var(--text, #111);
 }
 
+.fieldGroup input[readonly] {
+    background: #f6f7f9;
+    color: var(--muted, #666);
+}
+
+.guestIntro {
+    display: grid;
+    gap: 4px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border, #e6e6e6);
+    background: #fafafa;
+}
+
+.guestTitle {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.guestSubtitle {
+    margin: 0;
+    color: var(--muted, #666);
+    font-size: 0.95rem;
+}
+
+.guestLink {
+    width: fit-content;
+    color: var(--text, #111);
+    text-decoration: underline;
+    font-size: 0.9rem;
+}
+
 .inlineFields {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));

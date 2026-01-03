@@ -44,6 +44,9 @@ import ProductAdmin from './pages/ProductAdmin.jsx';
 import CustomersList from './pages/store/CustomersList.jsx';
 import CustomerDetails from './pages/store/CustomerDetails.jsx';
 import Contact from './pages/store/Contact.jsx';
+import About from './pages/store/About.jsx';
+import FAQ from './pages/store/FAQ.jsx';
+import ShippingReturns from './pages/store/ShippingReturns.jsx';
 import Terms from './pages/store/Terms.jsx';
 import Privacy from './pages/store/Privacy.jsx';
 import PaymentSuccess from './pages/payment/PaymentSuccess.jsx';
@@ -111,14 +114,7 @@ function AppRoutes() {
                         <Route index element={<Storefront />} />
                         <Route path="product/:productId" element={<ProductDetail />} />
                         <Route path="cart" element={<CartPage />} />
-                        <Route
-                            path="checkout"
-                            element={(
-                                <ProtectedRoute>
-                                    <Checkout />
-                                </ProtectedRoute>
-                            )}
-                        />
+                        <Route path="checkout" element={<Checkout />} />
                         <Route path="order/:orderId/success" element={<OrderStatus status="success" />} />
                         <Route path="order/:orderId/cancel" element={<OrderStatus status="cancel" />} />
                         <Route
@@ -149,6 +145,15 @@ function AppRoutes() {
 
                     <Route path="/contact" element={<StoreLayout />}>
                         <Route index element={<Contact />} />
+                    </Route>
+                    <Route path="/about" element={<StoreLayout />}>
+                        <Route index element={<About />} />
+                    </Route>
+                    <Route path="/faq" element={<StoreLayout />}>
+                        <Route index element={<FAQ />} />
+                    </Route>
+                    <Route path="/shipping-returns" element={<StoreLayout />}>
+                        <Route index element={<ShippingReturns />} />
                     </Route>
                     <Route path="/terms" element={<StoreLayout />}>
                         <Route index element={<Terms />} />
