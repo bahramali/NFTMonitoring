@@ -1,8 +1,8 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
-import { AuthProvider } from '../src/context/AuthContext.jsx';
+import { renderWithAuthSession } from './utils/renderWithAuthSession';
 
 const mockLocation = { pathname: '/' };
 
@@ -30,29 +30,13 @@ import { MemoryRouter } from 'react-router-dom';
 import Sidebar from '../src/pages/common/Sidebar';
 import { ReportsFiltersProvider } from '../src/pages/Reports/context/ReportsFiltersContext.jsx';
 
-const renderSidebar = () => {
-    window.localStorage.setItem(
-        'authSession',
-        JSON.stringify({
-            isAuthenticated: true,
-            token: 'token',
-            userId: 'admin-1',
-            role: 'ADMIN',
-            permissions: ['MONITORING_VIEW'],
-            expiry: Date.now() + 60_000,
-        }),
-    );
+const SidebarWrapper = ({ children }) => (
+    <MemoryRouter>
+        <ReportsFiltersProvider>{children}</ReportsFiltersProvider>
+    </MemoryRouter>
+);
 
-    return render(
-        <MemoryRouter>
-            <AuthProvider>
-                <ReportsFiltersProvider>
-                    <Sidebar />
-                </ReportsFiltersProvider>
-            </AuthProvider>
-        </MemoryRouter>
-    );
-};
+const renderSidebar = () => renderWithAuthSession(<Sidebar />, { wrapper: SidebarWrapper });
 
 test('renders NFT Channels link', () => {
     mockLocation.pathname = '/';

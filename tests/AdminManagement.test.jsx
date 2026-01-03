@@ -1,8 +1,8 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import { AuthProvider } from '../src/context/AuthContext.jsx';
 import AdminManagement from '../src/pages/AdminManagement.jsx';
+import { renderWithAuthSession } from './utils/renderWithAuthSession';
 
 const createJsonResponse = (body, ok = true, status = 200) => ({
     ok,
@@ -10,9 +10,13 @@ const createJsonResponse = (body, ok = true, status = 200) => ({
     text: () => Promise.resolve(body ? JSON.stringify(body) : ''),
 });
 
-function renderWithAuth(ui) {
-    return render(<AuthProvider>{ui}</AuthProvider>);
-}
+const adminSession = {
+    isAuthenticated: true,
+    token: 'token-123',
+    userId: 'super-admin',
+    role: 'SUPER_ADMIN',
+    permissions: [],
+};
 
 describe('AdminManagement', () => {
     afterEach(() => {
@@ -55,19 +59,7 @@ describe('AdminManagement', () => {
         });
         vi.stubGlobal('fetch', fetchMock);
 
-        window.localStorage.setItem(
-            'authSession',
-            JSON.stringify({
-                isAuthenticated: true,
-                token: 'token-123',
-                userId: 'super-admin',
-                role: 'SUPER_ADMIN',
-                permissions: [],
-                expiry: Date.now() + 60_000,
-            }),
-        );
-
-        renderWithAuth(<AdminManagement />);
+        renderWithAuthSession(<AdminManagement />, { session: adminSession });
 
         await screen.findByLabelText(/Admin Overview/i);
         expect(screen.queryByLabelText(/Username/i)).toBeNull();
@@ -118,19 +110,7 @@ describe('AdminManagement', () => {
         });
         vi.stubGlobal('fetch', fetchMock);
 
-        window.localStorage.setItem(
-            'authSession',
-            JSON.stringify({
-                isAuthenticated: true,
-                token: 'token-123',
-                userId: 'super-admin',
-                role: 'SUPER_ADMIN',
-                permissions: [],
-                expiry: Date.now() + 60_000,
-            }),
-        );
-
-        renderWithAuth(<AdminManagement />);
+        renderWithAuthSession(<AdminManagement />, { session: adminSession });
 
         await screen.findByLabelText(/Admin Overview/i);
         expect(screen.queryByLabelText(/Username/i)).toBeNull();
@@ -172,19 +152,7 @@ describe('AdminManagement', () => {
         });
         vi.stubGlobal('fetch', fetchMock);
 
-        window.localStorage.setItem(
-            'authSession',
-            JSON.stringify({
-                isAuthenticated: true,
-                token: 'token-123',
-                userId: 'super-admin',
-                role: 'SUPER_ADMIN',
-                permissions: [],
-                expiry: Date.now() + 60_000,
-            }),
-        );
-
-        renderWithAuth(<AdminManagement />);
+        renderWithAuthSession(<AdminManagement />, { session: adminSession });
 
         await screen.findByLabelText(/Admin Overview/i);
         const newPermissionCheckbox = await screen.findByLabelText(/Insights/i);
