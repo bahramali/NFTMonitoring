@@ -78,11 +78,20 @@ export default function About() {
                 <div className={styles.addressGrid}>
                     <div className={styles.addressCard}>
                         <p className={styles.addressLabel}>Registered address / Head office</p>
-                        <p className={styles.addressValue}>Solna</p>
+                        <div className={styles.addressValue}>
+                            <p className={styles.addressLine}>Company: HydroLeaf AB</p>
+                            <p className={styles.addressLine}>Street: Gustav III:s Boulevard 92</p>
+                            <p className={styles.addressLine}>Postal/City: 169 74 Solna</p>
+                            <p className={styles.addressLine}>Country: Sweden</p>
+                        </div>
                     </div>
                     <div className={styles.addressCard}>
                         <p className={styles.addressLabel}>Greenhouse / Production site</p>
-                        <p className={styles.addressValue}>Kista</p>
+                        <div className={styles.addressValue}>
+                            <p className={styles.addressLine}>Street: Isafjordsgatan 39B</p>
+                            <p className={styles.addressLine}>Postal/City: 164 40 Kista</p>
+                            <p className={styles.addressLine}>Country: Sweden</p>
+                        </div>
                     </div>
                 </div>
                 <p className={styles.sectionFootnote}>
