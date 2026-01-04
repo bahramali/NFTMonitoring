@@ -9,6 +9,8 @@ on:
 jobs:
   install-and-test:
     runs-on: ubuntu-latest
+    env:
+      VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
