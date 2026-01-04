@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { API_BASE } from '../../api/topics';
 import styles from './LegalPage.module.css';
 
 const subjectOptions = [
@@ -215,7 +216,7 @@ export default function Contact() {
 
         setIsSubmitting(true);
         try {
-            const response = await fetch('/api/contact', {
+            const response = await fetch(`${API_BASE}/api/contact`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
