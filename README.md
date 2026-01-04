@@ -27,6 +27,7 @@ VITE_BASE_PATH=
 VITE_TURNSTILE_SITE_KEY=
 ```
 
+
 Additionally, set `VITE_WS_URL` to the WebSocket endpoint that provides the live
 STOMP feed. If not defined, it defaults to `wss://api.hydroleaf.se/ws`.
 Set `VITE_API_BASE` to the base URL for REST API requests. When omitted,
