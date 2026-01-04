@@ -24,6 +24,7 @@ VITE_MQTT_USERNAME=
 VITE_MQTT_PASSWORD=
 VITE_API_BASE=
 VITE_BASE_PATH=
+VITE_TURNSTILE_SITE_KEY=
 ```
 
 Additionally, set `VITE_WS_URL` to the WebSocket endpoint that provides the live
@@ -36,6 +37,10 @@ instance that exposes the expected endpoints.
 Use `VITE_BASE_PATH` when deploying the app under a sub‑directory (for example,
 `/super-admin/`). The build falls back to `/`, so set this variable when the app
 is not served from the domain root to keep asset URLs valid on refresh.
+
+The contact form uses Cloudflare Turnstile. Set `VITE_TURNSTILE_SITE_KEY` at build
+time (Vite injects environment variables during the build step, not at runtime).
+In CI/CD you should pass this value as a build environment variable or secret.
 
 These variables are used to establish the MQTT connection.
 Make sure the file is named `.env` and each variable starts with the `VITE_` prefix so that Vite exposes them to the frontend.
