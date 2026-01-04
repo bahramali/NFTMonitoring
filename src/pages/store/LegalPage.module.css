@@ -151,6 +151,22 @@
     margin: 16px 0 8px;
 }
 
+.retryButton {
+    align-self: flex-start;
+    background: transparent;
+    border: 1px solid rgba(17, 17, 17, 0.2);
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-weight: 600;
+    color: var(--text, #111);
+    cursor: pointer;
+}
+
+.retryButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .alert {
     padding: 12px 14px;
     border-radius: 12px;

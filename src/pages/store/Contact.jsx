@@ -18,6 +18,7 @@ const initialFormState = {
 };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const honeypotFieldName = 'faxNumber';
 
 export default function Contact() {
     const [formValues, setFormValues] = useState(initialFormState);
@@ -25,9 +26,12 @@ export default function Contact() {
     const [status, setStatus] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [turnstileToken, setTurnstileToken] = useState('');
+    const [turnstileLoadError, setTurnstileLoadError] = useState('');
+    const [turnstileRetryKey, setTurnstileRetryKey] = useState(0);
     const turnstileRef = useRef(null);
     const turnstileWidgetId = useRef(null);
     const siteKey = import.meta.env?.VITE_TURNSTILE_SITE_KEY || '';
+    const isDev = Boolean(import.meta.env?.DEV);
 
     useEffect(() => {
         if (!siteKey) {
@@ -37,7 +41,17 @@ export default function Contact() {
         let isActive = true;
 
         const renderWidget = () => {
-            if (!isActive || !turnstileRef.current || !window.turnstile) {
+            if (!isActive) {
+                return;
+            }
+
+            if (!turnstileRef.current || !window.turnstile) {
+                setTurnstileToken('');
+                setTurnstileLoadError('Verification failed to load. Please retry.');
+                setErrors((prev) => ({
+                    ...prev,
+                    turnstileToken: 'Verification failed to load. Please retry.',
+                }));
                 return;
             }
 
@@ -54,6 +68,7 @@ export default function Contact() {
                         return;
                     }
                     setTurnstileToken(token);
+                    setTurnstileLoadError('');
                     setErrors((prev) => ({ ...prev, turnstileToken: undefined }));
                 },
                 'error-callback': () => {
@@ -85,9 +100,11 @@ export default function Contact() {
         const existingScript = document.querySelector('script[data-turnstile]');
         if (existingScript) {
             existingScript.addEventListener('load', renderWidget);
+            existingScript.addEventListener('error', renderWidget);
             return () => {
                 isActive = false;
                 existingScript.removeEventListener('load', renderWidget);
+                existingScript.removeEventListener('error', renderWidget);
             };
         }
 
@@ -101,9 +118,11 @@ export default function Contact() {
             if (!isActive) {
                 return;
             }
+            setTurnstileToken('');
+            setTurnstileLoadError('Verification failed to load. Please retry.');
             setErrors((prev) => ({
                 ...prev,
-                turnstileToken: 'Verification failed to load. Please try again later.',
+                turnstileToken: 'Verification failed to load. Please retry.',
             }));
         });
         document.body.appendChild(script);
@@ -112,13 +131,20 @@ export default function Contact() {
             isActive = false;
             script.removeEventListener('load', renderWidget);
         };
-    }, [siteKey]);
+    }, [siteKey, turnstileRetryKey]);
 
     const handleChange = (event) => {
         const { name, value } = event.target;
-        setFormValues((prev) => ({ ...prev, [name]: value }));
-        if (errors[name]) {
-            setErrors((prev) => ({ ...prev, [name]: undefined }));
+        if (name === honeypotFieldName) {
+            setFormValues((prev) => ({ ...prev, companyWebsite: value }));
+            if (errors.companyWebsite) {
+                setErrors((prev) => ({ ...prev, companyWebsite: undefined }));
+            }
+        } else {
+            setFormValues((prev) => ({ ...prev, [name]: value }));
+            if (errors[name]) {
+                setErrors((prev) => ({ ...prev, [name]: undefined }));
+            }
         }
     };
 
@@ -147,11 +173,34 @@ export default function Contact() {
             nextErrors.companyWebsite = 'Please leave this field blank.';
         }
         if (!siteKey) {
-            nextErrors.turnstileToken = 'Verification is unavailable. Please try again later.';
+            if (!isDev) {
+                nextErrors.turnstileToken =
+                    'Verification is unavailable due to a configuration issue.';
+            }
+        } else if (turnstileLoadError) {
+            nextErrors.turnstileToken = turnstileLoadError;
         } else if (!turnstileToken) {
             nextErrors.turnstileToken = 'Please complete the verification.';
         }
         return nextErrors;
+    };
+
+    const handleTurnstileRetry = () => {
+        setTurnstileToken('');
+        setTurnstileLoadError('');
+        setErrors((prev) => ({ ...prev, turnstileToken: undefined }));
+        if (turnstileWidgetId.current !== null && window.turnstile?.remove) {
+            window.turnstile.remove(turnstileWidgetId.current);
+            turnstileWidgetId.current = null;
+        }
+        if (turnstileRef.current) {
+            turnstileRef.current.innerHTML = '';
+        }
+        const script = document.querySelector('script[data-turnstile]');
+        if (script) {
+            script.remove();
+        }
+        setTurnstileRetryKey((prev) => prev + 1);
     };
 
     const handleSubmit = async (event) => {
@@ -414,15 +463,17 @@ export default function Contact() {
                             </div>
                         </div>
                         <div className={styles.honeypot}>
-                            <label htmlFor="companyWebsite">Company Website</label>
+                            <label htmlFor={honeypotFieldName}>Fax number</label>
                             <input
-                                id="companyWebsite"
-                                name="companyWebsite"
+                                id={honeypotFieldName}
+                                name={honeypotFieldName}
                                 type="text"
                                 value={formValues.companyWebsite}
                                 onChange={handleChange}
                                 autoComplete="off"
-                                tabIndex="-1"
+                                tabIndex={-1}
+                                aria-hidden="true"
+                                inputMode="none"
                             />
                         </div>
                         {errors.companyWebsite ? (
@@ -433,6 +484,16 @@ export default function Contact() {
                         </div>
                         {errors.turnstileToken ? (
                             <span className={styles.fieldError}>{errors.turnstileToken}</span>
+                        ) : null}
+                        {siteKey && turnstileLoadError ? (
+                            <button
+                                className={styles.retryButton}
+                                type="button"
+                                onClick={handleTurnstileRetry}
+                                disabled={isSubmitting}
+                            >
+                                Retry verification
+                            </button>
                         ) : null}
                         {status ? (
                             <div
