@@ -98,11 +98,17 @@
     font-weight: 700;
 }
 
+.buyFooter {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
 .buySection {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    margin-top: auto;
 }
 
 .stock {
