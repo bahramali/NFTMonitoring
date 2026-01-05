@@ -163,6 +163,24 @@
     border-radius: 12px;
     border: 1px dashed #cbd5f5;
     color: #64748b;
+    display: grid;
+    gap: 8px;
+}
+
+.emptyState p {
+    margin: 0;
+}
+
+.emptyStateLink {
+    color: var(--text);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    width: fit-content;
+}
+
+.emptyStateLink:hover {
+    text-decoration-thickness: 2px;
 }
 
 @media (max-width: 900px) {

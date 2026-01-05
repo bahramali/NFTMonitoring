@@ -82,6 +82,7 @@ export default function ProductCard({ product, onAdd, pending = false }) {
                             {pending ? 'Adding…' : 'Add'}
                         </button>
                     </div>
+                    <span className={styles.trustCue}>Pesticide-free</span>
                     {showMaxNotice ? (
                         <span className={styles.maxNotice}>Max available: {stock}</span>
                     ) : null}
