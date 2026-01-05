@@ -101,7 +101,7 @@
 .buySection {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0.5rem;
     margin-top: auto;
 }
 
@@ -125,8 +125,11 @@
 }
 
 .actions {
-    display: grid;
-    gap: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    width: 100%;
 }
 
 .addButton {
