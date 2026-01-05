@@ -7,6 +7,8 @@
     border: 1px solid var(--border, #e6e6e6);
     border-radius: 12px;
     padding: 6px 10px;
+    inline-size: fit-content;
+    max-inline-size: 100%;
 }
 
 .compact {
