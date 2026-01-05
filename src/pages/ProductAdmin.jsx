@@ -1,10 +1,20 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { listAdminProducts, createProduct, updateProduct, toggleProductActive, updateProductStock, deleteProduct } from '../api/products.js';
+import {
+    listAdminProducts,
+    createProduct,
+    updateProduct,
+    toggleProductActive,
+    deleteProduct,
+    createProductVariant,
+    updateProductVariant,
+    deleteProductVariant,
+} from '../api/products.js';
 import { fetchPermissionDefinitions } from '../api/admins.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import AccessDenied from '../components/AccessDenied.jsx';
 import { formatCurrency } from '../utils/currency.js';
+import { getActiveVariants, getVariantLabel, getVariantPrice, getVariantStock, getProductSortPrice } from '../utils/storeVariants.js';
 import { PERMISSIONS, findPermissionLabel, hasPerm } from '../utils/permissions.js';
 import styles from './ProductAdmin.module.css';
 
@@ -13,9 +23,7 @@ const CATEGORY_OPTIONS = ['Basil', 'Packaging', 'Hydroponic gear'];
 const emptyForm = {
     name: '',
     description: '',
-    price: '',
     currency: 'SEK',
-    stock: 0,
     category: CATEGORY_OPTIONS[0],
     imageUrl: '',
     sku: '',
@@ -80,6 +88,16 @@ const normalizeNumber = (value, fallback = 0) => {
     return numeric;
 };
 
+const normalizeVariants = (variants) => {
+    if (!variants) return [];
+    if (Array.isArray(variants)) return variants;
+    if (Array.isArray(variants.items)) return variants.items;
+    if (Array.isArray(variants.nodes)) return variants.nodes;
+    if (Array.isArray(variants.data)) return variants.data;
+    if (typeof variants === 'object') return Object.values(variants);
+    return [];
+};
+
 export default function ProductAdmin() {
     const { isAuthenticated, token, permissions } = useAuth();
     const [products, setProducts] = useState([]);
@@ -98,6 +116,8 @@ export default function ProductAdmin() {
     const [confirmingDelete, setConfirmingDelete] = useState(null);
     const [confirmingStatus, setConfirmingStatus] = useState(null);
     const [actioningId, setActioningId] = useState(null);
+    const [variantRows, setVariantRows] = useState([]);
+    const [variantActionId, setVariantActionId] = useState(null);
 
     const hasAccess = hasPerm({ permissions }, PERMISSIONS.PRODUCTS_MANAGE);
 
@@ -123,7 +143,7 @@ export default function ProductAdmin() {
             const matched = nextList.find((item) => item?.id === targetId);
             if (matched) {
                 setSelectedId(matched.id);
-                setFormState({ ...emptyForm, ...matched, price: matched.price ?? '', stock: matched.stock ?? 0, active: matched.active !== false });
+                setFormState({ ...emptyForm, ...matched, active: matched.active !== false });
                 return;
             }
         }
@@ -186,8 +206,8 @@ export default function ProductAdmin() {
         }
 
         list.sort((a, b) => {
-            if (sortBy === 'price_desc') return (b.price ?? 0) - (a.price ?? 0);
-            if (sortBy === 'price_asc') return (a.price ?? 0) - (b.price ?? 0);
+            if (sortBy === 'price_desc') return getProductSortPrice(b) - getProductSortPrice(a);
+            if (sortBy === 'price_asc') return getProductSortPrice(a) - getProductSortPrice(b);
             const aDate = new Date(a.updatedAt || a.updated || a.createdAt || 0).getTime();
             const bDate = new Date(b.updatedAt || b.updated || b.createdAt || 0).getTime();
             return bDate - aDate;
@@ -204,7 +224,7 @@ export default function ProductAdmin() {
     const handleEdit = useCallback((product) => {
         if (!product?.id) return;
         setSelectedId(product.id);
-        setFormState({ ...emptyForm, ...product, price: product.price ?? '', stock: product.stock ?? 0, active: product.active !== false });
+        setFormState({ ...emptyForm, ...product, active: product.active !== false });
     }, []);
 
     const handleToggleActive = useCallback(async (product, confirmed = false) => {
@@ -222,29 +242,6 @@ export default function ProductAdmin() {
         } catch (error) {
             console.error('Failed to toggle status', error);
             showToast('error', 'Could not update product status.');
-        } finally {
-            setActioningId(null);
-        }
-    }, [loadProducts, saving, showToast, token]);
-
-    const handleAdjustStock = useCallback(async (product) => {
-        if (!product?.id || saving) return;
-        const response = window.prompt('Set stock quantity', product.stock ?? 0);
-        if (response === null) return;
-        const nextStock = normalizeNumber(response, product.stock ?? 0);
-        if (nextStock < 0) {
-            showToast('error', 'Stock must be zero or greater.');
-            return;
-        }
-
-        setActioningId(product.id);
-        try {
-            await updateProductStock(product.id, nextStock, token);
-            showToast('success', 'Stock updated');
-            loadProducts({ preferId: product.id });
-        } catch (error) {
-            console.error('Failed to update stock', error);
-            showToast('error', 'Could not update stock.');
         } finally {
             setActioningId(null);
         }
@@ -274,10 +271,6 @@ export default function ProductAdmin() {
 
     const validateForm = () => {
         if (!formState.name || formState.name.trim().length < 2) return 'Name must be at least 2 characters.';
-        const priceNumber = normalizeNumber(formState.price, -1);
-        if (priceNumber < 0) return 'Price cannot be negative.';
-        const stockNumber = normalizeNumber(formState.stock, 0);
-        if (stockNumber < 0) return 'Stock cannot be negative.';
         return '';
     };
 
@@ -296,9 +289,7 @@ export default function ProductAdmin() {
         const payload = {
             name: formState.name.trim(),
             description: formState.description?.trim() || '',
-            price: normalizeNumber(formState.price, 0),
             currency: formState.currency || 'SEK',
-            stock: normalizeNumber(formState.stock, 0),
             category: formState.category || CATEGORY_OPTIONS[0],
             imageUrl: formState.imageUrl?.trim() || '',
             sku: formState.sku?.trim() || '',
@@ -327,6 +318,142 @@ export default function ProductAdmin() {
     const resetForm = () => {
         setSelectedId(null);
         setFormState({ ...emptyForm });
+    };
+
+    useEffect(() => {
+        if (!selectedProduct) {
+            setVariantRows([]);
+            return;
+        }
+        const variants = normalizeVariants(selectedProduct.variants);
+        setVariantRows(
+            variants.map((variant) => ({
+                ...variant,
+                id: variant.id ?? variant.variantId ?? variant._id ?? null,
+                weight: variant.weight ?? variant.weightGrams ?? variant.weightInGrams ?? variant.grams ?? '',
+                price: getVariantPrice(variant) ?? '',
+                stock: getVariantStock(variant) ?? '',
+                sku: variant.sku ?? '',
+                active: variant.active !== false && variant.isActive !== false,
+                localId: variant.id ?? variant.variantId ?? variant._id ?? globalThis.crypto?.randomUUID?.(),
+            })),
+        );
+    }, [selectedProduct]);
+
+    const handleVariantChange = (index, field, value) => {
+        setVariantRows((prev) =>
+            prev.map((variant, rowIndex) => (rowIndex === index ? { ...variant, [field]: value } : variant)),
+        );
+    };
+
+    const handleAddVariantRow = () => {
+        setVariantRows((prev) => [
+            ...prev,
+            {
+                id: null,
+                weight: '',
+                price: '',
+                stock: '',
+                sku: '',
+                active: true,
+                localId: globalThis.crypto?.randomUUID?.() || `new-${Date.now()}`,
+            },
+        ]);
+    };
+
+    const buildVariantPayload = (variant) => ({
+        weight: normalizeNumber(variant.weight, 0),
+        price: normalizeNumber(variant.price, 0),
+        stock: normalizeNumber(variant.stock, 0),
+        sku: variant.sku?.trim() || '',
+        active: variant.active !== false,
+    });
+
+    const saveVariantRow = async (index) => {
+        if (!selectedProduct?.id || saving) return;
+        const variant = variantRows[index];
+        if (!variant) return;
+        const payload = buildVariantPayload(variant);
+        if (payload.weight <= 0) {
+            showToast('error', 'Weight must be greater than zero.');
+            return;
+        }
+        if (payload.price < 0 || payload.stock < 0) {
+            showToast('error', 'Price and stock cannot be negative.');
+            return;
+        }
+        setVariantActionId(variant.localId || variant.id);
+        try {
+            if (variant.id) {
+                await updateProductVariant(selectedProduct.id, variant.id, payload, token);
+                showToast('success', 'Variant updated');
+            } else {
+                await createProductVariant(selectedProduct.id, payload, token);
+                showToast('success', 'Variant created');
+            }
+            loadProducts({ preferId: selectedProduct.id });
+        } catch (error) {
+            console.error('Failed to save variant', error);
+            showToast('error', 'Could not save variant.');
+        } finally {
+            setVariantActionId(null);
+        }
+    };
+
+    const removeVariantRow = async (index) => {
+        if (!selectedProduct?.id) return;
+        const variant = variantRows[index];
+        if (!variant) return;
+        if (!variant.id) {
+            setVariantRows((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
+            return;
+        }
+        setVariantActionId(variant.localId || variant.id);
+        try {
+            await deleteProductVariant(selectedProduct.id, variant.id, token);
+            showToast('success', 'Variant removed');
+            loadProducts({ preferId: selectedProduct.id });
+        } catch (error) {
+            console.error('Failed to delete variant', error);
+            showToast('error', 'Could not remove variant.');
+        } finally {
+            setVariantActionId(null);
+        }
+    };
+
+    const deactivateVariantRow = async (index) => {
+        if (!selectedProduct?.id) return;
+        const variant = variantRows[index];
+        if (!variant?.id) return;
+        setVariantActionId(variant.localId || variant.id);
+        try {
+            await updateProductVariant(selectedProduct.id, variant.id, buildVariantPayload({ ...variant, active: false }), token);
+            showToast('success', 'Variant deactivated');
+            loadProducts({ preferId: selectedProduct.id });
+        } catch (error) {
+            console.error('Failed to deactivate variant', error);
+            showToast('error', 'Could not deactivate variant.');
+        } finally {
+            setVariantActionId(null);
+        }
+    };
+
+    const renderPriceRange = (product) => {
+        const variants = getActiveVariants(product);
+        const prices = variants.map(getVariantPrice).filter((value) => Number.isFinite(value));
+        if (prices.length === 0) return '—';
+        const min = Math.min(...prices);
+        const max = Math.max(...prices);
+        if (min === max) return `From ${formatCurrency(min, product.currency || 'SEK')}`;
+        return `${formatCurrency(min, product.currency || 'SEK')}–${formatCurrency(max, product.currency || 'SEK')}`;
+    };
+
+    const renderStockTotal = (product) => {
+        const variants = getActiveVariants(product);
+        if (variants.length === 0) return '—';
+        const stockValues = variants.map(getVariantStock).filter((value) => Number.isFinite(value));
+        if (stockValues.length === 0) return 'Per variant';
+        return stockValues.reduce((total, value) => total + value, 0);
     };
 
     if (!isAuthenticated) {
@@ -411,6 +538,7 @@ export default function ProductAdmin() {
                                         <th>SKU</th>
                                         <th>Price</th>
                                         <th>Stock</th>
+                                        <th>Variants</th>
                                         <th>Status</th>
                                         <th>Updated</th>
                                         <th className={styles.actionsColumn}>Actions</th>
@@ -420,24 +548,24 @@ export default function ProductAdmin() {
                                     {filteredProducts.map((product) => {
                                         const isActive = product.active ?? true;
                                         const isSelected = product.id === selectedId;
+                                        const activeVariants = getActiveVariants(product);
+                                        const variantLabels = activeVariants.map(getVariantLabel).filter(Boolean);
                                         return (
                                             <tr key={product.id} className={isSelected ? styles.selectedRow : ''}>
                                                 <td>
                                                     <div className={styles.primary}>{product.name}</div>
                                                     <div className={styles.meta}>Category: {product.category || '—'}</div>
+                                                    {activeVariants.length === 0 && (
+                                                        <span className={styles.warningBadge}>No variants — not sellable</span>
+                                                    )}
                                                 </td>
                                                 <td>{product.sku || '—'}</td>
-                                                <td>{formatCurrency(product.price ?? 0, product.currency || 'SEK')}</td>
+                                                <td>{renderPriceRange(product)}</td>
+                                                <td>{renderStockTotal(product)}</td>
                                                 <td>
-                                                    <div className={styles.primary}>{product.stock ?? 0}</div>
-                                                    <button
-                                                        type="button"
-                                                        className={styles.linkButton}
-                                                        onClick={() => handleAdjustStock(product)}
-                                                        disabled={actioningId === product.id}
-                                                    >
-                                                        Adjust
-                                                    </button>
+                                                    <div className={styles.meta}>
+                                                        {variantLabels.length > 0 ? variantLabels.join(', ') : '—'}
+                                                    </div>
                                                 </td>
                                                 <td>
                                                     <span className={`${styles.status} ${isActive ? styles.active : styles.inactive}`}>
@@ -482,10 +610,10 @@ export default function ProductAdmin() {
                         <div>
                             <p className={styles.kickerSmall}>Form</p>
                             <h2>{selectedProduct ? 'Edit product' : 'Create product'}</h2>
-                            <p className={styles.muted}>Fill in the details. Validation happens before saving.</p>
-                        </div>
-                        <div className={styles.panelActions}>
-                            <button type="button" className={styles.secondaryButton} onClick={resetForm} disabled={saving}>
+                        <p className={styles.muted}>Fill in the details. Validation happens before saving.</p>
+                    </div>
+                    <div className={styles.panelActions}>
+                        <button type="button" className={styles.secondaryButton} onClick={resetForm} disabled={saving}>
                                 New product
                             </button>
                         </div>
@@ -512,34 +640,6 @@ export default function ProductAdmin() {
                             onChange={(event) => setFormState((prev) => ({ ...prev, description: event.target.value }))}
                             rows={3}
                         />
-
-                        <div className={styles.twoCol}>
-                            <div>
-                                <label className={styles.label} htmlFor="product-price">Price (SEK) *</label>
-                                <input
-                                    id="product-price"
-                                    type="number"
-                                    className={styles.input}
-                                    value={formState.price}
-                                    onChange={(event) => setFormState((prev) => ({ ...prev, price: event.target.value }))}
-                                    step="0.01"
-                                    min="0"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className={styles.label} htmlFor="product-stock">Stock *</label>
-                                <input
-                                    id="product-stock"
-                                    type="number"
-                                    className={styles.input}
-                                    value={formState.stock}
-                                    onChange={(event) => setFormState((prev) => ({ ...prev, stock: event.target.value }))}
-                                    min="0"
-                                    required
-                                />
-                            </div>
-                        </div>
 
                         <div className={styles.twoCol}>
                             <div>
@@ -602,6 +702,118 @@ export default function ProductAdmin() {
                             )}
                         </div>
                     </form>
+
+                    <div className={styles.variantsSection}>
+                        <div className={styles.variantsHeader}>
+                            <div>
+                                <p className={styles.kickerSmall}>Variants (weights)</p>
+                                <h3 className={styles.sectionTitle}>Variants</h3>
+                                <p className={styles.muted}>Manage price and stock per weight. Variants require a saved product.</p>
+                            </div>
+                            <button
+                                type="button"
+                                className={styles.secondaryButton}
+                                onClick={handleAddVariantRow}
+                                disabled={!selectedProduct || saving}
+                            >
+                                Add variant
+                            </button>
+                        </div>
+
+                        {!selectedProduct ? (
+                            <div className={styles.variantEmpty}>Create the product first to add weight variants.</div>
+                        ) : variantRows.length === 0 ? (
+                            <div className={styles.variantEmpty}>No variants yet. Add weights like 50g, 70g, 100g.</div>
+                        ) : (
+                            <div className={styles.variantList}>
+                                {variantRows.map((variant, index) => (
+                                    <div key={variant.localId || variant.id || index} className={styles.variantRow}>
+                                        <div className={styles.variantField}>
+                                            <label className={styles.variantLabel} htmlFor={`variant-weight-${index}`}>Weight (grams)</label>
+                                            <input
+                                                id={`variant-weight-${index}`}
+                                                type="number"
+                                                className={`${styles.input} ${styles.variantInput}`}
+                                                value={variant.weight}
+                                                onChange={(event) => handleVariantChange(index, 'weight', event.target.value)}
+                                                min="0"
+                                            />
+                                        </div>
+                                        <div className={styles.variantField}>
+                                            <label className={styles.variantLabel} htmlFor={`variant-price-${index}`}>Price (SEK)</label>
+                                            <input
+                                                id={`variant-price-${index}`}
+                                                type="number"
+                                                className={`${styles.input} ${styles.variantInput}`}
+                                                value={variant.price}
+                                                onChange={(event) => handleVariantChange(index, 'price', event.target.value)}
+                                                step="0.01"
+                                                min="0"
+                                            />
+                                        </div>
+                                        <div className={styles.variantField}>
+                                            <label className={styles.variantLabel} htmlFor={`variant-stock-${index}`}>Stock</label>
+                                            <input
+                                                id={`variant-stock-${index}`}
+                                                type="number"
+                                                className={`${styles.input} ${styles.variantInput}`}
+                                                value={variant.stock}
+                                                onChange={(event) => handleVariantChange(index, 'stock', event.target.value)}
+                                                min="0"
+                                            />
+                                        </div>
+                                        <div className={styles.variantField}>
+                                            <label className={styles.variantLabel} htmlFor={`variant-sku-${index}`}>SKU (optional)</label>
+                                            <input
+                                                id={`variant-sku-${index}`}
+                                                className={`${styles.input} ${styles.variantInput}`}
+                                                value={variant.sku}
+                                                onChange={(event) => handleVariantChange(index, 'sku', event.target.value)}
+                                                placeholder="Optional"
+                                            />
+                                        </div>
+                                        <div className={styles.variantToggle}>
+                                            <input
+                                                id={`variant-active-${index}`}
+                                                type="checkbox"
+                                                checked={variant.active}
+                                                onChange={(event) => handleVariantChange(index, 'active', event.target.checked)}
+                                            />
+                                            <label htmlFor={`variant-active-${index}`}>Active</label>
+                                        </div>
+                                        <div className={styles.variantActions}>
+                                            <button
+                                                type="button"
+                                                className={styles.primaryButton}
+                                                onClick={() => saveVariantRow(index)}
+                                                disabled={variantActionId === (variant.localId || variant.id)}
+                                            >
+                                                {variant.id ? 'Save' : 'Create'}
+                                            </button>
+                                            {variant.id && variant.active && (
+                                                <button
+                                                    type="button"
+                                                    className={styles.secondaryButton}
+                                                    onClick={() => deactivateVariantRow(index)}
+                                                    disabled={variantActionId === (variant.localId || variant.id)}
+                                                >
+                                                    Deactivate
+                                                </button>
+                                            )}
+                                            <button
+                                                type="button"
+                                                className={styles.danger}
+                                                onClick={() => removeVariantRow(index)}
+                                                disabled={variantActionId === (variant.localId || variant.id)}
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </section>
             </div>
 
