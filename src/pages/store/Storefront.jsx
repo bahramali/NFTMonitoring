@@ -128,13 +128,6 @@ export default function Storefront() {
                             ) : null}
                         </div>
                         <div className={styles.note}>
-                            <button
-                                type="button"
-                                className={styles.infoButton}
-                                aria-label="Pricing and stock info"
-                            >
-                                i
-                            </button>
                             <span className={styles.noteText}>
                                 Prices in SEK · Stock updated in real time
                             </span>
