@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listStoreProducts } from '../api/store.js';
 import { formatCurrency } from '../utils/currency.js';
+import TimelapseGallery from '../components/TimelapseGallery.jsx';
 import styles from './Home.module.css';
 
 export default function Home() {
@@ -122,6 +123,8 @@ export default function Home() {
                     </div>
                 )}
             </section>
+
+            <TimelapseGallery />
         </div>
     );
 }
