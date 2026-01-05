@@ -46,8 +46,8 @@ export async function fetchStoreCart(cartId, sessionId, { signal } = {}) {
     return parseApiResponse(res, 'Failed to fetch cart');
 }
 
-export async function addItemToCart(cartId, sessionId, productId, quantity = 1, { signal } = {}) {
-    if (!productId) throw new Error('Product ID is required');
+export async function addItemToCart(cartId, sessionId, variantId, quantity = 1, { signal } = {}) {
+    if (!variantId) throw new Error('Variant ID is required');
 
     const res = await fetch(`${STORE_BASE}/cart/${encodeURIComponent(cartId)}/items`, {
         method: 'POST',
@@ -55,7 +55,7 @@ export async function addItemToCart(cartId, sessionId, productId, quantity = 1, 
             'Content-Type': 'application/json',
             ...buildCartHeaders(cartId, sessionId),
         },
-        body: JSON.stringify({ productId, quantity }),
+        body: JSON.stringify({ variantId, quantity }),
         signal,
     });
 

@@ -105,6 +105,64 @@
     gap: 0.5rem;
 }
 
+.variantRow {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    width: fit-content;
+}
+
+.variantLabel {
+    font-size: 0.75rem;
+    color: var(--muted, #666);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.variantSelect {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border, #e6e6e6);
+    background: #fff;
+    color: var(--text, #111);
+    font-size: 0.875rem;
+}
+
+.variantChips {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    width: fit-content;
+}
+
+.variantChip {
+    border: 1px solid var(--border, #e6e6e6);
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    background: #fff;
+    color: var(--text, #111);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+}
+
+.variantChipActive {
+    background: var(--accent, #3a9d5b);
+    border-color: var(--accent, #3a9d5b);
+    color: #fff;
+}
+
+.variantChip:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.variantChipMuted {
+    opacity: 0.6;
+}
+
 .buySection {
     display: flex;
     flex-direction: column;

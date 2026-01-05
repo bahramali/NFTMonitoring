@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { listStoreProducts } from '../../api/store.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import ProductCard from '../../components/store/ProductCard.jsx';
+import { getProductSortPrice, isProductInStock } from '../../utils/storeVariants.js';
 import styles from './Storefront.module.css';
 
 export default function Storefront() {
@@ -17,7 +18,7 @@ export default function Storefront() {
     const sortedProducts = useMemo(() => {
         const list = Array.isArray(products) ? [...products] : [];
         if (sortBy === 'price') {
-            return list.sort((a, b) => (a?.price ?? 0) - (b?.price ?? 0));
+            return list.sort((a, b) => getProductSortPrice(a) - getProductSortPrice(b));
         }
         return list.sort((a, b) => (a?.name || '').localeCompare(b?.name || ''));
     }, [products, sortBy]);
@@ -32,7 +33,7 @@ export default function Storefront() {
 
     const filteredProducts = useMemo(() => {
         return sortedProducts.filter((product) => {
-            const isInStock = product?.stock === undefined || product.stock > 0;
+            const isInStock = isProductInStock(product);
             const availabilityMatches =
                 availability === 'all'
                     || (availability === 'inStock' && isInStock)
@@ -48,11 +49,11 @@ export default function Storefront() {
     const showAvailability = productCount >= 3;
 
     const inStock = useMemo(
-        () => filteredProducts.filter((product) => product.stock === undefined || product.stock > 0),
+        () => filteredProducts.filter((product) => isProductInStock(product)),
         [filteredProducts],
     );
     const outOfStock = useMemo(
-        () => filteredProducts.filter((product) => product.stock !== undefined && product.stock <= 0),
+        () => filteredProducts.filter((product) => !isProductInStock(product)),
         [filteredProducts],
     );
 
@@ -155,7 +156,7 @@ export default function Storefront() {
                                 key={product.id}
                                 product={product}
                                 pending={pendingProductId === product.id}
-                                onAdd={(qty) => addToCart(product.id, qty)}
+                                onAdd={({ quantity, variantId }) => addToCart(variantId, quantity, product.id)}
                                 layout={isSingleProduct ? 'single' : 'grid'}
                             />
                         ))}
@@ -180,7 +181,7 @@ export default function Storefront() {
                                 key={product.id}
                                 product={product}
                                 pending={pendingProductId === product.id}
-                                onAdd={(qty) => addToCart(product.id, qty)}
+                                onAdd={({ quantity, variantId }) => addToCart(variantId, quantity, product.id)}
                                 layout={isSingleProduct ? 'single' : 'grid'}
                             />
                         ))}
