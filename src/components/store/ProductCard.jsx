@@ -6,6 +6,7 @@ import {
     getActiveVariants,
     getDefaultVariantId,
     getVariantLabel,
+    getVariantPrice,
     getVariantStock,
     isVariantInStock,
 } from '../../utils/storeVariants.js';
@@ -22,7 +23,7 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
         () => variants.find((variant) => variant.id === selectedVariantId) ?? variants[0],
         [selectedVariantId, variants],
     );
-    const priceValue = activeVariant?.price ?? activeVariant?.unitPrice ?? product?.price ?? 0;
+    const priceValue = getVariantPrice(activeVariant) ?? product?.price ?? 0;
     const stockValue = activeVariant ? getVariantStock(activeVariant) : product?.stock;
     const isOutOfStock = stockValue !== undefined && stockValue <= 0;
     const stockLabel = useMemo(() => {

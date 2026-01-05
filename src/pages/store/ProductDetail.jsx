@@ -9,6 +9,7 @@ import {
     getActiveVariants,
     getDefaultVariantId,
     getVariantLabel,
+    getVariantPrice,
     getVariantStock,
     isVariantInStock,
 } from '../../utils/storeVariants.js';
@@ -65,7 +66,7 @@ export default function ProductDetail() {
     const stockValue = activeVariant ? getVariantStock(activeVariant) : product?.stock;
     const isOutOfStock = stockValue !== undefined && stockValue <= 0;
     const currency = product?.currency || activeVariant?.currency || 'SEK';
-    const priceValue = activeVariant?.price ?? activeVariant?.unitPrice ?? product?.price ?? 0;
+    const priceValue = getVariantPrice(activeVariant) ?? product?.price ?? 0;
     const priceLabel = formatCurrency(priceValue, currency);
     const priceContext = getPriceContext(activeVariant ?? product);
     const productFacts = getProductFacts(activeVariant ?? product);
