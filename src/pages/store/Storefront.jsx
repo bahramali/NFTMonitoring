@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { listStoreProducts } from '../../api/store.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import ProductCard from '../../components/store/ProductCard.jsx';
@@ -132,7 +133,7 @@ export default function Storefront() {
                                 i
                             </button>
                             <span className={styles.noteText}>
-                                Prices shown in SEK · Stock updates after each add
+                                Prices in SEK · Stock updated in real time
                             </span>
                         </div>
                     </div>
@@ -140,6 +141,11 @@ export default function Storefront() {
 
                 {loading ? (
                     <div className={styles.loading}>Loading products…</div>
+                ) : (products?.length ?? 0) === 0 ? (
+                    <div className={styles.emptyState}>
+                        <p>No products available right now.</p>
+                        <Link to="/contact" className={styles.emptyStateLink}>Contact us</Link>
+                    </div>
                 ) : inStock.length > 0 ? (
                     <div className={styles.grid}>
                         {inStock.map((product) => (

@@ -32,6 +32,8 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center 35%;
+    transform: scale(1.05);
 }
 
 .placeholder {
@@ -54,7 +56,7 @@
     padding: 16px;
     display: grid;
     grid-template-rows: auto auto auto;
-    gap: 12px;
+    gap: 8px;
     align-content: start;
 }
 
@@ -95,14 +97,14 @@
 
 .buySection {
     display: grid;
-    gap: 8px;
+    gap: 6px;
 }
 
 .stock {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 10px;
+    padding: 4px 8px;
     border-radius: 10px;
     background: var(--surface, #f7f7f7);
     border: 1px solid var(--border, #e6e6e6);
@@ -121,7 +123,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .addButton {
@@ -129,11 +131,16 @@
     background: var(--accent);
     border: 1px solid var(--accent);
     border-radius: 12px;
-    padding: 12px 14px;
+    padding: 10px 14px;
     font-weight: 700;
     color: #fff;
     cursor: pointer;
     transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.trustCue {
+    font-size: 12px;
+    color: var(--muted, #666);
 }
 
 .addButton:disabled {
@@ -153,7 +160,7 @@
 }
 
 .footer {
-    padding-top: 12px;
+    padding-top: 10px;
     border-top: 1px solid var(--border, #e6e6e6);
     display: flex;
     align-items: center;
