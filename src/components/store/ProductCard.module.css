@@ -5,9 +5,11 @@
     color: var(--text, #111);
     display: grid;
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
     overflow: hidden;
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.04);
     transition: transform 160ms ease, border-color 160ms ease;
+    min-height: 100%;
 }
 
 .card:hover {
@@ -20,6 +22,7 @@
     aspect-ratio: 4 / 3;
     height: clamp(200px, 32vw, 240px);
     max-height: 240px;
+    min-height: 200px;
     overflow: hidden;
     background: var(--surface, #f7f7f7);
     border-bottom: 1px solid var(--border, #e6e6e6);
@@ -49,9 +52,10 @@
 
 .body {
     padding: 16px;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: auto auto auto auto minmax(52px, auto) auto;
     gap: 12px;
+    height: 100%;
 }
 
 .titleRow {
@@ -153,6 +157,7 @@
     justify-content: space-between;
     align-items: center;
     gap: 12px;
+    min-height: 52px;
 }
 
 .addButton {
@@ -185,6 +190,7 @@
     align-items: center;
     justify-content: space-between;
     color: var(--muted, #666);
+    margin-top: auto;
 }
 
 .link {
@@ -206,12 +212,14 @@
 @media (min-width: 860px) {
     .card {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+        grid-template-rows: 1fr;
         align-items: stretch;
     }
 
     .media {
         height: clamp(260px, 28vw, 300px);
         max-height: 320px;
+        min-height: 260px;
         border-bottom: none;
         border-right: 1px solid var(--border, #e6e6e6);
     }
