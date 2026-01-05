@@ -12,6 +12,7 @@ export const getVariantStock = (variant) => {
     if (!variant) return undefined;
     const stockValue =
         variant.stock
+        ?? variant.stockQuantity
         ?? variant.availableStock
         ?? variant.inventory
         ?? variant.inventoryQuantity
@@ -21,7 +22,7 @@ export const getVariantStock = (variant) => {
 
 export const getVariantPrice = (variant) => {
     if (!variant) return undefined;
-    const priceValue = variant.price ?? variant.unitPrice;
+    const priceValue = variant.price ?? variant.priceSek ?? variant.unitPrice;
     if (priceValue != null) return priceValue;
     if (variant.priceCents != null) return variant.priceCents / 100;
     if (variant.unitPriceCents != null) return variant.unitPriceCents / 100;
