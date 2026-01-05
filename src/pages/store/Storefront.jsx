@@ -42,12 +42,13 @@ export default function Storefront() {
     }, [availability, sortedProducts, tagFilter]);
 
     const showSort = (products?.length ?? 0) > 1;
+    const showAvailability = (products?.length ?? 0) >= 3;
 
     const inStock = useMemo(
         () => filteredProducts.filter((product) => product.stock === undefined || product.stock > 0),
         [filteredProducts],
     );
-    const lowStock = useMemo(
+    const outOfStock = useMemo(
         () => filteredProducts.filter((product) => product.stock !== undefined && product.stock <= 0),
         [filteredProducts],
     );
@@ -87,18 +88,20 @@ export default function Storefront() {
                     </div>
                     <div className={styles.controls}>
                         <div className={styles.filters}>
-                            <div className={styles.field}>
-                                <label htmlFor="availability">Availability</label>
-                                <select
-                                    id="availability"
-                                    value={availability}
-                                    onChange={(event) => setAvailability(event.target.value)}
-                                >
-                                    <option value="all">All</option>
-                                    <option value="inStock">In stock</option>
-                                    <option value="outOfStock">Out of stock</option>
-                                </select>
-                            </div>
+                            {showAvailability ? (
+                                <div className={styles.field}>
+                                    <label htmlFor="availability">Availability</label>
+                                    <select
+                                        id="availability"
+                                        value={availability}
+                                        onChange={(event) => setAvailability(event.target.value)}
+                                    >
+                                        <option value="all">All</option>
+                                        <option value="inStock">In stock</option>
+                                        <option value="outOfStock">Out of stock</option>
+                                    </select>
+                                </div>
+                            ) : null}
                             {tags.length > 0 ? (
                                 <div className={styles.field}>
                                     <label htmlFor="tag">Tag</label>
@@ -120,7 +123,18 @@ export default function Storefront() {
                                 </div>
                             ) : null}
                         </div>
-                        <p className={styles.sectionNote}>Prices shown in SEK · Stock updates after each add</p>
+                        <div className={styles.note}>
+                            <button
+                                type="button"
+                                className={styles.infoButton}
+                                aria-label="Pricing and stock info"
+                            >
+                                i
+                            </button>
+                            <span className={styles.noteText}>
+                                Prices shown in SEK · Stock updates after each add
+                            </span>
+                        </div>
                     </div>
                 </div>
 
@@ -142,7 +156,7 @@ export default function Storefront() {
                 )}
             </section>
 
-            {lowStock.length > 0 && (
+            {outOfStock.length > 0 && (
                 <section className={styles.section}>
                     <div className={styles.sectionHead}>
                         <div>
@@ -152,7 +166,7 @@ export default function Storefront() {
                         <p className={styles.sectionNote}>We&apos;ll make these available again shortly.</p>
                     </div>
                     <div className={styles.grid}>
-                        {lowStock.map((product) => (
+                        {outOfStock.map((product) => (
                             <ProductCard
                                 key={product.id}
                                 product={product}

@@ -1,23 +1,41 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import QuantityStepper from './QuantityStepper.jsx';
-import { currencyLabel, formatCurrency } from '../../utils/currency.js';
-import { getPriceContext } from '../../utils/productCopy.js';
+import { formatCurrency } from '../../utils/currency.js';
 import styles from './ProductCard.module.css';
 
 export default function ProductCard({ product, onAdd, pending = false }) {
     const [quantity, setQuantity] = useState(1);
 
-    const { name, id, imageUrl, shortDescription, price, currency, stock, badges = [], tags = [] } = product || {};
+    const { name, id, imageUrl, price, currency, stock } = product || {};
     const isOutOfStock = stock !== undefined && stock <= 0;
     const stockLabel = useMemo(() => {
         if (stock === undefined) return 'In stock';
         if (stock <= 0) return 'Out of stock';
-        if (stock <= 5) return 'Low stock';
+        if (stock <= 10) return `Only ${stock} left`;
         return 'In stock';
     }, [stock]);
     const priceLabel = useMemo(() => formatCurrency(price, currency || 'SEK'), [currency, price]);
-    const priceContext = useMemo(() => getPriceContext(product), [product]);
+
+    const { title, badge } = useMemo(() => {
+        const safeName = name ? String(name).trim() : '';
+        if (!safeName) return { title: '', badge: '' };
+        const parts = safeName.split(/\s*[–-]\s*/);
+        if (parts.length <= 1) return { title: safeName, badge: '' };
+        const [first, ...rest] = parts;
+        return { title: first.trim(), badge: rest.join(' - ').trim() };
+    }, [name]);
+
+    useEffect(() => {
+        if (stock !== undefined && stock > 0 && quantity > stock) {
+            setQuantity(stock);
+        }
+        if (stock !== undefined && stock <= 0) {
+            setQuantity(1);
+        }
+    }, [quantity, stock]);
+
+    const showMaxNotice = stock !== undefined && stock > 0 && quantity >= stock;
 
     return (
         <article className={styles.card}>
@@ -32,56 +50,51 @@ export default function ProductCard({ product, onAdd, pending = false }) {
             </div>
 
             <div className={styles.body}>
-                <div className={styles.titleRow}>
+                <div className={styles.headerRow}>
                     <div>
-                        <h3 className={styles.name}>{name}</h3>
-                        <p className={styles.description}>{shortDescription || product?.description}</p>
+                        <h3 className={styles.name}>{title}</h3>
+                        {badge ? <span className={styles.badge}>{badge}</span> : null}
                     </div>
                     <div className={styles.price}>
                         <span className={styles.priceValue}>{priceLabel}</span>
-                        <span className={styles.priceCurrency}>{currencyLabel(currency || 'SEK')}</span>
-                        <span className={styles.priceMeta}>{priceContext}</span>
                     </div>
                 </div>
 
-                {(tags.length > 0 || badges.length > 0) && (
-                    <div className={styles.tagRow}>
-                        {[...badges, ...tags].map((tag) => (
-                            <span key={tag} className={styles.tag}>{tag}</span>
-                        ))}
-                    </div>
-                )}
-
-                <div className={styles.metaRow}>
+                <div className={styles.buySection}>
                     <span className={`${styles.stock} ${isOutOfStock ? styles.stockMuted : ''}`}>
                         {stockLabel}
-                        {stock > 0 ? ` · ${stock} pcs` : ''}
                     </span>
-                    <span className={styles.unitLabel}>{currencyLabel(currency || 'SEK')}</span>
-                </div>
-
-                <div className={styles.actions}>
-                    <QuantityStepper
-                        value={quantity}
-                        min={1}
-                        max={stock || undefined}
-                        onChange={setQuantity}
-                        compact
-                        disabled={pending || isOutOfStock}
-                    />
-                    <button
-                        type="button"
-                        className={styles.addButton}
-                        onClick={() => onAdd?.(quantity)}
-                        disabled={pending || isOutOfStock}
-                    >
-                        {pending ? 'Adding…' : 'Add'}
-                    </button>
+                    <div className={styles.actions}>
+                        <QuantityStepper
+                            value={quantity}
+                            min={1}
+                            max={stock ?? undefined}
+                            onChange={setQuantity}
+                            compact
+                            disabled={pending || isOutOfStock}
+                        />
+                        <button
+                            type="button"
+                            className={styles.addButton}
+                            onClick={() => onAdd?.(quantity)}
+                            disabled={pending || isOutOfStock}
+                        >
+                            {pending ? 'Adding…' : 'Add'}
+                        </button>
+                    </div>
+                    {showMaxNotice ? (
+                        <span className={styles.maxNotice}>Max available: {stock}</span>
+                    ) : null}
                 </div>
 
                 <footer className={styles.footer}>
-                    <Link to={`/store/product/${encodeURIComponent(id)}`} className={styles.link}>View details</Link>
-                    <span className={styles.secondary}>{currencyLabel(currency || 'SEK')}</span>
+                    <Link
+                        to={`/store/product/${encodeURIComponent(id)}`}
+                        className={styles.link}
+                        aria-label={`View details for ${title}`}
+                    >
+                        View details →
+                    </Link>
                 </footer>
             </div>
 
