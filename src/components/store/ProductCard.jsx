@@ -4,7 +4,7 @@ import QuantityStepper from './QuantityStepper.jsx';
 import { formatCurrency } from '../../utils/currency.js';
 import styles from './ProductCard.module.css';
 
-export default function ProductCard({ product, onAdd, pending = false }) {
+export default function ProductCard({ product, onAdd, pending = false, layout = 'grid' }) {
     const [quantity, setQuantity] = useState(1);
 
     const { name, id, imageUrl, price, currency, stock } = product || {};
@@ -38,7 +38,7 @@ export default function ProductCard({ product, onAdd, pending = false }) {
     const showMaxNotice = stock !== undefined && stock > 0 && quantity >= stock;
 
     return (
-        <article className={styles.card}>
+        <article className={`${styles.card} ${layout === 'single' ? styles.cardSingle : ''}`}>
             <div className={styles.media}>
                 {imageUrl ? (
                     <img src={imageUrl} alt={name} />
