@@ -1,8 +1,7 @@
 import { authFetch, parseApiResponse } from './http.js';
 
 const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
-const STORE_PRODUCTS_URL = `${API_BASE}/api/store/products`;
-const ADMIN_PRODUCTS_URL = `${API_BASE}/api/admin/products`;
+const ADMIN_PRODUCTS_URL = `${API_BASE}/api/admin/store/products`;
 const isDev = import.meta.env?.MODE === 'development';
 const mockUpdatedAt = () => new Date().toISOString();
 
@@ -40,6 +39,24 @@ const mockProducts = [
         imageUrl: '',
         active: true,
         updatedAt: mockUpdatedAt(),
+        variants: [
+            {
+                id: 'basil-001-50',
+                weight: 50,
+                price: 39,
+                stock: 14,
+                sku: 'BASIL-GEN-50',
+                active: true,
+            },
+            {
+                id: 'basil-001-70',
+                weight: 70,
+                price: 49,
+                stock: 10,
+                sku: 'BASIL-GEN-70',
+                active: true,
+            },
+        ],
     },
     {
         id: 'pack-10l',
@@ -53,6 +70,7 @@ const mockProducts = [
         imageUrl: '',
         active: false,
         updatedAt: mockUpdatedAt(),
+        variants: [],
     },
 ];
 
@@ -66,7 +84,7 @@ const useMockFallback = (error) => {
 export async function listAdminProducts(token, { signal } = {}) {
     try {
         const res = await authFetch(
-            STORE_PRODUCTS_URL,
+            `${ADMIN_PRODUCTS_URL}?includeVariants=true`,
             {
                 method: 'GET',
                 headers: authHeaders(token),
@@ -217,6 +235,102 @@ export async function deleteProduct(productId, token) {
                 mockProducts.splice(index, 1);
             }
             return { id: productId, deleted: true };
+        }
+        throw error;
+    }
+}
+
+export async function createProductVariant(productId, payload, token) {
+    if (!productId) throw new Error('Product ID is required');
+    try {
+        const res = await authFetch(
+            `${ADMIN_PRODUCTS_URL}/${encodeURIComponent(productId)}/variants`,
+            {
+                method: 'POST',
+                headers: authHeaders(token),
+                body: JSON.stringify(payload),
+            },
+            { token },
+        );
+        return parseApiResponse(res, 'Failed to create variant');
+    } catch (error) {
+        if (useMockFallback(error)) {
+            console.warn('Mocking variant creation until backend endpoint is ready.', error);
+            const match = mockProducts.find((item) => item.id === productId);
+            const created = {
+                ...payload,
+                id: payload.id || globalThis.crypto?.randomUUID?.() || Date.now().toString(),
+            };
+            if (match) {
+                match.variants = Array.isArray(match.variants) ? match.variants : [];
+                match.variants.push(created);
+                match.updatedAt = mockUpdatedAt();
+            }
+            return created;
+        }
+        throw error;
+    }
+}
+
+export async function updateProductVariant(productId, variantId, payload, token) {
+    if (!productId) throw new Error('Product ID is required');
+    if (!variantId) throw new Error('Variant ID is required');
+    try {
+        const res = await authFetch(
+            `${ADMIN_PRODUCTS_URL}/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variantId)}`,
+            {
+                method: 'PUT',
+                headers: authHeaders(token),
+                body: JSON.stringify(payload),
+            },
+            { token },
+        );
+        return parseApiResponse(res, 'Failed to update variant');
+    } catch (error) {
+        if (useMockFallback(error)) {
+            console.warn('Mocking variant update until backend endpoint is ready.', error);
+            const match = mockProducts.find((item) => item.id === productId);
+            if (match) {
+                match.variants = Array.isArray(match.variants) ? match.variants : [];
+                const index = match.variants.findIndex((variant) => variant.id === variantId);
+                const existing = index >= 0 ? match.variants[index] : { id: variantId };
+                const merged = { ...existing, ...payload };
+                if (index >= 0) {
+                    match.variants[index] = merged;
+                } else {
+                    match.variants.push(merged);
+                }
+                match.updatedAt = mockUpdatedAt();
+                return merged;
+            }
+            return { id: variantId, ...payload };
+        }
+        throw error;
+    }
+}
+
+export async function deleteProductVariant(productId, variantId, token) {
+    if (!productId) throw new Error('Product ID is required');
+    if (!variantId) throw new Error('Variant ID is required');
+    try {
+        const res = await authFetch(
+            `${ADMIN_PRODUCTS_URL}/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variantId)}`,
+            {
+                method: 'DELETE',
+                headers: authHeaders(token),
+            },
+            { token },
+        );
+        return parseApiResponse(res, 'Failed to delete variant');
+    } catch (error) {
+        if (useMockFallback(error)) {
+            console.warn('Mocking variant removal until backend endpoint is ready.', error);
+            const match = mockProducts.find((item) => item.id === productId);
+            if (match && Array.isArray(match.variants)) {
+                match.variants = match.variants.filter((variant) => variant.id !== variantId);
+                match.updatedAt = mockUpdatedAt();
+            }
+            return { id: variantId, deleted: true };
         }
         throw error;
     }
