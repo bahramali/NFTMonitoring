@@ -122,7 +122,7 @@ export function StorefrontProvider({ children }) {
             }
 
             if (expectation?.intent === 'add' && expectation?.silent !== true) {
-                showToast('success', 'Added to cart.');
+                showToast('success', 'Added to cart');
             }
 
             return normalized;
