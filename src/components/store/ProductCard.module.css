@@ -54,10 +54,10 @@
 
 .body {
     padding: 16px;
-    display: grid;
-    grid-template-rows: auto auto auto;
-    gap: 8px;
-    align-content: start;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 100%;
 }
 
 .headerRow {
@@ -71,6 +71,9 @@
     margin: 0;
     font-size: 18px;
     line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .badge {
@@ -96,8 +99,10 @@
 }
 
 .buySection {
-    display: grid;
-    gap: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: auto;
 }
 
 .stock {
@@ -120,9 +125,7 @@
 }
 
 .actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: grid;
     gap: 10px;
 }
 
@@ -131,11 +134,13 @@
     background: var(--accent);
     border: 1px solid var(--accent);
     border-radius: 12px;
-    padding: 10px 14px;
+    padding: 12px 14px;
+    min-height: 44px;
     font-weight: 700;
     color: #fff;
     cursor: pointer;
     transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+    width: 100%;
 }
 
 .trustCue {
@@ -181,13 +186,13 @@
 }
 
 @media (min-width: 860px) {
-    .card {
+    .cardSingle {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
         grid-template-rows: 1fr;
         align-items: stretch;
     }
 
-    .media {
+    .cardSingle .media {
         height: clamp(260px, 28vw, 300px);
         max-height: 320px;
         min-height: 260px;
@@ -195,10 +200,9 @@
         border-right: 1px solid var(--border, #e6e6e6);
     }
 
-    .body {
+    .cardSingle .body {
         padding: 18px 20px;
     }
-
 }
 
 @media (max-width: 640px) {

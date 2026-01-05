@@ -42,8 +42,10 @@ export default function Storefront() {
         });
     }, [availability, sortedProducts, tagFilter]);
 
-    const showSort = (products?.length ?? 0) > 1;
-    const showAvailability = (products?.length ?? 0) >= 3;
+    const productCount = products?.length ?? 0;
+    const isSingleProduct = productCount === 1;
+    const showSort = productCount > 1;
+    const showAvailability = productCount >= 3;
 
     const inStock = useMemo(
         () => filteredProducts.filter((product) => product.stock === undefined || product.stock > 0),
@@ -147,13 +149,14 @@ export default function Storefront() {
                         <Link to="/contact" className={styles.emptyStateLink}>Contact us</Link>
                     </div>
                 ) : inStock.length > 0 ? (
-                    <div className={styles.grid}>
+                    <div className={`${styles.grid} ${isSingleProduct ? styles.singleGrid : ''}`}>
                         {inStock.map((product) => (
                             <ProductCard
                                 key={product.id}
                                 product={product}
                                 pending={pendingProductId === product.id}
                                 onAdd={(qty) => addToCart(product.id, qty)}
+                                layout={isSingleProduct ? 'single' : 'grid'}
                             />
                         ))}
                     </div>
@@ -171,13 +174,14 @@ export default function Storefront() {
                         </div>
                         <p className={styles.sectionNote}>We&apos;ll make these available again shortly.</p>
                     </div>
-                    <div className={styles.grid}>
+                    <div className={`${styles.grid} ${isSingleProduct ? styles.singleGrid : ''}`}>
                         {outOfStock.map((product) => (
                             <ProductCard
                                 key={product.id}
                                 product={product}
                                 pending={pendingProductId === product.id}
                                 onAdd={(qty) => addToCart(product.id, qty)}
+                                layout={isSingleProduct ? 'single' : 'grid'}
                             />
                         ))}
                     </div>

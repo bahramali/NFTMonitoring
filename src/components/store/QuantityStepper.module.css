@@ -25,6 +25,18 @@
     transition: transform 120ms ease, border-color 120ms ease, color 120ms ease, background 120ms ease;
 }
 
+@media (max-width: 768px) {
+    .button {
+        width: 44px;
+        height: 44px;
+    }
+
+    .compact {
+        padding: 6px 10px;
+        gap: 8px;
+    }
+}
+
 .button:disabled {
     opacity: 0.4;
     cursor: not-allowed;
