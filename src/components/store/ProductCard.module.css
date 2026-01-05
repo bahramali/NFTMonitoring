@@ -55,7 +55,7 @@
     display: grid;
     grid-template-rows: auto auto auto auto minmax(52px, auto) auto;
     gap: 12px;
-    height: 100%;
+    align-content: start;
 }
 
 .titleRow {
