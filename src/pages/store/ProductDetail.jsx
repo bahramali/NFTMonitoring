@@ -1,10 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { fetchStoreProduct } from '../../api/store.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import QuantityStepper from '../../components/store/QuantityStepper.jsx';
 import { currencyLabel, formatCurrency } from '../../utils/currency.js';
 import { getPriceContext, getProductFacts } from '../../utils/productCopy.js';
+import {
+    getActiveVariants,
+    getDefaultVariantId,
+    getVariantLabel,
+    getVariantPrice,
+    getVariantStock,
+    isVariantInStock,
+} from '../../utils/storeVariants.js';
 import styles from './ProductDetail.module.css';
 
 export default function ProductDetail() {
@@ -15,6 +23,9 @@ export default function ProductDetail() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [quantity, setQuantity] = useState(1);
+    const variants = useMemo(() => getActiveVariants(product), [product]);
+    const defaultVariantId = useMemo(() => getDefaultVariantId(variants), [variants]);
+    const [selectedVariantId, setSelectedVariantId] = useState(defaultVariantId);
 
     useEffect(() => {
         let mounted = true;
@@ -39,11 +50,37 @@ export default function ProductDetail() {
         };
     }, [productId]);
 
-    const isOutOfStock = product?.stock !== undefined && product?.stock <= 0;
-    const currency = product?.currency || 'SEK';
-    const priceLabel = formatCurrency(product?.price ?? 0, currency);
-    const priceContext = getPriceContext(product);
-    const productFacts = getProductFacts(product);
+    useEffect(() => {
+        setSelectedVariantId((current) => {
+            if (current && variants.some((variant) => variant.id === current)) {
+                return current;
+            }
+            return defaultVariantId;
+        });
+    }, [defaultVariantId, variants]);
+
+    const activeVariant = useMemo(
+        () => variants.find((variant) => variant.id === selectedVariantId) ?? variants[0],
+        [selectedVariantId, variants],
+    );
+    const stockValue = activeVariant ? getVariantStock(activeVariant) : product?.stock;
+    const isOutOfStock = stockValue !== undefined && stockValue <= 0;
+    const currency = product?.currency || activeVariant?.currency || 'SEK';
+    const priceValue = getVariantPrice(activeVariant) ?? product?.price ?? 0;
+    const priceLabel = formatCurrency(priceValue, currency);
+    const priceContext = getPriceContext(activeVariant ?? product);
+    const productFacts = getProductFacts(activeVariant ?? product);
+    const showVariantSelector = variants.length > 1;
+    const useDropdown = variants.length > 4;
+
+    useEffect(() => {
+        if (stockValue !== undefined && stockValue > 0 && quantity > stockValue) {
+            setQuantity(stockValue);
+        }
+        if (stockValue !== undefined && stockValue <= 0) {
+            setQuantity(1);
+        }
+    }, [quantity, stockValue]);
 
     return (
         <div className={styles.page}>
@@ -78,12 +115,49 @@ export default function ProductDetail() {
                             <span className={styles.price}>{priceLabel}</span>
                             <span className={styles.currency}>{currencyLabel(currency)}</span>
                             <span className={styles.priceMeta}>{priceContext}</span>
-                            {product?.stock !== undefined && (
+                            {stockValue !== undefined && (
                                 <span className={`${styles.badge} ${isOutOfStock ? styles.badgeMuted : styles.badgePositive}`}>
-                                    {isOutOfStock ? 'Out of stock' : `${product.stock} in stock`}
+                                    {isOutOfStock ? 'Out of stock' : `${stockValue} in stock`}
                                 </span>
                             )}
                         </div>
+
+                        {showVariantSelector ? (
+                            <div className={styles.variantRow}>
+                                <span className={styles.variantLabel}>Weight</span>
+                                {useDropdown ? (
+                                    <select
+                                        className={styles.variantSelect}
+                                        value={selectedVariantId ?? ''}
+                                        onChange={(event) => setSelectedVariantId(event.target.value)}
+                                    >
+                                        {variants.map((variant) => (
+                                            <option key={variant.id} value={variant.id}>
+                                                {getVariantLabel(variant)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                ) : (
+                                    <div className={styles.variantChips} role="group" aria-label="Select weight">
+                                        {variants.map((variant) => {
+                                            const label = getVariantLabel(variant);
+                                            const isSelected = variant.id === selectedVariantId;
+                                            const isInStock = isVariantInStock(variant);
+                                            return (
+                                                <button
+                                                    key={variant.id}
+                                                    type="button"
+                                                    className={`${styles.variantChip} ${isSelected ? styles.variantChipActive : ''} ${!isInStock ? styles.variantChipMuted : ''}`}
+                                                    onClick={() => setSelectedVariantId(variant.id)}
+                                                >
+                                                    {label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        ) : null}
 
                         <ul className={styles.list}>
                             {productFacts.map((item) => (
@@ -95,7 +169,7 @@ export default function ProductDetail() {
                             <QuantityStepper
                                 value={quantity}
                                 min={1}
-                                max={product?.stock || undefined}
+                                max={stockValue ?? undefined}
                                 onChange={setQuantity}
                                 disabled={pendingProductId === productId || isOutOfStock}
                             />
@@ -103,7 +177,7 @@ export default function ProductDetail() {
                                 type="button"
                                 className={styles.add}
                                 disabled={pendingProductId === productId || isOutOfStock}
-                                onClick={() => addToCart(product.id, quantity)}
+                                onClick={() => addToCart(activeVariant?.id, quantity, product.id)}
                             >
                                 {pendingProductId === productId ? 'Adding…' : 'Add to cart'}
                             </button>

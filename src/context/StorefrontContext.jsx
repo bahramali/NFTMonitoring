@@ -109,9 +109,10 @@ export function StorefrontProvider({ children }) {
 
             setCart(normalized);
 
-            if (expectation?.itemId || expectation?.productId) {
+            if (expectation?.itemId || expectation?.productId || expectation?.variantId) {
                 const matchedItem = normalized.items?.find((item) => {
                     if (expectation.itemId) return item.id === expectation.itemId;
+                    if (expectation.variantId) return item.variantId === expectation.variantId || item.variant?.id === expectation.variantId;
                     return item.productId === expectation.productId;
                 });
 
@@ -190,9 +191,9 @@ export function StorefrontProvider({ children }) {
     }, [ensureCartSession]);
 
     const addToCart = useCallback(
-        async (productId, quantity = 1) => {
-            if (!productId) return null;
-            setPendingProductId(productId);
+        async (variantId, quantity = 1, productId = null) => {
+            if (!variantId) return null;
+            setPendingProductId(productId || variantId);
             try {
                 const ensuredCart = await ensureCartSession({ allowCreate: true, silent: true });
                 const ensuredCartId = ensuredCart?.id || ensuredCart?.cartId;
@@ -202,12 +203,20 @@ export function StorefrontProvider({ children }) {
                     throw new Error('Unable to start a cart session. Please try again.');
                 }
 
-                const response = await addItemToCart(ensuredCartId, ensuredSessionId, productId, quantity);
-                const updated = applyCartResponse(response, { productId, quantity, intent: 'add' });
+                const response = await addItemToCart(ensuredCartId, ensuredSessionId, variantId, quantity);
+                const updated = applyCartResponse(response, { variantId, quantity, intent: 'add' });
                 setIsCartOpen(true);
                 return updated;
             } catch (error) {
-                showToast('error', error?.message || 'Could not add to cart.');
+                if (error?.status === 409) {
+                    const message = error?.message || '';
+                    const fallback = message.toLowerCase().includes('not enough')
+                        ? 'Not enough stock'
+                        : 'Out of stock';
+                    showToast('error', message || fallback);
+                } else {
+                    showToast('error', error?.message || 'Could not add to cart.');
+                }
                 return null;
             } finally {
                 setPendingProductId(null);
