@@ -1,6 +1,7 @@
 import React from 'react';
 import QuantityStepper from './QuantityStepper.jsx';
 import { currencyLabel, formatCurrency } from '../../utils/currency.js';
+import { getCartItemDisplayName } from '../../utils/storeVariants.js';
 import styles from './CartLineItem.module.css';
 
 export default function CartLineItem({ item, currency = 'SEK', onChangeQuantity, onRemove, pending }) {
@@ -10,6 +11,7 @@ export default function CartLineItem({ item, currency = 'SEK', onChangeQuantity,
     const priceLabel = formatCurrency(unitPrice, currency);
     const totalLabel = lineTotal !== null ? formatCurrency(lineTotal, currency) : formatCurrency(unitPrice * quantity, currency);
     const maxQuantity = item?.stock ?? item?.availableStock ?? item?.product?.stock;
+    const displayName = getCartItemDisplayName(item);
     const handleQuantityChange = (nextQuantity) => {
         if (nextQuantity <= 0) {
             onRemove?.();
@@ -25,7 +27,7 @@ export default function CartLineItem({ item, currency = 'SEK', onChangeQuantity,
                     {item?.imageUrl ? <img src={item.imageUrl} alt={item.name} /> : <span className={styles.dot} />}
                 </div>
                 <div>
-                    <p className={styles.name}>{item?.name}</p>
+                    <p className={styles.name}>{displayName}</p>
                     <p className={styles.price}>{priceLabel}</p>
                     {item?.shortDescription ? <p className={styles.note}>{item.shortDescription}</p> : null}
                     <p className={styles.unit}>{currencyLabel(currency)}</p>

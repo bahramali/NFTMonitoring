@@ -29,9 +29,11 @@ describe('ProductCard', () => {
         const product = {
             id: 'p-1',
             name: 'Test Item',
-            price: 29,
             currency: 'SEK',
-            stock: 0,
+            variants: [
+                { id: 'v-1', label: '50g', price: 29, stock: 0 },
+                { id: 'v-2', label: '70g', price: 39, stock: 0 },
+            ],
         };
 
         render(
@@ -62,19 +64,67 @@ describe('ProductCard', () => {
         expect(screen.getByRole('heading', { name: 'Fresh Basil 50g' })).toBeInTheDocument();
         expect(screen.getByText('Improved Genovese')).toBeInTheDocument();
     });
+
+    it('updates price and stock label when variant changes', async () => {
+        const product = {
+            id: 'p-3',
+            name: 'Fresh Basil',
+            currency: 'SEK',
+            variants: [
+                { id: 'v-1', label: '50g', price: 29, stock: 4 },
+                { id: 'v-2', label: '70g', price: 39, stock: 0 },
+            ],
+        };
+
+        render(
+            <MemoryRouter>
+                <ProductCard product={product} />
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByText('Only 4 left')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Add' })).not.toBeDisabled();
+
+        const option = screen.getByRole('button', { name: '70g' });
+        await act(async () => {
+            option.click();
+        });
+
+        expect(await screen.findByText('Out of stock')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
+        expect(screen.getByText(/39/)).toBeInTheDocument();
+    });
+
+    it('keeps view details link visible', () => {
+        const product = {
+            id: 'p-4',
+            name: 'Fresh Basil',
+            currency: 'SEK',
+            variants: [{ id: 'v-1', label: '50g', price: 29, stock: 10 }],
+        };
+
+        render(
+            <MemoryRouter>
+                <ProductCard product={product} />
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByRole('link', { name: /View details/i })).toBeInTheDocument();
+    });
 });
 
 describe('Storefront add to cart', () => {
     it('updates cart badge data and shows toast after add', async () => {
-        vi.stubGlobal('fetch', vi.fn(async (url, options = {}) => {
+        const fetchSpy = vi.fn(async (url, options = {}) => {
             const requestUrl = typeof url === 'string' ? url : url?.toString();
             if (requestUrl?.includes('/api/store/cart') && options?.method === 'POST') {
                 if (requestUrl.includes('/items')) {
+                    const body = JSON.parse(options.body ?? '{}');
                     return createJsonResponse({
                         cart: {
                             id: 'cart-1',
                             sessionId: 'session-1',
-                            items: [{ id: 'item-1', productId: 'product-1', quantity: 2, price: 29 }],
+                            items: [{ id: 'item-1', variantId: body.variantId, quantity: 2, price: 29 }],
                             totals: { currency: 'SEK', subtotal: 58, total: 58 },
                         },
                     });
@@ -84,16 +134,23 @@ describe('Storefront add to cart', () => {
             }
 
             return createJsonResponse({});
+        });
+        vi.stubGlobal('fetch', vi.fn(async (url, options = {}) => {
+            return fetchSpy(url, options);
         }));
 
         const wrapper = ({ children }) => <StorefrontProvider>{children}</StorefrontProvider>;
         const { result } = renderHook(() => useStorefront(), { wrapper });
 
         await act(async () => {
-            await result.current.addToCart('product-1', 2);
+            await result.current.addToCart('variant-1', 2, 'product-1');
         });
 
         expect(result.current.cart?.items?.[0]?.quantity).toBe(2);
+        expect(result.current.cart?.items?.[0]?.variantId).toBe('variant-1');
         expect(result.current.toast?.message).toBe('Added to cart');
+        const call = fetchSpy.mock.calls.find(([url]) => `${url}`.includes('/items'));
+        const body = JSON.parse(call?.[1]?.body ?? '{}');
+        expect(body).toMatchObject({ variantId: 'variant-1', quantity: 2 });
     });
 });

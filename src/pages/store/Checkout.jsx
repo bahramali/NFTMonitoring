@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
 import { currencyLabel, formatCurrency } from '../../utils/currency.js';
+import { getCartItemDisplayName } from '../../utils/storeVariants.js';
 import styles from './Checkout.module.css';
 
 const initialForm = {
@@ -189,7 +190,7 @@ export default function Checkout() {
                             {summaryItems.map((item) => (
                                 <div key={item.id || item.productId} className={styles.item}>
                                     <div>
-                                        <p className={styles.itemName}>{item.name}</p>
+                                        <p className={styles.itemName}>{getCartItemDisplayName(item)}</p>
                                         <p className={styles.itemMeta}>{item.quantity ?? item.qty ?? 1} × {formatCurrency(item.price ?? item.unitPrice ?? 0, currency)}</p>
                                     </div>
                                     <span>{formatCurrency(item.total ?? item.lineTotal ?? (item.quantity ?? item.qty ?? 1) * (item.price ?? 0), currency)}</span>
