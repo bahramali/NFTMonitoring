@@ -98,11 +98,17 @@
     font-weight: 700;
 }
 
+.buyFooter {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
 .buySection {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    margin-top: auto;
 }
 
 .stock {
@@ -174,18 +180,18 @@
     align-items: center;
     justify-content: space-between;
     color: var(--muted, #666);
-    margin-top: auto;
 }
 
 .link {
-    color: var(--text);
-    font-weight: 600;
+    color: var(--muted, #666);
+    font-weight: 500;
     text-decoration: underline;
     text-underline-offset: 4px;
 }
 
 .link:hover {
     text-decoration-thickness: 2px;
+    color: var(--text, #111);
 }
 
 @media (min-width: 860px) {

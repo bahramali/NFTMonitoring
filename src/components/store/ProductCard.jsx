@@ -60,43 +60,45 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
                     </div>
                 </div>
 
-                <div className={styles.buySection}>
-                    <span className={`${styles.stock} ${isOutOfStock ? styles.stockMuted : ''}`}>
-                        {stockLabel}
-                    </span>
-                    <div className={styles.actions}>
-                        <QuantityStepper
-                            value={quantity}
-                            min={1}
-                            max={stock ?? undefined}
-                            onChange={setQuantity}
-                            compact
-                            disabled={pending || isOutOfStock}
-                        />
-                        <button
-                            type="button"
-                            className={styles.addButton}
-                            onClick={() => onAdd?.(quantity)}
-                            disabled={pending || isOutOfStock}
-                        >
-                            {pending ? 'Adding…' : 'Add'}
-                        </button>
+                <div className={styles.buyFooter}>
+                    <div className={styles.buySection}>
+                        <span className={`${styles.stock} ${isOutOfStock ? styles.stockMuted : ''}`}>
+                            {stockLabel}
+                        </span>
+                        <div className={styles.actions}>
+                            <QuantityStepper
+                                value={quantity}
+                                min={1}
+                                max={stock ?? undefined}
+                                onChange={setQuantity}
+                                compact
+                                disabled={pending || isOutOfStock}
+                            />
+                            <button
+                                type="button"
+                                className={styles.addButton}
+                                onClick={() => onAdd?.(quantity)}
+                                disabled={pending || isOutOfStock}
+                            >
+                                {pending ? 'Adding…' : 'Add'}
+                            </button>
+                        </div>
+                        <span className={styles.trustCue}>Pesticide-free</span>
+                        {showMaxNotice ? (
+                            <span className={styles.maxNotice}>Max available: {stock}</span>
+                        ) : null}
                     </div>
-                    <span className={styles.trustCue}>Pesticide-free</span>
-                    {showMaxNotice ? (
-                        <span className={styles.maxNotice}>Max available: {stock}</span>
-                    ) : null}
-                </div>
 
-                <footer className={styles.footer}>
-                    <Link
-                        to={`/store/product/${encodeURIComponent(id)}`}
-                        className={styles.link}
-                        aria-label={`View details for ${title}`}
-                    >
-                        View details →
-                    </Link>
-                </footer>
+                    <footer className={styles.footer}>
+                        <Link
+                            to={`/store/product/${encodeURIComponent(id)}`}
+                            className={styles.link}
+                            aria-label={`View details for ${title}`}
+                        >
+                            View details →
+                        </Link>
+                    </footer>
+                </div>
             </div>
 
         </article>
