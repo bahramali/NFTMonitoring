@@ -6,10 +6,8 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto 1fr;
-    overflow: hidden;
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.04);
     transition: transform 160ms ease, border-color 160ms ease;
-    min-height: 100%;
 }
 
 .card:hover {
@@ -26,6 +24,7 @@
     overflow: hidden;
     background: var(--surface, #f7f7f7);
     border-bottom: 1px solid var(--border, #e6e6e6);
+    border-radius: 16px 16px 0 0;
 }
 
 .media img {
@@ -57,7 +56,8 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
 }
 
 .headerRow {
@@ -265,6 +265,7 @@
         min-height: 260px;
         border-bottom: none;
         border-right: 1px solid var(--border, #e6e6e6);
+        border-radius: 16px 0 0 16px;
     }
 
     .cardSingle .body {
