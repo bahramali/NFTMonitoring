@@ -362,9 +362,9 @@ export default function ProductAdmin() {
     };
 
     const buildVariantPayload = (variant) => ({
-        weight: normalizeNumber(variant.weight, 0),
-        price: normalizeNumber(variant.price, 0),
-        stock: normalizeNumber(variant.stock, 0),
+        weightGrams: normalizeNumber(variant.weight, 0),
+        priceSek: normalizeNumber(variant.price, 0),
+        stockQuantity: normalizeNumber(variant.stock, 0),
         sku: variant.sku?.trim() || '',
         active: variant.active !== false,
     });
@@ -374,11 +374,11 @@ export default function ProductAdmin() {
         const variant = variantRows[index];
         if (!variant) return;
         const payload = buildVariantPayload(variant);
-        if (payload.weight <= 0) {
+        if (payload.weightGrams <= 0) {
             showToast('error', 'Weight must be greater than zero.');
             return;
         }
-        if (payload.price < 0 || payload.stock < 0) {
+        if (payload.priceSek < 0 || payload.stockQuantity < 0) {
             showToast('error', 'Price and stock cannot be negative.');
             return;
         }
