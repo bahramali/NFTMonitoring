@@ -47,7 +47,7 @@ function normalizeMetricEvent(rawEvent) {
 }
 
 function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel, metricUnit}) {
-    const {isAuthenticated, loadingProfile, token, logout} = useAuth();
+    const {isAuthenticated, loadingProfile, token} = useAuth();
     const bufferRef = useRef(new Map());
     const rafRef = useRef(null);
     const retryRef = useRef(RETRY_MIN);
@@ -125,25 +125,24 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
         const abortController = new AbortController();
         const {signal} = abortController;
 
-        const fetchHistory = async () => {
-            try {
-                setHistoryError("");
-                if (import.meta.env?.MODE === "development") {
-                    console.info("[MetricStreamPanel] history token present:", Boolean(token));
+    const fetchHistory = async () => {
+        try {
+            setHistoryError("");
+            if (import.meta.env?.MODE === "development") {
+                console.info("[MetricStreamPanel] history token present:", Boolean(token));
                 }
                 const params = new URLSearchParams({
                     compositeId: selectedCompositeId || "",
                     metricKey: selectedMetricKey || "",
                     limit: String(MAX_POINTS),
-                });
-                const url = `${HISTORY_URL}?${params.toString()}`;
-                const response = await authFetch(url, {signal});
-                if (response.status === 401) {
-                    setHistoryError("Session expired. Redirecting to sign in.");
-                    logout({redirectTo: "/login", clearNotice: false});
-                    return;
-                }
-                if (!response.ok) throw new Error(`History request failed (${response.status})`);
+            });
+            const url = `${HISTORY_URL}?${params.toString()}`;
+            const response = await authFetch(url, {signal});
+            if (response.status === 401) {
+                setHistoryError("Session expired. Please sign in again.");
+                return;
+            }
+            if (!response.ok) throw new Error(`History request failed (${response.status})`);
 
                 const rawBody = await response.text();
                 if (!rawBody) {
@@ -175,7 +174,7 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
 
         fetchHistory();
         return () => abortController.abort();
-    }, [isAuthenticated, loadingProfile, logout, selectedCompositeId, selectedMetricKey, targetBufferKey, token]);
+    }, [isAuthenticated, loadingProfile, selectedCompositeId, selectedMetricKey, targetBufferKey, token]);
 
     useEffect(() => {
         let cancelled = false;
@@ -220,26 +219,28 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
             }
         };
 
-        const connect = () => {
-            if (cancelled) return;
-            cleanup();
-            setConnectionState(prev => (prev === "open" ? "open" : "connecting"));
-            setStreamError("");
+    const connect = () => {
+        if (cancelled) return;
+        cleanup();
+        setStreamError("");
 
-            if (loadingProfile) {
-                return;
+        if (loadingProfile) {
+            setConnectionState("idle");
+            return;
+        }
+
+        if (!isAuthenticated || !token) {
+            setStreamError("Sign in to view live metrics.");
+            setConnectionState("idle");
+            return;
+        }
+
+        setConnectionState(prev => (prev === "open" ? "open" : "connecting"));
+
+        try {
+            if (import.meta.env?.MODE === "development") {
+                console.info("[MetricStreamPanel] stream token present:", Boolean(token));
             }
-
-            if (!isAuthenticated || !token) {
-                setStreamError("Sign in to view live metrics.");
-                setConnectionState("idle");
-                return;
-            }
-
-            try {
-                if (import.meta.env?.MODE === "development") {
-                    console.info("[MetricStreamPanel] stream token present:", Boolean(token));
-                }
 
                 if (!STREAM_URL) {
                     return;
@@ -255,8 +256,7 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
                     .then(async (response) => {
                         if (controller.signal.aborted) return;
                         if (response.status === 401) {
-                            setStreamError("Session expired. Redirecting to sign in.");
-                            logout({redirectTo: "/login", clearNotice: false});
+                            setStreamError("Session expired. Please sign in again.");
                             return;
                         }
                         if (!response.ok) {
@@ -317,7 +317,7 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
                 cancelAnimationFrame(rafRef.current);
             }
         };
-    }, [isAuthenticated, loadingProfile, logout, selectedCompositeId, selectedMetricKey, token]);
+    }, [isAuthenticated, loadingProfile, selectedCompositeId, selectedMetricKey, token]);
 
     const statusLabel = useMemo(() => {
         switch (connectionState) {
