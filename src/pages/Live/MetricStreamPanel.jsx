@@ -12,8 +12,9 @@ import styles from "./MetricStreamPanel.module.css";
 import {makeMeasurementKey, sanitize} from "../common/measurementUtils.js";
 
 const MAX_POINTS = 480;
-const STREAM_URL = import.meta?.env?.VITE_METRIC_STREAM_URL || "/api/metrics/stream";
-const HISTORY_URL = import.meta?.env?.VITE_METRIC_HISTORY_URL || "/api/metrics/history";
+const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? "https://api.hydroleaf.se";
+const STREAM_URL = import.meta?.env?.VITE_METRIC_STREAM_URL || `${API_BASE}/api/metrics/stream`;
+const HISTORY_URL = import.meta?.env?.VITE_METRIC_HISTORY_URL || `${API_BASE}/api/metrics/history`;
 const RETRY_MIN = 2000;
 const RETRY_MAX = 30000;
 

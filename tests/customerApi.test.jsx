@@ -6,7 +6,7 @@ import {
     updateCustomerProfile,
 } from '../src/api/customer.js';
 
-const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
+const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? 'https://api.hydroleaf.se';
 const UPDATE_URL = `${API_BASE}${CUSTOMER_PROFILE_UPDATE_PATH}`;
 
 const createJsonResponse = ({ ok = true, status = 200, body = { ok: true } } = {}) => ({

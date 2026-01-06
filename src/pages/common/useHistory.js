@@ -1,6 +1,8 @@
 import {useCallback, useEffect, useRef, useState} from "react";
 import {transformAggregatedData} from "../../utils.js";
 
+const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? "https://api.hydroleaf.se";
+
 export function useHistory(compositeId, from, to, autoRefresh, interval, sensorTypes = []) {
     const [rangeData, setRangeData] = useState([]);
     const [tempRangeData, setTempRangeData] = useState([]);
@@ -27,7 +29,7 @@ export function useHistory(compositeId, from, to, autoRefresh, interval, sensorT
             const sensors = sensorTypes.length ? sensorTypes : [null];
             const requests = sensors.map(async (sensor) => {
                 const sensorParam = sensor ? `&sensorType=${sensor}` : '';
-                const url = `https://api.hydroleaf.se/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}${sensorParam}`;
+                const url = `${API_BASE}/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}${sensorParam}`;
                 console.log('Request:', url);
                 const res = await fetch(url);
                 if (!res.ok) throw new Error("bad response");
@@ -72,7 +74,7 @@ export function useHistory(compositeId, from, to, autoRefresh, interval, sensorT
             const sensors = sensorTypes.length ? sensorTypes : [null];
             const requests = sensors.map(async (sensor) => {
                 const sensorParam = sensor ? `&sensorType=${sensor}` : '';
-                const url = `https://api.hydroleaf.se/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}${sensorParam}`;
+                const url = `${API_BASE}/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}${sensorParam}`;
                 console.log('Request:', url);
                 const res = await fetch(url);
                 if (!res.ok) throw new Error("bad response");
@@ -134,4 +136,3 @@ export function useHistory(compositeId, from, to, autoRefresh, interval, sensorT
         fetchReportData
     };
 }
-

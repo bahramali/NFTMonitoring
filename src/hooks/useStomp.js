@@ -6,12 +6,13 @@ let sharedClient = null;
 let isConnected = false;
 const reconnectListeners = new Set(); // called on every (re)connect
 
+const DEFAULT_SOCKJS_URL = "https://api.hydroleaf.se/ws";
+
 function normalizeSockJsUrl(url) {
-    let sockJsUrl = url || (typeof import.meta !== "undefined" ? import.meta.env?.VITE_WS_URL : undefined);
-    if (!sockJsUrl && typeof window !== "undefined") {
-        // try to build from current origin if not provided
-        const proto = window.location.protocol === "https:" ? "https" : "http";
-        sockJsUrl = `${proto}://${window.location.host}/ws`;
+    let sockJsUrl = url || (typeof import.meta !== "undefined" ? import.meta.env?.VITE_WS_HTTP_URL : undefined) || DEFAULT_SOCKJS_URL;
+    if (sockJsUrl?.startsWith("/")) {
+        console.warn("SockJS URL must be absolute. Falling back to default.", sockJsUrl);
+        sockJsUrl = DEFAULT_SOCKJS_URL;
     }
     if (sockJsUrl?.startsWith("ws://")) {
         sockJsUrl = `http://${sockJsUrl.slice(5)}`;

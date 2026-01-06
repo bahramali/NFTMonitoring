@@ -22,15 +22,15 @@ The application provides two main views in addition to the default dashboard:
 VITE_MQTT_BROKER_URL=
 VITE_MQTT_USERNAME=
 VITE_MQTT_PASSWORD=
-VITE_API_BASE=
+VITE_API_BASE_URL=
 VITE_BASE_PATH=
 VITE_TURNSTILE_SITE_KEY=
 ```
 
 
-Additionally, set `VITE_WS_URL` to the WebSocket endpoint that provides the live
-STOMP feed. If not defined, it defaults to `wss://api.hydroleaf.se/ws`.
-Set `VITE_API_BASE` to the base URL for REST API requests. When omitted,
+Additionally, set `VITE_WS_HTTP_URL` to the WebSocket endpoint that provides the live
+STOMP feed. If not defined, it defaults to `https://api.hydroleaf.se/ws`.
+Set `VITE_API_BASE_URL` to the base URL for REST API requests. When omitted,
 requests default to `https://api.hydroleaf.se`. For pages that communicate with
 the backend (such as the Notes page), this should point to a running API
 instance that exposes the expected endpoints.

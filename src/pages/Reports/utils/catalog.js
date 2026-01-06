@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env?.VITE_API_BASE ?? "https://api.hydroleaf.se";
+const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? "https://api.hydroleaf.se";
 
 const NAME_KEYS = ["name", "label", "title", "displayName"];
 const DEFAULT_OBJECT_KEYS = ["id", "value", "code", "key", "systemId", "layerId", "deviceId"];

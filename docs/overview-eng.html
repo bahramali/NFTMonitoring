@@ -28,7 +28,7 @@
       <li><strong>Routes:</strong> <code>src/App.jsx</code> defines routing; all pages live under <code>MainLayout</code>, which provides the sidebar and <code>ReportsFiltersProvider</code> before rendering content via <code>&lt;Outlet /&gt;</code>.</li>
       <li><strong>Pages:</strong> The <code>src/pages</code> folder contains each page (e.g., Overview, Live, Reports). Pages reuse shared components in <code>src/components</code> and utilities in <code>src/utils</code>.</li>
       <li><strong>Live data:</strong> The <code>src/hooks/useStomp.js</code> hook builds a shared STOMP client, auto-subscribes to topics, and manages connection/reconnection so each page only defines its topics and message handlers.</li>
-      <li><strong>Configuration and API:</strong> <code>src/context/SensorConfigContext.jsx</code> loads/updates sensor configuration through REST methods in <code>src/api/sensorConfig.js</code>. Values for <code>VITE_API_BASE</code> and WebSocket addresses are set in <code>.env</code>.</li>
+      <li><strong>Configuration and API:</strong> <code>src/context/SensorConfigContext.jsx</code> loads/updates sensor configuration through REST methods in <code>src/api/sensorConfig.js</code>. Values for <code>VITE_API_BASE_URL</code> and WebSocket addresses are set in <code>.env</code>.</li>
       <li><strong>Testing:</strong> Vitest specs live in <code>tests</code> and use helpers like <code>tests/utils/renderWithProviders</code> to render components with required contexts.</li>
     </ul>
   </div>
