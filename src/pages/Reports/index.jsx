@@ -6,6 +6,7 @@ import Header from "../common/Header";
 import { API_BASE } from "./utils/catalog";
 import { pickBucket, toISOSeconds } from "./utils/datetime";
 import { useReportsFilters } from "./context/ReportsFiltersContext.jsx";
+import { authFetch } from "../../api/http.js";
 import styles from "./ReportsPage.module.css";
 
 const AUTO_REFRESH_MS = { "5s": 5_000, "30s": 30_000, "1m": 60_000, "5m": 300_000 };
@@ -175,7 +176,7 @@ export default function Reports() {
             const requests = selectedCIDs.map((cid) => {
                 return (async () => {
                     const url = createHistoryUrl(cid, baseParams, selectedSensorTypes);
-                    const res = await fetch(url, { signal });
+                    const res = await authFetch(url, { signal });
                     if (!res.ok) {
                         const txt = await res.text().catch(() => "");
                         throw new Error(`CID ${cid} -> ${res.status} ${txt}`);
