@@ -1,13 +1,13 @@
 import { API_BASE } from "./topics";
+import { authFetch } from "./http.js";
 
 const SHELLY_BASE = `${API_BASE}/api/shelly`;
 
-const AUTHENTICATED_OPTIONS = { credentials: "include", headers: { Accept: "application/json" } };
+const AUTH_HEADERS = { Accept: "application/json" };
 
 const withAuth = (options = {}) => ({
-    ...AUTHENTICATED_OPTIONS,
     ...options,
-    headers: { ...(AUTHENTICATED_OPTIONS.headers ?? {}), ...(options.headers ?? {}) },
+    headers: { ...AUTH_HEADERS, ...(options.headers ?? {}) },
 });
 
 async function handleResponse(response, defaultErrorMessage) {
@@ -36,7 +36,7 @@ async function handleResponse(response, defaultErrorMessage) {
 }
 
 export async function fetchHierarchy({ signal } = {}) {
-    const roomsResponse = await fetch(`${SHELLY_BASE}/rooms`, withAuth({ signal }));
+    const roomsResponse = await authFetch(`${SHELLY_BASE}/rooms`, withAuth({ signal }));
     const roomsPayload = await handleResponse(roomsResponse, "Failed to load rooms");
     const rooms = Array.isArray(roomsPayload) ? roomsPayload : roomsPayload?.rooms;
 
@@ -44,12 +44,15 @@ export async function fetchHierarchy({ signal } = {}) {
 
     const roomWithRacks = await Promise.all(
         rooms.map(async (room) => {
-            const racksResponse = await fetch(`${SHELLY_BASE}/rooms/${room.id}/racks`, withAuth({ signal }));
+            const racksResponse = await authFetch(`${SHELLY_BASE}/rooms/${room.id}/racks`, withAuth({ signal }));
             const racks = await handleResponse(racksResponse, `Failed to load racks for room ${room.id}`);
 
             const racksWithSockets = await Promise.all(
                 (racks || []).map(async (rack) => {
-                    const socketsResponse = await fetch(`${SHELLY_BASE}/racks/${rack.id}/sockets`, withAuth({ signal }));
+                    const socketsResponse = await authFetch(
+                        `${SHELLY_BASE}/racks/${rack.id}/sockets`,
+                        withAuth({ signal }),
+                    );
                     const sockets = await handleResponse(socketsResponse, `Failed to load sockets for rack ${rack.id}`);
                     return { ...rack, sockets: sockets || [] };
                 })
@@ -63,7 +66,7 @@ export async function fetchHierarchy({ signal } = {}) {
 }
 
 export async function fetchStatuses() {
-    const response = await fetch(`${SHELLY_BASE}/status`, withAuth());
+    const response = await authFetch(`${SHELLY_BASE}/status`, withAuth());
     const payload = await handleResponse(response, "Failed to load statuses");
     if (Array.isArray(payload)) return payload;
     if (Array.isArray(payload?.statuses)) return payload.statuses;
@@ -71,12 +74,12 @@ export async function fetchStatuses() {
 }
 
 export async function fetchSocketStatus(socketId) {
-    const response = await fetch(`${SHELLY_BASE}/sockets/${socketId}/status`, withAuth());
+    const response = await authFetch(`${SHELLY_BASE}/sockets/${socketId}/status`, withAuth());
     return handleResponse(response, `Failed to load status for ${socketId}`);
 }
 
 export async function toggleSocket(socketId) {
-    const response = await fetch(`${SHELLY_BASE}/sockets/${socketId}/toggle`, withAuth({
+    const response = await authFetch(`${SHELLY_BASE}/sockets/${socketId}/toggle`, withAuth({
         method: "POST",
     }));
     return handleResponse(response, "Failed to toggle socket");
@@ -84,19 +87,19 @@ export async function toggleSocket(socketId) {
 
 export async function setSocketState(socketId, on) {
     const endpoint = on ? "on" : "off";
-    const response = await fetch(`${SHELLY_BASE}/sockets/${socketId}/${endpoint}`, withAuth({
+    const response = await authFetch(`${SHELLY_BASE}/sockets/${socketId}/${endpoint}`, withAuth({
         method: "POST",
     }));
     return handleResponse(response, `Failed to update ${socketId}`);
 }
 
 export async function fetchAutomations() {
-    const response = await fetch(`${SHELLY_BASE}/automation`, withAuth());
+    const response = await authFetch(`${SHELLY_BASE}/automation`, withAuth());
     return handleResponse(response, "Failed to load automations");
 }
 
 export async function createAutomation(payload) {
-    const response = await fetch(`${SHELLY_BASE}/automation`, withAuth({
+    const response = await authFetch(`${SHELLY_BASE}/automation`, withAuth({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload ?? {}),
@@ -105,7 +108,7 @@ export async function createAutomation(payload) {
 }
 
 export async function deleteAutomation(id) {
-    const response = await fetch(`${SHELLY_BASE}/automation/${id}`, withAuth({
+    const response = await authFetch(`${SHELLY_BASE}/automation/${id}`, withAuth({
         method: "DELETE",
     }));
     if (!response.ok) {
