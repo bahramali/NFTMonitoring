@@ -1,18 +1,25 @@
 import {useEffect, useMemo, useRef} from "react";
 import {Client} from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 
 let sharedClient = null;
 let isConnected = false;
 const reconnectListeners = new Set(); // called on every (re)connect
 
-function normalizeWsUrl(url) {
-    let wsUrl = url || (typeof import.meta !== "undefined" ? import.meta.env?.VITE_WS_URL : undefined);
-    if (!wsUrl && typeof window !== "undefined") {
+function normalizeSockJsUrl(url) {
+    let sockJsUrl = url || (typeof import.meta !== "undefined" ? import.meta.env?.VITE_WS_URL : undefined);
+    if (!sockJsUrl && typeof window !== "undefined") {
         // try to build from current origin if not provided
-        const proto = window.location.protocol === "https:" ? "wss" : "ws";
-        wsUrl = `${proto}://${window.location.host}/ws`;
+        const proto = window.location.protocol === "https:" ? "https" : "http";
+        sockJsUrl = `${proto}://${window.location.host}/ws`;
     }
-    return wsUrl;
+    if (sockJsUrl?.startsWith("ws://")) {
+        sockJsUrl = `http://${sockJsUrl.slice(5)}`;
+    }
+    if (sockJsUrl?.startsWith("wss://")) {
+        sockJsUrl = `https://${sockJsUrl.slice(6)}`;
+    }
+    return sockJsUrl;
 }
 
 function attachReconnect(client) {
@@ -57,9 +64,9 @@ function ensureClient(opts = {}) {
 
     if (sharedClient) return sharedClient;
 
-    const brokerURL = normalizeWsUrl(opts.url);
+    const sockJsUrl = normalizeSockJsUrl(opts.url);
     sharedClient = new Client({
-        brokerURL,
+        webSocketFactory: () => new SockJS(sockJsUrl),
         reconnectDelay: opts.reconnectDelay ?? 3000,
         heartbeatIncoming: opts.heartbeatIncoming ?? 10000,
         heartbeatOutgoing: opts.heartbeatOutgoing ?? 10000,
