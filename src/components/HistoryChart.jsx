@@ -43,10 +43,11 @@ const HistoryChart = ({
         return Array.from(pointMap.values()).sort((a, b) => a[xDataKey] - b[xDataKey]);
     }, [series, xDataKey]);
 
-    const formatXAxisTick = useMemo(() => {
+    const formatTimestamp = useMemo(() => {
         const formatter = new Intl.DateTimeFormat("en-US", {
-            month: "numeric",
-            day: "numeric",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
             hour: "2-digit",
             minute: "2-digit",
             hour12: false,
@@ -75,7 +76,7 @@ const HistoryChart = ({
                     domain={xDomain ?? ["auto", "auto"]}
                     tick={{ fontSize: 12, fill: "#1f2d4d", fontWeight: 500 }}
                     stroke="#2b3c5c"
-                    tickFormatter={formatXAxisTick}
+                    tickFormatter={formatTimestamp}
                     allowDataOverflow
                 />
                 <YAxis
@@ -103,6 +104,7 @@ const HistoryChart = ({
                     }}
                     labelStyle={{ color: "#9fb6ff" }}
                     itemStyle={{ color: "#e4ecff" }}
+                    labelFormatter={(value) => formatTimestamp(value)}
                 />
                 <Legend
                     wrapperStyle={{
