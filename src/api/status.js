@@ -1,4 +1,5 @@
 import { API_BASE } from "./topics";
+import { authFetch } from "./http.js";
 
 const STATUS_BASE = `${API_BASE}/api/status`;
 
@@ -16,7 +17,7 @@ function buildStatusUrl(system, layer, sensorType = "all") {
 
 export async function fetchLayerStatus({ system, layer, sensorType = "all", signal } = {}) {
     const url = buildStatusUrl(system, layer, sensorType);
-    const response = await fetch(url, { signal });
+    const response = await authFetch(url, { signal });
 
     if (!response.ok) {
         throw new Error(`Failed to load layer status (${response.status})`);
