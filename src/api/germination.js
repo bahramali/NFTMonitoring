@@ -1,3 +1,5 @@
+import { authFetch } from "./http.js";
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "https://api.hydroleaf.se";
 const BASE_URL = `${API_BASE}/api/germination`;
 
@@ -11,7 +13,7 @@ function normalizeStatus(json) {
 }
 
 export async function getGerminationStatus({ signal } = {}) {
-    const response = await fetch(BASE_URL, { signal });
+    const response = await authFetch(BASE_URL, { signal });
     if (response.status === 404) {
         return { startTime: null };
     }
@@ -23,7 +25,7 @@ export async function getGerminationStatus({ signal } = {}) {
 }
 
 export async function updateGerminationStart(startTime, { signal } = {}) {
-    const response = await fetch(BASE_URL, {
+    const response = await authFetch(BASE_URL, {
         method: "PUT",
         headers: {
             "Content-Type": "application/json",
@@ -41,7 +43,7 @@ export async function updateGerminationStart(startTime, { signal } = {}) {
 }
 
 export async function triggerGerminationStart({ signal } = {}) {
-    const response = await fetch(`${BASE_URL}/start`, {
+    const response = await authFetch(`${BASE_URL}/start`, {
         method: "POST",
         signal,
     });

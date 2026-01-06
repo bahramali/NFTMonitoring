@@ -1,7 +1,8 @@
 import {useCallback, useEffect, useRef, useState} from "react";
 import {transformAggregatedData} from "../../utils.js";
+import {authFetch} from "../../api/http.js";
 
-const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? "https://api.hydroleaf.se";
+const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? import.meta.env?.VITE_API_BASE ?? "";
 
 export function useHistory(compositeId, from, to, autoRefresh, interval, sensorTypes = []) {
     const [rangeData, setRangeData] = useState([]);
@@ -31,7 +32,7 @@ export function useHistory(compositeId, from, to, autoRefresh, interval, sensorT
                 const sensorParam = sensor ? `&sensorType=${sensor}` : '';
                 const url = `${API_BASE}/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}${sensorParam}`;
                 console.log('Request:', url);
-                const res = await fetch(url);
+                const res = await authFetch(url);
                 if (!res.ok) throw new Error("bad response");
                 return res.json();
             });
@@ -76,7 +77,7 @@ export function useHistory(compositeId, from, to, autoRefresh, interval, sensorT
                 const sensorParam = sensor ? `&sensorType=${sensor}` : '';
                 const url = `${API_BASE}/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}${sensorParam}`;
                 console.log('Request:', url);
-                const res = await fetch(url);
+                const res = await authFetch(url);
                 if (!res.ok) throw new Error("bad response");
                 return res.json();
             });
