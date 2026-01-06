@@ -15,10 +15,23 @@ import {useAuth} from "../../context/AuthContext.jsx";
 
 const MAX_POINTS = 480;
 const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? import.meta.env?.VITE_API_BASE ?? "";
-const STREAM_URL = import.meta?.env?.VITE_METRIC_STREAM_URL || `${API_BASE}/api/metrics/stream`;
-const HISTORY_URL = import.meta?.env?.VITE_METRIC_HISTORY_URL || `${API_BASE}/api/metrics/history`;
+const STREAM_PATH = import.meta?.env?.VITE_METRIC_STREAM_URL || "/api/metrics/stream";
+const HISTORY_PATH = import.meta?.env?.VITE_METRIC_HISTORY_URL || "/api/metrics/history";
 const RETRY_MIN = 2000;
 const RETRY_MAX = 30000;
+
+const resolveApiUrl = (path) => {
+    if (!path) return API_BASE;
+    if (!API_BASE) return path;
+    if (/^https?:\/\//i.test(path)) {
+        const parsed = new URL(path);
+        return `${API_BASE}${parsed.pathname}${parsed.search}`;
+    }
+    return `${API_BASE}${path.startsWith("/") ? "" : "/"}${path}`;
+};
+
+const STREAM_URL = resolveApiUrl(STREAM_PATH);
+const HISTORY_URL = resolveApiUrl(HISTORY_PATH);
 
 function formatTime(ts) {
     if (!Number.isFinite(ts)) return "-";
