@@ -10,9 +10,10 @@ import {
 } from "recharts";
 import styles from "./MetricStreamPanel.module.css";
 import {makeMeasurementKey, sanitize} from "../common/measurementUtils.js";
+import {authFetch} from "../../api/http.js";
 
 const MAX_POINTS = 480;
-const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? "https://api.hydroleaf.se";
+const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? import.meta.env?.VITE_API_BASE ?? "";
 const STREAM_URL = import.meta?.env?.VITE_METRIC_STREAM_URL || `${API_BASE}/api/metrics/stream`;
 const HISTORY_URL = import.meta?.env?.VITE_METRIC_HISTORY_URL || `${API_BASE}/api/metrics/history`;
 const RETRY_MIN = 2000;
@@ -121,7 +122,7 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
                     limit: String(MAX_POINTS),
                 });
                 const url = `${HISTORY_URL}?${params.toString()}`;
-                const response = await fetch(url, {signal});
+                const response = await authFetch(url, {signal});
                 if (!response.ok) throw new Error(`History request failed (${response.status})`);
 
                 const rawBody = await response.text();
