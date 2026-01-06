@@ -3,7 +3,7 @@ import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { AuthProvider, useAuth } from '../src/context/AuthContext.jsx';
 
-const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
+const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? 'https://api.hydroleaf.se';
 const LOGIN_URL = `${API_BASE}/api/auth/login`;
 
 afterEach(() => {

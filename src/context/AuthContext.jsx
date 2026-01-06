@@ -16,7 +16,7 @@ import {
 import { configureAuth } from '../api/http.js';
 import normalizeProfile from '../utils/normalizeProfile.js';
 
-const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
+const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? 'https://api.hydroleaf.se';
 const AUTH_BASE = `${API_BASE}/api/auth`;
 const PASSWORD_REQUIREMENTS_MESSAGE = 'Password must be at least 8 characters long.';
 

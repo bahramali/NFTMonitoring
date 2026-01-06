@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env?.VITE_API_BASE ?? "https://api.hydroleaf.se";
+const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? "https://api.hydroleaf.se";
 
 export async function fetchTopicSensors({ signal } = {}) {
     const url = `${API_BASE}/api/topics/sensors`;

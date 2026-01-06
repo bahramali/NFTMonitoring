@@ -1,6 +1,6 @@
 import { authFetch, buildAuthHeaders, parseApiResponse } from './http.js';
 
-const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.hydroleaf.se';
+const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? 'https://api.hydroleaf.se';
 const AUTH_BASE = `${API_BASE}/api/auth`;
 const PROFILE_URL = `${API_BASE}/api/me`;
 

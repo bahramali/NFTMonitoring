@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Header from "../common/Header";
 import styles from "./NotePage.module.css";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "https://api.hydroleaf.se";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://api.hydroleaf.se";
 
 export default function NotePage() {
     const [notes, setNotes] = useState([]);

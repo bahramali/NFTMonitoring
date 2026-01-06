@@ -51,4 +51,4 @@ Times use 24h `HH:mm` strings; days-of-week follow Java `DayOfWeek` names (e.g.,
 ## Running locally
 - **Backend**: `cd backend && ./mvnw spring-boot:run` (or `mvn spring-boot:run` if Maven is installed). Ensure the host has
   network access to the Shelly devices.
-- **Frontend**: `npm install` then `npm run dev` (uses `VITE_API_BASE` to point to the backend).
+- **Frontend**: `npm install` then `npm run dev` (uses `VITE_API_BASE_URL` to point to the backend).
