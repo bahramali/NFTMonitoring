@@ -5,6 +5,7 @@ import { GERMINATION_TOPIC, topics } from "../common/dashboard.constants";
 import GerminationCamera from "./components/GerminationCamera";
 import HistoryChart from "../../components/HistoryChart.jsx";
 import { transformAggregatedData } from "../../utils.js";
+import { authFetch } from "../../api/http.js";
 import {
     getGerminationStatus,
     triggerGerminationStart,
@@ -587,7 +588,7 @@ export default function Germination() {
                     params.append("sensorType", selectedMetricSensorType);
                 }
 
-                const response = await fetch(`${API_BASE}/api/records/history/aggregated?${params.toString()}`, {
+                const response = await authFetch(`${API_BASE}/api/records/history/aggregated?${params.toString()}`, {
                     signal: controller.signal,
                 });
                 if (!response.ok) {
