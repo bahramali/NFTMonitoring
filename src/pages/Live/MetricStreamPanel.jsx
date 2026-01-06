@@ -10,9 +10,11 @@ import {
 } from "recharts";
 import styles from "./MetricStreamPanel.module.css";
 import {makeMeasurementKey, sanitize} from "../common/measurementUtils.js";
+import {authFetch} from "../../api/http.js";
+import {useAuth} from "../../context/AuthContext.jsx";
 
 const MAX_POINTS = 480;
-const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? "https://api.hydroleaf.se";
+const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? import.meta.env?.VITE_API_BASE ?? "";
 const STREAM_URL = import.meta?.env?.VITE_METRIC_STREAM_URL || `${API_BASE}/api/metrics/stream`;
 const HISTORY_URL = import.meta?.env?.VITE_METRIC_HISTORY_URL || `${API_BASE}/api/metrics/history`;
 const RETRY_MIN = 2000;
@@ -45,17 +47,19 @@ function normalizeMetricEvent(rawEvent) {
 }
 
 function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel, metricUnit}) {
+    const {isAuthenticated, loadingProfile, token, logout} = useAuth();
     const bufferRef = useRef(new Map());
     const rafRef = useRef(null);
     const retryRef = useRef(RETRY_MIN);
-    const streamRef = useRef(null);
     const reconnectTimerRef = useRef(null);
+    const streamAbortRef = useRef(null);
     const isVisibleRef = useRef(typeof document === "undefined" ? true : !document.hidden);
 
     const [chartData, setChartData] = useState([]);
     const [connectionState, setConnectionState] = useState("idle");
     const [lastUpdate, setLastUpdate] = useState(null);
     const [historyError, setHistoryError] = useState("");
+    const [streamError, setStreamError] = useState("");
 
     const targetBufferKey = useMemo(() => {
         if (!selectedCompositeId || !selectedMetricKey) return "";
@@ -109,19 +113,36 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
             return;
         }
 
+        if (loadingProfile) {
+            return;
+        }
+
+        if (!isAuthenticated || !token) {
+            setHistoryError("Sign in to view history data.");
+            return;
+        }
+
         const abortController = new AbortController();
         const {signal} = abortController;
 
         const fetchHistory = async () => {
             try {
                 setHistoryError("");
+                if (import.meta.env?.MODE === "development") {
+                    console.info("[MetricStreamPanel] history token present:", Boolean(token));
+                }
                 const params = new URLSearchParams({
                     compositeId: selectedCompositeId || "",
                     metricKey: selectedMetricKey || "",
                     limit: String(MAX_POINTS),
                 });
                 const url = `${HISTORY_URL}?${params.toString()}`;
-                const response = await fetch(url, {signal});
+                const response = await authFetch(url, {signal});
+                if (response.status === 401) {
+                    setHistoryError("Session expired. Redirecting to sign in.");
+                    logout({redirectTo: "/login", clearNotice: false});
+                    return;
+                }
                 if (!response.ok) throw new Error(`History request failed (${response.status})`);
 
                 const rawBody = await response.text();
@@ -154,19 +175,15 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
 
         fetchHistory();
         return () => abortController.abort();
-    }, [selectedCompositeId, selectedMetricKey, targetBufferKey]);
+    }, [isAuthenticated, loadingProfile, logout, selectedCompositeId, selectedMetricKey, targetBufferKey, token]);
 
     useEffect(() => {
         let cancelled = false;
-        let eventSource = null;
-        let websocket = null;
-
         const cleanup = () => {
-            eventSource?.close?.();
-            websocket?.close?.();
-            streamRef.current = null;
-            eventSource = null;
-            websocket = null;
+            if (streamAbortRef.current) {
+                streamAbortRef.current.abort();
+                streamAbortRef.current = null;
+            }
         };
 
         const scheduleRetry = () => {
@@ -207,28 +224,81 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
             if (cancelled) return;
             cleanup();
             setConnectionState(prev => (prev === "open" ? "open" : "connecting"));
+            setStreamError("");
+
+            if (loadingProfile) {
+                return;
+            }
+
+            if (!isAuthenticated || !token) {
+                setStreamError("Sign in to view live metrics.");
+                setConnectionState("idle");
+                return;
+            }
 
             try {
-                if (typeof EventSource !== "undefined" && STREAM_URL) {
-                    eventSource = new EventSource(STREAM_URL);
-                    streamRef.current = eventSource;
-                    eventSource.onopen = () => {
-                        retryRef.current = RETRY_MIN;
-                        setConnectionState("open");
-                    };
-                    eventSource.onmessage = (evt) => handleIncomingData(evt?.data);
-                    eventSource.onerror = scheduleRetry;
-                } else if (STREAM_URL) {
-                    websocket = new WebSocket(STREAM_URL);
-                    streamRef.current = websocket;
-                    websocket.onopen = () => {
-                        retryRef.current = RETRY_MIN;
-                        setConnectionState("open");
-                    };
-                    websocket.onmessage = (evt) => handleIncomingData(evt?.data);
-                    websocket.onerror = scheduleRetry;
-                    websocket.onclose = scheduleRetry;
+                if (import.meta.env?.MODE === "development") {
+                    console.info("[MetricStreamPanel] stream token present:", Boolean(token));
                 }
+
+                if (!STREAM_URL) {
+                    return;
+                }
+
+                const controller = new AbortController();
+                streamAbortRef.current = controller;
+
+                authFetch(STREAM_URL, {
+                    signal: controller.signal,
+                    headers: {Accept: "text/event-stream"},
+                })
+                    .then(async (response) => {
+                        if (controller.signal.aborted) return;
+                        if (response.status === 401) {
+                            setStreamError("Session expired. Redirecting to sign in.");
+                            logout({redirectTo: "/login", clearNotice: false});
+                            return;
+                        }
+                        if (!response.ok) {
+                            throw new Error(`Stream request failed (${response.status})`);
+                        }
+                        if (!response.body) {
+                            throw new Error("Stream response body unavailable");
+                        }
+
+                        retryRef.current = RETRY_MIN;
+                        setConnectionState("open");
+
+                        const reader = response.body.getReader();
+                        const decoder = new TextDecoder();
+                        let buffer = "";
+
+                        while (!cancelled) {
+                            const {value, done} = await reader.read();
+                            if (done) break;
+                            buffer += decoder.decode(value, {stream: true});
+                            const parts = buffer.split(/\n\n/);
+                            buffer = parts.pop() ?? "";
+                            parts.forEach((chunk) => {
+                                const lines = chunk.split(/\r?\n/);
+                                const dataLines = lines
+                                    .filter((line) => line.startsWith("data:"))
+                                    .map((line) => line.replace(/^data:\s?/, ""));
+                                if (dataLines.length > 0) {
+                                    handleIncomingData(dataLines.join("\n"));
+                                }
+                            });
+                        }
+
+                        if (!cancelled && !controller.signal.aborted) {
+                            scheduleRetry();
+                        }
+                    })
+                    .catch(() => {
+                        if (!cancelled && !controller.signal.aborted) {
+                            scheduleRetry();
+                        }
+                    });
             } catch {
                 scheduleRetry();
             }
@@ -247,7 +317,7 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
                 cancelAnimationFrame(rafRef.current);
             }
         };
-    }, [selectedCompositeId, selectedMetricKey]);
+    }, [isAuthenticated, loadingProfile, logout, selectedCompositeId, selectedMetricKey, token]);
 
     const statusLabel = useMemo(() => {
         switch (connectionState) {
@@ -277,8 +347,12 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
                 </span>
             </div>
 
-            {historyError && (
-                <div className={styles.errorBanner}>History unavailable: {historyError}</div>
+            {(historyError || streamError) && (
+                <div className={styles.errorBanner}>
+                    {historyError && `History unavailable: ${historyError}`}
+                    {historyError && streamError ? " " : ""}
+                    {streamError && `Live stream unavailable: ${streamError}`}
+                </div>
             )}
 
             {!targetBufferKey && (

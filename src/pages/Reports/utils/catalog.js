@@ -1,4 +1,6 @@
-const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? "https://api.hydroleaf.se";
+import { authFetch } from "../../../api/http.js";
+
+const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? import.meta.env?.VITE_API_BASE ?? "";
 
 const NAME_KEYS = ["name", "label", "title", "displayName"];
 const DEFAULT_OBJECT_KEYS = ["id", "value", "code", "key", "systemId", "layerId", "deviceId"];
@@ -248,7 +250,7 @@ export const fetchDeviceCatalog = async ({ signal } = {}) => {
     let lastError = null;
     for (const url of CATALOG_ENDPOINTS) {
         try {
-            const res = await fetch(url, { signal });
+            const res = await authFetch(url, { signal });
             if (!res.ok) {
                 lastError = new Error(`HTTP ${res.status}`);
                 continue;

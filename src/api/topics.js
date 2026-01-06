@@ -1,9 +1,11 @@
-const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? "https://api.hydroleaf.se";
+import { authFetch } from "./http.js";
+
+const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? import.meta.env?.VITE_API_BASE ?? "";
 
 export async function fetchTopicSensors({ signal } = {}) {
     const url = `${API_BASE}/api/topics/sensors`;
     try {
-        const response = await fetch(url, { signal });
+        const response = await authFetch(url, { signal });
         if (!response.ok) {
             return { topics: [], error: new Error(`HTTP ${response.status}`) };
         }
