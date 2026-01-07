@@ -2,12 +2,12 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './TimelapseGallery.module.css';
 
 const CAMERAS = [
-    { id: 'tapo-59', title: 'Tapo 59', src: '/videos/tapo-59/latest.mp4' },
-    { id: 'tapo-38', title: 'Tapo 38', src: '/videos/tapo-38/latest.mp4' },
-    { id: 'tapo-39', title: 'Tapo 39', src: '/videos/tapo-39/latest.mp4' },
-    { id: 'tapo-40', title: 'Tapo 40', src: '/videos/tapo-40/latest.mp4' },
-    { id: 'tapo-35', title: 'Tapo 35', src: '/videos/tapo-35/latest.mp4' },
-    { id: 'tapo-37', title: 'Tapo 37', src: '/videos/tapo-37/latest.mp4' },
+    { id: 'tapo-59', title: 'Tapo 59', src: 'https://cam.hydroleaf.se/tapo-59/latest.mp4' },
+    { id: 'tapo-38', title: 'Tapo 38', src: 'https://cam.hydroleaf.se/tapo-38/latest.mp4' },
+    { id: 'tapo-39', title: 'Tapo 39', src: 'https://cam.hydroleaf.se/tapo-39/latest.mp4' },
+    { id: 'tapo-40', title: 'Tapo 40', src: 'https://cam.hydroleaf.se/tapo-40/latest.mp4' },
+    { id: 'tapo-35', title: 'Tapo 35', src: 'https://cam.hydroleaf.se/tapo-35/latest.mp4' },
+    { id: 'tapo-37', title: 'Tapo 37', src: 'https://cam.hydroleaf.se/tapo-37/latest.mp4' },
 ];
 
 function TimelapseCard({ camera }) {
