@@ -14,16 +14,13 @@ function TimelapseCard({ camera }) {
     const wrapperRef = useRef(null);
     const [isVisible, setIsVisible] = useState(false);
     const [hasError, setHasError] = useState(false);
-    const [cacheBust, setCacheBust] = useState(0);
+    const [cacheBust, setCacheBust] = useState(() => Date.now());
 
     const currentSrc = useMemo(() => {
         if (!isVisible) {
             return '';
         }
-        if (cacheBust) {
-            return `${camera.src}?v=${cacheBust}`;
-        }
-        return camera.src;
+        return `${camera.src}?v=${cacheBust}`;
     }, [camera.src, cacheBust, isVisible]);
 
     useEffect(() => {
@@ -70,14 +67,15 @@ function TimelapseCard({ camera }) {
                 {currentSrc ? (
                     <video
                         key={currentSrc}
-                        src={currentSrc}
                         className={styles.video}
                         controls
                         muted
                         preload="metadata"
                         playsInline
                         onError={() => setHasError(true)}
-                    />
+                    >
+                        <source src={currentSrc} type="video/mp4" />
+                    </video>
                 ) : (
                     <div className={styles.videoPlaceholder} aria-hidden="true" />
                 )}
@@ -95,7 +93,7 @@ export default function TimelapseGallery() {
             <div className={styles.sectionHeader}>
                 <div>
                     <h2 className={styles.sectionTitle}>Timelapse</h2>
-                    <p className={styles.sectionNote}>Latest hourly timelapse (updates automatically).</p>
+                    <p className={styles.sectionNote}>Latest hourly timelapse (auto-updates).</p>
                 </div>
             </div>
             <div className={styles.grid}>
