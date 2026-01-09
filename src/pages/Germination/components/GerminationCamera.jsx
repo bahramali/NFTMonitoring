@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import styles from "./GerminationCamera.module.css";
-import { CAMERA_CONFIG } from "../../../config/cameras";
+import { buildWebrtcUrl, CAMERA_CONFIG } from "../../../config/cameras";
 
 const DEFAULT_GERMINATION_CAMERA_ID = "tapo-38";
 
@@ -13,6 +13,11 @@ export default function GerminationCamera() {
         [],
     );
     const [reloadKey, setReloadKey] = useState(0);
+    const cameraWebrtcUrl = camera?.path ? buildWebrtcUrl(camera.path) : camera?.webrtcUrl;
+
+    if (camera?.path) {
+        console.log("WebRTC URL:", buildWebrtcUrl(camera.path));
+    }
 
     const handleReload = () => {
         setReloadKey((key) => key + 1);
@@ -28,9 +33,9 @@ export default function GerminationCamera() {
                 <iframe
                     key={`${camera.id}-${reloadKey}`}
                     title={`${camera.name} germination stream`}
-                    src={camera.webrtcUrl}
+                    src={cameraWebrtcUrl}
                     className={styles.video}
-                    allow="autoplay; fullscreen"
+                    allow="autoplay; fullscreen; encrypted-media"
                     allowFullScreen
                 />
             ) : (

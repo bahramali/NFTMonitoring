@@ -1,7 +1,7 @@
 // pages/Cameras/index.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./Cameras.module.css";
-import { CAMERA_CONFIG } from "../../config/cameras";
+import { buildWebrtcUrl, CAMERA_CONFIG } from "../../config/cameras";
 import PageHeader from "../../components/PageHeader.jsx";
 
 const STATUS_MESSAGES = {
@@ -36,6 +36,12 @@ const getStatusMessage = (state, camera) => {
 const CAMERA_SOURCES = CAMERA_CONFIG;
 
 function CameraPreview({ camera, isActive, onSelect }) {
+    const previewUrl = camera?.path ? buildWebrtcUrl(camera.path) : camera?.webrtcUrl;
+
+    if (camera?.path) {
+        console.log("WebRTC URL:", buildWebrtcUrl(camera.path));
+    }
+
     return (
         <button
             type="button"
@@ -46,9 +52,9 @@ function CameraPreview({ camera, isActive, onSelect }) {
             <div className={styles.cameraPreviewVideoWrapper}>
                 <iframe
                     title={`${camera.name} preview`}
-                    src={camera.webrtcUrl}
+                    src={previewUrl}
                     className={styles.cameraPreviewVideo}
-                    allow="autoplay; fullscreen"
+                    allow="autoplay; fullscreen; encrypted-media"
                     allowFullScreen
                     loading="lazy"
                 />
@@ -82,6 +88,13 @@ export default function Cameras() {
     const viewerPosition = selectedCameraIndex >= 0 ? selectedCameraIndex + 1 : 1;
     const hasMultipleCameras = CAMERA_SOURCES.length > 1;
     const [reloadKey, setReloadKey] = useState(0);
+    const selectedWebrtcUrl = selectedCamera?.path
+        ? buildWebrtcUrl(selectedCamera.path)
+        : selectedCamera?.webrtcUrl;
+
+    if (selectedCamera?.path) {
+        console.log("WebRTC URL:", buildWebrtcUrl(selectedCamera.path));
+    }
 
     useEffect(() => {
         return () => {
@@ -132,8 +145,8 @@ export default function Cameras() {
     };
 
     const hasCameraSources = CAMERA_SOURCES.length > 0;
-    const reloadDisabled = !selectedCamera?.webrtcUrl;
-    const canDisplayVideo = Boolean(selectedCamera?.webrtcUrl);
+    const reloadDisabled = !selectedWebrtcUrl;
+    const canDisplayVideo = Boolean(selectedWebrtcUrl);
     const statusState = isReloading ? "reloading" : selectedCamera ? "playing" : "error";
     const statusLabel = isReloading
         ? "Reconnecting"
@@ -188,9 +201,9 @@ export default function Cameras() {
                         <iframe
                             key={`${selectedCamera?.id}-${reloadKey}`}
                             title={`${selectedCamera?.name || "Camera"} live stream`}
-                            src={selectedCamera?.webrtcUrl}
+                            src={selectedWebrtcUrl}
                             className={styles.video}
-                            allow="autoplay; fullscreen"
+                            allow="autoplay; fullscreen; encrypted-media"
                             allowFullScreen
                             ref={videoRef}
                         />
