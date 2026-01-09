@@ -13,23 +13,35 @@ export default function GerminationCamera() {
         [],
     );
     const [reloadKey, setReloadKey] = useState(0);
-    const cameraWebrtcUrl = camera?.path ? buildWebrtcUrl(camera.path) : camera?.webrtcUrl;
+    let cameraWebrtcUrl = null;
+    let streamError = null;
 
     if (camera?.path) {
-        console.log("WebRTC URL:", buildWebrtcUrl(camera.path));
+        try {
+            cameraWebrtcUrl = buildWebrtcUrl(camera.path);
+        } catch (error) {
+            streamError = error instanceof Error ? error.message : "Unable to build stream URL.";
+        }
     }
 
     const handleReload = () => {
         setReloadKey((key) => key + 1);
     };
 
-    const statusMessage = camera
-        ? `Live stream — ${camera.name}`
-        : "No camera feed configured for germination.";
+    const statusMessage = streamError
+        ? "Camera stream is not configured."
+        : camera
+            ? `Live stream — ${camera.name}`
+            : "No camera feed configured for germination.";
 
     return (
         <div className={styles.wrapper}>
-            {camera ? (
+            {streamError ? (
+                <div className={styles.errorBox} role="alert">
+                    <h3>Camera stream is not configured</h3>
+                    <p>{streamError}</p>
+                </div>
+            ) : camera ? (
                 <iframe
                     key={`${camera.id}-${reloadKey}`}
                     title={`${camera.name} germination stream`}
@@ -42,8 +54,15 @@ export default function GerminationCamera() {
                 <div className={styles.video} />
             )}
             <div className={styles.statusBar}>
-                <span className={!camera ? styles.error : ""}>{statusMessage}</span>
-                <button type="button" onClick={handleReload} className={styles.reloadButton}>
+                <span className={!camera || streamError ? styles.error : ""}>
+                    {statusMessage}
+                </span>
+                <button
+                    type="button"
+                    onClick={handleReload}
+                    className={styles.reloadButton}
+                    disabled={Boolean(streamError)}
+                >
                     Reload
                 </button>
             </div>
