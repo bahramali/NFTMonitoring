@@ -36,10 +36,15 @@ const getStatusMessage = (state, camera) => {
 const CAMERA_SOURCES = CAMERA_CONFIG;
 
 function CameraPreview({ camera, isActive, onSelect }) {
-    const previewUrl = camera?.path ? buildWebrtcUrl(camera.path) : camera?.webrtcUrl;
+    let previewUrl = null;
+    let previewError = null;
 
     if (camera?.path) {
-        console.log("WebRTC URL:", buildWebrtcUrl(camera.path));
+        try {
+            previewUrl = buildWebrtcUrl(camera.path);
+        } catch (error) {
+            previewError = error instanceof Error ? error.message : "Unable to load preview.";
+        }
     }
 
     return (
@@ -50,14 +55,20 @@ function CameraPreview({ camera, isActive, onSelect }) {
             aria-pressed={isActive}
         >
             <div className={styles.cameraPreviewVideoWrapper}>
-                <iframe
-                    title={`${camera.name} preview`}
-                    src={previewUrl}
-                    className={styles.cameraPreviewVideo}
-                    allow="autoplay; fullscreen; encrypted-media"
-                    allowFullScreen
-                    loading="lazy"
-                />
+                {previewError ? (
+                    <div className={styles.cameraPreviewError}>
+                        <span>Stream not configured</span>
+                    </div>
+                ) : (
+                    <iframe
+                        title={`${camera.name} preview`}
+                        src={previewUrl}
+                        className={styles.cameraPreviewVideo}
+                        allow="autoplay; fullscreen; encrypted-media"
+                        allowFullScreen
+                        loading="lazy"
+                    />
+                )}
             </div>
             <div className={styles.cameraPreviewDetails}>
                 <span className={styles.cameraName}>{camera.name}</span>
@@ -88,12 +99,15 @@ export default function Cameras() {
     const viewerPosition = selectedCameraIndex >= 0 ? selectedCameraIndex + 1 : 1;
     const hasMultipleCameras = CAMERA_SOURCES.length > 1;
     const [reloadKey, setReloadKey] = useState(0);
-    const selectedWebrtcUrl = selectedCamera?.path
-        ? buildWebrtcUrl(selectedCamera.path)
-        : selectedCamera?.webrtcUrl;
+    let selectedWebrtcUrl = null;
+    let streamError = null;
 
     if (selectedCamera?.path) {
-        console.log("WebRTC URL:", buildWebrtcUrl(selectedCamera.path));
+        try {
+            selectedWebrtcUrl = buildWebrtcUrl(selectedCamera.path);
+        } catch (error) {
+            streamError = error instanceof Error ? error.message : "Unable to build stream URL.";
+        }
     }
 
     useEffect(() => {
@@ -145,9 +159,14 @@ export default function Cameras() {
     };
 
     const hasCameraSources = CAMERA_SOURCES.length > 0;
-    const reloadDisabled = !selectedWebrtcUrl;
-    const canDisplayVideo = Boolean(selectedWebrtcUrl);
-    const statusState = isReloading ? "reloading" : selectedCamera ? "playing" : "error";
+    const hasStreamError = Boolean(streamError);
+    const reloadDisabled = !selectedWebrtcUrl || hasStreamError;
+    const canDisplayVideo = Boolean(selectedWebrtcUrl) && !hasStreamError;
+    const statusState = isReloading
+        ? "reloading"
+        : selectedCamera && !hasStreamError
+            ? "playing"
+            : "error";
     const statusLabel = isReloading
         ? "Reconnecting"
         : canDisplayVideo
@@ -197,7 +216,12 @@ export default function Cameras() {
                         </button>
                     </div>
 
-                    {canDisplayVideo ? (
+                    {hasStreamError ? (
+                        <div className={styles.errorBox} role="alert">
+                            <h3>Camera stream is not configured</h3>
+                            <p>{streamError}</p>
+                        </div>
+                    ) : canDisplayVideo ? (
                         <iframe
                             key={`${selectedCamera?.id}-${reloadKey}`}
                             title={`${selectedCamera?.name || "Camera"} live stream`}
