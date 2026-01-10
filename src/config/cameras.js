@@ -2,7 +2,7 @@
  * @typedef {Object} CameraConfig
  * @property {string} id
  * @property {string} name
- * @property {string} streamId
+ * @property {string} [streamId]
  */
 
 import { PERMISSIONS, hasPerm } from "../utils/permissions.js";
@@ -12,6 +12,16 @@ const LIVE_HLS_BASE_URL =
     import.meta?.env?.VITE_LIVE_HLS_BASE_URL || "https://cam.hydroleaf.se:8443";
 
 const normalizeBaseUrl = (value) => value?.replace(/\/$/, "") ?? "";
+
+const ensureLiveHlsPort = (baseUrl) => {
+    if (!baseUrl) return baseUrl;
+    const hasPort = /:\d+$/.test(baseUrl);
+    if (hasPort) return baseUrl;
+    if (baseUrl.includes("cam.hydroleaf.se")) {
+        return `${baseUrl}:8443`;
+    }
+    return baseUrl;
+};
 
 export const isAdminUser = (user) => {
     const roleList = Array.isArray(user?.roles) ? user.roles : user?.role ? [user.role] : [];
@@ -24,7 +34,7 @@ export const isAdminUser = (user) => {
 export const getTimelapseBaseUrl = () => normalizeBaseUrl(TIMELAPSE_BASE_URL);
 
 export const buildLiveHlsUrl = ({ cameraId }) => {
-    const liveBaseUrl = normalizeBaseUrl(LIVE_HLS_BASE_URL);
+    const liveBaseUrl = ensureLiveHlsPort(normalizeBaseUrl(LIVE_HLS_BASE_URL));
     if (!liveBaseUrl) {
         throw new Error("Missing live HLS base URL. Set VITE_LIVE_HLS_BASE_URL.");
     }
@@ -39,34 +49,28 @@ export const buildLiveHlsUrl = ({ cameraId }) => {
 /** @type {CameraConfig[]} */
 export const CAMERA_CONFIG = [
     {
-        id: "tapo-59",
-        name: "Tapo 59",
-        streamId: "tapo-59",
-    },
-    {
-        id: "tapo-38",
-        name: "Tapo 38",
-        streamId: "tapo-38",
-    },
-    {
-        id: "tapo-39",
-        name: "Tapo 39",
-        streamId: "tapo-39",
-    },
-    {
         id: "S2L1",
         name: "S2L1",
-        streamId: "S2L1-21",
     },
     {
-        id: "tapo-35",
-        name: "Tapo 35",
-        streamId: "tapo-35",
+        id: "S2L2",
+        name: "S2L2",
     },
     {
-        id: "tapo-37",
-        name: "Tapo 37",
-        streamId: "tapo-37",
+        id: "S2L3",
+        name: "S2L3",
+    },
+    {
+        id: "S2L4",
+        name: "S2L4",
+    },
+    {
+        id: "S1L2",
+        name: "S1L2",
+    },
+    {
+        id: "S1L3",
+        name: "S1L3",
     },
 ];
 
