@@ -1,27 +1,37 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './TimelapseGallery.module.css';
+import { CAMERA_CONFIG, getTimelapseBaseUrl } from '../config/cameras.js';
 
-const CAMERAS = [
-    { id: 'tapo-59', title: 'Tapo 59', src: 'https://cam.hydroleaf.se/tapo-59/latest.mp4' },
-    { id: 'tapo-38', title: 'Tapo 38', src: 'https://cam.hydroleaf.se/tapo-38/latest.mp4' },
-    { id: 'tapo-39', title: 'Tapo 39', src: 'https://cam.hydroleaf.se/tapo-39/latest.mp4' },
-    { id: 'tapo-40', title: 'Tapo 40', src: 'https://cam.hydroleaf.se/tapo-40/latest.mp4' },
-    { id: 'tapo-35', title: 'Tapo 35', src: 'https://cam.hydroleaf.se/tapo-35/latest.mp4' },
-    { id: 'tapo-37', title: 'Tapo 37', src: 'https://cam.hydroleaf.se/tapo-37/latest.mp4' },
-];
+const TIMELAPSE_INDEX_ENDPOINT = '/api/timelapse/index';
 
-function TimelapseCard({ camera }) {
+const buildFallbackTimelapseList = () =>
+    CAMERA_CONFIG.map((camera) => ({
+        cameraId: camera.id,
+        title: camera.name,
+        latestMp4: `/${camera.id}/latest.mp4`,
+    }));
+
+function TimelapseCard({ camera, timelapseBaseUrl }) {
     const wrapperRef = useRef(null);
     const [isVisible, setIsVisible] = useState(false);
     const [hasError, setHasError] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
     const [cacheBust, setCacheBust] = useState(() => Date.now());
 
     const currentSrc = useMemo(() => {
         if (!isVisible) {
             return '';
         }
-        return `${camera.src}?v=${cacheBust}`;
-    }, [camera.src, cacheBust, isVisible]);
+        const baseSrc = camera.latestMp4?.startsWith('http')
+            ? camera.latestMp4
+            : timelapseBaseUrl
+                ? `${timelapseBaseUrl}${camera.latestMp4}`
+                : '';
+        if (!baseSrc) {
+            return '';
+        }
+        return `${baseSrc}?v=${cacheBust}`;
+    }, [camera.latestMp4, cacheBust, isVisible, timelapseBaseUrl]);
 
     useEffect(() => {
         if (!wrapperRef.current || isVisible) {
@@ -52,6 +62,7 @@ function TimelapseCard({ camera }) {
 
     const handleReload = () => {
         setHasError(false);
+        setErrorMessage('');
         setCacheBust(Date.now());
     };
 
@@ -72,7 +83,10 @@ function TimelapseCard({ camera }) {
                         muted
                         preload="metadata"
                         playsInline
-                        onError={() => setHasError(true)}
+                        onError={() => {
+                            setHasError(true);
+                            setErrorMessage('Timelapse not found yet.');
+                        }}
                     >
                         <source src={currentSrc} type="video/mp4" />
                     </video>
@@ -81,13 +95,59 @@ function TimelapseCard({ camera }) {
                 )}
             </div>
             {hasError && (
-                <p className={styles.errorMessage}>Timelapse unavailable</p>
+                <p className={styles.errorMessage}>{errorMessage || 'Timelapse unavailable'}</p>
             )}
         </article>
     );
 }
 
 export default function TimelapseGallery() {
+    const [timelapseList, setTimelapseList] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
+    const timelapseBaseUrl = getTimelapseBaseUrl();
+
+    useEffect(() => {
+        let mounted = true;
+        const controller = new AbortController();
+
+        const fetchTimelapseIndex = async () => {
+            setIsLoading(true);
+            setLoadError('');
+            try {
+                const response = await fetch(TIMELAPSE_INDEX_ENDPOINT, {
+                    signal: controller.signal,
+                });
+                if (!response.ok) {
+                    throw new Error(`Timelapse index unavailable (${response.status})`);
+                }
+                const data = await response.json();
+                const list = Array.isArray(data) ? data : data?.items || [];
+                if (!mounted) return;
+                setTimelapseList(list);
+            } catch (error) {
+                if (!mounted) return;
+                console.warn('[TimelapseGallery] Falling back to default list.', error);
+                setTimelapseList(buildFallbackTimelapseList());
+                setLoadError('Using the default camera list.');
+            } finally {
+                if (mounted) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        fetchTimelapseIndex();
+
+        return () => {
+            mounted = false;
+            controller.abort();
+        };
+    }, []);
+
+    const hasBaseUrl = Boolean(timelapseBaseUrl);
+    const displayList = timelapseList.length > 0 ? timelapseList : buildFallbackTimelapseList();
+
     return (
         <section className={styles.section}>
             <div className={styles.sectionHeader}>
@@ -96,9 +156,28 @@ export default function TimelapseGallery() {
                     <p className={styles.sectionNote}>Latest hourly timelapse (auto-updates).</p>
                 </div>
             </div>
+            {!hasBaseUrl && (
+                <p className={styles.errorMessage}>
+                    Timelapse base URL is not configured. Set VITE_TIMELAPSE_BASE_URL to enable playback.
+                </p>
+            )}
+            {isLoading && (
+                <p className={styles.loadingMessage}>Loading timelapse list…</p>
+            )}
+            {loadError && (
+                <p className={styles.helperMessage}>{loadError}</p>
+            )}
             <div className={styles.grid}>
-                {CAMERAS.map((camera) => (
-                    <TimelapseCard key={camera.id} camera={camera} />
+                {displayList.map((camera) => (
+                    <TimelapseCard
+                        key={camera.cameraId || camera.id}
+                        camera={{
+                            cameraId: camera.cameraId || camera.id,
+                            latestMp4: camera.latestMp4 || `/${camera.cameraId || camera.id}/latest.mp4`,
+                            title: camera.title || camera.name || camera.cameraId || camera.id,
+                        }}
+                        timelapseBaseUrl={timelapseBaseUrl}
+                    />
                 ))}
             </div>
         </section>

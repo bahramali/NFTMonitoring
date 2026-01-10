@@ -1,19 +1,26 @@
 // pages/Cameras/index.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./Cameras.module.css";
-import { buildWebrtcUrl, CAMERA_CONFIG } from "../../config/cameras";
+import { CAMERA_CONFIG, isAdminUser } from "../../config/cameras";
 import PageHeader from "../../components/PageHeader.jsx";
+import LiveWebRTCPlayer from "../../components/LiveWebRTCPlayer.jsx";
+import TimelapseGallery from "../../components/TimelapseGallery.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 const STATUS_MESSAGES = {
     playing: "Live stream",
     reloading: "Refreshing stream",
-    error: "No camera feeds are configured.",
+    loading: "Loading stream",
+    error: "Live stream unavailable.",
+    restricted: "Live stream available to admins only.",
 };
 
 const STATUS_CLASS = {
     playing: styles.statusPlaying,
     reloading: styles.statusLoading,
+    loading: styles.statusLoading,
     error: styles.statusError,
+    restricted: styles.statusError,
 };
 
 const getStatusMessage = (state, camera) => {
@@ -36,17 +43,6 @@ const getStatusMessage = (state, camera) => {
 const CAMERA_SOURCES = CAMERA_CONFIG;
 
 function CameraPreview({ camera, isActive, onSelect }) {
-    let previewUrl = null;
-    let previewError = null;
-
-    if (camera?.path) {
-        try {
-            previewUrl = buildWebrtcUrl(camera.path);
-        } catch (error) {
-            previewError = error instanceof Error ? error.message : "Unable to load preview.";
-        }
-    }
-
     return (
         <button
             type="button"
@@ -55,20 +51,9 @@ function CameraPreview({ camera, isActive, onSelect }) {
             aria-pressed={isActive}
         >
             <div className={styles.cameraPreviewVideoWrapper}>
-                {previewError ? (
-                    <div className={styles.cameraPreviewError}>
-                        <span>Stream not configured</span>
-                    </div>
-                ) : (
-                    <iframe
-                        title={`${camera.name} preview`}
-                        src={previewUrl}
-                        className={styles.cameraPreviewVideo}
-                        allow="autoplay; fullscreen; encrypted-media"
-                        allowFullScreen
-                        loading="lazy"
-                    />
-                )}
+                <div className={styles.cameraPreviewError}>
+                    <span>Preview in player</span>
+                </div>
             </div>
             <div className={styles.cameraPreviewDetails}>
                 <span className={styles.cameraName}>{camera.name}</span>
@@ -78,12 +63,17 @@ function CameraPreview({ camera, isActive, onSelect }) {
 }
 
 export default function Cameras() {
+    const { role, roles, permissions } = useAuth();
+    const user = useMemo(() => ({ role, roles, permissions }), [permissions, role, roles]);
+    const isAdmin = isAdminUser(user);
     const [selectedCameraId, setSelectedCameraId] = useState(
         () => CAMERA_SOURCES[0]?.id ?? null,
     );
     const [isReloading, setIsReloading] = useState(false);
     const reloadTimeoutRef = useRef(null);
     const videoRef = useRef(null);
+    const [streamStatus, setStreamStatus] = useState("idle");
+    const [streamError, setStreamError] = useState("");
     const selectedCamera = useMemo(
         () =>
             CAMERA_SOURCES.find((camera) => camera.id === selectedCameraId) ||
@@ -99,16 +89,6 @@ export default function Cameras() {
     const viewerPosition = selectedCameraIndex >= 0 ? selectedCameraIndex + 1 : 1;
     const hasMultipleCameras = CAMERA_SOURCES.length > 1;
     const [reloadKey, setReloadKey] = useState(0);
-    let selectedWebrtcUrl = null;
-    let streamError = null;
-
-    if (selectedCamera?.path) {
-        try {
-            selectedWebrtcUrl = buildWebrtcUrl(selectedCamera.path);
-        } catch (error) {
-            streamError = error instanceof Error ? error.message : "Unable to build stream URL.";
-        }
-    }
 
     useEffect(() => {
         return () => {
@@ -118,9 +98,16 @@ export default function Cameras() {
         };
     }, []);
 
+    useEffect(() => {
+        setStreamError("");
+        setStreamStatus("idle");
+    }, [selectedCameraId]);
+
     const handleReload = () => {
         setReloadKey((key) => key + 1);
         setIsReloading(true);
+        setStreamError("");
+        setStreamStatus("loading");
         if (reloadTimeoutRef.current) {
             clearTimeout(reloadTimeoutRef.current);
         }
@@ -160,19 +147,33 @@ export default function Cameras() {
 
     const hasCameraSources = CAMERA_SOURCES.length > 0;
     const hasStreamError = Boolean(streamError);
-    const reloadDisabled = !selectedWebrtcUrl || hasStreamError;
-    const canDisplayVideo = Boolean(selectedWebrtcUrl) && !hasStreamError;
-    const statusState = isReloading
-        ? "reloading"
-        : selectedCamera && !hasStreamError
-            ? "playing"
-            : "error";
-    const statusLabel = isReloading
-        ? "Reconnecting"
-        : canDisplayVideo
-            ? "Live"
-            : "Offline";
-    const statusTone = isReloading ? "reconnecting" : canDisplayVideo ? "online" : "offline";
+    const canDisplayVideo = Boolean(selectedCamera?.id) && isAdmin;
+    const reloadDisabled = !canDisplayVideo;
+    const statusState = !isAdmin
+        ? "restricted"
+        : isReloading
+            ? "reloading"
+            : streamStatus === "playing"
+                ? "playing"
+                : streamStatus === "loading" || streamStatus === "idle"
+                    ? "loading"
+                    : hasStreamError
+                        ? "error"
+                        : "error";
+    const statusLabel = !isAdmin
+        ? "Admins only"
+        : isReloading || streamStatus === "loading" || streamStatus === "idle"
+            ? "Connecting"
+            : streamStatus === "playing"
+                ? "Live"
+                : "Offline";
+    const statusTone = !isAdmin
+        ? "offline"
+        : isReloading || streamStatus === "loading" || streamStatus === "idle"
+            ? "reconnecting"
+            : streamStatus === "playing"
+                ? "online"
+                : "offline";
 
     return (
         <div className={styles.page}>
@@ -216,21 +217,33 @@ export default function Cameras() {
                         </button>
                     </div>
 
-                    {hasStreamError ? (
-                        <div className={styles.errorBox} role="alert">
-                            <h3>Camera stream is not configured</h3>
-                            <p>{streamError}</p>
+                    {!isAdmin ? (
+                        <div className={styles.emptyState}>
+                            <strong>Live view is available to admins only.</strong>
+                            <span>Timelapse videos remain available to all users.</span>
                         </div>
                     ) : canDisplayVideo ? (
-                        <iframe
+                        <LiveWebRTCPlayer
                             key={`${selectedCamera?.id}-${reloadKey}`}
-                            title={`${selectedCamera?.name || "Camera"} live stream`}
-                            src={selectedWebrtcUrl}
-                            className={styles.video}
-                            allow="autoplay; fullscreen; encrypted-media"
-                            allowFullScreen
-                            ref={videoRef}
+                            cameraId={selectedCamera?.id}
+                            user={user}
+                            reloadKey={reloadKey}
+                            videoClassName={styles.video}
+                            wrapperClassName={styles.videoWrapper}
+                            videoRef={videoRef}
+                            onStatusChange={(nextStatus) => {
+                                setStreamStatus(nextStatus);
+                                if (nextStatus === "playing") {
+                                    setStreamError("");
+                                }
+                            }}
+                            onError={setStreamError}
                         />
+                    ) : hasStreamError ? (
+                        <div className={styles.errorBox} role="alert">
+                            <h3>Live stream unavailable</h3>
+                            <p>{streamError}</p>
+                        </div>
                     ) : (
                         <div className={styles.emptyState}>
                             <strong>No live preview available.</strong>
@@ -300,6 +313,7 @@ export default function Cameras() {
                         </p>
                     )}
                 </section>
+                <TimelapseGallery />
             </div>
         </div>
     );
