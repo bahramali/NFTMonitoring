@@ -27,6 +27,18 @@
     font-size: 14px;
 }
 
+.loadingMessage {
+    margin: 0;
+    font-size: 14px;
+    color: #475569;
+}
+
+.helperMessage {
+    margin: 0;
+    font-size: 13px;
+    color: #64748b;
+}
+
 .grid {
     display: grid;
     grid-template-columns: 1fr;

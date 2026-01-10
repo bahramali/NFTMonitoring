@@ -208,6 +208,10 @@
   border: 1px solid rgba(98, 140, 210, 0.32);
 }
 
+.videoWrapper {
+  width: 100%;
+}
+
 .videoNavigation {
   display: flex;
   align-items: center;

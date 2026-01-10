@@ -5,18 +5,47 @@
  * @property {string} path
  */
 
-const MEDIAMTX_HOST = import.meta?.env?.VITE_MEDIAMTX_HOST;
-const MEDIAMTX_SCHEME = import.meta?.env?.VITE_MEDIAMTX_SCHEME || "https";
-const MEDIAMTX_PORT = import.meta?.env?.VITE_MEDIAMTX_PORT || "";
+import { PERMISSIONS, hasPerm } from "../utils/permissions.js";
 
-export const buildWebrtcUrl = (path) => {
-    if (!MEDIAMTX_HOST) {
+const TIMELAPSE_BASE_URL = import.meta?.env?.VITE_TIMELAPSE_BASE_URL || "";
+const LIVE_BASE_URL = import.meta?.env?.VITE_LIVE_BASE_URL || "";
+const LIVE_BASE_URL_ADMIN_TS = import.meta?.env?.VITE_LIVE_BASE_URL_ADMIN_TS || "";
+const LIVE_WEBRTC_URL_TEMPLATE =
+    import.meta?.env?.VITE_LIVE_WEBRTC_URL_TEMPLATE ||
+    "{baseUrl}/api/webrtc?path={cameraId}";
+
+const normalizeBaseUrl = (value) => value?.replace(/\/$/, "") ?? "";
+
+export const isAdminUser = (user) => {
+    const roleList = Array.isArray(user?.roles) ? user.roles : user?.role ? [user.role] : [];
+    return (
+        roleList.includes("SUPER_ADMIN") ||
+        hasPerm(user, PERMISSIONS.ADMIN_OVERVIEW_VIEW)
+    );
+};
+
+export const getLiveBaseUrl = (user) => {
+    if (isAdminUser(user) && LIVE_BASE_URL_ADMIN_TS) {
+        return normalizeBaseUrl(LIVE_BASE_URL_ADMIN_TS);
+    }
+    return normalizeBaseUrl(LIVE_BASE_URL);
+};
+
+export const getTimelapseBaseUrl = () => normalizeBaseUrl(TIMELAPSE_BASE_URL);
+
+export const buildLiveWebrtcUrl = ({ cameraId, user }) => {
+    const liveBaseUrl = getLiveBaseUrl(user);
+    if (!liveBaseUrl) {
         throw new Error(
-            "Missing VITE_MEDIAMTX_HOST. It must point to MediaMTX (e.g. cam.hydroleaf.se).",
+            "Missing live base URL. Set VITE_LIVE_BASE_URL or VITE_LIVE_BASE_URL_ADMIN_TS.",
         );
     }
-    const portPart = MEDIAMTX_PORT ? `:${MEDIAMTX_PORT}` : "";
-    return `${MEDIAMTX_SCHEME}://${MEDIAMTX_HOST}${portPart}/${path}`;
+    if (!cameraId) {
+        throw new Error("Missing cameraId for live stream.");
+    }
+    return LIVE_WEBRTC_URL_TEMPLATE
+        .replace("{baseUrl}", liveBaseUrl)
+        .replace("{cameraId}", cameraId);
 };
 
 /** @type {CameraConfig[]} */

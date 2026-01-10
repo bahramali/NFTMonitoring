@@ -1,10 +1,15 @@
 import React, { useMemo, useState } from "react";
 import styles from "./GerminationCamera.module.css";
-import { buildWebrtcUrl, CAMERA_CONFIG } from "../../../config/cameras";
+import { CAMERA_CONFIG, isAdminUser } from "../../../config/cameras";
+import LiveWebRTCPlayer from "../../../components/LiveWebRTCPlayer.jsx";
+import { useAuth } from "../../../context/AuthContext.jsx";
 
 const DEFAULT_GERMINATION_CAMERA_ID = "tapo-38";
 
 export default function GerminationCamera() {
+    const { role, roles, permissions } = useAuth();
+    const user = useMemo(() => ({ role, roles, permissions }), [permissions, role, roles]);
+    const isAdmin = isAdminUser(user);
     const camera = useMemo(
         () =>
             CAMERA_CONFIG.find((entry) => entry.id === DEFAULT_GERMINATION_CAMERA_ID) ||
@@ -13,55 +18,59 @@ export default function GerminationCamera() {
         [],
     );
     const [reloadKey, setReloadKey] = useState(0);
-    let cameraWebrtcUrl = null;
-    let streamError = null;
-
-    if (camera?.path) {
-        try {
-            cameraWebrtcUrl = buildWebrtcUrl(camera.path);
-        } catch (error) {
-            streamError = error instanceof Error ? error.message : "Unable to build stream URL.";
-        }
-    }
+    const [streamStatus, setStreamStatus] = useState("idle");
+    const [streamError, setStreamError] = useState("");
 
     const handleReload = () => {
         setReloadKey((key) => key + 1);
+        setStreamError("");
+        setStreamStatus("loading");
     };
 
-    const statusMessage = streamError
-        ? "Camera stream is not configured."
-        : camera
-            ? `Live stream — ${camera.name}`
-            : "No camera feed configured for germination.";
+    const statusMessage = !isAdmin
+        ? "Live is available to admins only."
+        : streamError
+            ? "Live stream unavailable."
+            : streamStatus === "loading"
+                ? "Loading stream…"
+                : camera
+                    ? `Live stream — ${camera.name}`
+                    : "No camera feed configured for germination.";
 
     return (
         <div className={styles.wrapper}>
-            {streamError ? (
+            {!isAdmin ? (
                 <div className={styles.errorBox} role="alert">
-                    <h3>Camera stream is not configured</h3>
-                    <p>{streamError}</p>
+                    <h3>Admins only</h3>
+                    <p>Live camera access is restricted to admins.</p>
                 </div>
             ) : camera ? (
-                <iframe
+                <LiveWebRTCPlayer
                     key={`${camera.id}-${reloadKey}`}
-                    title={`${camera.name} germination stream`}
-                    src={cameraWebrtcUrl}
-                    className={styles.video}
-                    allow="autoplay; fullscreen; encrypted-media"
-                    allowFullScreen
+                    cameraId={camera.id}
+                    user={user}
+                    reloadKey={reloadKey}
+                    videoClassName={styles.video}
+                    onStatusChange={(nextStatus) => {
+                        setStreamStatus(nextStatus);
+                        if (nextStatus === "playing") {
+                            setStreamError("");
+                        }
+                    }}
+                    onError={setStreamError}
                 />
             ) : (
                 <div className={styles.video} />
             )}
             <div className={styles.statusBar}>
-                <span className={!camera || streamError ? styles.error : ""}>
+                <span className={!camera || streamError || !isAdmin ? styles.error : ""}>
                     {statusMessage}
                 </span>
                 <button
                     type="button"
                     onClick={handleReload}
                     className={styles.reloadButton}
-                    disabled={Boolean(streamError)}
+                    disabled={!isAdmin}
                 >
                     Reload
                 </button>

@@ -49,6 +49,7 @@ import FAQ from './pages/store/FAQ.jsx';
 import ShippingReturns from './pages/store/ShippingReturns.jsx';
 import Terms from './pages/store/Terms.jsx';
 import Privacy from './pages/store/Privacy.jsx';
+import TimelapsePage from './pages/Timelapse/index.jsx';
 import PaymentSuccess from './pages/payment/PaymentSuccess.jsx';
 import PaymentCancel from './pages/payment/PaymentCancel.jsx';
 import { useAuth } from './context/AuthContext.jsx';
@@ -94,6 +95,7 @@ function AppRoutes() {
             <Routes>
                 <Route element={<PublicLayout />}>
                     <Route path="/" element={<Home />} />
+                    <Route path="/timelapse" element={<TimelapsePage />} />
                     <Route path="/payment/success" element={<PaymentSuccess />} />
                     <Route path="/payment/cancel" element={<PaymentCancel />} />
                     <Route path="/login" element={<Login />} />
