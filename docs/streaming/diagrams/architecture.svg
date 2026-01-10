@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="340" viewBox="0 0 900 340">
+  <style>
+    .box { fill: #f6f8fa; stroke: #1f2328; stroke-width: 2; }
+    .title { font: bold 16px sans-serif; fill: #1f2328; }
+    .text { font: 14px sans-serif; fill: #1f2328; }
+    .arrow { stroke: #1f2328; stroke-width: 2; marker-end: url(#arrowhead); }
+  </style>
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1f2328" />
+    </marker>
+  </defs>
+
+  <rect class="box" x="40" y="40" width="170" height="70" rx="8" />
+  <text class="title" x="55" y="70">Camera / Encoder</text>
+  <text class="text" x="55" y="92">RTSP/RTMP</text>
+
+  <rect class="box" x="260" y="40" width="170" height="70" rx="8" />
+  <text class="title" x="290" y="70">MediaMTX</text>
+  <text class="text" x="280" y="92">HLS output</text>
+
+  <rect class="box" x="480" y="40" width="170" height="70" rx="8" />
+  <text class="title" x="520" y="70">Caddy</text>
+  <text class="text" x="495" y="92">TLS + Routing</text>
+
+  <rect class="box" x="700" y="40" width="170" height="70" rx="8" />
+  <text class="title" x="720" y="70">Cloudflare</text>
+  <text class="text" x="720" y="92">DNS/Proxy</text>
+
+  <rect class="box" x="370" y="200" width="170" height="70" rx="8" />
+  <text class="title" x="410" y="230">Frontend</text>
+  <text class="text" x="385" y="252">HLS.js / Player</text>
+
+  <line class="arrow" x1="210" y1="75" x2="260" y2="75" />
+  <line class="arrow" x1="430" y1="75" x2="480" y2="75" />
+  <line class="arrow" x1="650" y1="75" x2="700" y2="75" />
+  <line class="arrow" x1="785" y1="110" x2="510" y2="200" />
+</svg>
