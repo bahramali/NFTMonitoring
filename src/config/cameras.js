@@ -54,9 +54,9 @@ export const CAMERA_CONFIG = [
         streamId: "tapo-39",
     },
     {
-        id: "tapo-40",
-        name: "Tapo 40",
-        streamId: "tapo-40",
+        id: "S2L1",
+        name: "S2L1",
+        streamId: "S2L1-21",
     },
     {
         id: "tapo-35",
