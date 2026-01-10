@@ -9,7 +9,7 @@ import { PERMISSIONS, hasPerm } from "../utils/permissions.js";
 
 const TIMELAPSE_BASE_URL = import.meta?.env?.VITE_TIMELAPSE_BASE_URL || "";
 const LIVE_HLS_BASE_URL =
-    import.meta?.env?.VITE_LIVE_HLS_BASE_URL || "https://cam.hydroleaf.se";
+    import.meta?.env?.VITE_LIVE_HLS_BASE_URL || "https://cam.hydroleaf.se:8443";
 
 const normalizeBaseUrl = (value) => value?.replace(/\/$/, "") ?? "";
 
