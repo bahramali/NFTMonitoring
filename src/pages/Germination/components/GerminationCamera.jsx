@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import styles from "./GerminationCamera.module.css";
 import { CAMERA_CONFIG, isAdminUser } from "../../../config/cameras";
-import LiveWebRTCPlayer from "../../../components/LiveWebRTCPlayer.jsx";
+import LiveHlsPlayer from "../../../components/LiveHlsPlayer.jsx";
 import { useAuth } from "../../../context/AuthContext.jsx";
 
 const DEFAULT_GERMINATION_CAMERA_ID = "tapo-38";
@@ -45,10 +45,9 @@ export default function GerminationCamera() {
                     <p>Live camera access is restricted to admins.</p>
                 </div>
             ) : camera ? (
-                <LiveWebRTCPlayer
+                <LiveHlsPlayer
                     key={`${camera.id}-${reloadKey}`}
                     cameraId={camera.id}
-                    user={user}
                     reloadKey={reloadKey}
                     videoClassName={styles.video}
                     onStatusChange={(nextStatus) => {
