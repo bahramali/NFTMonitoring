@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="360" viewBox="0 0 900 360">
+  <style>
+    .box { fill: #ffffff; stroke: #1f2328; stroke-width: 2; }
+    .title { font: bold 16px sans-serif; fill: #1f2328; }
+    .text { font: 13px sans-serif; fill: #1f2328; }
+    .arrow { stroke: #1f2328; stroke-width: 2; marker-end: url(#arrowhead); }
+  </style>
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1f2328" />
+    </marker>
+  </defs>
+
+  <rect class="box" x="40" y="40" width="220" height="70" rx="8" />
+  <text class="title" x="55" y="70">Frontend</text>
+  <text class="text" x="55" y="92">GET /{CAMERA_ID}/index.m3u8</text>
+
+  <rect class="box" x="330" y="40" width="220" height="70" rx="8" />
+  <text class="title" x="345" y="70">Caddy</text>
+  <text class="text" x="345" y="92">TLS + Proxy</text>
+
+  <rect class="box" x="620" y="40" width="220" height="70" rx="8" />
+  <text class="title" x="635" y="70">MediaMTX</text>
+  <text class="text" x="635" y="92">HLS Playlist</text>
+
+  <rect class="box" x="330" y="180" width="220" height="70" rx="8" />
+  <text class="title" x="345" y="210">Frontend</text>
+  <text class="text" x="345" y="232">GET /{CAMERA_ID}/segment.ts</text>
+
+  <rect class="box" x="620" y="180" width="220" height="70" rx="8" />
+  <text class="title" x="635" y="210">MediaMTX</text>
+  <text class="text" x="635" y="232">HLS Segments</text>
+
+  <line class="arrow" x1="260" y1="75" x2="330" y2="75" />
+  <line class="arrow" x1="550" y1="75" x2="620" y2="75" />
+  <line class="arrow" x1="440" y1="110" x2="440" y2="180" />
+  <line class="arrow" x1="550" y1="215" x2="620" y2="215" />
+</svg>
