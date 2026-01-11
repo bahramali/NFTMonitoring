@@ -14,7 +14,9 @@ import {
 import { getGerminationStageByDay, getStageRangeForMetric } from "./germinationStages.js";
 import styles from "./Germination.module.css";
 
-const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? import.meta.env?.VITE_API_BASE ?? "";
+import { getApiBaseUrl } from '../../config/apiBase.js';
+
+const API_BASE = getApiBaseUrl();
 
 const RANGE_OPTIONS = [
     { key: "1h", label: "Last hour" },

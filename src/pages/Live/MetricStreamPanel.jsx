@@ -12,9 +12,11 @@ import styles from "./MetricStreamPanel.module.css";
 import {makeMeasurementKey, sanitize} from "../common/measurementUtils.js";
 import {authFetch} from "../../api/http.js";
 import {useAuth} from "../../context/AuthContext.jsx";
+import { getApiBaseUrl } from '../../config/apiBase.js';
 
 const MAX_POINTS = 480;
-const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? import.meta.env?.VITE_API_BASE ?? "";
+
+const API_BASE = getApiBaseUrl();
 const STREAM_PATH = import.meta?.env?.VITE_METRIC_STREAM_URL || "/api/metrics/stream";
 const HISTORY_PATH = import.meta?.env?.VITE_METRIC_HISTORY_URL || "/api/metrics/history";
 const RETRY_MIN = 2000;

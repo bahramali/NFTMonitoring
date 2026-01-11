@@ -1,12 +1,16 @@
 import {useEffect, useMemo, useRef} from "react";
 import {Client} from "@stomp/stompjs";
 import SockJS from "sockjs-client";
+import { getApiBaseUrl } from '../config/apiBase.js';
 
 let sharedClient = null;
 let isConnected = false;
 const reconnectListeners = new Set(); // called on every (re)connect
 
-const DEFAULT_SOCKJS_URL = "https://api.hydroleaf.se/ws";
+const API_BASE = getApiBaseUrl();
+const DEFAULT_SOCKJS_URL = API_BASE
+    ? `${API_BASE}/ws`
+    : (typeof window !== "undefined" ? `${window.location.origin}/ws` : "/ws");
 
 function normalizeSockJsUrl(url) {
     let sockJsUrl = url || (typeof import.meta !== "undefined" ? import.meta.env?.VITE_WS_HTTP_URL : undefined) || DEFAULT_SOCKJS_URL;

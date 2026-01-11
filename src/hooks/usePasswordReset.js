@@ -1,7 +1,8 @@
+import { getApiBaseUrl } from '../config/apiBase.js';
 import { useEffect, useRef, useState } from 'react';
 
 const RESET_COOLDOWN_MS = 8000;
-const API_BASE = import.meta?.env?.VITE_API_BASE_URL || 'https://api.hydroleaf.se';
+const API_BASE = getApiBaseUrl();
 
 export default function usePasswordReset({ token } = {}) {
     const [resetState, setResetState] = useState({ status: 'idle', message: '' });

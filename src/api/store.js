@@ -1,6 +1,8 @@
 import { parseApiResponse } from './http.js';
 
-const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? 'https://api.hydroleaf.se';
+import { getApiBaseUrl } from '../config/apiBase.js';
+
+const API_BASE = getApiBaseUrl();
 const STORE_BASE = `${API_BASE}/api/store`;
 
 const buildCartHeaders = (cartId, sessionId) => {

@@ -1,6 +1,8 @@
 import { authFetch } from "../../../api/http.js";
 
-const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? import.meta.env?.VITE_API_BASE ?? "";
+import { getApiBaseUrl } from '../../../config/apiBase.js';
+
+const API_BASE = getApiBaseUrl();
 
 const NAME_KEYS = ["name", "label", "title", "displayName"];
 const DEFAULT_OBJECT_KEYS = ["id", "value", "code", "key", "systemId", "layerId", "deviceId"];
