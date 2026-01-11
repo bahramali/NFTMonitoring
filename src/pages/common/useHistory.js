@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useRef, useState} from "react";
 import {transformAggregatedData} from "../../utils.js";
-import {authFetch} from "../../api/http.js";
+import {authFetch, parseApiResponse} from "../../api/http.js";
 
 import { getApiBaseUrl } from '../../config/apiBase.js';
 
@@ -12,6 +12,7 @@ export function useHistory(compositeId, from, to, autoRefresh, interval, sensorT
     const [phRangeData, setPhRangeData] = useState([]);
     const [ecTdsRangeData, setEcTdsRangeData] = useState([]);
     const [doRangeData, setDoRangeData] = useState([]);
+    const [error, setError] = useState(null);
 
     const initialStart = Date.parse(from);
     const initialEnd = Date.parse(to);
@@ -24,6 +25,41 @@ export function useHistory(compositeId, from, to, autoRefresh, interval, sensorT
     useEffect(() => { endTimeRef.current = endTime; }, [endTime]);
     useEffect(() => { startTimeRef.current = startTime; }, [startTime]);
 
+    const createHistoryError = (message, status, cause) => {
+        const error = new Error(message);
+        if (status !== undefined) error.status = status;
+        if (cause) error.cause = cause;
+        return error;
+    };
+
+    const mapHistoryError = (error) => {
+        if (error?.status === 401) {
+            return createHistoryError('Session expired, please sign in again', error.status, error);
+        }
+        if (error?.status === 403) {
+            return createHistoryError('Not authorized', error.status, error);
+        }
+        if (!error?.status) {
+            return createHistoryError('Network unavailable', undefined, error);
+        }
+        return createHistoryError(error?.message || 'History unavailable', error?.status, error);
+    };
+
+    const loadHistory = useCallback(async (url) => {
+        let response;
+        try {
+            response = await authFetch(url);
+        } catch (error) {
+            throw mapHistoryError(error);
+        }
+
+        try {
+            return await parseApiResponse(response, 'History unavailable');
+        } catch (error) {
+            throw mapHistoryError(error);
+        }
+    }, []);
+
     const fetchReportData = useCallback(async () => {
         if (!from || !to || !compositeId) return;
         try {
@@ -34,9 +70,7 @@ export function useHistory(compositeId, from, to, autoRefresh, interval, sensorT
                 const sensorParam = sensor ? `&sensorType=${sensor}` : '';
                 const url = `${API_BASE}/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}${sensorParam}`;
                 console.log('Request:', url);
-                const res = await authFetch(url);
-                if (!res.ok) throw new Error("bad response");
-                return res.json();
+                return loadHistory(url);
             });
             const responses = await Promise.all(requests);
             const merged = { sensors: [] };
@@ -64,10 +98,13 @@ export function useHistory(compositeId, from, to, autoRefresh, interval, sensorT
             setXDomain([start, end]);
             setStartTime(start);
             setEndTime(end);
+            setError(null);
         } catch (e) {
-            console.error("Failed to fetch history", e);
+            const mappedError = mapHistoryError(e);
+            setError(mappedError);
+            console.error("Failed to fetch history", mappedError);
         }
-    }, [compositeId, from, to, sensorTypes]);
+    }, [compositeId, from, to, sensorTypes, loadHistory]);
 
     const fetchNewData = useCallback(async () => {
         try {
@@ -79,9 +116,7 @@ export function useHistory(compositeId, from, to, autoRefresh, interval, sensorT
                 const sensorParam = sensor ? `&sensorType=${sensor}` : '';
                 const url = `${API_BASE}/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}${sensorParam}`;
                 console.log('Request:', url);
-                const res = await authFetch(url);
-                if (!res.ok) throw new Error("bad response");
-                return res.json();
+                return loadHistory(url);
             });
             const responses = await Promise.all(requests);
             const merged = { sensors: [] };
@@ -111,10 +146,13 @@ export function useHistory(compositeId, from, to, autoRefresh, interval, sensorT
             const newEnd = nowDate.getTime();
             setXDomain([startTimeRef.current, newEnd]);
             setEndTime(newEnd);
+            setError(null);
         } catch (e) {
-            console.error("Failed to fetch history", e);
+            const mappedError = mapHistoryError(e);
+            setError(mappedError);
+            console.error("Failed to fetch history", mappedError);
         }
-    }, [compositeId, sensorTypes]);
+    }, [compositeId, sensorTypes, loadHistory]);
 
     useEffect(() => {
         fetchReportData();
@@ -136,6 +174,7 @@ export function useHistory(compositeId, from, to, autoRefresh, interval, sensorT
         xDomain,
         startTime,
         endTime,
+        error,
         fetchReportData
     };
 }
