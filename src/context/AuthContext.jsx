@@ -156,6 +156,7 @@ export function AuthProvider({ children, initialSession }) {
             if (!storedSession.isAuthenticated && currentSession.isAuthenticated) {
                 setSession(defaultSession);
                 setProfile(null);
+                setProfileError(null);
             }
         };
 
@@ -369,6 +370,14 @@ export function AuthProvider({ children, initialSession }) {
     useEffect(() => {
         if (import.meta.env?.MODE === 'test') {
             return undefined;
+        }
+
+        if (!session.isAuthenticated && !bootstrapAttemptedRef.current) {
+            const storedSession = readStoredSession();
+            if (storedSession.isAuthenticated) {
+                setSession(storedSession);
+                return undefined;
+            }
         }
 
         if (session.isAuthenticated || bootstrapAttemptedRef.current) {
