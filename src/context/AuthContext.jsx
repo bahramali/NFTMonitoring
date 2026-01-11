@@ -104,9 +104,11 @@ const buildSessionPayload = (payload) => {
     };
 };
 
-export function AuthProvider({ children }) {
+export function AuthProvider({ children, initialSession }) {
     const [session, setSession] = useState(() => (
-        import.meta.env?.MODE === 'test' ? readStoredSession() : defaultSession
+        initialSession
+            ? { ...defaultSession, ...initialSession }
+            : (import.meta.env?.MODE !== 'test' ? readStoredSession() : defaultSession)
     ));
     const [profile, setProfile] = useState(null);
     const [profileError, setProfileError] = useState(null);
@@ -120,7 +122,7 @@ export function AuthProvider({ children }) {
     }, [session]);
 
     useEffect(() => {
-        if (import.meta.env?.MODE !== 'test') {
+        if (import.meta.env?.MODE === 'test') {
             return;
         }
 
@@ -135,7 +137,7 @@ export function AuthProvider({ children }) {
     }, [session.isAuthenticated]);
 
     useEffect(() => {
-        if (import.meta.env?.MODE !== 'test') {
+        if (import.meta.env?.MODE === 'test') {
             return undefined;
         }
 
@@ -153,6 +155,7 @@ export function AuthProvider({ children }) {
 
             if (!storedSession.isAuthenticated && currentSession.isAuthenticated) {
                 setSession(defaultSession);
+                setProfile(null);
             }
         };
 
