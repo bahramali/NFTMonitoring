@@ -9,11 +9,18 @@ const TIMELAPSE_INDEX_ENDPOINT = API_BASE
     ? `${API_BASE}/api/timelapse/index`
     : '/api/timelapse/index';
 
-const buildFallbackTimelapseList = () =>
+const buildLatestMp4Url = (cameraId, timelapseBaseUrl) => {
+    if (!cameraId || !timelapseBaseUrl) {
+        return '';
+    }
+    return `${timelapseBaseUrl}/${cameraId}/latest.mp4`;
+};
+
+const buildFallbackTimelapseList = (timelapseBaseUrl) =>
     CAMERA_CONFIG.map((camera) => ({
         cameraId: camera.id,
         title: camera.name,
-        latestMp4: `/${camera.id}/latest.mp4`,
+        latestMp4: buildLatestMp4Url(camera.id, timelapseBaseUrl),
     }));
 
 function TimelapseCard({ camera, timelapseBaseUrl }) {
@@ -133,7 +140,7 @@ export default function TimelapseGallery() {
             } catch (error) {
                 if (!mounted) return;
                 console.warn('[TimelapseGallery] Falling back to default list.', error);
-                setTimelapseList(buildFallbackTimelapseList());
+                setTimelapseList(buildFallbackTimelapseList(timelapseBaseUrl));
                 setLoadError('Using the default camera list.');
             } finally {
                 if (mounted) {
@@ -151,7 +158,10 @@ export default function TimelapseGallery() {
     }, []);
 
     const hasBaseUrl = Boolean(timelapseBaseUrl);
-    const displayList = timelapseList.length > 0 ? timelapseList : buildFallbackTimelapseList();
+    const displayList =
+        timelapseList.length > 0
+            ? timelapseList
+            : buildFallbackTimelapseList(timelapseBaseUrl);
 
     return (
         <section className={styles.section}>
@@ -178,7 +188,12 @@ export default function TimelapseGallery() {
                         key={camera.cameraId || camera.id}
                         camera={{
                             cameraId: camera.cameraId || camera.id,
-                            latestMp4: camera.latestMp4 || `/${camera.cameraId || camera.id}/latest.mp4`,
+                            latestMp4:
+                                camera.latestMp4 ||
+                                buildLatestMp4Url(
+                                    camera.cameraId || camera.id,
+                                    timelapseBaseUrl,
+                                ),
                             title: camera.title || camera.name || camera.cameraId || camera.id,
                         }}
                         timelapseBaseUrl={timelapseBaseUrl}
