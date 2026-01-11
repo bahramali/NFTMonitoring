@@ -23,7 +23,7 @@ export function renderWithAuthSession(ui, options = {}) {
 
     window.localStorage.setItem('authSession', JSON.stringify(resolvedSession));
 
-    const authNode = React.createElement(AuthProvider, null, ui);
+    const authNode = React.createElement(AuthProvider, { initialSession: resolvedSession }, ui);
     const wrappedNode = wrapper ? React.createElement(wrapper, null, authNode) : authNode;
     return renderFn(wrappedNode, renderOptions);
 }

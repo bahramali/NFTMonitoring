@@ -104,9 +104,11 @@ const buildSessionPayload = (payload) => {
     };
 };
 
-export function AuthProvider({ children }) {
+export function AuthProvider({ children, initialSession }) {
     const [session, setSession] = useState(() => (
-        import.meta.env?.MODE !== 'test' ? readStoredSession() : defaultSession
+        initialSession
+            ? { ...defaultSession, ...initialSession }
+            : (import.meta.env?.MODE !== 'test' ? readStoredSession() : defaultSession)
     ));
     const [profile, setProfile] = useState(null);
     const [profileError, setProfileError] = useState(null);
