@@ -1,6 +1,8 @@
 import { authFetch, parseApiResponse } from './http.js';
 
-const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? 'https://api.hydroleaf.se';
+import { getApiBaseUrl } from '../config/apiBase.js';
+
+const API_BASE = getApiBaseUrl();
 const ADMIN_PRODUCTS_URL = `${API_BASE}/api/admin/store/products`;
 const isDev = import.meta.env?.MODE === 'development';
 const mockUpdatedAt = () => new Date().toISOString();

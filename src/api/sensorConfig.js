@@ -1,6 +1,7 @@
-// Base URL for REST API requests. Falls back to the public API if the
-// environment variable is not provided.
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'https://api.hydroleaf.se';
+// Base URL for REST API requests.
+import { getApiBaseUrl } from '../config/apiBase.js';
+
+const API_BASE = getApiBaseUrl();
 const BASE_URL = `${API_BASE}/api/sensor-config`;
 
 export async function getSensorConfigs() {

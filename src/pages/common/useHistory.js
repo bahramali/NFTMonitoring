@@ -2,7 +2,9 @@ import {useCallback, useEffect, useRef, useState} from "react";
 import {transformAggregatedData} from "../../utils.js";
 import {authFetch} from "../../api/http.js";
 
-const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? import.meta.env?.VITE_API_BASE ?? "";
+import { getApiBaseUrl } from '../../config/apiBase.js';
+
+const API_BASE = getApiBaseUrl();
 
 export function useHistory(compositeId, from, to, autoRefresh, interval, sensorTypes = []) {
     const [rangeData, setRangeData] = useState([]);

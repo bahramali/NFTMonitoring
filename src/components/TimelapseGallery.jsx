@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './TimelapseGallery.module.css';
 import { CAMERA_CONFIG, getTimelapseBaseUrl } from '../config/cameras.js';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+import { getApiBaseUrl } from '../config/apiBase.js';
+
+const API_BASE = getApiBaseUrl();
 const TIMELAPSE_INDEX_ENDPOINT = API_BASE
     ? `${API_BASE}/api/timelapse/index`
     : '/api/timelapse/index';
