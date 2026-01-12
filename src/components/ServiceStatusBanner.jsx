@@ -13,9 +13,9 @@ export default function ServiceStatusBanner() {
 
     return (
         <div className={styles.banner} role="status" aria-live="polite">
-            <div className={styles.title}>اطلاعیه</div>
+            <div className={styles.title}>Notice</div>
             <div className={styles.message}>
-                اپلیکیشن در حال به‌روزرسانی است و بابت اختلال در ارائه سرویس پوزش می‌خواهیم.
+                The application is currently being updated, and we apologize for any service disruption.
             </div>
         </div>
     );
