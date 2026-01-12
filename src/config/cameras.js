@@ -49,27 +49,27 @@ export const buildLiveHlsUrl = ({ cameraId }) => {
 /** @type {CameraConfig[]} */
 export const CAMERA_CONFIG = [
     {
-        id: "tapo-59",
+        id: "S2L1",
         name: "S2L1",
     },
     {
-        id: "tapo-60",
+        id: "S2L2",
         name: "S2L2",
     },
     {
-        id: "tapo-61",
+        id: "S2L3",
         name: "S2L3",
     },
     {
-        id: "tapo-62",
+        id: "S2L4",
         name: "S2L4",
     },
     {
-        id: "tapo-63",
+        id: "S1L2",
         name: "S1L2",
     },
     {
-        id: "tapo-64",
+        id: "S1L3",
         name: "S1L3",
     },
 ];

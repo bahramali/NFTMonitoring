@@ -4,7 +4,7 @@ import { CAMERA_CONFIG, isAdminUser } from "../../../config/cameras";
 import LiveHlsPlayer from "../../../components/LiveHlsPlayer.jsx";
 import { useAuth } from "../../../context/AuthContext.jsx";
 
-const DEFAULT_GERMINATION_CAMERA_ID = "tapo-59";
+const DEFAULT_GERMINATION_CAMERA_ID = "S2L4";
 
 export default function GerminationCamera() {
     const { role, roles, permissions } = useAuth();
