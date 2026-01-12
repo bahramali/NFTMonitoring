@@ -1,0 +1,25 @@
+.banner {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 20px;
+    background: #fff3cd;
+    color: #5f3b00;
+    border-bottom: 1px solid #f1d18a;
+    text-align: center;
+}
+
+.title {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.message {
+    font-size: 0.9rem;
+}
+
+@media (max-width: 900px) {
+    .banner {
+        text-align: left;
+    }
+}
