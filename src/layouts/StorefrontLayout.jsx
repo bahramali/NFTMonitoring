@@ -1,6 +1,7 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Navbar from '../components/Navbar.jsx';
+import ServiceStatusBanner from '../components/ServiceStatusBanner.jsx';
 import Sidebar from '../pages/common/Sidebar';
 import { useAuth } from '../context/AuthContext.jsx';
 import { hasInternalAccess } from '../utils/roleAccess.js';
@@ -15,6 +16,7 @@ export default function StorefrontLayout() {
 
     return (
         <div className={styles.shell}>
+            <ServiceStatusBanner />
             <Navbar />
             <div className={styles.body}>
                 {showSidebar ? <Sidebar /> : null}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar.jsx';
+import ServiceStatusBanner from '../components/ServiceStatusBanner.jsx';
 import Sidebar from '../pages/common/Sidebar';
 import { ReportsFiltersProvider } from '../pages/Reports/context/ReportsFiltersContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -20,6 +21,7 @@ export default function DashboardLayout() {
     if (loadingProfile && !hasRoleInfo) {
         return (
             <div className={styles.shell}>
+                <ServiceStatusBanner />
                 <Navbar />
                 <div className={styles.body}>
                     <main className={styles.main}>
@@ -37,6 +39,7 @@ export default function DashboardLayout() {
     return (
         <ReportsFiltersProvider>
             <div className={styles.shell}>
+                <ServiceStatusBanner />
                 <Navbar />
                 <div className={styles.body}>
                     <Sidebar />
