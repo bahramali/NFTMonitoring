@@ -1,6 +1,7 @@
 .layout {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
+    min-height: 0;
     overflow: hidden;
     background: #f1f5f9;
 }
@@ -8,6 +9,7 @@
 .main {
     flex: 1;
     overflow-y: auto;
+    min-height: 0;
     background: #ffffff;
     color: #0f172a;
     padding: 2.25rem 2.75rem;
