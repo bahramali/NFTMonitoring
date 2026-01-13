@@ -1,14 +1,25 @@
-import React, { useMemo } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { fetchOrderStatus } from '../../api/store.js';
 import styles from './PaymentReturn.module.css';
 
 export default function PaymentCancel() {
-    const [searchParams] = useSearchParams();
-    const sessionId = useMemo(
-        () => searchParams.get('session_id') || searchParams.get('sessionId'),
-        [searchParams],
-    );
-    const orderId = useMemo(() => searchParams.get('orderId'), [searchParams]);
+    const { orderId } = useParams();
+    const [order, setOrder] = useState(null);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        if (!orderId) return;
+        const controller = new AbortController();
+        fetchOrderStatus(orderId, { signal: controller.signal })
+            .then((payload) => setOrder(payload))
+            .catch((err) => {
+                if (err?.name === 'AbortError') return;
+                setError(err?.message || 'Unable to load order status.');
+            });
+
+        return () => controller.abort();
+    }, [orderId]);
 
     return (
         <div className={styles.page}>
@@ -22,12 +33,19 @@ export default function PaymentCancel() {
                 <div className={styles.statusCard}>
                     <div className={styles.statusRow}>
                         <span className={styles.statusLabel}>Checkout session</span>
-                        <span className={styles.statusValue}>{sessionId || 'Not provided'}</span>
+                        <span className={styles.statusValue}>Handled by Stripe</span>
                     </div>
                     <div className={styles.statusRow}>
                         <span className={styles.statusLabel}>Order ID</span>
-                        <span className={styles.statusValue}>{orderId || 'Not provided'}</span>
+                        <span className={styles.statusValue}>{order?.id || orderId || 'Not provided'}</span>
                     </div>
+                    {order?.status ? (
+                        <div className={styles.statusRow}>
+                            <span className={styles.statusLabel}>Order status</span>
+                            <span className={styles.statusValue}>{order.status}</span>
+                        </div>
+                    ) : null}
+                    {error ? <p className={styles.error}>{error}</p> : null}
                 </div>
 
                 <div className={styles.actions}>

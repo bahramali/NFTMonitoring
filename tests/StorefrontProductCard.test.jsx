@@ -124,7 +124,7 @@ describe('Storefront add to cart', () => {
                         cart: {
                             id: 'cart-1',
                             sessionId: 'session-1',
-                            items: [{ id: 'item-1', variantId: body.variantId, quantity: 2, price: 29 }],
+                            items: [{ id: 'item-1', itemId: body.itemId, quantity: 2, price: 29 }],
                             totals: { currency: 'SEK', subtotal: 58, total: 58 },
                         },
                     });
@@ -147,10 +147,10 @@ describe('Storefront add to cart', () => {
         });
 
         expect(result.current.cart?.items?.[0]?.quantity).toBe(2);
-        expect(result.current.cart?.items?.[0]?.variantId).toBe('variant-1');
+        expect(result.current.cart?.items?.[0]?.itemId).toBe('variant-1');
         expect(result.current.toast?.message).toBe('Added to cart');
         const call = fetchSpy.mock.calls.find(([url]) => `${url}`.includes('/items'));
         const body = JSON.parse(call?.[1]?.body ?? '{}');
-        expect(body).toMatchObject({ variantId: 'variant-1', quantity: 2 });
+        expect(body).toMatchObject({ itemId: 'variant-1', quantity: 2 });
     });
 });
