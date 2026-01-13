@@ -59,15 +59,21 @@ let authConfig = {
     setAccessToken: () => {},
     refreshAccessToken: null,
     onAuthFailure: null,
+    maxRefreshAttempts: 2,
 };
 
 let refreshPromise = null;
+let refreshFailureCount = 0;
 
 export function configureAuth(config = {}) {
     authConfig = {
         ...authConfig,
         ...config,
     };
+}
+
+export function resetRefreshAttempts() {
+    refreshFailureCount = 0;
 }
 
 const resolveTokenFromPayload = (payload) => {
@@ -108,15 +114,22 @@ export async function authFetch(url, options = {}, { token, retry = true } = {})
         return response;
     }
 
+    if (refreshFailureCount >= authConfig.maxRefreshAttempts) {
+        authConfig.onAuthFailure?.('refresh_failed');
+        return response;
+    }
+
     try {
         const refreshed = await ensureRefresh();
         const newToken = resolveTokenFromPayload(refreshed);
         if (!newToken) {
+            refreshFailureCount += 1;
             authConfig.onAuthFailure?.('expired');
             return response;
         }
 
         authConfig.setAccessToken?.(newToken);
+        refreshFailureCount = 0;
         const retryHeaders = isHeadersInstance ? new Headers(headers) : { ...headers };
         if (retryHeaders instanceof Headers) {
             retryHeaders.set('Authorization', `Bearer ${newToken}`);
@@ -125,6 +138,7 @@ export async function authFetch(url, options = {}, { token, retry = true } = {})
         }
         return fetch(url, { ...options, headers: retryHeaders });
     } catch (error) {
+        refreshFailureCount += 1;
         authConfig.onAuthFailure?.('refresh_failed', error);
         return response;
     }

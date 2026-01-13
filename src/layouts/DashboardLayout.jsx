@@ -10,9 +10,23 @@ import styles from './AppShellLayout.module.css';
 
 export default function DashboardLayout() {
     const location = useLocation();
-    const { isAuthenticated, role, roles, loadingProfile } = useAuth();
+    const { isAuthenticated, role, roles, loadingProfile, isBootstrapping } = useAuth();
     const internalAccess = hasInternalAccess({ role, roles });
     const hasRoleInfo = (roles?.length ?? 0) > 0 || Boolean(role);
+
+    if (isBootstrapping) {
+        return (
+            <div className={styles.shell}>
+                <ServiceStatusBanner />
+                <Navbar />
+                <div className={styles.body}>
+                    <main className={styles.main}>
+                        <div className={styles.content} />
+                    </main>
+                </div>
+            </div>
+        );
+    }
 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace state={{ from: location }} />;
