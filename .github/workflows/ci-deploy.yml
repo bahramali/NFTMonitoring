@@ -1,10 +1,8 @@
-name: |
-  CI: Test, Build, Deploy and Page Link
+name: CI: Test, Build, Deploy and Page Link
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 permissions:
   contents: read
@@ -52,20 +50,47 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 100% deterministic: if secret is not injected, fail here.
-      - name: Verify Turnstile site key is present
+      - name: Verify required env vars are present (fail-fast)
+        shell: bash
+        env:
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_WS_HTTP_URL: ${{ vars.VITE_WS_HTTP_URL }}
+          VITE_SUCCESS_URL: ${{ vars.VITE_SUCCESS_URL }}
+          VITE_CANCEL_URL: ${{ vars.VITE_CANCEL_URL }}
+          VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
         run: |
-          if [ -z "${VITE_TURNSTILE_SITE_KEY}" ]; then
-            echo "ERROR: VITE_TURNSTILE_SITE_KEY is missing (secrets not injected)." >&2
+          required=(
+            "VITE_STRIPE_PUBLISHABLE_KEY"
+            "VITE_API_BASE_URL"
+            "VITE_WS_HTTP_URL"
+            "VITE_SUCCESS_URL"
+            "VITE_CANCEL_URL"
+            "VITE_TURNSTILE_SITE_KEY"
+          )
+
+          missing=0
+          for v in "${required[@]}"; do
+            if [ -z "${!v}" ]; then
+              echo "ERROR: $v is missing" >&2
+              missing=1
+            else
+              echo "OK: $v present (len=${#v})"
+            fi
+          done
+
+          if [ "$missing" -eq 1 ]; then
             exit 1
           fi
-          echo "Turnstile key present (length=${#VITE_TURNSTILE_SITE_KEY})"
-        env:
-          VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
 
       - name: Build project
         run: npm run build
         env:
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_WS_HTTP_URL: ${{ vars.VITE_WS_HTTP_URL }}
+          VITE_SUCCESS_URL: ${{ vars.VITE_SUCCESS_URL }}
+          VITE_CANCEL_URL: ${{ vars.VITE_CANCEL_URL }}
           VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
 
       - name: Configure GitHub Pages
