@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Hls from "hls.js";
 import styles from "./LiveHlsPlayer.module.css";
 import { buildLiveHlsUrl } from "../config/cameras.js";
@@ -11,6 +11,7 @@ const STATUS = {
 };
 
 const ERROR_STATUS_CODES = new Set([404, 502]);
+const PLAY_RETRY_DELAYS_MS = [1000, 2000, 4000, 8000, 15000];
 
 const getResponseErrorMessage = (statusCode) => {
     if (statusCode === 404) {
@@ -37,47 +38,77 @@ export default function LiveHlsPlayer({
     const [status, setStatus] = useState(STATUS.idle);
     const [errorMessage, setErrorMessage] = useState("");
     const [retryKey, setRetryKey] = useState(0);
+    const retryTimerRef = useRef(null);
+    const playAttemptRef = useRef(0);
+    const onStatusChangeRef = useRef(onStatusChange);
+    const onErrorRef = useRef(onError);
 
-    const updateStatus = useCallback(
-        (nextStatus) => {
-            setStatus(nextStatus);
-            onStatusChange?.(nextStatus);
-        },
-        [onStatusChange],
-    );
+    useEffect(() => {
+        onStatusChangeRef.current = onStatusChange;
+    }, [onStatusChange]);
 
-    const handleError = useCallback(
-        (message, error) => {
-            console.error("[LiveHlsPlayer]", error);
-            setErrorMessage(message);
-            onError?.(message);
-            updateStatus(STATUS.error);
-        },
-        [onError, updateStatus],
-    );
+    useEffect(() => {
+        onErrorRef.current = onError;
+    }, [onError]);
 
-    const cleanupHls = useCallback(() => {
+    const updateStatus = (nextStatus) => {
+        setStatus(nextStatus);
+        onStatusChangeRef.current?.(nextStatus);
+    };
+
+    const clearRetryTimer = () => {
+        if (retryTimerRef.current) {
+            clearTimeout(retryTimerRef.current);
+            retryTimerRef.current = null;
+        }
+    };
+
+    const handleError = (message, error) => {
+        console.error("[LiveHlsPlayer]", error);
+        clearRetryTimer();
+        setErrorMessage(message);
+        onErrorRef.current?.(message);
+        updateStatus(STATUS.error);
+    };
+
+    const cleanupHls = () => {
         if (hlsRef.current) {
             hlsRef.current.destroy();
             hlsRef.current = null;
         }
-    }, []);
+    };
 
-    const handleRetry = useCallback(() => {
+    const handleRetry = () => {
         cleanupHls();
+        clearRetryTimer();
         setErrorMessage("");
         updateStatus(STATUS.loading);
         setRetryKey((key) => key + 1);
-    }, [cleanupHls, updateStatus]);
+    };
+
+    const hlsUrlInfo = useMemo(() => {
+        if (!cameraId) {
+            return { url: "", error: null };
+        }
+        try {
+            return { url: buildLiveHlsUrl({ cameraId }), error: null };
+        } catch (error) {
+            return { url: "", error };
+        }
+    }, [cameraId]);
 
     useEffect(() => {
         let mounted = true;
         const abortController = new AbortController();
         const video = videoRef.current;
+        const initialPlayRequested = { current: false };
 
         if (!video) {
             return undefined;
         }
+
+        clearRetryTimer();
+        playAttemptRef.current = 0;
 
         const handlePlaying = () => {
             if (!mounted) return;
@@ -90,19 +121,52 @@ export default function LiveHlsPlayer({
             handleError("Unable to load the camera stream.", new Error("Video element error"));
         };
 
+        const schedulePlayRetry = (error) => {
+            if (!mounted) return;
+            if (retryTimerRef.current) return;
+            if (playAttemptRef.current >= PLAY_RETRY_DELAYS_MS.length) {
+                handleError("Unable to start live playback.", error);
+                return;
+            }
+            const delay = PLAY_RETRY_DELAYS_MS[playAttemptRef.current];
+            playAttemptRef.current += 1;
+            retryTimerRef.current = setTimeout(() => {
+                retryTimerRef.current = null;
+                safePlay();
+            }, delay);
+        };
+
+        const safePlay = async () => {
+            if (!mounted) return;
+            try {
+                await video.play();
+            } catch (error) {
+                if (!mounted) return;
+                if (error?.name === "AbortError" || error?.name === "NotAllowedError") {
+                    schedulePlayRetry(error);
+                    return;
+                }
+                handleError("Unable to load the camera stream.", error);
+            }
+        };
+
+        const requestInitialPlay = () => {
+            if (!mounted || initialPlayRequested.current) return;
+            initialPlayRequested.current = true;
+            safePlay();
+        };
+
         const start = async () => {
             if (!cameraId) {
                 handleError("No camera selected.", new Error("Missing cameraId"));
                 return;
             }
 
-            let hlsUrl = "";
-            try {
-                hlsUrl = buildLiveHlsUrl({ cameraId });
-            } catch (error) {
-                handleError("Live stream unavailable.", error);
+            if (hlsUrlInfo.error) {
+                handleError("Live stream unavailable.", hlsUrlInfo.error);
                 return;
             }
+            const hlsUrl = hlsUrlInfo.url;
             if (!hlsUrl) {
                 handleError("Offline / Unknown camera", new Error("Unknown cameraId"));
                 return;
@@ -113,6 +177,7 @@ export default function LiveHlsPlayer({
 
             video.addEventListener("playing", handlePlaying);
             video.addEventListener("error", handleVideoError);
+            video.addEventListener("canplay", requestInitialPlay);
             video.muted = true;
             video.playsInline = true;
 
@@ -125,7 +190,7 @@ export default function LiveHlsPlayer({
                         throw error;
                     }
                     video.src = hlsUrl;
-                    await video.play();
+                    requestInitialPlay();
                     return;
                 }
 
@@ -156,6 +221,7 @@ export default function LiveHlsPlayer({
                     }
                 });
 
+                hls.on(Hls.Events.MANIFEST_PARSED, requestInitialPlay);
                 hls.loadSource(hlsUrl);
                 hls.attachMedia(video);
             } catch (error) {
@@ -168,14 +234,16 @@ export default function LiveHlsPlayer({
         return () => {
             mounted = false;
             abortController.abort();
+            clearRetryTimer();
             cleanupHls();
             video.removeEventListener("playing", handlePlaying);
             video.removeEventListener("error", handleVideoError);
+            video.removeEventListener("canplay", requestInitialPlay);
             video.pause();
             video.removeAttribute("src");
             video.load();
         };
-    }, [cameraId, cleanupHls, handleError, retryKey, reloadKey, updateStatus, videoRef]);
+    }, [cameraId, hlsUrlInfo.error, hlsUrlInfo.url, reloadKey, retryKey, videoRef]);
 
     const overlayMessage =
         status === STATUS.loading
