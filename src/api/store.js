@@ -4,6 +4,26 @@ import { getApiBaseUrl } from '../config/apiBase.js';
 
 const API_BASE = getApiBaseUrl();
 const STORE_BASE = `${API_BASE}/api/store`;
+const RETURN_URL_BASE = import.meta.env?.VITE_STRIPE_RETURN_URL_BASE ?? '';
+const TRAILING_SLASH_REGEX = /\/+$/;
+
+const resolveReturnUrlBase = () => {
+    if (RETURN_URL_BASE) {
+        return RETURN_URL_BASE.replace(TRAILING_SLASH_REGEX, '');
+    }
+    if (typeof window !== 'undefined' && window.location?.origin) {
+        return window.location.origin;
+    }
+    return '';
+};
+
+const buildReturnUrl = (orderId, pathSuffix) => {
+    if (!orderId) return null;
+    const base = resolveReturnUrlBase();
+    if (!base) return null;
+    const encodedOrderId = encodeURIComponent(orderId);
+    return `${base}/store/order/${encodedOrderId}/${pathSuffix}`;
+};
 
 const buildCartHeaders = (cartId, sessionId) => {
     const headers = {};
@@ -118,12 +138,23 @@ export async function createCheckoutSession(cartId, payload = {}, { signal } = {
         throw new Error('Checkout did not return an order ID.');
     }
 
-    const res = await fetch(`${API_BASE}/api/checkout/sessions`, {
+    const currency = (payload?.currency ?? checkoutPayload?.totals?.currency ?? checkoutPayload?.currency ?? 'sek').toLowerCase();
+    const customerEmail = payload?.customerEmail ?? payload?.email ?? null;
+    const successUrl = buildReturnUrl(orderId, 'success');
+    const cancelUrl = buildReturnUrl(orderId, 'cancel');
+
+    const res = await fetch(`${API_BASE}/api/payments/stripe/checkout-session`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ orderId }),
+        body: JSON.stringify({
+            cartId,
+            currency,
+            customerEmail,
+            successUrl,
+            cancelUrl,
+        }),
         signal,
     });
 

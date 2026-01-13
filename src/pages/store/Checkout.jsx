@@ -107,6 +107,7 @@ export default function Checkout() {
             setStatusMessage('Creating your order…');
             const response = await createCheckoutSession({
                 email: orderEmail,
+                currency: currency.toLowerCase(),
                 shippingAddress: {
                     name: form.fullName,
                     addressLine1: form.addressLine1,
