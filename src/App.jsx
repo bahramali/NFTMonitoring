@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import CustomerRoute from './components/CustomerRoute.jsx';
 import Home from './pages/Home.jsx';
@@ -89,6 +89,17 @@ function App() {
 
 function AppRoutes() {
     const location = useLocation();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const redirectPath = sessionStorage.getItem('redirect');
+        if (!redirectPath) return;
+        sessionStorage.removeItem('redirect');
+        const currentPath = `${location.pathname}${location.search}${location.hash}`;
+        if (redirectPath !== currentPath) {
+            navigate(redirectPath, { replace: true });
+        }
+    }, [location.hash, location.pathname, location.search, navigate]);
 
     return (
         <SensorConfigProvider locationPath={location.pathname}>
