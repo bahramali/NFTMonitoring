@@ -5,9 +5,13 @@ import { getDefaultRouteForUser } from '../utils/roleRoutes.js';
 import { hasInternalAccess, isCustomer } from '../utils/roleAccess.js';
 
 export default function CustomerRoute({ children }) {
-    const { isAuthenticated, role, roles, permissions, loadingProfile } = useAuth();
+    const { isAuthenticated, role, roles, permissions, loadingProfile, isBootstrapping } = useAuth();
     const location = useLocation();
     const hasRoleInfo = (roles?.length ?? 0) > 0 || Boolean(role);
+
+    if (isBootstrapping) {
+        return null;
+    }
 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace state={{ from: location }} />;

@@ -14,12 +14,13 @@ import {
     refreshAccessToken as requestRefreshAccessToken,
 } from '../api/auth.js';
 import { getApiBaseUrl } from '../config/apiBase.js';
-import { configureAuth } from '../api/http.js';
+import { configureAuth, resetRefreshAttempts } from '../api/http.js';
 import normalizeProfile from '../utils/normalizeProfile.js';
 
 const API_BASE = getApiBaseUrl();
 const AUTH_BASE = `${API_BASE}/api/auth`;
 const PASSWORD_REQUIREMENTS_MESSAGE = 'Password must be at least 8 characters long.';
+const SESSION_STORAGE_KEY = 'authSession';
 
 const defaultSession = {
     isAuthenticated: false,
@@ -35,6 +36,7 @@ const defaultAuthValue = {
     profile: null,
     profileError: null,
     loadingProfile: false,
+    isBootstrapping: false,
     authNotice: null,
     login: async () => ({ success: false }),
     register: async () => ({ success: false }),
@@ -46,12 +48,27 @@ const defaultAuthValue = {
 
 const AuthContext = createContext(defaultAuthValue);
 
+const decodeJwtExpiry = (token) => {
+    if (!token || typeof token !== 'string') return null;
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    try {
+        const payload = JSON.parse(
+            window.atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')),
+        );
+        if (!payload?.exp) return null;
+        return payload.exp * 1000;
+    } catch {
+        return null;
+    }
+};
+
 const readStoredSession = () => {
     if (typeof window === 'undefined') {
         return defaultSession;
     }
 
-    const rawData = window.localStorage.getItem('authSession');
+    const rawData = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
     if (!rawData) return defaultSession;
 
     try {
@@ -114,12 +131,41 @@ export function AuthProvider({ children, initialSession }) {
     const [profile, setProfile] = useState(null);
     const [profileError, setProfileError] = useState(null);
     const [loadingProfile, setLoadingProfile] = useState(false);
+    const [isBootstrapping, setIsBootstrapping] = useState(import.meta.env?.MODE !== 'test');
     const [authNotice, setAuthNotice] = useState(null);
     const sessionRef = useRef(session);
     const bootstrapAttemptedRef = useRef(false);
+    const authFailureHandledRef = useRef(false);
 
     useEffect(() => {
         sessionRef.current = session;
+    }, [session]);
+
+    useEffect(() => {
+        if (import.meta.env?.MODE === 'test') {
+            return;
+        }
+
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        if (!session.isAuthenticated || !session.token) {
+            window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            return;
+        }
+
+        const expiry = decodeJwtExpiry(session.token);
+        const payload = {
+            isAuthenticated: session.isAuthenticated,
+            token: session.token,
+            userId: session.userId,
+            role: session.role,
+            roles: session.roles,
+            permissions: session.permissions,
+            expiry,
+        };
+        window.sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(payload));
     }, [session]);
 
     useEffect(() => {
@@ -143,7 +189,7 @@ export function AuthProvider({ children, initialSession }) {
         }
 
         const handleStorage = (event) => {
-            if (event?.key && event.key !== 'authSession') {
+            if (event?.key && event.key !== SESSION_STORAGE_KEY) {
                 return;
             }
 
@@ -195,6 +241,8 @@ export function AuthProvider({ children, initialSession }) {
         };
 
         setSession(nextSession);
+        resetRefreshAttempts();
+        authFailureHandledRef.current = false;
         return { success: true, role: primaryRole, roles: nextSession.roles, permissions: resolvedPermissions };
     }, []);
 
@@ -212,6 +260,8 @@ export function AuthProvider({ children, initialSession }) {
         const sessionPayload = buildSessionPayload(payload);
         if (!sessionPayload.token) return null;
         updateAccessToken(sessionPayload.token);
+        resetRefreshAttempts();
+        authFailureHandledRef.current = false;
         return sessionPayload.token;
     }, [requestRefreshAccessToken, updateAccessToken]);
 
@@ -338,6 +388,8 @@ export function AuthProvider({ children, initialSession }) {
         setProfile(null);
         setProfileError(null);
         setLoadingProfile(false);
+        setIsBootstrapping(false);
+        authFailureHandledRef.current = false;
         if (clearNotice) {
             setAuthNotice(null);
         }
@@ -350,6 +402,8 @@ export function AuthProvider({ children, initialSession }) {
 
     const handleAuthFailure = useCallback(
         (reason) => {
+            if (authFailureHandledRef.current) return;
+            authFailureHandledRef.current = true;
             const message = reason === 'refresh_failed'
                 ? 'Your session refresh failed. Please sign in again.'
                 : 'Your session expired. Please sign in again.';
@@ -365,11 +419,13 @@ export function AuthProvider({ children, initialSession }) {
             setAccessToken: updateAccessToken,
             refreshAccessToken,
             onAuthFailure: handleAuthFailure,
+            maxRefreshAttempts: 2,
         });
     }, [handleAuthFailure, refreshAccessToken, updateAccessToken]);
 
     useEffect(() => {
         if (import.meta.env?.MODE === 'test') {
+            setIsBootstrapping(false);
             return undefined;
         }
 
@@ -377,11 +433,13 @@ export function AuthProvider({ children, initialSession }) {
             const storedSession = readStoredSession();
             if (storedSession.isAuthenticated) {
                 setSession(storedSession);
+                setIsBootstrapping(false);
                 return undefined;
             }
         }
 
         if (session.isAuthenticated || bootstrapAttemptedRef.current) {
+            setIsBootstrapping(false);
             return undefined;
         }
 
@@ -389,6 +447,7 @@ export function AuthProvider({ children, initialSession }) {
         const controller = new AbortController();
 
         const bootstrap = async () => {
+            setIsBootstrapping(true);
             setLoadingProfile(true);
             setProfileError(null);
             try {
@@ -397,6 +456,8 @@ export function AuthProvider({ children, initialSession }) {
                 const sessionPayload = buildSessionPayload(payload);
                 if (!sessionPayload.token) return;
                 updateAccessToken(sessionPayload.token);
+                resetRefreshAttempts();
+                authFailureHandledRef.current = false;
 
                 if (sessionPayload.userId && (sessionPayload.role || sessionPayload.roles?.length)) {
                     setAuthenticatedSession(sessionPayload, { fallback: sessionRef.current });
@@ -425,6 +486,7 @@ export function AuthProvider({ children, initialSession }) {
             } finally {
                 if (!controller.signal.aborted) {
                     setLoadingProfile(false);
+                    setIsBootstrapping(false);
                 }
             }
         };
@@ -517,6 +579,7 @@ export function AuthProvider({ children, initialSession }) {
             profileError,
             loadingProfile,
             authNotice,
+            isBootstrapping,
             login,
             register,
             logout,
@@ -535,6 +598,7 @@ export function AuthProvider({ children, initialSession }) {
             profileError,
             loadingProfile,
             authNotice,
+            isBootstrapping,
             login,
             register,
             logout,

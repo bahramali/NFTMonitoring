@@ -4,8 +4,12 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { hasPerm } from '../utils/permissions.js';
 
 export default function ProtectedRoute({ children, requiredRoles = [], requiredPermissions = [] }) {
-    const { isAuthenticated, role, roles, permissions } = useAuth();
+    const { isAuthenticated, role, roles, permissions, isBootstrapping } = useAuth();
     const location = useLocation();
+
+    if (isBootstrapping) {
+        return null;
+    }
 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace state={{ from: location }} />;
