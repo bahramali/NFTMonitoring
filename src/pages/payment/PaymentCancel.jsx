@@ -4,6 +4,10 @@ import styles from './PaymentReturn.module.css';
 
 export default function PaymentCancel() {
     const [searchParams] = useSearchParams();
+    const sessionId = useMemo(
+        () => searchParams.get('session_id') || searchParams.get('sessionId'),
+        [searchParams],
+    );
     const orderId = useMemo(() => searchParams.get('orderId'), [searchParams]);
 
     return (
@@ -16,6 +20,10 @@ export default function PaymentCancel() {
                 </p>
 
                 <div className={styles.statusCard}>
+                    <div className={styles.statusRow}>
+                        <span className={styles.statusLabel}>Checkout session</span>
+                        <span className={styles.statusValue}>{sessionId || 'Not provided'}</span>
+                    </div>
                     <div className={styles.statusRow}>
                         <span className={styles.statusLabel}>Order ID</span>
                         <span className={styles.statusValue}>{orderId || 'Not provided'}</span>

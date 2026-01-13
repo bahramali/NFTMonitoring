@@ -99,3 +99,59 @@
 .loading {
     color: #475569;
 }
+
+.orderSummary {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.75rem;
+}
+
+.orderSummary h2 {
+    margin: 0 0 1rem;
+    font-size: 1.1rem;
+    color: #0f172a;
+}
+
+.items {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.itemRow {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.itemName {
+    margin: 0;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.itemMeta {
+    margin: 0.3rem 0 0;
+    color: #64748b;
+}
+
+.itemTotal {
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.summaryRow {
+    display: flex;
+    justify-content: space-between;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+}
+
+.summaryRowTotal {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    color: #0f172a;
+}

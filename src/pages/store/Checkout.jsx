@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { getStripePromise } from '../../utils/stripe.js';
 import { fetchCustomerProfile } from '../../api/customer.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
@@ -29,12 +30,13 @@ const normalizeProfile = (payload) => {
 };
 
 export default function Checkout() {
-    const { cart, createCheckoutSession } = useStorefront();
+    const { cart, createCheckoutSession, notify } = useStorefront();
     const { isAuthenticated, token, logout } = useAuth();
     const redirectToLogin = useRedirectToLogin();
     const [form, setForm] = useState(initialForm);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState(null);
+    const [statusMessage, setStatusMessage] = useState('');
     const [profile, setProfile] = useState(null);
     const [loadingProfile, setLoadingProfile] = useState(false);
 
@@ -45,7 +47,7 @@ export default function Checkout() {
     const summaryItems = useMemo(() => cart?.items ?? [], [cart?.items]);
     const profileEmail = profile?.email || '';
     const orderEmail = isAuthenticated ? profileEmail : form.email;
-    const canSubmit = !submitting && (!isAuthenticated || Boolean(orderEmail));
+    const canSubmit = hasItems && !submitting && (!isAuthenticated || Boolean(orderEmail));
 
     useEffect(() => {
         if (!isAuthenticated || !token) {
@@ -85,27 +87,69 @@ export default function Checkout() {
         event.preventDefault();
         setSubmitting(true);
         setError(null);
+        setStatusMessage('');
         if (!orderEmail) {
             setError('Please provide an email address to continue.');
             setSubmitting(false);
             return;
         }
+        if (!hasItems) {
+            setError('Your cart is empty.');
+            setSubmitting(false);
+            return;
+        }
         try {
+            const stripePromise = getStripePromise();
+
+            notify('info', 'Starting secure checkout…');
+            setStatusMessage('Creating checkout session…');
+            const rawBase = import.meta?.env?.BASE_URL || '/';
+            const base = rawBase === './' || rawBase === '/./' ? '/' : rawBase;
+            const successUrl = new URL(`${base}checkout/success?session_id={CHECKOUT_SESSION_ID}`, window.location.origin).toString();
+            const cancelUrl = new URL(`${base}checkout/cancel`, window.location.origin).toString();
+            const items = (cart?.items ?? []).map((item) => ({
+                productId: item.productId ?? item.product?.id ?? item.id ?? null,
+                variantId: item.variantId ?? item.variant?.id ?? null,
+                quantity: item.quantity ?? item.qty ?? 1,
+            })).filter((item) => item.productId || item.variantId);
             const response = await createCheckoutSession({
+                items,
+                currency: `${currency}`.toLowerCase(),
+                successUrl,
+                cancelUrl,
                 email: orderEmail,
                 fullName: form.fullName,
                 phone: form.phone,
                 notes: form.notes,
             });
-            if (response?.redirectUrl) {
-                window.location.assign(response.redirectUrl);
-            } else {
-                throw new Error('Checkout session did not return a redirect URL.');
+            setStatusMessage('Redirecting to Stripe Checkout…');
+            notify('success', 'Checkout session created. Redirecting…');
+
+            if (response?.url || response?.redirectUrl) {
+                window.location.assign(response.url || response.redirectUrl);
+                return;
             }
+
+            if (response?.sessionId) {
+                if (!stripePromise) {
+                    throw new Error('Stripe publishable key is missing. Please contact support.');
+                }
+                const stripe = await stripePromise;
+                const { error: stripeError } = await stripe.redirectToCheckout({ sessionId: response.sessionId });
+                if (stripeError) {
+                    throw new Error(stripeError.message || 'Stripe redirect failed.');
+                }
+                return;
+            }
+
+            throw new Error('Checkout session did not return a redirect URL or session ID.');
         } catch (err) {
-            setError(err?.message || 'Checkout failed. Please try again.');
+            const message = err?.message || 'Checkout failed. Please try again.';
+            setError(message);
+            notify('error', message);
         } finally {
             setSubmitting(false);
+            setStatusMessage('');
         }
     };
 
@@ -179,6 +223,7 @@ export default function Checkout() {
                             <textarea id="notes" name="notes" value={form.notes} onChange={handleChange} rows={3} />
                         </div>
                         {error ? <p className={styles.error}>{error}</p> : null}
+                        {statusMessage ? <p className={styles.status}>{statusMessage}</p> : null}
                         <button type="submit" className={styles.submit} disabled={!canSubmit || loadingProfile}>
                             {submitting ? 'Starting checkout…' : `Pay ${formatCurrency(totals.total ?? totals.subtotal ?? 0, currency)}`}
                         </button>

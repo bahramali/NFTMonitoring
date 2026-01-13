@@ -161,6 +161,14 @@
     border: 1px solid #f3c8c2;
 }
 
+.status {
+    color: #1f2937;
+    background: #eef6ff;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #c7e0ff;
+}
+
 .summary {
     background: #fafafa;
     border-radius: 16px;
