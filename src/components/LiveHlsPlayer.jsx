@@ -103,6 +103,10 @@ export default function LiveHlsPlayer({
                 handleError("Live stream unavailable.", error);
                 return;
             }
+            if (!hlsUrl) {
+                handleError("Offline / Unknown camera", new Error("Unknown cameraId"));
+                return;
+            }
 
             setErrorMessage("");
             updateStatus(STATUS.loading);
@@ -180,7 +184,8 @@ export default function LiveHlsPlayer({
                 ? errorMessage || "Live stream unavailable."
                 : "";
 
-    const showRetry = status === STATUS.error;
+    const showRetry =
+        status === STATUS.error && errorMessage !== "Offline / Unknown camera";
 
     return (
         <div className={`${styles.wrapper} ${wrapperClassName}`}>
