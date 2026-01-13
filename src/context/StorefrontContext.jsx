@@ -34,6 +34,7 @@ const StorefrontContext = createContext({
     removeItem: async () => {},
     checkout: async () => ({}),
     createCheckoutSession: async () => ({}),
+    notify: () => {},
     clearToast: () => {},
 });
 
@@ -294,6 +295,7 @@ export function StorefrontProvider({ children }) {
     const closeCart = useCallback(() => setIsCartOpen(false), []);
     const openCart = useCallback(() => setIsCartOpen(true), []);
     const clearToast = useCallback(() => setToast(null), []);
+    const notify = useCallback((type, message) => showToast(type, message), [showToast]);
 
     const value = useMemo(
         () => ({
@@ -313,6 +315,7 @@ export function StorefrontProvider({ children }) {
             removeItem,
             checkout,
             createCheckoutSession,
+            notify,
             clearToast,
         }),
         [
@@ -333,6 +336,7 @@ export function StorefrontProvider({ children }) {
             toast,
             updateItemQuantity,
             createCheckoutSession,
+            notify,
         ],
     );
 

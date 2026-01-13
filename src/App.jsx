@@ -107,6 +107,8 @@ function AppRoutes() {
                 <Route element={<PublicLayout />}>
                     <Route path="/" element={<Home />} />
                     <Route path="/timelapse" element={<TimelapsePage />} />
+                    <Route path="/checkout/success" element={<PaymentSuccess />} />
+                    <Route path="/checkout/cancel" element={<PaymentCancel />} />
                     <Route path="/payment/success" element={<PaymentSuccess />} />
                     <Route path="/payment/cancel" element={<PaymentCancel />} />
                     <Route path="/login" element={<Login />} />

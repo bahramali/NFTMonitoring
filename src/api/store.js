@@ -111,7 +111,7 @@ export async function checkoutCart(cartId, sessionId, payload = {}, { signal } =
 }
 
 export async function createCheckoutSession(cartId, sessionId, payload = {}, { signal } = {}) {
-    const res = await fetch(`${API_BASE}/api/checkout/sessions`, {
+    const res = await fetch(`${API_BASE}/api/payments/checkout-session`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
