@@ -7,4 +7,4 @@ export default class Hls {
   on() {}
   destroy() {}
 }
-Hls.Events = { ERROR: 'error' };
+Hls.Events = { ERROR: 'error', MANIFEST_PARSED: 'manifest_parsed' };
