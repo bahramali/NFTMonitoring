@@ -25,9 +25,9 @@ export default function PaymentCancel() {
         <div className={styles.page}>
             <div className={styles.card}>
                 <p className={styles.kicker}>Payment canceled</p>
-                <h1 className={styles.title}>Payment canceled</h1>
+                <h1 className={styles.title}>پرداخت لغو شد</h1>
                 <p className={styles.subtitle}>
-                    Your payment was not completed. You can retry when you are ready.
+                    Payment canceled. Your payment was not completed, so you can retry when you are ready.
                 </p>
 
                 <div className={styles.statusCard}>

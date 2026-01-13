@@ -25,11 +25,20 @@ const resolveTotals = (order) => ({
     total: order?.total ?? order?.totals?.total ?? null,
 });
 
+const isPaidStatus = (status) => {
+    if (!status) return false;
+    const normalized = `${status}`.toLowerCase();
+    return ['paid', 'confirmed', 'succeeded', 'complete', 'completed'].includes(normalized);
+};
+
 const isPendingStatus = (status) => {
     if (!status) return true;
     const normalized = `${status}`.toLowerCase();
     return ['pending', 'processing', 'requires_payment_method', 'requires_action', 'unpaid', 'open'].includes(normalized);
 };
+
+const POLL_INTERVAL_MS = 2000;
+const MAX_POLL_COUNT = 5;
 
 export default function PaymentSuccess() {
     const { orderId } = useParams();
@@ -71,23 +80,30 @@ export default function PaymentSuccess() {
     useEffect(() => {
         const status = resolveOrderStatus(order);
         if (!isPendingStatus(status)) return;
-        if (pollCount >= 3) return;
-        const timer = setTimeout(() => setPollCount((count) => count + 1), 5000);
+        if (pollCount >= MAX_POLL_COUNT) return;
+        const timer = setTimeout(() => setPollCount((count) => count + 1), POLL_INTERVAL_MS);
         return () => clearTimeout(timer);
     }, [order, pollCount]);
 
+    const status = resolveOrderStatus(order);
+    const isPaid = isPaidStatus(status);
+    const isPending = isPendingStatus(status);
     const items = resolveOrderItems(order);
     const totals = resolveTotals(order);
     const currency = totals.currency || 'SEK';
+    const title = isPaid ? 'Order confirmed' : isPending ? 'در حال تایید پرداخت' : 'Payment status updated';
+    const subtitle = isPaid
+        ? 'Payment received. Your order is confirmed.'
+        : isPending
+            ? 'در حال تایید پرداخت. We are confirming your payment with our provider.'
+            : 'Your payment status was updated. Please contact support if you need help.';
 
     return (
         <div className={styles.page}>
             <div className={styles.card}>
                 <p className={styles.kicker}>Payment completed</p>
-                <h1 className={styles.title}>Order confirmed</h1>
-                <p className={styles.subtitle}>
-                    Payment received. We are confirming your order with our payment provider.
-                </p>
+                <h1 className={styles.title}>{title}</h1>
+                <p className={styles.subtitle}>{subtitle}</p>
 
                 <div className={styles.statusCard}>
                     <div className={styles.statusRow}>
@@ -101,14 +117,17 @@ export default function PaymentSuccess() {
                     <div className={styles.statusRow}>
                         <span className={styles.statusLabel}>Order status</span>
                         <span className={styles.statusValue}>
-                            {loading ? 'Loading…' : resolveOrderStatus(order)}
+                            {loading ? 'Loading…' : status}
                         </span>
                     </div>
                     {loading ? <p className={styles.loading}>Fetching latest status…</p> : null}
+                    {isPending && !loading ? (
+                        <p className={styles.loading}>Awaiting confirmation…</p>
+                    ) : null}
                     {error ? <p className={styles.error}>{error}</p> : null}
                 </div>
 
-                {items.length ? (
+                {isPaid && items.length ? (
                     <div className={styles.orderSummary}>
                         <h2>Order summary</h2>
                         <div className={styles.items}>
