@@ -155,21 +155,29 @@ export default function Cameras() {
             ? "reloading"
             : streamStatus === "playing"
                 ? "playing"
-                : streamStatus === "loading" || streamStatus === "idle"
-                    ? "loading"
-                    : hasStreamError
-                        ? "error"
-                        : "error";
+                : streamStatus === "recovering"
+                    ? "reloading"
+                    : streamStatus === "loading" || streamStatus === "idle"
+                        ? "loading"
+                        : hasStreamError
+                            ? "error"
+                            : "error";
     const statusLabel = !isAdmin
         ? "Admins only"
-        : isReloading || streamStatus === "loading" || streamStatus === "idle"
+        : isReloading ||
+              streamStatus === "loading" ||
+              streamStatus === "idle" ||
+              streamStatus === "recovering"
             ? "Connecting"
             : streamStatus === "playing"
                 ? "Live"
                 : "Offline";
     const statusTone = !isAdmin
         ? "offline"
-        : isReloading || streamStatus === "loading" || streamStatus === "idle"
+        : isReloading ||
+              streamStatus === "loading" ||
+              streamStatus === "idle" ||
+              streamStatus === "recovering"
             ? "reconnecting"
             : streamStatus === "playing"
                 ? "online"
