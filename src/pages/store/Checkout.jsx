@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getStripePromise } from '../../utils/stripe.js';
 import { fetchCustomerProfile } from '../../api/customer.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
@@ -14,6 +13,11 @@ const initialForm = {
     fullName: '',
     phone: '',
     notes: '',
+    addressLine1: '',
+    addressLine2: '',
+    postalCode: '',
+    city: '',
+    country: 'SE',
 };
 
 const normalizeProfile = (payload) => {
@@ -99,50 +103,30 @@ export default function Checkout() {
             return;
         }
         try {
-            const stripePromise = getStripePromise();
-
             notify('info', 'Starting secure checkout…');
-            setStatusMessage('Creating checkout session…');
-            const rawBase = import.meta?.env?.BASE_URL || '/';
-            const base = rawBase === './' || rawBase === '/./' ? '/' : rawBase;
-            const successUrl = new URL(`${base}checkout/success?session_id={CHECKOUT_SESSION_ID}`, window.location.origin).toString();
-            const cancelUrl = new URL(`${base}checkout/cancel`, window.location.origin).toString();
-            const items = (cart?.items ?? []).map((item) => ({
-                productId: item.productId ?? item.product?.id ?? item.id ?? null,
-                variantId: item.variantId ?? item.variant?.id ?? null,
-                quantity: item.quantity ?? item.qty ?? 1,
-            })).filter((item) => item.productId || item.variantId);
+            setStatusMessage('Creating your order…');
             const response = await createCheckoutSession({
-                items,
-                currency: `${currency}`.toLowerCase(),
-                successUrl,
-                cancelUrl,
                 email: orderEmail,
-                fullName: form.fullName,
-                phone: form.phone,
+                shippingAddress: {
+                    name: form.fullName,
+                    addressLine1: form.addressLine1,
+                    addressLine2: form.addressLine2,
+                    postalCode: form.postalCode,
+                    city: form.city,
+                    country: form.country || 'SE',
+                    phone: form.phone,
+                },
                 notes: form.notes,
             });
             setStatusMessage('Redirecting to Stripe Checkout…');
             notify('success', 'Checkout session created. Redirecting…');
 
-            if (response?.url || response?.redirectUrl) {
-                window.location.assign(response.url || response.redirectUrl);
+            if (response?.paymentUrl) {
+                window.location.assign(response.paymentUrl);
                 return;
             }
 
-            if (response?.sessionId) {
-                if (!stripePromise) {
-                    throw new Error('Stripe publishable key is missing. Please contact support.');
-                }
-                const stripe = await stripePromise;
-                const { error: stripeError } = await stripe.redirectToCheckout({ sessionId: response.sessionId });
-                if (stripeError) {
-                    throw new Error(stripeError.message || 'Stripe redirect failed.');
-                }
-                return;
-            }
-
-            throw new Error('Checkout session did not return a redirect URL or session ID.');
+            throw new Error('Checkout session did not return a payment URL.');
         } catch (err) {
             const message = err?.message || 'Checkout failed. Please try again.';
             setError(message);
@@ -217,6 +201,49 @@ export default function Checkout() {
                         <div className={styles.fieldGroup}>
                             <label htmlFor="phone">Phone</label>
                             <input id="phone" name="phone" type="tel" value={form.phone} onChange={handleChange} />
+                        </div>
+                        <div className={styles.fieldGroup}>
+                            <label htmlFor="addressLine1">Address line 1</label>
+                            <input
+                                id="addressLine1"
+                                name="addressLine1"
+                                type="text"
+                                required
+                                value={form.addressLine1}
+                                onChange={handleChange}
+                            />
+                        </div>
+                        <div className={styles.fieldGroup}>
+                            <label htmlFor="addressLine2">Address line 2 (optional)</label>
+                            <input
+                                id="addressLine2"
+                                name="addressLine2"
+                                type="text"
+                                value={form.addressLine2}
+                                onChange={handleChange}
+                            />
+                        </div>
+                        <div className={styles.fieldGroup}>
+                            <label htmlFor="postalCode">Postal code</label>
+                            <input
+                                id="postalCode"
+                                name="postalCode"
+                                type="text"
+                                required
+                                value={form.postalCode}
+                                onChange={handleChange}
+                            />
+                        </div>
+                        <div className={styles.fieldGroup}>
+                            <label htmlFor="city">City</label>
+                            <input
+                                id="city"
+                                name="city"
+                                type="text"
+                                required
+                                value={form.city}
+                                onChange={handleChange}
+                            />
                         </div>
                         <div className={styles.fieldGroup}>
                             <label htmlFor="notes">Notes</label>

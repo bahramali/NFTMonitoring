@@ -48,8 +48,8 @@ export async function fetchStoreCart(cartId, sessionId, { signal } = {}) {
     return parseApiResponse(res, 'Failed to fetch cart');
 }
 
-export async function addItemToCart(cartId, sessionId, variantId, quantity = 1, { signal } = {}) {
-    if (!variantId) throw new Error('Variant ID is required');
+export async function addItemToCart(cartId, sessionId, itemId, quantity = 1, { signal } = {}) {
+    if (!itemId) throw new Error('Item ID is required');
 
     const res = await fetch(`${STORE_BASE}/cart/${encodeURIComponent(cartId)}/items`, {
         method: 'POST',
@@ -57,7 +57,7 @@ export async function addItemToCart(cartId, sessionId, variantId, quantity = 1, 
             'Content-Type': 'application/json',
             ...buildCartHeaders(cartId, sessionId),
         },
-        body: JSON.stringify({ variantId, quantity }),
+        body: JSON.stringify({ itemId, quantity }),
         signal,
     });
 
@@ -92,17 +92,17 @@ export async function removeCartItem(cartId, sessionId, itemId, { signal } = {})
     return parseApiResponse(res, 'Failed to remove item from cart');
 }
 
-export async function checkoutCart(cartId, sessionId, payload = {}, { signal } = {}) {
+export async function checkoutCart(cartId, payload = {}, { signal } = {}) {
+    if (!cartId) throw new Error('Cart ID is required');
     const res = await fetch(`${STORE_BASE}/checkout`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            ...buildCartHeaders(cartId, sessionId),
+            ...buildCartHeaders(cartId),
         },
         body: JSON.stringify({
             ...payload,
             cartId,
-            sessionId,
         }),
         signal,
     });
@@ -110,22 +110,30 @@ export async function checkoutCart(cartId, sessionId, payload = {}, { signal } =
     return parseApiResponse(res, 'Checkout failed');
 }
 
-export async function createCheckoutSession(cartId, sessionId, payload = {}, { signal } = {}) {
-    const res = await fetch(`${API_BASE}/api/payments/checkout-session`, {
+export async function createCheckoutSession(cartId, payload = {}, { signal } = {}) {
+    if (!cartId) throw new Error('Cart ID is required');
+    const checkoutPayload = await checkoutCart(cartId, payload, { signal });
+    const orderId = checkoutPayload?.orderId ?? checkoutPayload?.order?.id ?? checkoutPayload?.id;
+    if (!orderId) {
+        throw new Error('Checkout did not return an order ID.');
+    }
+
+    const res = await fetch(`${API_BASE}/api/checkout/sessions`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            ...buildCartHeaders(cartId, sessionId),
         },
-        body: JSON.stringify({
-            ...payload,
-            cartId,
-            sessionId,
-        }),
+        body: JSON.stringify({ orderId }),
         signal,
     });
 
-    return parseApiResponse(res, 'Failed to start checkout');
+    const sessionPayload = await parseApiResponse(res, 'Failed to start checkout');
+    return {
+        orderId,
+        paymentUrl: sessionPayload?.paymentUrl ?? sessionPayload?.url ?? sessionPayload?.redirectUrl ?? null,
+        checkout: checkoutPayload,
+        session: sessionPayload,
+    };
 }
 
 export async function fetchOrderStatus(orderId, { signal } = {}) {

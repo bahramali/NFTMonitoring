@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { fetchCheckoutSession, fetchOrderBySession } from '../../api/payments.js';
+import React, { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { fetchOrderStatus } from '../../api/store.js';
 import { formatCurrency } from '../../utils/currency.js';
 import styles from './PaymentReturn.module.css';
@@ -33,48 +32,20 @@ const isPendingStatus = (status) => {
 };
 
 export default function PaymentSuccess() {
-    const [searchParams] = useSearchParams();
-    const sessionId = useMemo(
-        () => searchParams.get('session_id') || searchParams.get('sessionId'),
-        [searchParams],
-    );
-    const orderId = useMemo(() => searchParams.get('orderId'), [searchParams]);
+    const { orderId } = useParams();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [pollCount, setPollCount] = useState(0);
 
     useEffect(() => {
-        if (!orderId && !sessionId) return;
+        if (!orderId) return;
         let isMounted = true;
         const controller = new AbortController();
         setLoading(true);
         setError(null);
 
-        const loadOrder = async () => {
-            if (sessionId) {
-                try {
-                    const sessionPayload = await fetchCheckoutSession(sessionId, { signal: controller.signal });
-                    const sessionOrder = sessionPayload?.order ?? sessionPayload?.orderSummary ?? sessionPayload;
-                    if (sessionOrder && Object.keys(sessionOrder || {}).length) {
-                        return sessionOrder;
-                    }
-                } catch (sessionError) {
-                    if (sessionError?.status !== 404 && sessionError?.status !== 400) {
-                        throw sessionError;
-                    }
-                }
-
-                const orderBySession = await fetchOrderBySession(sessionId, { signal: controller.signal });
-                return orderBySession?.order ?? orderBySession;
-            }
-
-            if (orderId) {
-                return fetchOrderStatus(orderId, { signal: controller.signal });
-            }
-
-            return null;
-        };
+        const loadOrder = () => fetchOrderStatus(orderId, { signal: controller.signal });
 
         loadOrder()
             .then((payload) => {
@@ -95,16 +66,15 @@ export default function PaymentSuccess() {
             isMounted = false;
             controller.abort();
         };
-    }, [orderId, pollCount, sessionId]);
+    }, [orderId, pollCount]);
 
     useEffect(() => {
-        if (!sessionId) return;
         const status = resolveOrderStatus(order);
         if (!isPendingStatus(status)) return;
         if (pollCount >= 3) return;
         const timer = setTimeout(() => setPollCount((count) => count + 1), 5000);
         return () => clearTimeout(timer);
-    }, [order, pollCount, sessionId]);
+    }, [order, pollCount]);
 
     const items = resolveOrderItems(order);
     const totals = resolveTotals(order);
@@ -122,7 +92,7 @@ export default function PaymentSuccess() {
                 <div className={styles.statusCard}>
                     <div className={styles.statusRow}>
                         <span className={styles.statusLabel}>Checkout session</span>
-                        <span className={styles.statusValue}>{sessionId || 'Unavailable'}</span>
+                        <span className={styles.statusValue}>Handled by Stripe</span>
                     </div>
                     <div className={styles.statusRow}>
                         <span className={styles.statusLabel}>Order ID</span>

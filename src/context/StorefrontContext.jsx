@@ -192,9 +192,9 @@ export function StorefrontProvider({ children }) {
     }, [ensureCartSession]);
 
     const addToCart = useCallback(
-        async (variantId, quantity = 1, productId = null) => {
-            if (!variantId) return null;
-            setPendingProductId(productId || variantId);
+        async (itemId, quantity = 1, productId = null) => {
+            if (!itemId) return null;
+            setPendingProductId(productId || itemId);
             try {
                 const ensuredCart = await ensureCartSession({ allowCreate: true, silent: true });
                 const ensuredCartId = ensuredCart?.id || ensuredCart?.cartId;
@@ -204,8 +204,8 @@ export function StorefrontProvider({ children }) {
                     throw new Error('Unable to start a cart session. Please try again.');
                 }
 
-                const response = await addItemToCart(ensuredCartId, ensuredSessionId, variantId, quantity);
-                const updated = applyCartResponse(response, { variantId, quantity, intent: 'add' });
+                const response = await addItemToCart(ensuredCartId, ensuredSessionId, itemId, quantity);
+                const updated = applyCartResponse(response, { itemId, quantity, intent: 'add' });
                 setIsCartOpen(true);
                 return updated;
             } catch (error) {
@@ -262,10 +262,10 @@ export function StorefrontProvider({ children }) {
 
     const checkout = useCallback(
         async (payload) => {
-            if (!cartStateRef.current.cartId || !cartStateRef.current.sessionId) {
+            if (!cartStateRef.current.cartId) {
                 throw new Error('Cart session is not ready yet. Please try again.');
             }
-            const response = await checkoutCartApi(cartStateRef.current.cartId, cartStateRef.current.sessionId, payload);
+            const response = await checkoutCartApi(cartStateRef.current.cartId, payload);
             if (response?.cart || response?.cartId) {
                 applyCartResponse(response, { silent: true });
             }
@@ -276,12 +276,11 @@ export function StorefrontProvider({ children }) {
 
     const createCheckoutSession = useCallback(
         async (payload) => {
-            if (!cartStateRef.current.cartId || !cartStateRef.current.sessionId) {
+            if (!cartStateRef.current.cartId) {
                 throw new Error('Cart session is not ready yet. Please try again.');
             }
             const response = await createCheckoutSessionApi(
                 cartStateRef.current.cartId,
-                cartStateRef.current.sessionId,
                 payload,
             );
             if (response?.cart || response?.cartId) {

@@ -39,7 +39,6 @@ import Storefront from './pages/store/Storefront.jsx';
 import ProductDetail from './pages/store/ProductDetail.jsx';
 import CartPage from './pages/store/CartPage.jsx';
 import Checkout from './pages/store/Checkout.jsx';
-import OrderStatus from './pages/store/OrderStatus.jsx';
 import ProductAdmin from './pages/ProductAdmin.jsx';
 import CustomersList from './pages/store/CustomersList.jsx';
 import CustomerDetails from './pages/store/CustomerDetails.jsx';
@@ -107,10 +106,6 @@ function AppRoutes() {
                 <Route element={<PublicLayout />}>
                     <Route path="/" element={<Home />} />
                     <Route path="/timelapse" element={<TimelapsePage />} />
-                    <Route path="/checkout/success" element={<PaymentSuccess />} />
-                    <Route path="/checkout/cancel" element={<PaymentCancel />} />
-                    <Route path="/payment/success" element={<PaymentSuccess />} />
-                    <Route path="/payment/cancel" element={<PaymentCancel />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
                     <Route path="/not-authorized" element={<NotAuthorized />} />
@@ -130,8 +125,8 @@ function AppRoutes() {
                         <Route path="product/:productId" element={<ProductDetail />} />
                         <Route path="cart" element={<CartPage />} />
                         <Route path="checkout" element={<Checkout />} />
-                        <Route path="order/:orderId/success" element={<OrderStatus status="success" />} />
-                        <Route path="order/:orderId/cancel" element={<OrderStatus status="cancel" />} />
+                        <Route path="order/:orderId/success" element={<PaymentSuccess />} />
+                        <Route path="order/:orderId/cancel" element={<PaymentCancel />} />
                         <Route
                             path="admin/products"
                             element={(
