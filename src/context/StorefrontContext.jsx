@@ -259,6 +259,7 @@ export function StorefrontProvider({ children }) {
     const updateItemQuantity = useCallback(
         async (itemId, quantity) => {
             if (!itemId) return null;
+            if (cartRef.current?.status && cartRef.current.status !== 'OPEN') return null;
             setPendingItemId(itemId);
             try {
                 const response = await updateCartItem(cartStateRef.current.cartId, cartStateRef.current.sessionId, itemId, quantity);
@@ -280,6 +281,7 @@ export function StorefrontProvider({ children }) {
     const removeItem = useCallback(
         async (itemId) => {
             if (!itemId) return null;
+            if (cartRef.current?.status && cartRef.current.status !== 'OPEN') return null;
             setPendingItemId(itemId);
             try {
                 const response = await removeCartItem(cartStateRef.current.cartId, cartStateRef.current.sessionId, itemId);
