@@ -35,6 +35,38 @@ const normalizeProfile = (payload) => {
     };
 };
 
+const getCheckoutErrorMessage = (error) => {
+    const status = error?.status;
+
+    if (status === 401 || status === 403) {
+        return 'Please sign in again.';
+    }
+    if (status === 409) {
+        return 'Cart changed, refresh cart.';
+    }
+    if (status === 422) {
+        return error?.message || 'Invalid cart.';
+    }
+    if (status >= 500) {
+        return 'Checkout unavailable, try again later.';
+    }
+
+    return error?.message || 'Checkout failed. Please try again.';
+};
+
+const logCheckoutError = (error) => {
+    const payloadMessage =
+        typeof error?.payload === 'string'
+            ? error.payload
+            : error?.payload?.message;
+
+    console.error('Checkout session creation failed.', {
+        status: error?.status,
+        message: error?.message,
+        payloadMessage,
+    });
+};
+
 export default function Checkout() {
     const { cart, cartId, sessionId, notify } = useStorefront();
     const { isAuthenticated, token, logout } = useAuth();
@@ -135,7 +167,8 @@ export default function Checkout() {
 
             throw new Error('Checkout session did not return a Stripe URL.');
         } catch (err) {
-            const message = err?.message || 'Checkout failed. Please try again.';
+            logCheckoutError(err);
+            const message = getCheckoutErrorMessage(err);
             setError(message);
             notify('error', message);
         } finally {
