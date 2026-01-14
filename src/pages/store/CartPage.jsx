@@ -27,7 +27,12 @@ export default function CartPage() {
             {!hasItems ? (
                 <div className={styles.empty}>
                     {isCartClosed && (
-                        <p className={styles.closedNotice}>This cart is closed. Start a new cart to continue.</p>
+                        <div className={styles.closedNotice} role="status">
+                            <span>Cart expired.</span>
+                            <button type="button" className={styles.closedAction} onClick={startNewCart}>
+                                Start new cart
+                            </button>
+                        </div>
                     )}
                     <p>Cart is empty.</p>
                     <Link to="/store" className={styles.primary}>Browse products</Link>
@@ -37,7 +42,10 @@ export default function CartPage() {
                     <div className={styles.list}> 
                         {isCartClosed && (
                             <div className={styles.closedNotice} role="status">
-                                This cart is closed. Start a new cart to continue.
+                                <span>Cart expired.</span>
+                                <button type="button" className={styles.closedAction} onClick={startNewCart}>
+                                    Start new cart
+                                </button>
                             </div>
                         )}
                         {cart.items.map((item) => (
@@ -72,15 +80,11 @@ export default function CartPage() {
                             type="button"
                             className={styles.cta}
                             onClick={() => {
-                                if (isCartClosed) {
-                                    startNewCart();
-                                    return;
-                                }
                                 navigate('/store/checkout');
                             }}
-                            disabled={!hasItems && !isCartClosed}
+                            disabled={!hasItems || isCartClosed}
                         >
-                            {isCartClosed ? 'Start new cart' : 'Proceed to checkout'}
+                            Proceed to checkout
                         </button>
                     </aside>
                 </div>
