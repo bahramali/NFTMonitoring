@@ -1,3 +1,27 @@
+const CORRELATION_HEADERS = [
+    'x-correlation-id',
+    'x-request-id',
+    'x-amzn-trace-id',
+    'x-trace-id',
+    'traceparent',
+];
+
+const resolveCorrelationId = (response) => {
+    const headers = response?.headers;
+    if (!headers || typeof headers.get !== 'function') {
+        return null;
+    }
+
+    for (const header of CORRELATION_HEADERS) {
+        const value = headers.get(header);
+        if (value) {
+            return value;
+        }
+    }
+
+    return null;
+};
+
 const parseBody = async (response) => {
     // Avoid throwing when the response body was already consumed by another handler.
     if (response.bodyUsed) {
@@ -48,10 +72,25 @@ export async function parseApiResponse(response, defaultError = 'Request failed'
         const error = new Error(message || `${defaultError} (${response.status})`);
         error.status = response.status;
         error.payload = data;
+        error.correlationId = resolveCorrelationId(response);
         throw error;
     }
 
     return data;
+}
+
+export async function parseApiResponseWithMeta(response, defaultError = 'Request failed') {
+    const correlationId = resolveCorrelationId(response);
+    const { data, message } = await parseBody(response);
+    if (!response.ok) {
+        const error = new Error(message || `${defaultError} (${response.status})`);
+        error.status = response.status;
+        error.payload = data;
+        error.correlationId = correlationId;
+        throw error;
+    }
+
+    return { data, correlationId };
 }
 
 let authConfig = {

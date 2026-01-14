@@ -1,4 +1,4 @@
-import { parseApiResponse } from './http.js';
+import { parseApiResponse, parseApiResponseWithMeta } from './http.js';
 
 import { getApiBaseUrl } from '../config/apiBase.js';
 
@@ -154,13 +154,13 @@ export async function createStripeCheckoutSession(cartId, sessionId, payload = {
 export async function fetchOrderStatus(orderId, { signal } = {}) {
     if (!orderId) throw new Error('Order ID is required');
     const res = await fetch(`${API_BASE}/api/orders/${encodeURIComponent(orderId)}`, { signal });
-    return parseApiResponse(res, 'Failed to load order status');
+    return parseApiResponseWithMeta(res, 'Failed to load order status');
 }
 
 export async function fetchStoreOrderBySession(sessionId, { signal } = {}) {
     if (!sessionId) throw new Error('Session ID is required');
     const res = await fetch(`${STORE_BASE}/orders/by-session/${encodeURIComponent(sessionId)}`, { signal });
-    return parseApiResponse(res, 'Failed to load order by session');
+    return parseApiResponseWithMeta(res, 'Failed to load order by session');
 }
 
 export function normalizeCartResponse(payload, fallback = {}) {
