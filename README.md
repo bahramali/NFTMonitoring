@@ -25,7 +25,6 @@ VITE_MQTT_PASSWORD=
 VITE_API_BASE_URL=
 VITE_BASE_PATH=
 VITE_TURNSTILE_SITE_KEY=
-VITE_STRIPE_PUBLISHABLE_KEY=
 ```
 
 
@@ -44,22 +43,9 @@ The contact form uses Cloudflare Turnstile. Set `VITE_TURNSTILE_SITE_KEY` at bui
 time (Vite injects environment variables during the build step, not at runtime).
 In CI/CD you should pass this value as a build environment variable or secret.
 
-### Stripe Checkout (storefront)
-
-Frontend Stripe Checkout uses the publishable key only. Configure the environment variable below (never use the Stripe secret key in the frontend):
-
-```
-VITE_STRIPE_PUBLISHABLE_KEY=pk_live_...
-```
-
-To test locally, set `VITE_STRIPE_PUBLISHABLE_KEY` to a Stripe test publishable key (e.g. `pk_test_...`) and point `VITE_API_BASE_URL` to a backend running in test mode with Stripe Checkout enabled. Then start the app with:
-
-```
-npm run dev
-```
-
 These variables are used to establish the MQTT connection.
 Make sure the file is named `.env` and each variable starts with the `VITE_` prefix so that Vite exposes them to the frontend.
+Do not commit `.env` files; inject environment values at build/deploy time instead.
 
 The header at the top of the dashboard displays the current time, the MQTT topic,
 the latest temperature, humidity and light intensity readings, and status
