@@ -133,6 +133,24 @@ export async function createCheckoutSession(cartId, payload = {}, { signal } = {
     };
 }
 
+export async function createStripeCheckoutSession(cartId, sessionId, payload = {}, { signal } = {}) {
+    if (!cartId) throw new Error('Cart ID is required');
+    const res = await fetch(`${STORE_BASE}/checkout/stripe/session`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...buildCartHeaders(cartId, sessionId),
+        },
+        body: JSON.stringify({
+            cartId,
+            ...payload,
+        }),
+        signal,
+    });
+
+    return parseApiResponse(res, 'Failed to start Stripe Checkout');
+}
+
 export async function fetchOrderStatus(orderId, { signal } = {}) {
     if (!orderId) throw new Error('Order ID is required');
     const res = await fetch(`${API_BASE}/api/orders/${encodeURIComponent(orderId)}`, { signal });
