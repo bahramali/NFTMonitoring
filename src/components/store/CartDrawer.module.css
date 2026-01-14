@@ -98,6 +98,16 @@
     cursor: pointer;
 }
 
+.closedNotice {
+    margin: 20px 0 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #fff4e5;
+    border: 1px solid #f4c58d;
+    color: #7a4b17;
+    font-size: 14px;
+}
+
 .footer {
     padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--border, #e6e6e6);

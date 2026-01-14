@@ -7,11 +7,12 @@ import styles from './CartDrawer.module.css';
 
 export default function CartDrawer({ open, onClose }) {
     const navigate = useNavigate();
-    const { cart, pendingItemId, updateItemQuantity, removeItem } = useStorefront();
+    const { cart, pendingItemId, updateItemQuantity, removeItem, startNewCart } = useStorefront();
 
     const totals = cart?.totals || {};
     const currency = totals.currency || cart?.currency || 'SEK';
     const hasItems = (cart?.items?.length ?? 0) > 0;
+    const isCartClosed = Boolean(cart?.status && cart.status !== 'OPEN');
 
     return (
         <div className={`${styles.backdrop} ${open ? styles.open : ''}`}>
@@ -28,6 +29,11 @@ export default function CartDrawer({ open, onClose }) {
 
                 <div className={styles.content}>
                     <div className={styles.body}>
+                        {isCartClosed && (
+                            <div className={styles.closedNotice} role="status">
+                                This cart is closed. Start a new cart to continue.
+                            </div>
+                        )}
                         {!hasItems ? (
                             <div className={styles.empty}>
                                 <p>Cart is empty.</p>
@@ -42,6 +48,7 @@ export default function CartDrawer({ open, onClose }) {
                                     item={item}
                                     currency={currency}
                                     pending={pendingItemId === item.id}
+                                    disabled={isCartClosed}
                                     onChangeQuantity={(qty) => updateItemQuantity(item.id, qty)}
                                     onRemove={() => removeItem(item.id)}
                                 />
@@ -69,12 +76,16 @@ export default function CartDrawer({ open, onClose }) {
                             type="button"
                             className={styles.checkout}
                             onClick={() => {
+                                if (isCartClosed) {
+                                    startNewCart();
+                                    return;
+                                }
                                 onClose?.();
                                 navigate('/store/checkout');
                             }}
-                            disabled={!hasItems}
+                            disabled={!hasItems && !isCartClosed}
                         >
-                            Go to checkout
+                            {isCartClosed ? 'Start new cart' : 'Go to checkout'}
                         </button>
                         <p className={styles.meta}>Secure checkout · Prices in SEK</p>
                     </div>

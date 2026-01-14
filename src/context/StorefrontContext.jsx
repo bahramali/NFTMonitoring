@@ -30,6 +30,7 @@ const StorefrontContext = createContext({
     addToCart: async () => {},
     updateItemQuantity: async () => {},
     removeItem: async () => {},
+    startNewCart: async () => {},
     clearCart: () => {},
     notify: () => {},
     clearToast: () => {},
@@ -297,6 +298,22 @@ export function StorefrontProvider({ children }) {
         [applyCartResponse, isCartClosedError, recoverClosedCart, showToast],
     );
 
+    const startNewCart = useCallback(
+        async () => {
+            clearCartSession();
+            cartStateRef.current = defaultState;
+            cartRef.current = null;
+            setCartState(defaultState);
+            setCart(null);
+            setIsCartOpen(false);
+
+            const created = await ensureCartSession({ allowCreate: true, silent: true });
+            showToast('info', 'Started a new cart.');
+            return created;
+        },
+        [ensureCartSession, showToast],
+    );
+
     const closeCart = useCallback(() => setIsCartOpen(false), []);
     const openCart = useCallback(() => setIsCartOpen(true), []);
     const clearCart = useCallback(() => {
@@ -324,6 +341,7 @@ export function StorefrontProvider({ children }) {
             addToCart,
             updateItemQuantity,
             removeItem,
+            startNewCart,
             clearCart,
             notify,
             clearToast,
@@ -343,6 +361,7 @@ export function StorefrontProvider({ children }) {
             pendingProductId,
             refreshCart,
             removeItem,
+            startNewCart,
             toast,
             updateItemQuantity,
             notify,

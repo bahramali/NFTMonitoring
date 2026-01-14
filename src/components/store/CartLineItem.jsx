@@ -4,7 +4,7 @@ import { currencyLabel, formatCurrency } from '../../utils/currency.js';
 import { getCartItemDisplayName } from '../../utils/storeVariants.js';
 import styles from './CartLineItem.module.css';
 
-export default function CartLineItem({ item, currency = 'SEK', onChangeQuantity, onRemove, pending }) {
+export default function CartLineItem({ item, currency = 'SEK', onChangeQuantity, onRemove, pending, disabled = false }) {
     const quantity = item?.quantity ?? item?.qty ?? 1;
     const unitPrice = item?.price ?? item?.unitPrice ?? 0;
     const lineTotal = item?.total ?? item?.lineTotal ?? null;
@@ -12,6 +12,7 @@ export default function CartLineItem({ item, currency = 'SEK', onChangeQuantity,
     const totalLabel = lineTotal !== null ? formatCurrency(lineTotal, currency) : formatCurrency(unitPrice * quantity, currency);
     const maxQuantity = item?.stock ?? item?.availableStock ?? item?.product?.stock;
     const displayName = getCartItemDisplayName(item);
+    const isDisabled = pending || disabled;
     const handleQuantityChange = (nextQuantity) => {
         if (nextQuantity <= 0) {
             onRemove?.();
@@ -40,14 +41,14 @@ export default function CartLineItem({ item, currency = 'SEK', onChangeQuantity,
                     max={maxQuantity ?? undefined}
                     onChange={handleQuantityChange}
                     compact
-                    disabled={pending}
+                    disabled={isDisabled}
                 />
                 <span className={styles.total}>{totalLabel}</span>
                 <button
                     type="button"
                     className={styles.remove}
                     onClick={onRemove}
-                    disabled={pending}
+                    disabled={isDisabled}
                 >
                     Remove
                 </button>
