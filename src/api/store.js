@@ -77,7 +77,7 @@ export async function addItemToCart(cartId, sessionId, itemId, quantity = 1, { s
             'Content-Type': 'application/json',
             ...buildCartHeaders(cartId, sessionId),
         },
-        body: JSON.stringify({ itemId, quantity }),
+        body: JSON.stringify({ variantId: itemId, quantity }),
         signal,
     });
 
