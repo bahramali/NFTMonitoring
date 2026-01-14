@@ -12,7 +12,7 @@ export default function PaymentCancel() {
         if (!orderId) return;
         const controller = new AbortController();
         fetchOrderStatus(orderId, { signal: controller.signal })
-            .then((payload) => setOrder(payload))
+            .then(({ data }) => setOrder(data))
             .catch((err) => {
                 if (err?.name === 'AbortError') return;
                 setError(err?.message || 'Unable to load order status.');

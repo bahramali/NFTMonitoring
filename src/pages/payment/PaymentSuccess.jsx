@@ -48,6 +48,12 @@ export default function PaymentSuccess() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [pollCount, setPollCount] = useState(0);
+    const [referenceId, setReferenceId] = useState(null);
+
+    useEffect(() => {
+        if (!referenceId) return;
+        console.info('Order status request correlation id received.', { correlationId: referenceId });
+    }, [referenceId]);
 
     useEffect(() => {
         if (!orderId) return;
@@ -59,14 +65,20 @@ export default function PaymentSuccess() {
         const loadOrder = () => fetchOrderStatus(orderId, { signal: controller.signal });
 
         loadOrder()
-            .then((payload) => {
+            .then(({ data, correlationId }) => {
                 if (!isMounted) return;
-                setOrder(payload);
+                setOrder(data);
+                if (correlationId) {
+                    setReferenceId((prev) => (prev === correlationId ? prev : correlationId));
+                }
             })
             .catch((err) => {
                 if (!isMounted) return;
                 if (err?.name === 'AbortError') return;
                 setError(err?.message || 'Unable to load order status.');
+                if (err?.correlationId) {
+                    setReferenceId((prev) => (prev === err.correlationId ? prev : err.correlationId));
+                }
             })
             .finally(() => {
                 if (!isMounted) return;
@@ -121,6 +133,12 @@ export default function PaymentSuccess() {
                         <span className={styles.statusLabel}>Order ID</span>
                         <span className={styles.statusValue}>{order?.id || orderId || 'Pending'}</span>
                     </div>
+                    {referenceId ? (
+                        <div className={styles.statusRow}>
+                            <span className={styles.statusLabel}>Reference ID</span>
+                            <span className={styles.statusValue}>{referenceId}</span>
+                        </div>
+                    ) : null}
                     <div className={styles.statusRow}>
                         <span className={styles.statusLabel}>Order status</span>
                         <span className={styles.statusValue}>

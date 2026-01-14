@@ -42,8 +42,19 @@ export default function CheckoutSuccess() {
     const [error, setError] = useState(null);
     const [notFound, setNotFound] = useState(false);
     const [timedOut, setTimedOut] = useState(false);
+    const [referenceId, setReferenceId] = useState(null);
     const startTimeRef = useRef(null);
     const timeoutRef = useRef(null);
+
+    useEffect(() => {
+        if (!sessionId) return;
+        console.info('Checkout success session observed.', { sessionId });
+    }, [sessionId]);
+
+    useEffect(() => {
+        if (!referenceId) return;
+        console.info('Checkout status request correlation id received.', { correlationId: referenceId });
+    }, [referenceId]);
 
     useEffect(() => {
         if (!sessionId) return;
@@ -61,18 +72,24 @@ export default function CheckoutSuccess() {
             setLoading(true);
             let latestOrder = null;
             try {
-                const payload = await fetchStoreOrderBySession(sessionId, { signal: controller.signal });
+                const { data, correlationId } = await fetchStoreOrderBySession(sessionId, { signal: controller.signal });
                 if (!isMounted) return;
-                latestOrder = payload;
-                setOrder(payload);
+                latestOrder = data;
+                setOrder(data);
                 setError(null);
                 setNotFound(false);
+                if (correlationId) {
+                    setReferenceId((prev) => (prev === correlationId ? prev : correlationId));
+                }
             } catch (err) {
                 if (!isMounted || err?.name === 'AbortError') return;
                 if (err?.status === 404) {
                     setNotFound(true);
                 } else {
                     setError(err?.message || 'Unable to load order status.');
+                }
+                if (err?.correlationId) {
+                    setReferenceId((prev) => (prev === err.correlationId ? prev : err.correlationId));
                 }
             } finally {
                 if (!isMounted) return;
@@ -137,6 +154,12 @@ export default function CheckoutSuccess() {
                         <span className={styles.statusLabel}>Checkout session</span>
                         <span className={styles.statusValue}>{sessionId || 'Pending'}</span>
                     </div>
+                    {referenceId ? (
+                        <div className={styles.statusRow}>
+                            <span className={styles.statusLabel}>Reference ID</span>
+                            <span className={styles.statusValue}>{referenceId}</span>
+                        </div>
+                    ) : null}
                     <div className={styles.statusRow}>
                         <span className={styles.statusLabel}>Status</span>
                         <span className={styles.statusValue}>
