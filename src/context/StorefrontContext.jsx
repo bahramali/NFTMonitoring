@@ -93,7 +93,8 @@ export function StorefrontProvider({ children }) {
     const isCartClosedError = useCallback((error) => {
         if (error?.status !== 409) return false;
         const message = `${error?.message || ''}`.toLowerCase();
-        return error?.code === 'CART_CLOSED' || message.includes('no longer open');
+        const code = error?.code || error?.payload?.code || error?.payload?.error?.code;
+        return code === 'CART_CLOSED' || message.includes('no longer open');
     }, []);
 
     const applyCartResponse = useCallback(
