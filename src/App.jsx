@@ -39,6 +39,8 @@ import Storefront from './pages/store/Storefront.jsx';
 import ProductDetail from './pages/store/ProductDetail.jsx';
 import CartPage from './pages/store/CartPage.jsx';
 import Checkout from './pages/store/Checkout.jsx';
+import CheckoutCancel from './pages/store/CheckoutCancel.jsx';
+import CheckoutSuccess from './pages/store/CheckoutSuccess.jsx';
 import ProductAdmin from './pages/ProductAdmin.jsx';
 import CustomersList from './pages/store/CustomersList.jsx';
 import CustomerDetails from './pages/store/CustomerDetails.jsx';
@@ -125,6 +127,8 @@ function AppRoutes() {
                         <Route path="product/:productId" element={<ProductDetail />} />
                         <Route path="cart" element={<CartPage />} />
                         <Route path="checkout" element={<Checkout />} />
+                        <Route path="checkout/success" element={<CheckoutSuccess />} />
+                        <Route path="checkout/cancel" element={<CheckoutCancel />} />
                         <Route path="order/:orderId/success" element={<PaymentSuccess />} />
                         <Route path="order/:orderId/cancel" element={<PaymentCancel />} />
                         <Route
