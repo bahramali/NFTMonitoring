@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchOrderStatus } from '../../api/store.js';
+import { useStorefront } from '../../context/StorefrontContext.jsx';
 import { formatCurrency } from '../../utils/currency.js';
 import styles from './PaymentReturn.module.css';
 
@@ -42,6 +43,7 @@ const MAX_POLL_COUNT = 5;
 
 export default function PaymentSuccess() {
     const { orderId } = useParams();
+    const { clearCart } = useStorefront();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -97,6 +99,11 @@ export default function PaymentSuccess() {
         : isPending
             ? 'در حال تایید پرداخت. We are confirming your payment with our provider.'
             : 'Your payment status was updated. Please contact support if you need help.';
+
+    useEffect(() => {
+        if (!isPaid) return;
+        clearCart();
+    }, [clearCart, isPaid]);
 
     return (
         <div className={styles.page}>

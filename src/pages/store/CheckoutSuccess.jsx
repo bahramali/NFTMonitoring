@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { fetchStoreOrderBySession } from '../../api/store.js';
+import { useStorefront } from '../../context/StorefrontContext.jsx';
 import styles from './CheckoutReturn.module.css';
 
 const resolveOrderStatus = (order) => (
@@ -35,6 +36,7 @@ const MAX_POLL_DURATION_MS = 60000;
 export default function CheckoutSuccess() {
     const [searchParams] = useSearchParams();
     const sessionId = searchParams.get('session_id');
+    const { clearCart } = useStorefront();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -117,6 +119,11 @@ export default function CheckoutSuccess() {
         : isFailed
             ? 'Your payment did not complete. Please return to your cart to try again.'
             : 'Thanks for your order! We are confirming your payment with Stripe and will update your order shortly.';
+
+    useEffect(() => {
+        if (!isPaid) return;
+        clearCart();
+    }, [clearCart, isPaid]);
 
     return (
         <div className={styles.page}>
