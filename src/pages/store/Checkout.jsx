@@ -17,6 +17,7 @@ const initialForm = {
     addressLine2: '',
     postalCode: '',
     city: '',
+    state: '',
     country: 'SE',
 };
 
@@ -105,17 +106,19 @@ export default function Checkout() {
         try {
             notify('info', 'Starting secure checkout…');
             setStatusMessage('Creating your order…');
+            const shippingAddress = {
+                name: form.fullName,
+                line1: form.addressLine1,
+                line2: form.addressLine2,
+                postalCode: form.postalCode,
+                city: form.city,
+                country: form.country || 'SE',
+                phone: form.phone,
+                ...(form.state?.trim() ? { state: form.state.trim() } : {}),
+            };
             const response = await createCheckoutSession({
                 email: orderEmail,
-                shippingAddress: {
-                    name: form.fullName,
-                    line1: form.addressLine1,
-                    line2: form.addressLine2,
-                    postalCode: form.postalCode,
-                    city: form.city,
-                    country: form.country || 'SE',
-                    phone: form.phone,
-                },
+                shippingAddress,
             });
             setStatusMessage('Redirecting to Stripe Checkout…');
             notify('success', 'Checkout session created. Redirecting…');
@@ -241,6 +244,16 @@ export default function Checkout() {
                                 type="text"
                                 required
                                 value={form.city}
+                                onChange={handleChange}
+                            />
+                        </div>
+                        <div className={styles.fieldGroup}>
+                            <label htmlFor="state">State/Region (optional)</label>
+                            <input
+                                id="state"
+                                name="state"
+                                type="text"
+                                value={form.state}
                                 onChange={handleChange}
                             />
                         </div>

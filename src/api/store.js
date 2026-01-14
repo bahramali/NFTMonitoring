@@ -4,27 +4,6 @@ import { getApiBaseUrl } from '../config/apiBase.js';
 
 const API_BASE = getApiBaseUrl();
 const STORE_BASE = `${API_BASE}/api/store`;
-const RETURN_URL_BASE = import.meta.env?.VITE_STRIPE_RETURN_URL_BASE ?? '';
-const TRAILING_SLASH_REGEX = /\/+$/;
-
-const resolveReturnUrlBase = () => {
-    if (RETURN_URL_BASE) {
-        return RETURN_URL_BASE.replace(TRAILING_SLASH_REGEX, '');
-    }
-    if (typeof window !== 'undefined' && window.location?.origin) {
-        return window.location.origin;
-    }
-    return '';
-};
-
-const buildReturnUrl = (orderId, pathSuffix) => {
-    if (!orderId) return null;
-    const base = resolveReturnUrlBase();
-    if (!base) return null;
-    const encodedOrderId = encodeURIComponent(orderId);
-    return `${base}/store/order/${encodedOrderId}/${pathSuffix}`;
-};
-
 const buildCartHeaders = (cartId, sessionId) => {
     const headers = {};
     if (cartId) headers['X-Cart-Id'] = cartId;
@@ -140,33 +119,17 @@ export async function createCheckoutSession(cartId, payload = {}, { signal } = {
     if (!orderId) {
         throw new Error('Checkout did not return an order ID.');
     }
-
-    const currency = (payload?.currency ?? checkoutPayload?.totals?.currency ?? checkoutPayload?.currency ?? 'sek').toLowerCase();
-    const customerEmail = payload?.customerEmail ?? payload?.email ?? null;
-    const successUrl = buildReturnUrl(orderId, 'success');
-    const cancelUrl = buildReturnUrl(orderId, 'cancel');
-
-    const res = await fetch(`${API_BASE}/api/payments/stripe/checkout-session`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            cartId,
-            currency,
-            customerEmail,
-            successUrl,
-            cancelUrl,
-        }),
-        signal,
-    });
-
-    const sessionPayload = await parseApiResponse(res, 'Failed to start checkout');
+    const paymentUrl =
+        checkoutPayload?.paymentUrl
+        ?? checkoutPayload?.payment_url
+        ?? checkoutPayload?.redirectUrl
+        ?? checkoutPayload?.url
+        ?? checkoutPayload?.checkout?.paymentUrl
+        ?? null;
     return {
         orderId,
-        paymentUrl: sessionPayload?.paymentUrl ?? sessionPayload?.url ?? sessionPayload?.redirectUrl ?? null,
+        paymentUrl,
         checkout: checkoutPayload,
-        session: sessionPayload,
     };
 }
 
