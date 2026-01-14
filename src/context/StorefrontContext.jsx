@@ -89,6 +89,12 @@ export function StorefrontProvider({ children }) {
         setToast({ type, message, id: Date.now() });
     }, []);
 
+    const isCartClosedError = useCallback((error) => {
+        if (error?.status !== 409) return false;
+        const message = `${error?.message || ''}`.toLowerCase();
+        return error?.code === 'CART_CLOSED' || message.includes('no longer open');
+    }, []);
+
     const applyCartResponse = useCallback(
         (payload, expectation = {}) => {
             const normalized = normalizeCartResponse(payload, cartStateRef.current);
@@ -189,6 +195,17 @@ export function StorefrontProvider({ children }) {
         [applyCartResponse, showToast],
     );
 
+    const recoverClosedCart = useCallback(async () => {
+        clearCartSession();
+        cartStateRef.current = defaultState;
+        cartRef.current = null;
+        setCartState(defaultState);
+        setCart(null);
+        setIsCartOpen(false);
+        await ensureCartSession({ allowCreate: true, silent: true });
+        showToast('info', 'Cart expired. Please retry.');
+    }, [ensureCartSession, showToast]);
+
     useEffect(() => {
         if (didInitRef.current) return;
         didInitRef.current = true;
@@ -219,7 +236,9 @@ export function StorefrontProvider({ children }) {
                 setIsCartOpen(true);
                 return updated;
             } catch (error) {
-                if (error?.status === 409) {
+                if (isCartClosedError(error)) {
+                    await recoverClosedCart();
+                } else if (error?.status === 409) {
                     const message = error?.message || '';
                     const fallback = message.toLowerCase().includes('not enough')
                         ? 'Not enough stock'
@@ -233,7 +252,7 @@ export function StorefrontProvider({ children }) {
                 setPendingProductId(null);
             }
         },
-        [applyCartResponse, ensureCartSession, showToast],
+        [applyCartResponse, ensureCartSession, isCartClosedError, recoverClosedCart, showToast],
     );
 
     const updateItemQuantity = useCallback(
@@ -244,13 +263,17 @@ export function StorefrontProvider({ children }) {
                 const response = await updateCartItem(cartStateRef.current.cartId, cartStateRef.current.sessionId, itemId, quantity);
                 return applyCartResponse(response, { itemId, quantity });
             } catch (error) {
-                showToast('error', error?.message || 'Unable to update quantity.');
+                if (isCartClosedError(error)) {
+                    await recoverClosedCart();
+                } else {
+                    showToast('error', error?.message || 'Unable to update quantity.');
+                }
                 return null;
             } finally {
                 setPendingItemId(null);
             }
         },
-        [applyCartResponse, showToast],
+        [applyCartResponse, isCartClosedError, recoverClosedCart, showToast],
     );
 
     const removeItem = useCallback(
@@ -261,13 +284,17 @@ export function StorefrontProvider({ children }) {
                 const response = await removeCartItem(cartStateRef.current.cartId, cartStateRef.current.sessionId, itemId);
                 return applyCartResponse(response, { itemId, silent: true });
             } catch (error) {
-                showToast('error', error?.message || 'Unable to remove item.');
+                if (isCartClosedError(error)) {
+                    await recoverClosedCart();
+                } else {
+                    showToast('error', error?.message || 'Unable to remove item.');
+                }
                 return null;
             } finally {
                 setPendingItemId(null);
             }
         },
-        [applyCartResponse, showToast],
+        [applyCartResponse, isCartClosedError, recoverClosedCart, showToast],
     );
 
     const closeCart = useCallback(() => setIsCartOpen(false), []);
