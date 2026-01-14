@@ -13,6 +13,17 @@ export default function CartDrawer({ open, onClose }) {
     const currency = totals.currency || cart?.currency || 'SEK';
     const hasItems = (cart?.items?.length ?? 0) > 0;
     const isCartClosed = Boolean(cart?.status && cart.status !== 'OPEN');
+    const canMutateCart = open && cart?.status === 'OPEN';
+
+    const handleQuantityChange = (itemId, qty) => {
+        if (!canMutateCart) return;
+        updateItemQuantity(itemId, qty);
+    };
+
+    const handleRemoveItem = (itemId) => {
+        if (!canMutateCart) return;
+        removeItem(itemId);
+    };
 
     return (
         <div className={`${styles.backdrop} ${open ? styles.open : ''}`}>
@@ -52,8 +63,8 @@ export default function CartDrawer({ open, onClose }) {
                                     currency={currency}
                                     pending={pendingItemId === item.id}
                                     disabled={isCartClosed}
-                                    onChangeQuantity={(qty) => updateItemQuantity(item.id, qty)}
-                                    onRemove={() => removeItem(item.id)}
+                                    onChangeQuantity={(qty) => handleQuantityChange(item.id, qty)}
+                                    onRemove={() => handleRemoveItem(item.id)}
                                 />
                             ))
                         )}
