@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchCustomerProfile } from '../../api/customer.js';
 import { createStripeCheckoutSession } from '../../api/store.js';
@@ -77,6 +77,7 @@ export default function Checkout() {
     const [statusMessage, setStatusMessage] = useState('');
     const [profile, setProfile] = useState(null);
     const [loadingProfile, setLoadingProfile] = useState(false);
+    const checkoutInFlight = useRef(false);
 
     const totals = cart?.totals || {};
     const currency = totals.currency || cart?.currency || 'SEK';
@@ -123,17 +124,23 @@ export default function Checkout() {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
+        if (checkoutInFlight.current) {
+            return;
+        }
+        checkoutInFlight.current = true;
         setSubmitting(true);
         setError(null);
         setStatusMessage('');
         if (!orderEmail) {
             setError('Please provide an email address to continue.');
             setSubmitting(false);
+            checkoutInFlight.current = false;
             return;
         }
         if (!hasItems) {
             setError('Your cart is empty.');
             setSubmitting(false);
+            checkoutInFlight.current = false;
             return;
         }
         try {
@@ -174,6 +181,7 @@ export default function Checkout() {
         } finally {
             setSubmitting(false);
             setStatusMessage('');
+            checkoutInFlight.current = false;
         }
     };
 
@@ -302,7 +310,14 @@ export default function Checkout() {
                         {error ? <p className={styles.error}>{error}</p> : null}
                         {statusMessage ? <p className={styles.status}>{statusMessage}</p> : null}
                         <button type="submit" className={styles.submit} disabled={!canSubmit || loadingProfile}>
-                            {submitting ? 'Starting checkout…' : `Pay ${formatCurrency(totals.total ?? totals.subtotal ?? 0, currency)}`}
+                            {submitting ? (
+                                <span className={styles.submitContent}>
+                                    <span className={styles.spinner} aria-hidden="true" />
+                                    <span>Starting checkout…</span>
+                                </span>
+                            ) : (
+                                `Pay ${formatCurrency(totals.total ?? totals.subtotal ?? 0, currency)}`
+                            )}
                         </button>
                     </form>
 
