@@ -31,7 +31,10 @@ export default function CartDrawer({ open, onClose }) {
                     <div className={styles.body}>
                         {isCartClosed && (
                             <div className={styles.closedNotice} role="status">
-                                This cart is closed. Start a new cart to continue.
+                                <span>Cart expired.</span>
+                                <button type="button" className={styles.closedAction} onClick={startNewCart}>
+                                    Start new cart
+                                </button>
                             </div>
                         )}
                         {!hasItems ? (
@@ -76,16 +79,12 @@ export default function CartDrawer({ open, onClose }) {
                             type="button"
                             className={styles.checkout}
                             onClick={() => {
-                                if (isCartClosed) {
-                                    startNewCart();
-                                    return;
-                                }
                                 onClose?.();
                                 navigate('/store/checkout');
                             }}
-                            disabled={!hasItems && !isCartClosed}
+                            disabled={!hasItems || isCartClosed}
                         >
-                            {isCartClosed ? 'Start new cart' : 'Go to checkout'}
+                            Go to checkout
                         </button>
                         <p className={styles.meta}>Secure checkout · Prices in SEK</p>
                     </div>

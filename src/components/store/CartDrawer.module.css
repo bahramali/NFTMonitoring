@@ -106,6 +106,20 @@
     border: 1px solid #f4c58d;
     color: #7a4b17;
     font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.closedAction {
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
 }
 
 .footer {
