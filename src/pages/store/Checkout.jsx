@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchCustomerProfile } from '../../api/customer.js';
+import { createStripeCheckoutSession } from '../../api/store.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
@@ -35,7 +36,7 @@ const normalizeProfile = (payload) => {
 };
 
 export default function Checkout() {
-    const { cart, createCheckoutSession, notify } = useStorefront();
+    const { cart, cartId, sessionId, notify } = useStorefront();
     const { isAuthenticated, token, logout } = useAuth();
     const redirectToLogin = useRedirectToLogin();
     const [form, setForm] = useState(initialForm);
@@ -104,8 +105,8 @@ export default function Checkout() {
             return;
         }
         try {
-            notify('info', 'Starting secure checkout…');
-            setStatusMessage('Creating your order…');
+            notify('info', 'Starting Stripe Checkout…');
+            setStatusMessage('Requesting Stripe Checkout…');
             const shippingAddress = {
                 name: form.fullName,
                 line1: form.addressLine1,
@@ -116,19 +117,23 @@ export default function Checkout() {
                 phone: form.phone,
                 ...(form.state?.trim() ? { state: form.state.trim() } : {}),
             };
-            const response = await createCheckoutSession({
-                email: orderEmail,
-                shippingAddress,
-            });
+            const response = await createStripeCheckoutSession(
+                cartId,
+                sessionId,
+                {
+                    email: orderEmail,
+                    shippingAddress,
+                },
+            );
             setStatusMessage('Redirecting to Stripe Checkout…');
             notify('success', 'Checkout session created. Redirecting…');
 
-            if (response?.paymentUrl) {
-                window.location.assign(response.paymentUrl);
+            if (response?.checkoutUrl) {
+                window.location.assign(response.checkoutUrl);
                 return;
             }
 
-            throw new Error('Checkout session did not return a payment URL.');
+            throw new Error('Checkout session did not return a Stripe URL.');
         } catch (err) {
             const message = err?.message || 'Checkout failed. Please try again.';
             setError(message);
