@@ -157,6 +157,12 @@ export async function fetchOrderStatus(orderId, { signal } = {}) {
     return parseApiResponse(res, 'Failed to load order status');
 }
 
+export async function fetchStoreOrderBySession(sessionId, { signal } = {}) {
+    if (!sessionId) throw new Error('Session ID is required');
+    const res = await fetch(`${STORE_BASE}/orders/by-session/${encodeURIComponent(sessionId)}`, { signal });
+    return parseApiResponse(res, 'Failed to load order by session');
+}
+
 export function normalizeCartResponse(payload, fallback = {}) {
     if (!payload) return null;
     const cart = payload.cart ?? payload;
