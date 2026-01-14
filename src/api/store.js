@@ -114,6 +114,7 @@ export async function removeCartItem(cartId, sessionId, itemId, { signal } = {})
 
 export async function checkoutCart(cartId, payload = {}, { signal } = {}) {
     if (!cartId) throw new Error('Cart ID is required');
+    const { email, userId, shippingAddress } = payload ?? {};
     const res = await fetch(`${STORE_BASE}/checkout`, {
         method: 'POST',
         headers: {
@@ -121,8 +122,10 @@ export async function checkoutCart(cartId, payload = {}, { signal } = {}) {
             ...buildCartHeaders(cartId),
         },
         body: JSON.stringify({
-            ...payload,
             cartId,
+            email,
+            userId,
+            shippingAddress,
         }),
         signal,
     });

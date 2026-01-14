@@ -107,17 +107,15 @@ export default function Checkout() {
             setStatusMessage('Creating your order…');
             const response = await createCheckoutSession({
                 email: orderEmail,
-                currency: currency.toLowerCase(),
                 shippingAddress: {
                     name: form.fullName,
-                    addressLine1: form.addressLine1,
-                    addressLine2: form.addressLine2,
+                    line1: form.addressLine1,
+                    line2: form.addressLine2,
                     postalCode: form.postalCode,
                     city: form.city,
                     country: form.country || 'SE',
                     phone: form.phone,
                 },
-                notes: form.notes,
             });
             setStatusMessage('Redirecting to Stripe Checkout…');
             notify('success', 'Checkout session created. Redirecting…');
