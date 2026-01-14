@@ -150,11 +150,12 @@ export function StorefrontProvider({ children }) {
                         const fetched = await fetchStoreCart(existingCartId, existingSessionId);
                         if (fetched?.status && fetched.status !== 'OPEN') {
                             clearCartSession();
+                            cartStateRef.current = defaultState;
+                            cartRef.current = null;
                             setCart(null);
                             setCartState(defaultState);
                             setIsCartOpen(false);
 
-                            if (!allowCreate) return null;
                             const created = await createStoreCart();
                             if (!silent) {
                                 showToast('info', 'Previous cart was checked out. Started a new cart.');
