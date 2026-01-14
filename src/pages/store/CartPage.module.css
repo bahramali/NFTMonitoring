@@ -78,6 +78,21 @@
     margin-top: 6px;
 }
 
+.cta:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.closedNotice {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: #fff4e5;
+    border: 1px solid #f4c58d;
+    color: #7a4b17;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
 .empty {
     padding: 20px;
     border-radius: 14px;

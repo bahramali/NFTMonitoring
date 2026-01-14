@@ -7,10 +7,11 @@ import styles from './CartPage.module.css';
 
 export default function CartPage() {
     const navigate = useNavigate();
-    const { cart, pendingItemId, updateItemQuantity, removeItem } = useStorefront();
+    const { cart, pendingItemId, updateItemQuantity, removeItem, startNewCart } = useStorefront();
     const totals = cart?.totals || {};
     const currency = totals.currency || cart?.currency || 'SEK';
     const hasItems = (cart?.items?.length ?? 0) > 0;
+    const isCartClosed = Boolean(cart?.status && cart.status !== 'OPEN');
 
     return (
         <div className={styles.page}>
@@ -25,18 +26,27 @@ export default function CartPage() {
 
             {!hasItems ? (
                 <div className={styles.empty}>
+                    {isCartClosed && (
+                        <p className={styles.closedNotice}>This cart is closed. Start a new cart to continue.</p>
+                    )}
                     <p>Cart is empty.</p>
                     <Link to="/store" className={styles.primary}>Browse products</Link>
                 </div>
             ) : (
                 <div className={styles.layout}>
                     <div className={styles.list}> 
+                        {isCartClosed && (
+                            <div className={styles.closedNotice} role="status">
+                                This cart is closed. Start a new cart to continue.
+                            </div>
+                        )}
                         {cart.items.map((item) => (
                             <CartLineItem
                                 key={item.id || item.productId}
                                 item={item}
                                 currency={currency}
                                 pending={pendingItemId === item.id}
+                                disabled={isCartClosed}
                                 onChangeQuantity={(qty) => updateItemQuantity(item.id, qty)}
                                 onRemove={() => removeItem(item.id)}
                             />
@@ -58,8 +68,19 @@ export default function CartPage() {
                             <span>Total ({currencyLabel(currency)})</span>
                             <span>{formatCurrency(totals.total ?? totals.subtotal ?? 0, currency)}</span>
                         </div>
-                        <button type="button" className={styles.cta} onClick={() => navigate('/store/checkout')}>
-                            Proceed to checkout
+                        <button
+                            type="button"
+                            className={styles.cta}
+                            onClick={() => {
+                                if (isCartClosed) {
+                                    startNewCart();
+                                    return;
+                                }
+                                navigate('/store/checkout');
+                            }}
+                            disabled={!hasItems && !isCartClosed}
+                        >
+                            {isCartClosed ? 'Start new cart' : 'Proceed to checkout'}
                         </button>
                     </aside>
                 </div>
