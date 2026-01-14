@@ -141,6 +141,19 @@ export function StorefrontProvider({ children }) {
                 try {
                     if (existingCartId && existingSessionId) {
                         const fetched = await fetchStoreCart(existingCartId, existingSessionId);
+                        if (fetched?.status && fetched.status !== 'OPEN') {
+                            clearCartSession();
+                            setCart(null);
+                            setCartState(defaultState);
+                            setIsCartOpen(false);
+
+                            if (!allowCreate) return null;
+                            const created = await createStoreCart();
+                            if (!silent) {
+                                showToast('info', 'Previous cart was checked out. Started a new cart.');
+                            }
+                            return applyCartResponse(created, silent ? { silent: true } : undefined);
+                        }
                         return applyCartResponse(fetched, silent ? { silent: true } : undefined);
                     }
 
