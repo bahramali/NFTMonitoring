@@ -92,6 +92,22 @@ export async function confirmPasswordReset(token, password) {
     return parseApiResponse(res, 'Failed to reset password');
 }
 
+export async function requestPasswordReset({ email, token } = {}) {
+    const headers = {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'Content-Type': 'application/json',
+    };
+    const body = email ? JSON.stringify({ email }) : undefined;
+
+    const res = await fetch(`${AUTH_BASE}/password-reset`, {
+        method: 'POST',
+        headers,
+        body,
+    });
+
+    return parseApiResponse(res, 'Failed to request password reset');
+}
+
 export async function startOAuthSignIn(provider, { returnUrl, redirectUri } = {}) {
     if (!provider) {
         throw new Error('OAuth provider is required.');

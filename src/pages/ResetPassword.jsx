@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { confirmPasswordReset } from '../api/auth.js';
 import styles from './ResetPassword.module.css';
+import { MIN_PASSWORD_LENGTH } from '../utils/validation.js';
 
 export default function ResetPassword() {
     const [searchParams] = useSearchParams();
@@ -11,25 +12,49 @@ export default function ResetPassword() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [status, setStatus] = useState(token ? 'ready' : 'invalid');
     const [feedback, setFeedback] = useState(token ? '' : 'Reset token is missing.');
+    const [fieldErrors, setFieldErrors] = useState({});
+
+    const resolveTokenErrorMessage = (error) => {
+        const message = `${error?.payload?.message || error?.message || ''}`.toLowerCase();
+        if (
+            error?.status === 401
+            || error?.status === 403
+            || error?.status === 404
+            || message.includes('token')
+            || message.includes('expired')
+            || message.includes('invalid')
+        ) {
+            return 'Invalid or expired reset link. Please request a new one.';
+        }
+        return error?.payload?.message || error?.message || 'Could not reset password.';
+    };
 
     const handleSubmit = async (event) => {
         event.preventDefault();
         if (status !== 'ready') return;
 
         const trimmedPassword = password.trim();
+        const trimmedConfirmPassword = confirmPassword.trim();
+        const nextErrors = {};
+
         if (!trimmedPassword) {
-            setFeedback('Password is required.');
+            nextErrors.password = 'Password is required.';
+        } else if (trimmedPassword.length < MIN_PASSWORD_LENGTH) {
+            nextErrors.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`;
+        }
+
+        if (trimmedPassword !== trimmedConfirmPassword) {
+            nextErrors.confirmPassword = 'Passwords do not match.';
+        }
+
+        if (Object.keys(nextErrors).length > 0) {
+            setFieldErrors(nextErrors);
+            setFeedback('');
             return;
         }
 
-        if (trimmedPassword.length < 8) {
-            setFeedback('Password must be at least 8 characters long.');
-            return;
-        }
-
-        if (trimmedPassword !== confirmPassword.trim()) {
-            setFeedback('Passwords do not match.');
-            return;
+        if (Object.keys(fieldErrors).length > 0) {
+            setFieldErrors({});
         }
 
         setStatus('submitting');
@@ -39,12 +64,7 @@ export default function ResetPassword() {
             await confirmPasswordReset(token, trimmedPassword);
             setStatus('success');
         } catch (error) {
-            const message =
-                error?.payload?.message
-                || (error?.status === 400 ? 'Password must be at least 8 characters long.' : '')
-                || error?.message
-                || 'Could not reset password.';
-            setFeedback(message);
+            setFeedback(resolveTokenErrorMessage(error));
             setStatus('ready');
         }
     };
@@ -88,12 +108,25 @@ export default function ResetPassword() {
                         <input
                             id="password"
                             type="password"
-                            className={styles.input}
+                            className={`${styles.input} ${fieldErrors.password ? styles.inputError : ''}`}
                             value={password}
-                            onChange={(event) => setPassword(event.target.value)}
+                            onChange={(event) => {
+                                setPassword(event.target.value);
+                                if (fieldErrors.password) {
+                                    setFieldErrors((prev) => ({ ...prev, password: '' }));
+                                }
+                                if (feedback) setFeedback('');
+                            }}
                             disabled={status === 'submitting'}
                             autoComplete="new-password"
+                            aria-invalid={Boolean(fieldErrors.password)}
+                            aria-describedby={fieldErrors.password ? 'password-error' : undefined}
                         />
+                        {fieldErrors.password && (
+                            <span className={styles.fieldError} id="password-error" role="alert">
+                                {fieldErrors.password}
+                            </span>
+                        )}
 
                         <label className={styles.label} htmlFor="confirmPassword">
                             Confirm password
@@ -101,12 +134,25 @@ export default function ResetPassword() {
                         <input
                             id="confirmPassword"
                             type="password"
-                            className={styles.input}
+                            className={`${styles.input} ${fieldErrors.confirmPassword ? styles.inputError : ''}`}
                             value={confirmPassword}
-                            onChange={(event) => setConfirmPassword(event.target.value)}
+                            onChange={(event) => {
+                                setConfirmPassword(event.target.value);
+                                if (fieldErrors.confirmPassword) {
+                                    setFieldErrors((prev) => ({ ...prev, confirmPassword: '' }));
+                                }
+                                if (feedback) setFeedback('');
+                            }}
                             disabled={status === 'submitting'}
                             autoComplete="new-password"
+                            aria-invalid={Boolean(fieldErrors.confirmPassword)}
+                            aria-describedby={fieldErrors.confirmPassword ? 'confirm-password-error' : undefined}
                         />
+                        {fieldErrors.confirmPassword && (
+                            <span className={styles.fieldError} id="confirm-password-error" role="alert">
+                                {fieldErrors.confirmPassword}
+                            </span>
+                        )}
 
                         {feedback && <div className={`${styles.notice} ${styles.noticeError}`}>{feedback}</div>}
 
