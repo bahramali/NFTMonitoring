@@ -4,14 +4,16 @@ import { fetchOrderDetail } from '../../api/customer.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
 import { normalizeOrder } from './orderUtils.js';
+import { mapOrderStatus } from '../../utils/orderStatus.js';
 import { formatCurrency } from '../../utils/currency.js';
 import styles from './CustomerOrderDetails.module.css';
 
-const statusTone = (status) => {
-    const normalized = String(status || '').toUpperCase();
-    if (['PAID', 'COMPLETED', 'FULFILLED'].includes(normalized)) return styles.statusPositive;
-    if (['CANCELLED', 'FAILED'].includes(normalized)) return styles.statusNegative;
-    return styles.statusNeutral;
+const statusVariantStyles = {
+    success: styles.statusSuccess,
+    warning: styles.statusWarning,
+    info: styles.statusInfo,
+    danger: styles.statusDanger,
+    neutral: styles.statusNeutral,
 };
 
 const formatAddress = (value) => {
@@ -128,14 +130,21 @@ export default function CustomerOrderDetails() {
                     </p>
                 </div>
                 <div className={styles.statusBlock}>
-                    <span className={`${styles.statusBadge} ${statusTone(order.status)}`}>
-                        {order.status || 'Unknown'}
-                    </span>
+                    {(() => {
+                        const statusMeta = mapOrderStatus(order.status);
+                        const badgeClassName =
+                            statusVariantStyles[statusMeta.badgeVariant] ?? styles.statusNeutral;
+                        return (
+                            <span className={`${styles.statusBadge} ${badgeClassName}`}>
+                                {statusMeta.label}
+                            </span>
+                        );
+                    })()}
                     {order.paymentStatus ? (
                         <span className={styles.subStatus}>
                             Payment status:
                             {' '}
-                            {order.paymentStatus}
+                            {mapOrderStatus(order.paymentStatus).label}
                         </span>
                     ) : null}
                 </div>

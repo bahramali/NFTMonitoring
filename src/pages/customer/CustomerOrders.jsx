@@ -98,7 +98,6 @@ export default function CustomerOrders() {
                         <OrderCard
                             key={order.id}
                             order={order}
-                            primaryActionLabel="Track order"
                             primaryActionTo={orderLink}
                             detailsTo={orderLink}
                         />
