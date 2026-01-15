@@ -1,10 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { createCustomerAddress, fetchCustomerAddresses } from '../../api/customerAddresses.js';
 import { fetchCustomerProfile } from '../../api/customer.js';
 import { createStripeCheckoutSession } from '../../api/store.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
+import { extractAddressList, formatAddressLine, normalizeAddress } from '../customer/addressUtils.js';
 import { currencyLabel, formatCurrency } from '../../utils/currency.js';
 import { getCartItemDisplayName } from '../../utils/storeVariants.js';
 import styles from './Checkout.module.css';
@@ -34,6 +36,17 @@ const normalizeProfile = (payload) => {
         phone,
     };
 };
+
+const toAddressPayload = (values) => ({
+    fullName: values.fullName?.trim() || null,
+    street1: values.addressLine1?.trim() || '',
+    street2: values.addressLine2?.trim() || null,
+    postalCode: values.postalCode?.trim() || '',
+    city: values.city?.trim() || '',
+    region: values.state?.trim() || null,
+    countryCode: (values.country || '').trim().length === 2 ? values.country.trim().toUpperCase() : '',
+    phoneNumber: values.phone?.trim() || null,
+});
 
 const getCheckoutErrorMessage = (error) => {
     const status = error?.status;
@@ -77,6 +90,11 @@ export default function Checkout() {
     const [statusMessage, setStatusMessage] = useState('');
     const [profile, setProfile] = useState(null);
     const [loadingProfile, setLoadingProfile] = useState(false);
+    const [addresses, setAddresses] = useState([]);
+    const [selectedAddressId, setSelectedAddressId] = useState(null);
+    const [addressMode, setAddressMode] = useState('new');
+    const [loadingAddresses, setLoadingAddresses] = useState(false);
+    const [addressError, setAddressError] = useState(null);
     const checkoutInFlight = useRef(false);
 
     const totals = cart?.totals || {};
@@ -87,6 +105,33 @@ export default function Checkout() {
     const profileEmail = profile?.email || '';
     const orderEmail = isAuthenticated ? profileEmail : form.email;
     const canSubmit = hasItems && !submitting && (!isAuthenticated || Boolean(orderEmail));
+
+    const applyAddressToForm = useCallback((address) => {
+        if (!address) return;
+        setForm((prev) => ({
+            ...prev,
+            fullName: address.fullName || prev.fullName,
+            phone: address.phone || prev.phone,
+            addressLine1: address.line1 || '',
+            addressLine2: address.line2 || '',
+            postalCode: address.postalCode || '',
+            city: address.city || '',
+            state: address.state || '',
+            country: address.country || prev.country || 'SE',
+        }));
+    }, []);
+
+    const clearAddressFields = useCallback(() => {
+        setForm((prev) => ({
+            ...prev,
+            addressLine1: '',
+            addressLine2: '',
+            postalCode: '',
+            city: '',
+            state: '',
+            country: prev.country || 'SE',
+        }));
+    }, []);
 
     useEffect(() => {
         if (!isAuthenticated || !token) {
@@ -117,9 +162,67 @@ export default function Checkout() {
         return () => controller.abort();
     }, [isAuthenticated, redirectToLogin, token]);
 
+    useEffect(() => {
+        if (!isAuthenticated || !token) {
+            setAddresses([]);
+            setSelectedAddressId(null);
+            setAddressMode('new');
+            setAddressError(null);
+            setLoadingAddresses(false);
+            return;
+        }
+
+        const controller = new AbortController();
+        setLoadingAddresses(true);
+        setAddressError(null);
+        fetchCustomerAddresses(token, { signal: controller.signal, onUnauthorized: redirectToLogin })
+            .then((payload) => {
+                if (payload === null) return;
+                const list = extractAddressList(payload).map(normalizeAddress);
+                setAddresses(list);
+
+                if (list.length === 0) {
+                    setSelectedAddressId(null);
+                    setAddressMode('new');
+                    clearAddressFields();
+                    return;
+                }
+
+                const selected = list.length === 1
+                    ? list[0]
+                    : list.find((address) => address.isDefault) || list[0];
+                setSelectedAddressId(selected.id);
+                setAddressMode('saved');
+                applyAddressToForm(selected);
+            })
+            .catch((err) => {
+                if (err?.name === 'AbortError') return;
+                if (err?.isUnsupported) {
+                    setAddressError('Address book is not enabled yet.');
+                } else {
+                    setAddressError(err?.message || 'Unable to load addresses.');
+                }
+                setAddresses([]);
+                setSelectedAddressId(null);
+                setAddressMode('new');
+            })
+            .finally(() => setLoadingAddresses(false));
+
+        return () => controller.abort();
+    }, [applyAddressToForm, clearAddressFields, isAuthenticated, redirectToLogin, token]);
+
     const handleChange = (event) => {
         const { name, value } = event.target;
         setForm((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleAddressSelection = (event) => {
+        const selectedId = event.target.value;
+        setSelectedAddressId(selectedId);
+        const selected = addresses.find((address) => String(address.id) === String(selectedId));
+        if (selected) {
+            applyAddressToForm(selected);
+        }
     };
 
     const handleSubmit = async (event) => {
@@ -144,6 +247,26 @@ export default function Checkout() {
             return;
         }
         try {
+            if (isAuthenticated && token && addressMode === 'new') {
+                try {
+                    const payload = toAddressPayload(form);
+                    const created = await createCustomerAddress(token, payload, { onUnauthorized: redirectToLogin });
+                    if (created) {
+                        const normalized = normalizeAddress(created);
+                        if (normalized?.id) {
+                            setAddresses((prev) => [...prev, normalized]);
+                            setSelectedAddressId(normalized.id);
+                            setAddressMode('saved');
+                        }
+                    }
+                } catch (err) {
+                    if (err?.isUnsupported) {
+                        setAddressError('Address book is not enabled yet.');
+                    } else {
+                        setAddressError(err?.message || 'Unable to save your address.');
+                    }
+                }
+            }
             notify('info', 'Starting Stripe Checkout…');
             setStatusMessage('Requesting Stripe Checkout…');
             const shippingAddress = {
@@ -250,6 +373,39 @@ export default function Checkout() {
                             <label htmlFor="phone">Phone</label>
                             <input id="phone" name="phone" type="tel" value={form.phone} onChange={handleChange} />
                         </div>
+                        {isAuthenticated ? (
+                            <div className={styles.fieldGroup}>
+                                <label htmlFor="saved-address">Saved address</label>
+                                {loadingAddresses ? (
+                                    <p>Loading saved addresses…</p>
+                                ) : null}
+                                {addressError ? (
+                                    <p className={styles.error} role="alert">
+                                        {addressError}
+                                    </p>
+                                ) : null}
+                                {!loadingAddresses && addresses.length === 0 ? (
+                                    <p>Add a new address below to save time next time.</p>
+                                ) : null}
+                                {!loadingAddresses && addresses.length === 1 ? (
+                                    <p>{formatAddressLine(addresses[0])}</p>
+                                ) : null}
+                                {!loadingAddresses && addresses.length > 1 ? (
+                                    <select
+                                        id="saved-address"
+                                        name="saved-address"
+                                        value={selectedAddressId ?? ''}
+                                        onChange={handleAddressSelection}
+                                    >
+                                        {addresses.map((address) => (
+                                            <option key={address.id} value={address.id}>
+                                                {address.label || formatAddressLine(address) || 'Saved address'}
+                                            </option>
+                                        ))}
+                                    </select>
+                                ) : null}
+                            </div>
+                        ) : null}
                         <div className={styles.fieldGroup}>
                             <label htmlFor="addressLine1">Address line 1</label>
                             <input
