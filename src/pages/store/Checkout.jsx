@@ -95,6 +95,7 @@ export default function Checkout() {
     const [addressMode, setAddressMode] = useState('new');
     const [loadingAddresses, setLoadingAddresses] = useState(false);
     const [addressError, setAddressError] = useState(null);
+    const [saveNewAddress, setSaveNewAddress] = useState(true);
     const checkoutInFlight = useRef(false);
 
     const totals = cart?.totals || {};
@@ -105,6 +106,10 @@ export default function Checkout() {
     const profileEmail = profile?.email || '';
     const orderEmail = isAuthenticated ? profileEmail : form.email;
     const canSubmit = hasItems && !submitting && (!isAuthenticated || Boolean(orderEmail));
+    const selectedAddress = useMemo(
+        () => addresses.find((address) => String(address.id) === String(selectedAddressId)),
+        [addresses, selectedAddressId],
+    );
 
     const applyAddressToForm = useCallback((address) => {
         if (!address) return;
@@ -219,10 +224,25 @@ export default function Checkout() {
     const handleAddressSelection = (event) => {
         const selectedId = event.target.value;
         setSelectedAddressId(selectedId);
+        setAddressMode('saved');
         const selected = addresses.find((address) => String(address.id) === String(selectedId));
         if (selected) {
             applyAddressToForm(selected);
         }
+    };
+
+    const handleUseDifferentAddress = () => {
+        setAddressMode('new');
+        clearAddressFields();
+    };
+
+    const handleUseSavedAddress = () => {
+        const selected = selectedAddress || addresses[0];
+        if (selected) {
+            setSelectedAddressId(selected.id);
+            applyAddressToForm(selected);
+        }
+        setAddressMode('saved');
     };
 
     const handleSubmit = async (event) => {
@@ -247,7 +267,7 @@ export default function Checkout() {
             return;
         }
         try {
-            if (isAuthenticated && token && addressMode === 'new') {
+            if (isAuthenticated && token && addressMode === 'new' && saveNewAddress) {
                 try {
                     const payload = toAddressPayload(form);
                     const created = await createCustomerAddress(token, payload, { onUnauthorized: redirectToLogin });
@@ -388,7 +408,12 @@ export default function Checkout() {
                                     <p>Add a new address below to save time next time.</p>
                                 ) : null}
                                 {!loadingAddresses && addresses.length === 1 ? (
-                                    <p>{formatAddressLine(addresses[0])}</p>
+                                    <div className={styles.addressCard}>
+                                        <p className={styles.addressTitle}>
+                                            {addresses[0].label || 'Default address'}
+                                        </p>
+                                        <p className={styles.addressLine}>{formatAddressLine(addresses[0])}</p>
+                                    </div>
                                 ) : null}
                                 {!loadingAddresses && addresses.length > 1 ? (
                                     <select
@@ -404,61 +429,98 @@ export default function Checkout() {
                                         ))}
                                     </select>
                                 ) : null}
+                                {!loadingAddresses && addresses.length > 0 ? (
+                                    <div className={styles.addressActions}>
+                                        {addressMode === 'saved' ? (
+                                            <button
+                                                type="button"
+                                                className={styles.addressToggle}
+                                                onClick={handleUseDifferentAddress}
+                                            >
+                                                Use a different address
+                                            </button>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                className={styles.addressToggle}
+                                                onClick={handleUseSavedAddress}
+                                            >
+                                                Use saved address
+                                            </button>
+                                        )}
+                                    </div>
+                                ) : null}
                             </div>
                         ) : null}
-                        <div className={styles.fieldGroup}>
-                            <label htmlFor="addressLine1">Address line 1</label>
-                            <input
-                                id="addressLine1"
-                                name="addressLine1"
-                                type="text"
-                                required
-                                value={form.addressLine1}
-                                onChange={handleChange}
-                            />
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label htmlFor="addressLine2">Address line 2 (optional)</label>
-                            <input
-                                id="addressLine2"
-                                name="addressLine2"
-                                type="text"
-                                value={form.addressLine2}
-                                onChange={handleChange}
-                            />
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label htmlFor="postalCode">Postal code</label>
-                            <input
-                                id="postalCode"
-                                name="postalCode"
-                                type="text"
-                                required
-                                value={form.postalCode}
-                                onChange={handleChange}
-                            />
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label htmlFor="city">City</label>
-                            <input
-                                id="city"
-                                name="city"
-                                type="text"
-                                required
-                                value={form.city}
-                                onChange={handleChange}
-                            />
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label htmlFor="state">State/Region (optional)</label>
-                            <input
-                                id="state"
-                                name="state"
-                                type="text"
-                                value={form.state}
-                                onChange={handleChange}
-                            />
-                        </div>
+                        {!isAuthenticated || addressMode === 'new' ? (
+                            <>
+                                <div className={styles.fieldGroup}>
+                                    <label htmlFor="addressLine1">Address line 1</label>
+                                    <input
+                                        id="addressLine1"
+                                        name="addressLine1"
+                                        type="text"
+                                        required
+                                        value={form.addressLine1}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                                <div className={styles.fieldGroup}>
+                                    <label htmlFor="addressLine2">Address line 2 (optional)</label>
+                                    <input
+                                        id="addressLine2"
+                                        name="addressLine2"
+                                        type="text"
+                                        value={form.addressLine2}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                                <div className={styles.fieldGroup}>
+                                    <label htmlFor="postalCode">Postal code</label>
+                                    <input
+                                        id="postalCode"
+                                        name="postalCode"
+                                        type="text"
+                                        required
+                                        value={form.postalCode}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                                <div className={styles.fieldGroup}>
+                                    <label htmlFor="city">City</label>
+                                    <input
+                                        id="city"
+                                        name="city"
+                                        type="text"
+                                        required
+                                        value={form.city}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                                <div className={styles.fieldGroup}>
+                                    <label htmlFor="state">State/Region (optional)</label>
+                                    <input
+                                        id="state"
+                                        name="state"
+                                        type="text"
+                                        value={form.state}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                                {isAuthenticated ? (
+                                    <label className={styles.checkboxRow} htmlFor="saveAddress">
+                                        <input
+                                            id="saveAddress"
+                                            name="saveAddress"
+                                            type="checkbox"
+                                            checked={saveNewAddress}
+                                            onChange={(event) => setSaveNewAddress(event.target.checked)}
+                                        />
+                                        Save this address
+                                    </label>
+                                ) : null}
+                            </>
+                        ) : null}
                         <div className={styles.fieldGroup}>
                             <label htmlFor="notes">Notes</label>
                             <textarea id="notes" name="notes" value={form.notes} onChange={handleChange} rows={3} />

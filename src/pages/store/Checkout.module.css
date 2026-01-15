@@ -138,6 +138,49 @@
     cursor: pointer;
 }
 
+.addressCard {
+    border-radius: 12px;
+    border: 1px solid var(--border, #e6e6e6);
+    background: #f9fafb;
+    padding: 10px 12px;
+    display: grid;
+    gap: 4px;
+}
+
+.addressTitle {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text, #111);
+}
+
+.addressLine {
+    margin: 0;
+    color: var(--muted, #666);
+}
+
+.addressActions {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.addressToggle {
+    border: none;
+    background: none;
+    color: var(--text, #111);
+    text-decoration: underline;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+}
+
+.checkboxRow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text, #111);
+    font-size: 0.95rem;
+}
+
 .submit {
     background: var(--accent, #3a9d5b);
     border: 1px solid var(--accent, #3a9d5b);
