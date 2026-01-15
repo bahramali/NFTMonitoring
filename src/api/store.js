@@ -1,4 +1,4 @@
-import { authFetch, parseApiResponse, parseApiResponseWithMeta } from './http.js';
+import { authFetch, buildAuthHeaders, parseApiResponse, parseApiResponseWithMeta } from './http.js';
 
 import { getApiBaseUrl } from '../config/apiBase.js';
 
@@ -133,20 +133,25 @@ export async function createCheckoutSession(cartId, payload = {}, { signal } = {
     };
 }
 
-export async function createStripeCheckoutSession(cartId, sessionId, payload = {}, { signal } = {}) {
+export async function createStripeCheckoutSession(token, { cartId, email, shippingAddress } = {}, { signal } = {}) {
     if (!cartId) throw new Error('Cart ID is required');
-    const res = await authFetch(`${STORE_BASE}/checkout/stripe/session`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            ...buildCartHeaders(cartId, sessionId),
+    const res = await authFetch(
+        `${STORE_BASE}/checkout/stripe/session`,
+        {
+            method: 'POST',
+            headers: {
+                ...buildAuthHeaders(token),
+                ...buildCartHeaders(cartId),
+            },
+            body: JSON.stringify({
+                cartId,
+                email,
+                shippingAddress,
+            }),
+            signal,
         },
-        body: JSON.stringify({
-            cartId,
-            ...payload,
-        }),
-        signal,
-    });
+        { token },
+    );
 
     return parseApiResponse(res, 'Failed to start Stripe Checkout');
 }

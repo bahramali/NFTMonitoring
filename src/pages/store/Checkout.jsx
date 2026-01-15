@@ -309,23 +309,20 @@ export default function Checkout() {
             notify('info', 'Starting Stripe Checkout…');
             setStatusMessage('Requesting Stripe Checkout…');
             const shippingAddress = {
-                name: form.fullName,
-                line1: form.addressLine1,
-                line2: form.addressLine2,
-                postalCode: form.postalCode,
-                city: form.city,
-                country: form.country || 'SE',
-                phone: form.phone,
-                ...(form.state?.trim() ? { state: form.state.trim() } : {}),
+                fullName: form.fullName?.trim() || '',
+                phone: form.phone?.trim() || '',
+                addressLine1: form.addressLine1?.trim() || '',
+                addressLine2: form.addressLine2?.trim() || '',
+                postalCode: form.postalCode?.trim() || '',
+                city: form.city?.trim() || '',
+                state: form.state?.trim() || '',
+                country: (form.country || 'SE').trim(),
             };
-            const response = await createStripeCheckoutSession(
+            const response = await createStripeCheckoutSession(token, {
                 cartId,
-                sessionId,
-                {
-                    email: orderEmail,
-                    shippingAddress,
-                },
-            );
+                email: orderEmail,
+                shippingAddress,
+            });
             setStatusMessage('Redirecting to Stripe Checkout…');
             notify('success', 'Checkout session created. Redirecting…');
 
