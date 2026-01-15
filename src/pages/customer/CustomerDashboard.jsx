@@ -77,7 +77,7 @@ export default function CustomerDashboard() {
                         <h2>Account overview</h2>
                         <p className={styles.muted}>Quick snapshot of your account details.</p>
                     </div>
-                    <Link to="/my-page/settings" className={styles.linkButton}>
+                    <Link to="/account/settings" className={styles.linkButton}>
                         Edit profile
                     </Link>
                 </div>
@@ -105,7 +105,7 @@ export default function CustomerDashboard() {
                         <h2>Default address</h2>
                         <p className={styles.muted}>Manage where orders should be shipped.</p>
                     </div>
-                    <Link to="/my-page/addresses" className={styles.linkButton}>
+                    <Link to="/account/addresses" className={styles.linkButton}>
                         Manage addresses
                     </Link>
                 </div>
@@ -125,7 +125,7 @@ export default function CustomerDashboard() {
                             <p className={styles.muted}>{addressSummary}</p>
                         </div>
                         {!defaultAddress ? (
-                            <Link to="/my-page/addresses" className={styles.primaryButton}>
+                            <Link to="/account/addresses" className={styles.primaryButton}>
                                 Add an address
                             </Link>
                         ) : null}
@@ -141,7 +141,7 @@ export default function CustomerDashboard() {
                         <p className={styles.muted}>Track your latest purchases.</p>
                     </div>
                     {ordersState.supported ? (
-                        <Link to="/my-page/orders" className={styles.linkButton}>
+                        <Link to="/account/orders" className={styles.linkButton}>
                             View all
                         </Link>
                     ) : null}
@@ -178,7 +178,7 @@ export default function CustomerDashboard() {
 
                         <div className={styles.orderList}>
                             {sortedOrders.slice(0, 3).map((order) => {
-                                const orderLink = `/my-page/orders/${encodeURIComponent(order.id)}`;
+                                const orderLink = `/account/orders/${encodeURIComponent(order.id)}`;
                                 return (
                                     <OrderCard
                                         key={order.id}

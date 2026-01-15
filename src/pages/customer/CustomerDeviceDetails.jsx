@@ -97,7 +97,7 @@ export default function CustomerDeviceDetails() {
     return (
         <div className={styles.page}>
             <div className={styles.breadcrumbs}>
-                <Link to="/my-page">My account</Link>
+                <Link to="/account">My account</Link>
                 <span>/</span>
                 <span className={styles.current}>{device?.name ?? deviceId ?? 'Device details'}</span>
             </div>
@@ -107,7 +107,7 @@ export default function CustomerDeviceDetails() {
             ) : error ? (
                 <div className={styles.error} role="alert">
                     <p>{error}</p>
-                    <Link to="/my-page" className={styles.primaryButton}>Back</Link>
+                    <Link to="/account" className={styles.primaryButton}>Back</Link>
                 </div>
             ) : device ? (
                 <div className={styles.card}>
@@ -158,7 +158,7 @@ export default function CustomerDeviceDetails() {
                     />
 
                     <div className={styles.actions}>
-                        <Link to="/my-page" className={styles.secondaryButton}>Back to account</Link>
+                        <Link to="/account" className={styles.secondaryButton}>Back to account</Link>
                         {reportsEnabled ? (
                             <Link
                                 to={`/monitoring/reports?deviceId=${encodeURIComponent(device.id)}`}

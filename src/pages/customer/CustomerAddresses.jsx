@@ -174,7 +174,7 @@ export default function CustomerAddresses() {
                     <button type="button" className={styles.primaryButton} onClick={startAdd}>
                         Add address
                     </button>
-                    <Link to="/my-page" className={styles.secondaryButton}>
+                    <Link to="/account" className={styles.secondaryButton}>
                         Back to overview
                     </Link>
                 </div>

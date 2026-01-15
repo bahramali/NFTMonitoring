@@ -51,7 +51,7 @@ export default function CustomerOrders() {
                         <p className={styles.subtitle}>Order history is not enabled for this account.</p>
                     </div>
                 </div>
-                <Link to="/my-page" className={styles.primaryButton}>Back to account</Link>
+                <Link to="/account" className={styles.primaryButton}>Back to account</Link>
             </div>
         );
     }
@@ -103,7 +103,7 @@ export default function CustomerOrders() {
 
             <div className={styles.list}>
                 {sortedOrders.map((order) => {
-                    const orderLink = `/my-page/orders/${encodeURIComponent(order.id)}`;
+                    const orderLink = `/account/orders/${encodeURIComponent(order.id)}`;
                     return (
                         <OrderCard
                             key={order.id}

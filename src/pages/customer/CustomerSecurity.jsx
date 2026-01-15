@@ -17,7 +17,7 @@ export default function CustomerSecurity() {
                     <h2>Password & security</h2>
                     <p className={styles.subtitle}>Manage password resets and account safety.</p>
                 </div>
-                <Link to="/my-page" className={styles.secondaryButton}>
+                <Link to="/account" className={styles.secondaryButton}>
                     Back to overview
                 </Link>
             </div>

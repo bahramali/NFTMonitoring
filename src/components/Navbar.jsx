@@ -89,7 +89,7 @@ export default function Navbar() {
     }, [isAuthenticated, permissions, role, roles]);
     const canAccessAdmin = adminLinks.length > 0;
     const canSeeMonitoring = isSuperAdmin || hasPerm({ permissions }, PERMISSIONS.MONITORING_VIEW);
-    const accountLink = role === 'CUSTOMER' ? '/my-page' : '/monitoring/overview';
+    const accountLink = role === 'CUSTOMER' ? '/account' : '/monitoring/overview';
 
     useEffect(() => {
         setIsUserMenuOpen(false);
@@ -308,7 +308,7 @@ export default function Navbar() {
                                         </Link>
                                         {role === 'CUSTOMER' && (
                                             <Link
-                                                to="/my-page/orders"
+                                                to="/account/orders"
                                                 className={styles.menuLink}
                                                 onClick={handleNavLinkClick}
                                             >
