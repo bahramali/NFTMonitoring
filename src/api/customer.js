@@ -179,3 +179,44 @@ export async function fetchOrderDetail(token, orderId, { signal, onUnauthorized 
         throw error;
     }
 }
+
+export async function createOrderPaymentSession(token, orderId, { signal, onUnauthorized } = {}) {
+    if (!token) throw new Error('Authentication is required to continue payment');
+    if (!orderId) throw new Error('Order ID is required');
+
+    const encodedId = encodeURIComponent(orderId);
+    const endpoints = [
+        `${API_BASE}/api/store/orders/${encodedId}/checkout`,
+        `${API_BASE}/api/store/orders/${encodedId}/checkout/session`,
+        `${API_BASE}/api/store/orders/${encodedId}/payment`,
+        `${API_BASE}/api/store/orders/${encodedId}/payment/session`,
+    ];
+
+    let lastError = null;
+
+    for (const endpoint of endpoints) {
+        const res = await authFetch(
+            endpoint,
+            {
+                method: 'POST',
+                headers: buildAuthHeaders(token),
+                signal,
+            },
+            { token },
+        );
+
+        try {
+            return await parseApiResponse(res, 'Failed to continue payment');
+        } catch (error) {
+            if (handleUnauthorized(error, onUnauthorized)) return null;
+            if ([404, 405, 501].includes(error?.status)) {
+                lastError = error;
+                continue;
+            }
+            throw error;
+        }
+    }
+
+    if (lastError) throw lastError;
+    throw new Error('Failed to continue payment');
+}

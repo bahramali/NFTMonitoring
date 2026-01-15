@@ -3,6 +3,7 @@ import { Link, useOutletContext } from 'react-router-dom';
 import { fetchCustomerAddresses } from '../../api/customerAddresses.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import usePasswordReset from '../../hooks/usePasswordReset.js';
+import useOrderPaymentAction from '../../hooks/useOrderPaymentAction.js';
 import { extractAddressList, formatAddressLine, normalizeAddress } from './addressUtils.js';
 import OrderCard from '../../components/orders/OrderCard.jsx';
 import styles from './CustomerDashboard.module.css';
@@ -11,6 +12,8 @@ export default function CustomerDashboard() {
     const { logout, token } = useAuth();
     const { profile, loadingProfile, ordersState, loadOrders, redirectToLogin } = useOutletContext();
     const { resetState, resetError, resetDisabled, handlePasswordReset } = usePasswordReset({ token });
+    const { error: paymentError, loadingId, handleOrderPayment, resetError: resetPaymentError } =
+        useOrderPaymentAction();
     const [addressesState, setAddressesState] = useState({
         loading: false,
         error: null,
@@ -156,6 +159,14 @@ export default function CustomerDashboard() {
                                 {ordersState.error}
                             </div>
                         ) : null}
+                        {paymentError ? (
+                            <div className={styles.error} role="alert">
+                                {paymentError}
+                                <button type="button" className={styles.linkButton} onClick={resetPaymentError}>
+                                    Dismiss
+                                </button>
+                            </div>
+                        ) : null}
                         {!ordersState.loading && !ordersState.error && sortedOrders.length === 0 ? (
                             <div className={styles.empty}>
                                 <p>You have no orders yet. Browse the store to place your first order.</p>
@@ -174,6 +185,8 @@ export default function CustomerDashboard() {
                                         order={order}
                                         primaryActionTo={orderLink}
                                         detailsTo={orderLink}
+                                        onPrimaryAction={handleOrderPayment}
+                                        primaryActionLoading={loadingId === order.id}
                                     />
                                 );
                             })}

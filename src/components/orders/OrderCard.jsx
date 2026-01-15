@@ -49,6 +49,9 @@ export default function OrderCard({
     primaryActionLabel,
     primaryActionTo,
     detailsTo,
+    onPrimaryAction,
+    primaryActionDisabled = false,
+    primaryActionLoading = false,
     className = '',
 }) {
     const orderId = order?.id || '';
@@ -65,6 +68,8 @@ export default function OrderCard({
     const detailsHref = detailsTo || primaryActionTo || '#';
     const primaryHref = primaryActionTo || detailsHref;
     const actionLabel = primaryActionLabel ?? primaryAction.label;
+    const shouldHandlePaymentAction =
+        ['continue-payment', 'retry-payment'].includes(primaryAction.type) && typeof onPrimaryAction === 'function';
 
     return (
         <article className={`${styles.card} ${className}`}>
@@ -102,9 +107,20 @@ export default function OrderCard({
             </section>
 
             <footer className={styles.actions}>
-                <Link to={primaryHref} className={styles.primaryButton}>
-                    {actionLabel}
-                </Link>
+                {shouldHandlePaymentAction ? (
+                    <button
+                        type="button"
+                        className={styles.primaryButton}
+                        onClick={() => onPrimaryAction(order, primaryAction)}
+                        disabled={primaryActionDisabled || primaryActionLoading}
+                    >
+                        {primaryActionLoading ? 'Opening payment…' : actionLabel}
+                    </button>
+                ) : (
+                    <Link to={primaryHref} className={styles.primaryButton}>
+                        {actionLabel}
+                    </Link>
+                )}
                 <Link to={detailsHref} className={styles.secondaryLink}>
                     View details
                 </Link>

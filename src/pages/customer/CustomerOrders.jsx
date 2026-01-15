@@ -1,11 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import OrderCard from '../../components/orders/OrderCard.jsx';
+import useOrderPaymentAction from '../../hooks/useOrderPaymentAction.js';
 import styles from './CustomerOrders.module.css';
 
 export default function CustomerOrders() {
     const { ordersState, loadOrders } = useOutletContext();
     const [localError, setLocalError] = useState(null);
+    const { error: paymentError, loadingId, handleOrderPayment, resetError } = useOrderPaymentAction();
 
     const handleLoadOrders = useCallback(
         (options = {}) =>
@@ -83,6 +85,14 @@ export default function CustomerOrders() {
                     </button>
                 </div>
             ) : null}
+            {!ordersState.loading && paymentError ? (
+                <div className={styles.error} role="alert">
+                    <p className={styles.errorMessage}>{paymentError}</p>
+                    <button type="button" className={styles.retryButton} onClick={resetError}>
+                        Dismiss
+                    </button>
+                </div>
+            ) : null}
 
             {!ordersState.loading && sortedOrders.length === 0 && !localError && !ordersState.error ? (
                 <div className={styles.empty}>
@@ -100,6 +110,8 @@ export default function CustomerOrders() {
                             order={order}
                             primaryActionTo={orderLink}
                             detailsTo={orderLink}
+                            onPrimaryAction={handleOrderPayment}
+                            primaryActionLoading={loadingId === order.id}
                         />
                     );
                 })}

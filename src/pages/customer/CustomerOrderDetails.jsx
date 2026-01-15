@@ -4,8 +4,9 @@ import { fetchOrderDetail } from '../../api/customer.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
 import { normalizeOrder } from './orderUtils.js';
-import { mapOrderStatus } from '../../utils/orderStatus.js';
+import { mapOrderStatus, resolveOrderPrimaryAction } from '../../utils/orderStatus.js';
 import { formatCurrency } from '../../utils/currency.js';
+import useOrderPaymentAction from '../../hooks/useOrderPaymentAction.js';
 import styles from './CustomerOrderDetails.module.css';
 
 const statusVariantStyles = {
@@ -46,6 +47,8 @@ export default function CustomerOrderDetails() {
     const { token } = useAuth();
     const redirectToLogin = useRedirectToLogin();
     const { ordersState } = useOutletContext();
+    const { error: paymentError, loadingId, handleOrderPayment, resetError: resetPaymentError } =
+        useOrderPaymentAction();
 
     const existingOrder = useMemo(
         () => (ordersState?.items || []).find((order) => String(order.id) === String(orderId)),
@@ -116,6 +119,9 @@ export default function CustomerOrderDetails() {
     }
 
     if (!order) return null;
+
+    const primaryAction = resolveOrderPrimaryAction(order.status, { hasTracking: Boolean(order?.trackingUrl) });
+    const shouldShowPaymentAction = ['continue-payment', 'retry-payment'].includes(primaryAction.type);
 
     return (
         <div className={styles.card}>
@@ -207,9 +213,27 @@ export default function CustomerOrderDetails() {
             ) : null}
 
             <div className={styles.actions}>
+                {shouldShowPaymentAction ? (
+                    <button
+                        type="button"
+                        className={styles.primaryButton}
+                        onClick={() => handleOrderPayment(order)}
+                        disabled={loadingId === order.id}
+                    >
+                        {loadingId === order.id ? 'Opening payment…' : primaryAction.label}
+                    </button>
+                ) : null}
                 <Link to="/my-page/orders" className={styles.secondaryButton}>Back to orders</Link>
                 <Link to="/my-page" className={styles.primaryButton}>Back to account</Link>
             </div>
+            {paymentError ? (
+                <div className={styles.error} role="alert">
+                    <p>{paymentError}</p>
+                    <button type="button" className={styles.secondaryButton} onClick={resetPaymentError}>
+                        Dismiss
+                    </button>
+                </div>
+            ) : null}
         </div>
     );
 }
