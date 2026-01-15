@@ -1,3 +1,5 @@
+import { extractPaymentUrl } from '../../utils/payment.js';
+
 export const normalizeOrderList = (payload) => {
     const list = Array.isArray(payload) ? payload : Array.isArray(payload?.orders) ? payload.orders : [];
     return list.map((order) => ({
@@ -10,6 +12,7 @@ export const normalizeOrderList = (payload) => {
         items: order.items ?? order.lines ?? [],
         itemsCount: Number.isFinite(order.itemsCount) ? order.itemsCount : undefined,
         paymentMethod: order.paymentMethod,
+        paymentUrl: extractPaymentUrl(order),
         deliveryType: order.deliveryType,
         customerNote: order.customerNote ?? order.note ?? '',
         shippingAddress: order.shippingAddress ?? order.address ?? null,
