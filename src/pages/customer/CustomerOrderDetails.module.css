@@ -98,6 +98,46 @@
     margin: 14px 0;
 }
 
+.detailGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.detailCard {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px;
+    background: #f8fafc;
+}
+
+.detailCard h3 {
+    margin-top: 0;
+}
+
+.totalsList {
+    margin: 0;
+    display: grid;
+    gap: 6px;
+}
+
+.totalsRow {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 14px;
+}
+
+.totalsRow dt {
+    color: #475569;
+}
+
+.totalsRow dd {
+    margin: 0;
+    font-weight: 600;
+}
+
 .itemGrid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -125,6 +165,44 @@
     border-radius: 10px;
     padding: 10px;
     background: #f8fafc;
+}
+
+.timeline {
+    margin-top: 16px;
+}
+
+.timelineList {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0 0;
+    display: grid;
+    gap: 10px;
+}
+
+.timelineItem {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+}
+
+.timelineLabel {
+    margin: 0;
+    font-weight: 700;
+}
+
+.timelineDetail {
+    margin: 4px 0 0;
+    color: #475569;
+}
+
+.timelineTime {
+    color: #64748b;
+    font-size: 13px;
+    white-space: nowrap;
 }
 
 .actions {

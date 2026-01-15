@@ -66,6 +66,12 @@ function ProtectedOutlet({ requiredRoles = [], requiredPermissions = [] }) {
     );
 }
 
+function LegacyAccountRedirect() {
+    const location = useLocation();
+    const nextPath = location.pathname.replace(/^\/my-page/, '/account');
+    return <Navigate to={`${nextPath}${location.search}${location.hash}`} replace />;
+}
+
 function AdminIndexRedirect() {
     const { role, roles, permissions } = useAuth();
     const availableRoles = roles?.length ? roles : role ? [role] : [];
@@ -264,7 +270,7 @@ function AppRoutes() {
                 </Route>
 
                 <Route
-                    path="/my-page/*"
+                    path="/account/*"
                     element={(
                         <CustomerRoute>
                             <CustomerLayout />
@@ -278,6 +284,7 @@ function AppRoutes() {
                     <Route path="settings" element={<CustomerSettings />} />
                     <Route path="security" element={<CustomerSecurity />} />
                 </Route>
+                <Route path="/my-page/*" element={<LegacyAccountRedirect />} />
 
                 <Route path="/dashboard/*" element={<Navigate to="/monitoring/overview" replace />} />
                 <Route path="/monitoring/admin/products" element={<Navigate to="/store/admin/products" replace />} />

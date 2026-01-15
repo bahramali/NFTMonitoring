@@ -42,6 +42,75 @@ const formatAddress = (value) => {
     return String(value);
 };
 
+const resolveTotals = (order) => {
+    const raw = order?.raw ?? {};
+    const totals = raw.totals ?? raw.summary ?? raw.amounts ?? {};
+    return {
+        currency: order?.currency ?? totals.currency ?? raw.currency ?? 'SEK',
+        subtotal:
+            raw.subtotal ??
+            raw.subTotal ??
+            totals.subtotal ??
+            totals.subTotal ??
+            raw.itemsSubtotal ??
+            raw.itemsTotal ??
+            null,
+        shipping:
+            raw.shipping ??
+            raw.shippingTotal ??
+            totals.shipping ??
+            totals.shippingTotal ??
+            raw.deliveryFee ??
+            null,
+        tax: raw.tax ?? raw.taxTotal ?? totals.tax ?? totals.taxTotal ?? null,
+        discount:
+            raw.discount ??
+            raw.discountTotal ??
+            totals.discount ??
+            totals.discountTotal ??
+            raw.promoDiscount ??
+            null,
+        total: order?.total ?? totals.total ?? raw.total ?? null,
+    };
+};
+
+const resolvePaymentInfo = (order) => {
+    const raw = order?.raw ?? {};
+    const payment = raw.payment ?? {};
+    return {
+        status: order?.paymentStatus ?? payment.status ?? raw.paymentStatus ?? raw.payment_state ?? '',
+        method:
+            order?.paymentMethod ??
+            payment.method ??
+            payment.brand ??
+            payment.type ??
+            raw.paymentMethod ??
+            raw.payment_type ??
+            '',
+        reference:
+            payment.reference ??
+            payment.id ??
+            payment.intentId ??
+            payment.transactionId ??
+            raw.paymentReference ??
+            raw.paymentIntentId ??
+            '',
+    };
+};
+
+const resolveTimeline = (order) => {
+    const raw = order?.raw ?? {};
+    const timeline = raw.timeline ?? raw.events ?? raw.history ?? raw.statusHistory ?? [];
+    if (!Array.isArray(timeline)) return [];
+    return timeline
+        .map((entry) => ({
+            label: entry.label ?? entry.status ?? entry.state ?? entry.title ?? entry.name ?? '',
+            timestamp: entry.time ?? entry.timestamp ?? entry.createdAt ?? entry.date ?? entry.updatedAt ?? '',
+            detail: entry.description ?? entry.note ?? entry.message ?? entry.details ?? '',
+        }))
+        .filter((entry) => entry.label || entry.timestamp || entry.detail);
+};
+
 export default function CustomerOrderDetails() {
     const { orderId } = useParams();
     const { token } = useAuth();
@@ -100,7 +169,7 @@ export default function CustomerOrderDetails() {
                 <p className={styles.kicker}>Order</p>
                 <h1>Order details unavailable</h1>
                 <p className={styles.subtitle}>Order details are not available for this account.</p>
-                <Link to="/my-page" className={styles.primaryButton}>Back</Link>
+                <Link to="/account" className={styles.primaryButton}>Back</Link>
             </div>
         );
     }
@@ -113,7 +182,7 @@ export default function CustomerOrderDetails() {
         return (
             <div className={styles.card}>
                 <p className={styles.error} role="alert">{error}</p>
-                <Link to="/my-page/orders" className={styles.secondaryButton}>Back</Link>
+                <Link to="/account/orders" className={styles.secondaryButton}>Back</Link>
             </div>
         );
     }
@@ -122,6 +191,17 @@ export default function CustomerOrderDetails() {
 
     const primaryAction = resolveOrderPrimaryAction(order.status, { hasTracking: Boolean(order?.trackingUrl) });
     const shouldShowPaymentAction = ['continue-payment', 'retry-payment'].includes(primaryAction.type);
+    const totals = resolveTotals(order);
+    const paymentInfo = resolvePaymentInfo(order);
+    const timeline = resolveTimeline(order);
+    const totalsRows = [
+        { label: 'Subtotal', value: totals.subtotal },
+        { label: 'Shipping', value: totals.shipping },
+        { label: 'Tax', value: totals.tax },
+        { label: 'Discount', value: totals.discount },
+        { label: 'Total', value: totals.total },
+    ];
+    const shouldShowTotals = totalsRows.some((row) => row.value != null);
 
     return (
         <div className={styles.card}>
@@ -175,6 +255,45 @@ export default function CustomerOrderDetails() {
                 </div>
             </div>
 
+            <div className={styles.detailGrid}>
+                <div className={styles.detailCard}>
+                    <h3>Totals</h3>
+                    {shouldShowTotals ? (
+                        <dl className={styles.totalsList}>
+                            {totalsRows.map((row) => (
+                                <div key={row.label} className={styles.totalsRow}>
+                                    <dt>{row.label}</dt>
+                                    <dd>
+                                        {row.value != null
+                                            ? formatCurrency(row.value, totals.currency)
+                                            : '—'}
+                                    </dd>
+                                </div>
+                            ))}
+                        </dl>
+                    ) : (
+                        <p className={styles.value}>Totals are not available yet.</p>
+                    )}
+                </div>
+                <div className={styles.detailCard}>
+                    <h3>Payment</h3>
+                    <dl className={styles.totalsList}>
+                        <div className={styles.totalsRow}>
+                            <dt>Status</dt>
+                            <dd>{paymentInfo.status ? mapOrderStatus(paymentInfo.status).label : '—'}</dd>
+                        </div>
+                        <div className={styles.totalsRow}>
+                            <dt>Method</dt>
+                            <dd>{paymentInfo.method || '—'}</dd>
+                        </div>
+                        <div className={styles.totalsRow}>
+                            <dt>Reference</dt>
+                            <dd>{paymentInfo.reference || '—'}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
             <div className={styles.items}>
                 <h3>Items</h3>
                 {!order.items?.length ? (
@@ -212,6 +331,25 @@ export default function CustomerOrderDetails() {
                 </div>
             ) : null}
 
+            {timeline.length ? (
+                <div className={styles.timeline}>
+                    <h3>Timeline</h3>
+                    <ul className={styles.timelineList}>
+                        {timeline.map((entry, index) => (
+                            <li key={`${entry.label}-${entry.timestamp}-${index}`} className={styles.timelineItem}>
+                                <div>
+                                    <p className={styles.timelineLabel}>{entry.label || 'Update'}</p>
+                                    {entry.detail ? <p className={styles.timelineDetail}>{entry.detail}</p> : null}
+                                </div>
+                                <span className={styles.timelineTime}>
+                                    {entry.timestamp ? new Date(entry.timestamp).toLocaleString() : '—'}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            ) : null}
+
             <div className={styles.actions}>
                 {shouldShowPaymentAction ? (
                     <button
@@ -223,8 +361,8 @@ export default function CustomerOrderDetails() {
                         {loadingId === order.id ? 'Opening payment…' : primaryAction.label}
                     </button>
                 ) : null}
-                <Link to="/my-page/orders" className={styles.secondaryButton}>Back to orders</Link>
-                <Link to="/my-page" className={styles.primaryButton}>Back to account</Link>
+                <Link to="/account/orders" className={styles.secondaryButton}>Back to orders</Link>
+                <Link to="/account" className={styles.primaryButton}>Back to account</Link>
             </div>
             {paymentError ? (
                 <div className={styles.error} role="alert">

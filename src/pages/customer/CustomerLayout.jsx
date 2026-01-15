@@ -86,11 +86,11 @@ export default function CustomerLayout() {
     const headline = 'My Account';
     const subhead = 'Manage your account details and orders in one place.';
     const navItems = [
-        { to: '/my-page', label: 'Overview', end: true },
-        { to: '/my-page/orders', label: 'Orders' },
-        { to: '/my-page/addresses', label: 'Addresses' },
-        { to: '/my-page/settings', label: 'Settings' },
-        { to: '/my-page/security', label: 'Security' },
+        { to: '/account', label: 'Overview', end: true },
+        { to: '/account/orders', label: 'Orders' },
+        { to: '/account/addresses', label: 'Addresses' },
+        { to: '/account/settings', label: 'Settings' },
+        { to: '/account/security', label: 'Security' },
     ];
     const activeLabel =
         navItems.find((item) => (item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)))
