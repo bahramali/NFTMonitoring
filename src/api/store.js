@@ -1,4 +1,4 @@
-import { parseApiResponse, parseApiResponseWithMeta } from './http.js';
+import { authFetch, parseApiResponse, parseApiResponseWithMeta } from './http.js';
 
 import { getApiBaseUrl } from '../config/apiBase.js';
 
@@ -135,7 +135,7 @@ export async function createCheckoutSession(cartId, payload = {}, { signal } = {
 
 export async function createStripeCheckoutSession(cartId, sessionId, payload = {}, { signal } = {}) {
     if (!cartId) throw new Error('Cart ID is required');
-    const res = await fetch(`${STORE_BASE}/checkout/stripe/session`, {
+    const res = await authFetch(`${STORE_BASE}/checkout/stripe/session`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
