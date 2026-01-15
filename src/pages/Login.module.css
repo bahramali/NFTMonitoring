@@ -96,6 +96,18 @@
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
 }
 
+.forgotLink {
+    align-self: flex-end;
+    font-size: 0.85rem;
+    color: #4f46e5;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.forgotLink:hover {
+    text-decoration: underline;
+}
+
 .error {
     background: #fef2f2;
     color: #b91c1c;
@@ -208,6 +220,10 @@
     .input:focus {
         border-color: rgba(59, 130, 246, 0.8);
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+    }
+
+    .forgotLink {
+        color: #a5b4fc;
     }
 
     .divider {
