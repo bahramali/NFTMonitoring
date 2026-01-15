@@ -32,6 +32,7 @@ import Note from './pages/Note/index.jsx';
 import SensorConfig from './pages/SensorConfig/index.jsx';
 import ShellyControlPage from './pages/ShellyControl/index.jsx';
 import AcceptInvite from './pages/AcceptInvite.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import AuthCallback from './pages/AuthCallback.jsx';
 import StoreLayout from './components/store/StoreLayout.jsx';
@@ -115,6 +116,7 @@ function AppRoutes() {
                     <Route path="/auth/accept-invite" element={<AcceptInvite />} />
                     <Route path="/auth/accept-invite/:token" element={<AcceptInvite />} />
                     <Route path="/auth/callback" element={<AuthCallback />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                 </Route>
 

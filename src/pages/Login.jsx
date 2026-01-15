@@ -188,7 +188,7 @@ export default function Login() {
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
                     />
-                    <Link className={styles.forgotLink} to="/reset-password">
+                    <Link className={styles.forgotLink} to="/forgot-password">
                         Forgot your password?
                     </Link>
 
