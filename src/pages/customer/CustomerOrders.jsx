@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
 import styles from './CustomerOrders.module.css';
 import { formatCurrency } from '../../utils/currency.js';
@@ -14,15 +14,27 @@ export default function CustomerOrders() {
     const { ordersState, loadOrders } = useOutletContext();
     const [localError, setLocalError] = useState(null);
 
+    const handleLoadOrders = useCallback(
+        (options = {}) =>
+            loadOrders(options).catch((error) => {
+                if (error?.name === 'AbortError') return;
+                setLocalError(error?.message || 'Failed to load orders');
+            }),
+        [loadOrders],
+    );
+
     useEffect(() => {
         if (ordersState.supported === false) return undefined;
         const controller = new AbortController();
-        loadOrders({ signal: controller.signal }).catch((error) => {
-            if (error?.name === 'AbortError') return;
-            setLocalError(error?.message || 'Failed to load orders');
-        });
+        setLocalError(null);
+        handleLoadOrders({ signal: controller.signal });
         return () => controller.abort();
-    }, [loadOrders, ordersState.supported]);
+    }, [handleLoadOrders, ordersState.supported]);
+
+    const handleRetry = () => {
+        setLocalError(null);
+        handleLoadOrders();
+    };
 
     const sortedOrders = useMemo(
         () =>
@@ -55,21 +67,34 @@ export default function CustomerOrders() {
                 <div>
                     <p className={styles.kicker}>Orders</p>
                     <h1>My orders</h1>
-                    <p className={styles.subtitle}>Recent orders placed in the store.</p>
+                    <p className={styles.subtitle}>Recent orders placed in the store</p>
                 </div>
-                <Link to="/my-page" className={styles.secondaryButton}>Back</Link>
             </div>
 
-            {ordersState.loading && <div className={styles.loading}>Loading orders…</div>}
-            {localError || ordersState.error ? (
+            {ordersState.loading ? (
+                <div className={styles.loading} aria-live="polite" aria-label="Loading orders">
+                    {[...Array(3)].map((_, index) => (
+                        <div key={`skeleton-${index}`} className={styles.skeletonCard}>
+                            <div className={styles.skeletonRow} />
+                            <div className={styles.skeletonRowShort} />
+                        </div>
+                    ))}
+                </div>
+            ) : null}
+
+            {!ordersState.loading && (localError || ordersState.error) ? (
                 <div className={styles.error} role="alert">
-                    {localError || ordersState.error}
+                    <p className={styles.errorMessage}>{localError || ordersState.error}</p>
+                    <button type="button" className={styles.retryButton} onClick={handleRetry}>
+                        Retry
+                    </button>
                 </div>
             ) : null}
 
             {!ordersState.loading && sortedOrders.length === 0 && !localError && !ordersState.error ? (
                 <div className={styles.empty}>
-                    <p>No orders found.</p>
+                    <p>You haven’t placed any orders yet</p>
+                    <Link className={styles.primaryButton} to="/store">Go to Store</Link>
                 </div>
             ) : null}
 
