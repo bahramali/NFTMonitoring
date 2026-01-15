@@ -46,7 +46,7 @@ export async function fetchSessionProfile(token, { signal } = {}) {
 }
 
 export async function fetchSessionProfileWithCredentials({ signal } = {}) {
-    const res = await fetch(PROFILE_URL, {
+    const res = await authFetch(PROFILE_URL, {
         credentials: 'include',
         signal,
     });
@@ -55,7 +55,7 @@ export async function fetchSessionProfileWithCredentials({ signal } = {}) {
 }
 
 export async function refreshAccessToken({ signal } = {}) {
-    const res = await fetch(`${AUTH_BASE}/refresh`, {
+    const res = await authFetch(`${AUTH_BASE}/refresh`, {
         method: 'POST',
         credentials: 'include',
         signal,
@@ -65,7 +65,7 @@ export async function refreshAccessToken({ signal } = {}) {
 }
 
 export async function logoutSession({ signal } = {}) {
-    const res = await fetch(`${AUTH_BASE}/logout`, {
+    const res = await authFetch(`${AUTH_BASE}/logout`, {
         method: 'POST',
         credentials: 'include',
         signal,
