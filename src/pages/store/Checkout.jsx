@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { createCustomerAddress, fetchCustomerAddresses } from '../../api/customerAddresses.js';
+import { createCustomerAddress, fetchCustomerAddresses, setDefaultCustomerAddress } from '../../api/customerAddresses.js';
 import { fetchCustomerProfile } from '../../api/customer.js';
 import { createStripeCheckoutSession } from '../../api/store.js';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -269,14 +269,33 @@ export default function Checkout() {
         try {
             if (isAuthenticated && token && addressMode === 'new' && saveNewAddress) {
                 try {
+                    const isFirstAddress = addresses.length === 0;
                     const payload = toAddressPayload(form);
                     const created = await createCustomerAddress(token, payload, { onUnauthorized: redirectToLogin });
                     if (created) {
                         const normalized = normalizeAddress(created);
                         if (normalized?.id) {
+                            if (isFirstAddress) {
+                                normalized.isDefault = true;
+                            }
                             setAddresses((prev) => [...prev, normalized]);
                             setSelectedAddressId(normalized.id);
                             setAddressMode('saved');
+                            if (isFirstAddress) {
+                                try {
+                                    await setDefaultCustomerAddress(token, normalized.id, { onUnauthorized: redirectToLogin });
+                                    setAddresses((prev) => prev.map((address) => ({
+                                        ...address,
+                                        isDefault: String(address.id) === String(normalized.id),
+                                    })));
+                                } catch (defaultError) {
+                                    if (defaultError?.isUnsupported) {
+                                        setAddressError('Address book is not enabled yet.');
+                                    } else {
+                                        setAddressError(defaultError?.message || 'Unable to set a default address.');
+                                    }
+                                }
+                            }
                         }
                     }
                 } catch (err) {
