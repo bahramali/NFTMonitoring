@@ -47,8 +47,8 @@ export default function Home() {
                     </p>
                     <div className={styles.heroActions}>
                         <Link to="/store" className={styles.ctaPrimary}>Shop the store</Link>
-                        <Link to="/about" className={styles.ctaSecondary}>Why HydroLeaf</Link>
                     </div>
+                    <Link to="/about" className={styles.heroLink}>Why HydroLeaf</Link>
                 </div>
                 <div className={styles.heroCard}>
                     <h2>Designed for growers</h2>
