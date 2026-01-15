@@ -1,14 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
+import OrderCard from '../../components/orders/OrderCard.jsx';
 import styles from './CustomerOrders.module.css';
-import { formatCurrency } from '../../utils/currency.js';
-
-const statusTone = (status) => {
-    const normalized = String(status || '').toUpperCase();
-    if (['PAID', 'COMPLETED', 'FULFILLED'].includes(normalized)) return styles.statusPositive;
-    if (['CANCELLED', 'FAILED'].includes(normalized)) return styles.statusNegative;
-    return styles.statusNeutral;
-};
 
 export default function CustomerOrders() {
     const { ordersState, loadOrders } = useOutletContext();
@@ -74,26 +67,18 @@ export default function CustomerOrders() {
             ) : null}
 
             <div className={styles.list}>
-                {sortedOrders.map((order) => (
-                    <Link key={order.id} to={`/my-page/orders/${encodeURIComponent(order.id)}`} className={styles.order}>
-                        <div>
-                            <p className={styles.orderId}>Order ID: {order.id}</p>
-                            <p className={styles.orderMeta}>
-                                Placed on
-                                {' '}
-                                {order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}
-                            </p>
-                        </div>
-                        <div className={styles.orderStatus}>
-                            <span className={`${styles.statusBadge} ${statusTone(order.status)}`}>
-                                {order.status || 'Unknown'}
-                            </span>
-                            <span className={styles.total}>
-                                {order.total != null ? formatCurrency(order.total, order.currency) : '—'}
-                            </span>
-                        </div>
-                    </Link>
-                ))}
+                {sortedOrders.map((order) => {
+                    const orderLink = `/my-page/orders/${encodeURIComponent(order.id)}`;
+                    return (
+                        <OrderCard
+                            key={order.id}
+                            order={order}
+                            primaryActionLabel="Track order"
+                            primaryActionTo={orderLink}
+                            detailsTo={orderLink}
+                        />
+                    );
+                })}
             </div>
         </div>
     );

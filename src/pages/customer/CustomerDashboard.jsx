@@ -3,16 +3,9 @@ import { Link, useOutletContext } from 'react-router-dom';
 import { fetchCustomerAddresses } from '../../api/customerAddresses.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import usePasswordReset from '../../hooks/usePasswordReset.js';
-import { formatCurrency } from '../../utils/currency.js';
 import { extractAddressList, formatAddressLine, normalizeAddress } from './addressUtils.js';
+import OrderCard from '../../components/orders/OrderCard.jsx';
 import styles from './CustomerDashboard.module.css';
-
-const statusTone = (status) => {
-    const normalized = String(status || '').toUpperCase();
-    if (['PAID', 'COMPLETED', 'FULFILLED'].includes(normalized)) return styles.statusPositive;
-    if (['CANCELLED', 'FAILED'].includes(normalized)) return styles.statusNegative;
-    return styles.statusNeutral;
-};
 
 export default function CustomerDashboard() {
     const { logout, token } = useAuth();
@@ -173,28 +166,18 @@ export default function CustomerDashboard() {
                         ) : null}
 
                         <div className={styles.orderList}>
-                            {sortedOrders.slice(0, 3).map((order) => (
-                                <Link
-                                    key={order.id}
-                                    to={`/my-page/orders/${encodeURIComponent(order.id)}`}
-                                    className={styles.order}
-                                >
-                                    <div>
-                                        <p className={styles.orderId}>Order {order.id}</p>
-                                        <p className={styles.orderMeta}>
-                                            {order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}
-                                        </p>
-                                    </div>
-                                    <div className={styles.orderStatus}>
-                                        <span className={`${styles.statusBadge} ${statusTone(order.status)}`}>
-                                            {order.status || 'Unknown'}
-                                        </span>
-                                        <span className={styles.total}>
-                                            {order.total != null ? formatCurrency(order.total, order.currency) : '—'}
-                                        </span>
-                                    </div>
-                                </Link>
-                            ))}
+                            {sortedOrders.slice(0, 3).map((order) => {
+                                const orderLink = `/my-page/orders/${encodeURIComponent(order.id)}`;
+                                return (
+                                    <OrderCard
+                                        key={order.id}
+                                        order={order}
+                                        primaryActionLabel="Track order"
+                                        primaryActionTo={orderLink}
+                                        detailsTo={orderLink}
+                                    />
+                                );
+                            })}
                         </div>
                     </>
                 )}
