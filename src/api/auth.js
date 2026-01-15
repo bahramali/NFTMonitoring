@@ -55,11 +55,15 @@ export async function fetchSessionProfileWithCredentials({ signal } = {}) {
 }
 
 export async function refreshAccessToken({ signal } = {}) {
-    const res = await authFetch(`${AUTH_BASE}/refresh`, {
-        method: 'POST',
-        credentials: 'include',
-        signal,
-    });
+    const res = await authFetch(
+        `${AUTH_BASE}/refresh`,
+        {
+            method: 'POST',
+            credentials: 'include',
+            signal,
+        },
+        { retry: false, token: false },
+    );
 
     return parseApiResponse(res, 'Failed to refresh session');
 }
