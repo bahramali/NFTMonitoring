@@ -5,6 +5,7 @@ import styles from './Login.module.css';
 import { getDefaultRouteForUser } from '../utils/roleRoutes.js';
 import OAuthButton from '../components/OAuthButton.jsx';
 import { fetchOAuthProviders, startGoogleSignIn } from '../api/auth.js';
+import { isValidEmail } from '../utils/validation.js';
 
 export default function Login() {
     const { isAuthenticated, login, role, roles, permissions, authNotice, clearAuthNotice } = useAuth();
@@ -14,6 +15,7 @@ export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
     const [oauthError, setOauthError] = useState('');
     const [oauthLoading, setOauthLoading] = useState(false);
     const [oauthProviders, setOauthProviders] = useState(null);
@@ -125,6 +127,30 @@ export default function Login() {
     const handleSubmit = async (event) => {
         event.preventDefault();
         clearAuthNotice();
+        setError('');
+
+        const trimmedEmail = email.trim();
+        const trimmedPassword = password.trim();
+        const nextErrors = {};
+
+        if (!trimmedEmail) {
+            nextErrors.email = 'Email is required.';
+        } else if (!isValidEmail(trimmedEmail)) {
+            nextErrors.email = 'Enter a valid email address.';
+        }
+
+        if (!trimmedPassword) {
+            nextErrors.password = 'Password is required.';
+        }
+
+        if (Object.keys(nextErrors).length > 0) {
+            setFieldErrors(nextErrors);
+            return;
+        }
+        if (Object.keys(fieldErrors).length > 0) {
+            setFieldErrors({});
+        }
+
         const result = await login(email, password);
         if (!result.success) {
             setError(result.message || 'Login failed. Please verify your credentials.');
@@ -171,23 +197,51 @@ export default function Login() {
                     <label className={styles.label} htmlFor="email">Email</label>
                     <input
                         id="email"
-                        className={styles.input}
+                        className={`${styles.input} ${fieldErrors.email ? styles.inputError : ''}`}
                         type="email"
                         value={email}
-                        onChange={(event) => setEmail(event.target.value)}
+                        onChange={(event) => {
+                            setEmail(event.target.value);
+                            if (fieldErrors.email) {
+                                setFieldErrors((prev) => ({ ...prev, email: '' }));
+                            }
+                            if (error) setError('');
+                        }}
                         required
+                        autoComplete="email"
+                        aria-invalid={Boolean(fieldErrors.email)}
+                        aria-describedby={fieldErrors.email ? 'email-error' : undefined}
                     />
+                    {fieldErrors.email && (
+                        <span className={styles.fieldError} id="email-error" role="alert">
+                            {fieldErrors.email}
+                        </span>
+                    )}
 
                     <label className={styles.label} htmlFor="password">
                         Password
                     </label>
                     <input
                         id="password"
-                        className={styles.input}
+                        className={`${styles.input} ${fieldErrors.password ? styles.inputError : ''}`}
                         type="password"
                         value={password}
-                        onChange={(event) => setPassword(event.target.value)}
+                        onChange={(event) => {
+                            setPassword(event.target.value);
+                            if (fieldErrors.password) {
+                                setFieldErrors((prev) => ({ ...prev, password: '' }));
+                            }
+                            if (error) setError('');
+                        }}
+                        autoComplete="current-password"
+                        aria-invalid={Boolean(fieldErrors.password)}
+                        aria-describedby={fieldErrors.password ? 'password-error' : undefined}
                     />
+                    {fieldErrors.password && (
+                        <span className={styles.fieldError} id="password-error" role="alert">
+                            {fieldErrors.password}
+                        </span>
+                    )}
                     <Link className={styles.forgotLink} to="/forgot-password">
                         Forgot your password?
                     </Link>

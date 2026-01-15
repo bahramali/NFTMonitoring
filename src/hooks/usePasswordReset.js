@@ -1,8 +1,7 @@
-import { getApiBaseUrl } from '../config/apiBase.js';
 import { useEffect, useRef, useState } from 'react';
+import { requestPasswordReset } from '../api/auth.js';
 
 const RESET_COOLDOWN_MS = 8000;
-const API_BASE = getApiBaseUrl();
 
 export default function usePasswordReset({ token } = {}) {
     const [resetState, setResetState] = useState({ status: 'idle', message: '' });
@@ -23,25 +22,7 @@ export default function usePasswordReset({ token } = {}) {
         setResetState({ status: 'sending', message: '' });
         setResetError('');
         try {
-            const res = await fetch(`${API_BASE}/api/auth/password-reset`, {
-                method: 'POST',
-                headers: {
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                },
-            });
-            if (!res.ok) {
-                let errorMessage = 'Could not start password reset. Please try again.';
-                const contentType = res.headers.get('content-type') || '';
-                if (contentType.includes('application/json')) {
-                    const body = await res.json().catch(() => null);
-                    if (body?.message) {
-                        errorMessage = body.message;
-                    }
-                }
-                setResetState({ status: 'error', message: '' });
-                setResetError(errorMessage);
-                return;
-            }
+            await requestPasswordReset({ token });
             setResetState({ status: 'sent', message: 'Reset link sent to your email' });
             setResetCooldown(true);
             resetTimerRef.current = window.setTimeout(() => {
