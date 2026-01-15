@@ -53,7 +53,7 @@ export default function ResetPassword() {
         if (status === 'invalid') {
             return (
                 <div className={`${styles.notice} ${styles.noticeError}`}>
-                    {feedback || 'This reset link is invalid or has expired. Please request a new one.'}
+                    {feedback || 'Invalid or expired link. Please request a new password reset.'}
                 </div>
             );
         }
@@ -61,7 +61,7 @@ export default function ResetPassword() {
         if (status === 'success') {
             return (
                 <div className={`${styles.notice} ${styles.noticeSuccess}`}>
-                    Your password has been updated. You can now <Link to="/login">sign in</Link> with your new password.
+                    Password reset successful. You can now <Link to="/login">sign in</Link> with your new password.
                 </div>
             );
         }
