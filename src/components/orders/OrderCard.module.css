@@ -38,16 +38,28 @@
     letter-spacing: 0.04em;
 }
 
-.statusPositive {
+.statusSuccess {
     background: rgba(34, 197, 94, 0.15);
     color: #15803d;
     border: 1px solid rgba(34, 197, 94, 0.4);
 }
 
-.statusNegative {
+.statusDanger {
     background: rgba(248, 113, 113, 0.15);
     color: #b91c1c;
     border: 1px solid rgba(248, 113, 113, 0.4);
+}
+
+.statusWarning {
+    background: rgba(250, 204, 21, 0.18);
+    color: #92400e;
+    border: 1px solid rgba(250, 204, 21, 0.45);
+}
+
+.statusInfo {
+    background: rgba(56, 189, 248, 0.18);
+    color: #0369a1;
+    border: 1px solid rgba(56, 189, 248, 0.45);
 }
 
 .statusNeutral {

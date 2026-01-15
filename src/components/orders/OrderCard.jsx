@@ -1,13 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '../../utils/currency.js';
+import { mapOrderStatus, resolveOrderPrimaryAction } from '../../utils/orderStatus.js';
 import styles from './OrderCard.module.css';
 
-const statusTone = (status) => {
-    const normalized = String(status || '').toUpperCase();
-    if (['PAID', 'COMPLETED', 'FULFILLED'].includes(normalized)) return styles.statusPositive;
-    if (['CANCELLED', 'FAILED'].includes(normalized)) return styles.statusNegative;
-    return styles.statusNeutral;
+const statusVariantStyles = {
+    success: styles.statusSuccess,
+    warning: styles.statusWarning,
+    info: styles.statusInfo,
+    danger: styles.statusDanger,
+    neutral: styles.statusNeutral,
 };
 
 const shortenOrderId = (orderId) => {
@@ -44,7 +46,7 @@ const resolveDeliveryType = (order) =>
 
 export default function OrderCard({
     order,
-    primaryActionLabel = 'Track order',
+    primaryActionLabel,
     primaryActionTo,
     detailsTo,
     className = '',
@@ -53,12 +55,16 @@ export default function OrderCard({
     const labelId = shortenOrderId(orderId);
     const placedAt = order?.createdAt ? new Date(order.createdAt).toLocaleString() : '—';
     const status = order?.status || 'Unknown';
+    const statusMeta = mapOrderStatus(status);
+    const badgeClassName = statusVariantStyles[statusMeta.badgeVariant] ?? styles.statusNeutral;
+    const primaryAction = resolveOrderPrimaryAction(status, { hasTracking: Boolean(order?.trackingUrl) });
     const total = order?.total != null ? formatCurrency(order.total, order.currency) : '—';
     const itemCount = resolveItemsCount(order);
     const paymentMethod = resolvePaymentMethod(order);
     const deliveryType = resolveDeliveryType(order);
     const detailsHref = detailsTo || primaryActionTo || '#';
     const primaryHref = primaryActionTo || detailsHref;
+    const actionLabel = primaryActionLabel ?? primaryAction.label;
 
     return (
         <article className={`${styles.card} ${className}`}>
@@ -67,7 +73,7 @@ export default function OrderCard({
                     <p className={styles.orderLabel}>Order #{labelId}</p>
                     <p className={styles.placedAt}>Placed {placedAt}</p>
                 </div>
-                <span className={`${styles.statusBadge} ${statusTone(status)}`}>{status}</span>
+                <span className={`${styles.statusBadge} ${badgeClassName}`}>{statusMeta.label}</span>
             </header>
 
             <section className={styles.summary}>
@@ -97,7 +103,7 @@ export default function OrderCard({
 
             <footer className={styles.actions}>
                 <Link to={primaryHref} className={styles.primaryButton}>
-                    {primaryActionLabel}
+                    {actionLabel}
                 </Link>
                 <Link to={detailsHref} className={styles.secondaryLink}>
                     View details

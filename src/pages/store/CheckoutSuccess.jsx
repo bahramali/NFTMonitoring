@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { fetchStoreOrderBySession } from '../../api/store.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
+import { mapOrderStatus } from '../../utils/orderStatus.js';
 import styles from './CheckoutReturn.module.css';
 
 const resolveOrderStatus = (order) => (
@@ -126,6 +127,7 @@ export default function CheckoutSuccess() {
     const isPaid = isPaidStatus(status);
     const isFailed = isFailedStatus(status);
     const isPending = isPendingStatus(status) || notFound;
+    const statusLabel = mapOrderStatus(status).label;
     const title = isPaid
         ? 'Order confirmed'
         : isFailed
@@ -163,7 +165,7 @@ export default function CheckoutSuccess() {
                     <div className={styles.statusRow}>
                         <span className={styles.statusLabel}>Status</span>
                         <span className={styles.statusValue}>
-                            {loading ? 'Loading…' : isPending ? 'Processing' : status}
+                            {loading ? 'Loading…' : isPending ? 'Processing' : statusLabel}
                         </span>
                     </div>
                     {loading ? <p className={styles.statusMessage}>Fetching latest status…</p> : null}

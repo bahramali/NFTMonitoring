@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { fetchOrderStatus } from '../../api/store.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import { formatCurrency } from '../../utils/currency.js';
+import { mapOrderStatus } from '../../utils/orderStatus.js';
 import styles from './PaymentReturn.module.css';
 
 const resolveOrderStatus = (order) => (
@@ -102,6 +103,7 @@ export default function PaymentSuccess() {
     const status = resolveOrderStatus(order);
     const isPaid = isPaidStatus(status);
     const isPending = isPendingStatus(status);
+    const statusLabel = mapOrderStatus(status).label;
     const items = resolveOrderItems(order);
     const totals = resolveTotals(order);
     const currency = totals.currency || 'SEK';
@@ -142,7 +144,7 @@ export default function PaymentSuccess() {
                     <div className={styles.statusRow}>
                         <span className={styles.statusLabel}>Order status</span>
                         <span className={styles.statusValue}>
-                            {loading ? 'Loading…' : status}
+                            {loading ? 'Loading…' : statusLabel}
                         </span>
                     </div>
                     {loading ? <p className={styles.loading}>Fetching latest status…</p> : null}

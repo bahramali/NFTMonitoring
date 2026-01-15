@@ -41,16 +41,28 @@
     font-size: 12px;
 }
 
-.statusPositive {
+.statusSuccess {
     background: rgba(52, 211, 153, 0.15);
     color: #16a34a;
     border: 1px solid rgba(52, 211, 153, 0.5);
 }
 
-.statusNegative {
+.statusDanger {
     background: rgba(248, 113, 113, 0.15);
     color: #ef4444;
     border: 1px solid rgba(248, 113, 113, 0.45);
+}
+
+.statusWarning {
+    background: rgba(251, 191, 36, 0.18);
+    color: #92400e;
+    border: 1px solid rgba(251, 191, 36, 0.45);
+}
+
+.statusInfo {
+    background: rgba(56, 189, 248, 0.18);
+    color: #0369a1;
+    border: 1px solid rgba(56, 189, 248, 0.45);
 }
 
 .statusNeutral {

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchOrderStatus } from '../../api/store.js';
+import { mapOrderStatus } from '../../utils/orderStatus.js';
 import styles from './PaymentReturn.module.css';
 
 export default function PaymentCancel() {
@@ -42,7 +43,7 @@ export default function PaymentCancel() {
                     {order?.status ? (
                         <div className={styles.statusRow}>
                             <span className={styles.statusLabel}>Order status</span>
-                            <span className={styles.statusValue}>{order.status}</span>
+                            <span className={styles.statusValue}>{mapOrderStatus(order.status).label}</span>
                         </div>
                     ) : null}
                     {error ? <p className={styles.error}>{error}</p> : null}

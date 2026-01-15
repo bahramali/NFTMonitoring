@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { fetchAdminCustomer } from '../../api/adminCustomers.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { formatCurrency } from '../../utils/currency.js';
+import { mapOrderStatus } from '../../utils/orderStatus.js';
 import styles from './CustomerDetails.module.css';
 
 const formatDate = (value) => {
@@ -146,7 +147,9 @@ export default function CustomerDetails() {
                                     <td>{formatDate(order.date)}</td>
                                     <td>{order.items || '—'}</td>
                                     <td>
-                                        <span className={styles.orderStatus}>{order.status || '—'}</span>
+                                        <span className={styles.orderStatus}>
+                                            {mapOrderStatus(order.status).label}
+                                        </span>
                                     </td>
                                     <td>{formatCurrency(order.total, order.currency || customer.currency || 'SEK')}</td>
                                 </tr>
