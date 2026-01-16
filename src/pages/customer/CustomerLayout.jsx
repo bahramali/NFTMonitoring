@@ -17,6 +17,8 @@ export default function CustomerLayout() {
         items: [],
         loading: false,
         error: null,
+        rateLimited: false,
+        hasFetched: false,
         lastFetched: null,
     });
 
@@ -26,13 +28,16 @@ export default function CustomerLayout() {
 
     const loadOrders = useCallback(
         async ({ silent = false, signal } = {}) => {
+            if (ordersState.rateLimited) {
+                return [];
+            }
             if (!token) return [];
             setOrdersState((previous) => ({ ...previous, loading: true, error: silent ? previous.error : null }));
 
             try {
                 const payload = await fetchMyOrders(token, { signal, onUnauthorized: redirectToLogin });
                 if (payload === null) {
-                    setOrdersState((previous) => ({ ...previous, loading: false }));
+                    setOrdersState((previous) => ({ ...previous, loading: false, hasFetched: true }));
                     return [];
                 }
                 const normalized = normalizeOrderList(payload);
@@ -41,6 +46,8 @@ export default function CustomerLayout() {
                     items: normalized,
                     loading: false,
                     error: null,
+                    rateLimited: false,
+                    hasFetched: true,
                     lastFetched: Date.now(),
                 });
                 return normalized;
@@ -49,12 +56,26 @@ export default function CustomerLayout() {
                     setOrdersState((previous) => ({ ...previous, loading: false }));
                     return [];
                 }
+                if (error?.status === 429) {
+                    setOrdersState((previous) => ({
+                        ...previous,
+                        supported: true,
+                        loading: false,
+                        error: 'Too many requests. Please try again later.',
+                        rateLimited: true,
+                        hasFetched: true,
+                        lastFetched: Date.now(),
+                    }));
+                    return [];
+                }
                 if (error?.isUnsupported) {
                     setOrdersState({
                         supported: false,
                         items: [],
                         loading: false,
                         error: null,
+                        rateLimited: false,
+                        hasFetched: true,
                         lastFetched: Date.now(),
                     });
                     return [];
@@ -63,11 +84,13 @@ export default function CustomerLayout() {
                     ...previous,
                     loading: false,
                     error: silent ? previous.error : error?.message || 'Failed to load orders',
+                    hasFetched: true,
+                    lastFetched: Date.now(),
                 }));
                 return [];
             }
         },
-        [redirectToLogin, token],
+        [ordersState.rateLimited, redirectToLogin, token],
     );
 
     const contextValue = useMemo(
