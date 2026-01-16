@@ -21,10 +21,10 @@ export default function CustomerDashboard() {
     });
 
     useEffect(() => {
-        if (ordersState.supported === null && !ordersState.loading) {
+        if (ordersState.supported === null && !ordersState.loading && !ordersState.hasFetched) {
             loadOrders({ silent: true }).catch(() => {});
         }
-    }, [loadOrders, ordersState.loading, ordersState.supported]);
+    }, [loadOrders, ordersState.hasFetched, ordersState.loading, ordersState.supported]);
 
     useEffect(() => {
         if (!token) return undefined;

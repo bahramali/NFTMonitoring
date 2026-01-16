@@ -19,12 +19,12 @@ export default function CustomerOrders() {
     );
 
     useEffect(() => {
-        if (ordersState.supported === false) return undefined;
+        if (ordersState.supported === false || ordersState.rateLimited || ordersState.hasFetched) return undefined;
         const controller = new AbortController();
         setLocalError(null);
         handleLoadOrders({ signal: controller.signal });
         return () => controller.abort();
-    }, [handleLoadOrders, ordersState.supported]);
+    }, []);
 
     const handleRetry = () => {
         setLocalError(null);
@@ -80,9 +80,11 @@ export default function CustomerOrders() {
             {!ordersState.loading && (localError || ordersState.error) ? (
                 <div className={styles.error} role="alert">
                     <p className={styles.errorMessage}>{localError || ordersState.error}</p>
-                    <button type="button" className={styles.retryButton} onClick={handleRetry}>
-                        Retry
-                    </button>
+                    {!ordersState.rateLimited ? (
+                        <button type="button" className={styles.retryButton} onClick={handleRetry}>
+                            Retry
+                        </button>
+                    ) : null}
                 </div>
             ) : null}
             {!ordersState.loading && paymentError ? (
