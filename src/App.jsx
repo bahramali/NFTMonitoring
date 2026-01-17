@@ -54,6 +54,7 @@ import Privacy from './pages/store/Privacy.jsx';
 import TimelapsePage from './pages/Timelapse/index.jsx';
 import PaymentSuccess from './pages/payment/PaymentSuccess.jsx';
 import PaymentCancel from './pages/payment/PaymentCancel.jsx';
+import WebRTCConnectivityTest from './pages/WebRTCConnectivityTest.jsx';
 import { useAuth } from './context/AuthContext.jsx';
 import { SensorConfigProvider } from './context/SensorConfigContext.jsx';
 import { PERMISSIONS, hasPerm } from './utils/permissions.js';
@@ -115,6 +116,7 @@ function AppRoutes() {
                 <Route element={<PublicLayout />}>
                     <Route path="/" element={<Home />} />
                     <Route path="/timelapse" element={<TimelapsePage />} />
+                    <Route path="/webrtc-test" element={<WebRTCConnectivityTest />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
                     <Route path="/not-authorized" element={<NotAuthorized />} />
