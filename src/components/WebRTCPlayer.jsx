@@ -37,6 +37,12 @@ const STATUS = {
     offline: "offline",
 };
 
+const CONNECTION_STATUS = {
+    connecting: "connecting",
+    connected: "connected",
+    failed: "failed",
+};
+
 export default function WebRTCPlayer({
     streamName = "stream",
     videoClassName = "",
@@ -48,6 +54,7 @@ export default function WebRTCPlayer({
     const localVideoRef = useRef(null);
     const videoRef = externalVideoRef || localVideoRef;
     const [, setStatus] = useState(STATUS.idle);
+    const [connectionStatus, setConnectionStatus] = useState(CONNECTION_STATUS.connecting);
     const onStatusChangeRef = useRef(onStatusChange);
     const onErrorRef = useRef(onError);
     const statusRef = useRef(STATUS.idle);
@@ -64,6 +71,10 @@ export default function WebRTCPlayer({
         setStatus(nextStatus);
         statusRef.current = nextStatus;
         onStatusChangeRef.current?.(nextStatus);
+    };
+
+    const updateConnectionStatus = (nextStatus) => {
+        setConnectionStatus(nextStatus);
     };
 
     useEffect(() => {
@@ -114,16 +125,21 @@ export default function WebRTCPlayer({
             const state = peerConnection.connectionState;
             if (state === "connected") {
                 updateStatus(STATUS.playing);
+                updateConnectionStatus(CONNECTION_STATUS.connected);
                 return;
             }
             if (state === "disconnected") {
                 updateStatus(STATUS.recovering);
+                updateConnectionStatus(CONNECTION_STATUS.connecting);
                 return;
             }
             if (state === "failed" || state === "closed") {
                 updateStatus(STATUS.offline);
+                updateConnectionStatus(CONNECTION_STATUS.failed);
                 onErrorRef.current?.("Live stream unavailable.");
+                return;
             }
+            updateConnectionStatus(CONNECTION_STATUS.connecting);
         };
 
         const handleIceState = () => {
@@ -131,18 +147,22 @@ export default function WebRTCPlayer({
             const state = peerConnection.iceConnectionState;
             if (state === "checking") {
                 updateStatus(STATUS.loading);
+                updateConnectionStatus(CONNECTION_STATUS.connecting);
                 return;
             }
             if (state === "connected" || state === "completed") {
                 updateStatus(STATUS.playing);
+                updateConnectionStatus(CONNECTION_STATUS.connected);
                 return;
             }
             if (state === "disconnected") {
                 updateStatus(STATUS.recovering);
+                updateConnectionStatus(CONNECTION_STATUS.connecting);
                 return;
             }
             if (state === "failed") {
                 updateStatus(STATUS.offline);
+                updateConnectionStatus(CONNECTION_STATUS.failed);
                 onErrorRef.current?.("Live stream unavailable.");
             }
         };
@@ -200,6 +220,7 @@ export default function WebRTCPlayer({
                     return;
                 }
                 updateStatus(STATUS.offline);
+                updateConnectionStatus(CONNECTION_STATUS.failed);
                 onErrorRef.current?.("Unable to load the camera stream.");
                 console.error("[WebRTCPlayer] Signaling failed.", error);
             }
@@ -218,6 +239,7 @@ export default function WebRTCPlayer({
         return () => {
             mounted = false;
             abortController.abort();
+            updateConnectionStatus(CONNECTION_STATUS.connecting);
             peerConnection.removeEventListener("track", handleTrackEvent);
             peerConnection.removeEventListener("connectionstatechange", handleConnectionState);
             peerConnection.removeEventListener("iceconnectionstatechange", handleIceState);
@@ -241,6 +263,17 @@ export default function WebRTCPlayer({
     return (
         <div className={wrapperClassName}>
             <video ref={videoRef} className={videoClassName} autoPlay playsInline muted />
+            <div
+                aria-live="polite"
+                style={{
+                    marginTop: "0.4rem",
+                    fontSize: "0.75rem",
+                    color: "#a5bfff",
+                    letterSpacing: "0.04em",
+                }}
+            >
+                Connection: {connectionStatus}
+            </div>
         </div>
     );
 }
