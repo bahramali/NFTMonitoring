@@ -7,11 +7,10 @@
 
 import { PERMISSIONS, hasPerm } from "../utils/permissions.js";
 
-const TIMELAPSE_BASE_URL = import.meta?.env?.VITE_TIMELAPSE_BASE_URL || "";
-const LIVE_HLS_BASE_URL =
-    import.meta?.env?.VITE_LIVE_HLS_BASE_URL ??
-    (import.meta?.env?.DEV ? import.meta?.env?.VITE_LIVE_HLS_BASE_URL_DEV : undefined) ??
-    "";
+const CAM_BASE_URL = import.meta?.env?.VITE_CAM_BASE_URL || "";
+const TIMELAPSE_BASE_URL = CAM_BASE_URL;
+const STREAM_MODE_RAW = import.meta?.env?.VITE_STREAM_MODE || "webrtc";
+const STREAM_MODE = STREAM_MODE_RAW.toLowerCase() === "hls" ? "hls" : "webrtc";
 
 const normalizeBaseUrl = (value) => value?.replace(/\/$/, "") ?? "";
 
@@ -31,7 +30,7 @@ export const buildLiveHlsUrl = ({ cameraId }) => {
     const liveBaseUrl = getCamBaseUrl();
     if (!liveBaseUrl) {
         throw new Error(
-            "Missing live HLS base URL. Set VITE_LIVE_HLS_BASE_URL (or VITE_LIVE_HLS_BASE_URL_DEV in dev)."
+            "Missing live HLS base URL. Set VITE_CAM_BASE_URL."
         );
     }
     if (!cameraId) {
