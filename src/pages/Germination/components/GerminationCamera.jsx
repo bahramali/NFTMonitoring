@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from "react";
 import styles from "./GerminationCamera.module.css";
-import { CAMERA_CONFIG, isAdminUser } from "../../../config/cameras";
+import { CAMERA_CONFIG, getStreamMode, isAdminUser } from "../../../config/cameras";
 import LiveHlsPlayer from "../../../components/LiveHlsPlayer.jsx";
+import WebRTCPlayer from "../../../components/WebRTCPlayer.jsx";
 import { useAuth } from "../../../context/AuthContext.jsx";
 
 const DEFAULT_GERMINATION_CAMERA_ID = "S2L4";
@@ -20,6 +21,7 @@ export default function GerminationCamera() {
     const [reloadKey, setReloadKey] = useState(0);
     const [streamStatus, setStreamStatus] = useState("idle");
     const [streamError, setStreamError] = useState("");
+    const streamMode = getStreamMode();
 
     const handleReload = () => {
         setReloadKey((key) => key + 1);
@@ -45,19 +47,34 @@ export default function GerminationCamera() {
                     <p>Live camera access is restricted to admins.</p>
                 </div>
             ) : camera ? (
-                <LiveHlsPlayer
-                    key={`${camera.id}-${reloadKey}`}
-                    cameraId={camera.id}
-                    reloadKey={reloadKey}
-                    videoClassName={styles.video}
-                    onStatusChange={(nextStatus) => {
-                        setStreamStatus(nextStatus);
-                        if (nextStatus === "playing") {
-                            setStreamError("");
-                        }
-                    }}
-                    onError={setStreamError}
-                />
+                streamMode === "hls" ? (
+                    <LiveHlsPlayer
+                        key={`${camera.id}-${reloadKey}`}
+                        cameraId={camera.id}
+                        reloadKey={reloadKey}
+                        videoClassName={styles.video}
+                        onStatusChange={(nextStatus) => {
+                            setStreamStatus(nextStatus);
+                            if (nextStatus === "playing") {
+                                setStreamError("");
+                            }
+                        }}
+                        onError={setStreamError}
+                    />
+                ) : (
+                    <WebRTCPlayer
+                        key={`${camera.id}-${reloadKey}`}
+                        streamName={camera.streamId || camera.id}
+                        videoClassName={styles.video}
+                        onStatusChange={(nextStatus) => {
+                            setStreamStatus(nextStatus);
+                            if (nextStatus === "playing") {
+                                setStreamError("");
+                            }
+                        }}
+                        onError={setStreamError}
+                    />
+                )
             ) : (
                 <div className={styles.video} />
             )}
