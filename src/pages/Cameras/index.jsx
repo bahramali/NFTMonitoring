@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./Cameras.module.css";
 import { CAMERA_CONFIG, isAdminUser } from "../../config/cameras";
 import PageHeader from "../../components/PageHeader.jsx";
-import LiveHlsPlayer from "../../components/LiveHlsPlayer.jsx";
+import WebRTCPlayer from "../../components/WebRTCPlayer.jsx";
 import TimelapseGallery from "../../components/TimelapseGallery.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 
@@ -231,10 +231,9 @@ export default function Cameras() {
                             <span>Timelapse videos remain available to all users.</span>
                         </div>
                     ) : canDisplayVideo ? (
-                        <LiveHlsPlayer
+                        <WebRTCPlayer
                             key={`${selectedCamera?.id}-${reloadKey}`}
-                            cameraId={selectedCamera?.id}
-                            reloadKey={reloadKey}
+                            streamName="CAM111_main"
                             videoClassName={styles.video}
                             wrapperClassName={styles.videoWrapper}
                             videoRef={videoRef}
