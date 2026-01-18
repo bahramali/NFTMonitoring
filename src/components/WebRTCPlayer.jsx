@@ -1,17 +1,22 @@
 import React, { useEffect, useRef, useState } from "react";
 
 const resolveSignalingBaseUrl = () => {
-    return (
-        import.meta.env.VITE_WEBRTC_SIGNALING_URL ||
-        import.meta.env.VITE_CAM_BASE_URL ||
-        ""
-    );
+    if (import.meta.env.REACT_APP_WEBRTC_SIGNALING_URL) {
+        return import.meta.env.REACT_APP_WEBRTC_SIGNALING_URL;
+    }
+    if (import.meta.env.VITE_MEDIAMTX_WEBRTC_ENDPOINT) {
+        return import.meta.env.VITE_MEDIAMTX_WEBRTC_ENDPOINT;
+    }
+    if (import.meta.env.DEV) {
+        return import.meta.env.VITE_MEDIAMTX_WEBRTC_ENDPOINT_DEV || "";
+    }
+    return "";
 };
 
 const buildSignalingUrl = (baseUrl, streamName) => {
     if (!baseUrl) {
         throw new Error(
-            "Missing WebRTC signaling base URL. Set VITE_WEBRTC_SIGNALING_URL (or VITE_CAM_BASE_URL).",
+            "Missing WebRTC signaling base URL. Set VITE_MEDIAMTX_WEBRTC_ENDPOINT (or VITE_MEDIAMTX_WEBRTC_ENDPOINT_DEV in dev).",
         );
     }
     const fallbackBase = baseUrl;
@@ -96,7 +101,7 @@ export default function WebRTCPlayer({
             updateStatus(STATUS.offline);
             updateConnectionStatus(CONNECTION_STATUS.failed);
             onErrorRef.current?.(
-                "WebRTC signaling base URL is not configured. Set VITE_WEBRTC_SIGNALING_URL (or VITE_CAM_BASE_URL).",
+                "WebRTC signaling base URL is not configured. Set VITE_MEDIAMTX_WEBRTC_ENDPOINT.",
             );
             return undefined;
         }
