@@ -9,11 +9,16 @@ function WebRTCConnectivityTest() {
 
     useEffect(() => {
         const peerConnection = new RTCPeerConnection();
+        const abortController = new AbortController();
 
         peerConnection.addTransceiver('video', { direction: 'recvonly' });
 
         const logConnectionState = () => {
             console.log('WebRTC connection state:', peerConnection.connectionState);
+        };
+
+        const logIceConnectionState = () => {
+            console.log('WebRTC ICE connection state:', peerConnection.iceConnectionState);
         };
 
         const attachStreamToVideo = (stream) => {
@@ -54,45 +59,62 @@ function WebRTCConnectivityTest() {
         };
 
         peerConnection.addEventListener('connectionstatechange', logConnectionState);
+        peerConnection.addEventListener('iceconnectionstatechange', logIceConnectionState);
         peerConnection.addEventListener('track', handleTrackEvent);
         peerConnection.addEventListener('addstream', handleLegacyStream);
 
         const runConnectivityTest = async () => {
-            console.log('Starting WebRTC connectivity test.');
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
+            try {
+                console.log('Starting WebRTC connectivity test.');
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
 
-            const response = await fetch(SIGNALING_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    type: peerConnection.localDescription?.type,
-                    sdp: peerConnection.localDescription?.sdp,
-                }),
-            });
+                const response = await fetch(SIGNALING_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        type: peerConnection.localDescription?.type,
+                        sdp: peerConnection.localDescription?.sdp,
+                    }),
+                    signal: abortController.signal,
+                });
 
-            let answerSdp = '';
-            let answerType = 'answer';
-            const contentType = response.headers.get('content-type') || '';
+                if (!response.ok) {
+                    throw new Error(
+                        `Signaling request failed with status ${response.status} ${response.statusText}`
+                    );
+                }
 
-            if (contentType.includes('application/json')) {
-                const data = await response.json();
-                answerSdp = data?.sdp || data?.answer || '';
-                answerType = data?.type || 'answer';
-            } else {
-                answerSdp = await response.text();
+                let answerSdp = '';
+                let answerType = 'answer';
+                const contentType = response.headers.get('content-type') || '';
+
+                if (contentType.includes('application/json')) {
+                    const data = await response.json();
+                    answerSdp = data?.sdp || data?.answer || '';
+                    answerType = data?.type || 'answer';
+                } else {
+                    answerSdp = await response.text();
+                }
+
+                if (!answerSdp) {
+                    console.warn('MediaMTX did not return an SDP answer.');
+                    return;
+                }
+
+                await peerConnection.setRemoteDescription(
+                    new RTCSessionDescription({ type: answerType, sdp: answerSdp })
+                );
+            } catch (error) {
+                if (error?.name === 'AbortError') {
+                    console.warn('WebRTC signaling request was aborted.');
+                    return;
+                }
+                console.error('WebRTC connectivity test failed during signaling.', error);
+                throw error;
             }
-
-            if (!answerSdp) {
-                console.warn('MediaMTX did not return an SDP answer.');
-                return;
-            }
-
-            await peerConnection.setRemoteDescription(
-                new RTCSessionDescription({ type: answerType, sdp: answerSdp })
-            );
         };
 
         runConnectivityTest().catch((error) => {
@@ -100,9 +122,27 @@ function WebRTCConnectivityTest() {
         });
 
         return () => {
+            abortController.abort();
             peerConnection.removeEventListener('connectionstatechange', logConnectionState);
+            peerConnection.removeEventListener('iceconnectionstatechange', logIceConnectionState);
             peerConnection.removeEventListener('track', handleTrackEvent);
             peerConnection.removeEventListener('addstream', handleLegacyStream);
+            streamRef.current?.getTracks?.().forEach((track) => {
+                track.stop();
+            });
+            peerConnection.getReceivers().forEach((receiver) => {
+                if (receiver.track) {
+                    receiver.track.stop();
+                }
+            });
+            peerConnection.getSenders().forEach((sender) => {
+                if (sender.track) {
+                    sender.track.stop();
+                }
+            });
+            if (videoRef.current) {
+                videoRef.current.srcObject = null;
+            }
             peerConnection.close();
         };
     }, []);
