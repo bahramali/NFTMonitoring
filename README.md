@@ -16,6 +16,27 @@ The application provides two main views in addition to the default dashboard:
 3. Run the development server with `npm run dev`.
 4. Execute tests with `npm test`.
 
+## Deploy test (Frontend)
+
+Run a repeatable build + preview check before deploy:
+
+```bash
+npm run build
+npm run preview
+```
+
+### Acceptance checklist
+
+- No WebRTC requests are sent to `localhost`.
+- WebRTC requests go to `https://cam.hydroleaf.se/v2/webrtc?path=...`.
+
+## WebRTC behind Cloudflare (Infra note)
+
+If signaling is ok but video never appears, the issue is likely ICE/UDP/TURN on the infrastructure side. Suggested fixes:
+
+- Provide a TURN server that is reachable from clients.
+- Or port-forward UDP to the media relay (when applicable).
+
 ## Environment variables
 
 ```
