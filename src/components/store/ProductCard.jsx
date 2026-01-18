@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import QuantityStepper from './QuantityStepper.jsx';
 import { formatCurrency } from '../../utils/currency.js';
 import {
@@ -14,6 +14,7 @@ import styles from './ProductCard.module.css';
 
 export default function ProductCard({ product, onAdd, pending = false, layout = 'grid' }) {
     const [quantity, setQuantity] = useState(1);
+    const navigate = useNavigate();
     const variants = useMemo(() => getActiveVariants(product), [product]);
     const defaultVariantId = useMemo(() => getDefaultVariantId(variants), [variants]);
     const [selectedVariantId, setSelectedVariantId] = useState(defaultVariantId);
@@ -64,9 +65,32 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
     const showMaxNotice = stockValue !== undefined && stockValue > 0 && quantity >= stockValue;
     const showVariantSelector = variants.length > 1;
     const useDropdown = variants.length > 4;
+    const detailHref = id ? `/store/product/${encodeURIComponent(id)}` : null;
+
+    const handleCardNavigate = (event) => {
+        if (!detailHref) return;
+        if (event.defaultPrevented) return;
+        const interactive = event.target.closest('a, button, input, select, textarea, [role="button"]');
+        if (interactive) return;
+        navigate(detailHref);
+    };
+
+    const handleCardKeyDown = (event) => {
+        if (!detailHref) return;
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        navigate(detailHref);
+    };
 
     return (
-        <article className={`${styles.card} ${layout === 'single' ? styles.cardSingle : ''}`}>
+        <article
+            className={`${styles.card} ${detailHref ? styles.cardClickable : ''} ${layout === 'single' ? styles.cardSingle : ''}`}
+            onClick={handleCardNavigate}
+            onKeyDown={handleCardKeyDown}
+            role={detailHref ? 'button' : undefined}
+            tabIndex={detailHref ? 0 : undefined}
+            aria-label={detailHref ? `View details for ${title}` : undefined}
+        >
             <div className={styles.media}>
                 {imageUrl ? (
                     <img src={imageUrl} alt={name} />
@@ -154,13 +178,15 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
                     </div>
 
                     <footer className={styles.footer}>
-                        <Link
-                            to={`/store/product/${encodeURIComponent(id)}`}
-                            className={styles.link}
-                            aria-label={`View details for ${title}`}
-                        >
-                            View details →
-                        </Link>
+                        {detailHref ? (
+                            <Link
+                                to={detailHref}
+                                className={styles.link}
+                                aria-label={`View details for ${title}`}
+                            >
+                                View details →
+                            </Link>
+                        ) : null}
                     </footer>
                 </div>
             </div>
