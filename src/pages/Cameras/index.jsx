@@ -151,35 +151,32 @@ export default function Cameras() {
     const hasStreamError = Boolean(streamError);
     const canDisplayVideo = Boolean(selectedCamera?.id) && isAdmin;
     const reloadDisabled = !canDisplayVideo;
+    const isConnecting =
+        streamStatus === "loading" ||
+        streamStatus === "idle" ||
+        streamStatus === "recovering" ||
+        streamStatus === "connecting";
     const statusState = !isAdmin
         ? "restricted"
         : isReloading
             ? "reloading"
             : streamStatus === "playing"
                 ? "playing"
-                : streamStatus === "recovering"
-                    ? "reloading"
-                    : streamStatus === "loading" || streamStatus === "idle"
-                        ? "loading"
-                        : hasStreamError
-                            ? "error"
-                            : "error";
+                : isConnecting
+                    ? "loading"
+                    : hasStreamError
+                        ? "error"
+                        : "error";
     const statusLabel = !isAdmin
         ? "Admins only"
-        : isReloading ||
-              streamStatus === "loading" ||
-              streamStatus === "idle" ||
-              streamStatus === "recovering"
+        : isReloading || isConnecting
             ? "Connecting"
             : streamStatus === "playing"
                 ? "Live"
                 : "Offline";
     const statusTone = !isAdmin
         ? "offline"
-        : isReloading ||
-              streamStatus === "loading" ||
-              streamStatus === "idle" ||
-              streamStatus === "recovering"
+        : isReloading || isConnecting
             ? "reconnecting"
             : streamStatus === "playing"
                 ? "online"
