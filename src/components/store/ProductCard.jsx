@@ -71,7 +71,7 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
         if (!detailHref) return;
         if (event.defaultPrevented) return;
         const interactive = event.target.closest('a, button, input, select, textarea, [role="button"]');
-        if (interactive) return;
+        if (interactive && interactive !== event.currentTarget) return;
         navigate(detailHref);
     };
 
