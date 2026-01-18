@@ -24,9 +24,11 @@ export const isAdminUser = (user) => {
 };
 
 export const getTimelapseBaseUrl = () => normalizeBaseUrl(TIMELAPSE_BASE_URL);
+export const getStreamMode = () => STREAM_MODE;
+export const getCamBaseUrl = () => normalizeBaseUrl(CAM_BASE_URL);
 
 export const buildLiveHlsUrl = ({ cameraId }) => {
-    const liveBaseUrl = normalizeBaseUrl(LIVE_HLS_BASE_URL);
+    const liveBaseUrl = getCamBaseUrl();
     if (!liveBaseUrl) {
         throw new Error(
             "Missing live HLS base URL. Set VITE_LIVE_HLS_BASE_URL (or VITE_LIVE_HLS_BASE_URL_DEV in dev)."
