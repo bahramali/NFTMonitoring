@@ -1,15 +1,42 @@
 import React, { useEffect, useRef } from 'react';
 
-const SIGNALING_URL =
-    import.meta.env.VITE_MEDIAMTX_WEBRTC_ENDPOINT || 'http://localhost:8889/v2/webrtc';
+const SIGNALING_BASE_URL =
+    import.meta.env.REACT_APP_WEBRTC_SIGNALING_URL ||
+    import.meta.env.VITE_MEDIAMTX_WEBRTC_ENDPOINT ||
+    'http://localhost:8889';
 
-function WebRTCConnectivityTest() {
+const buildSignalingUrl = (baseUrl, streamName) => {
+    const fallbackBase = baseUrl || 'http://localhost:8889';
+    const encodedStream = encodeURIComponent(streamName);
+
+    try {
+        const url = new URL(fallbackBase);
+        const hasWebRtcEndpoint = url.pathname.endsWith('/v2/webrtc');
+        if (!hasWebRtcEndpoint) {
+            const normalizedPath = url.pathname.endsWith('/')
+                ? url.pathname.slice(0, -1)
+                : url.pathname;
+            url.pathname = `${normalizedPath}/v2/webrtc`;
+        }
+        if (streamName) {
+            url.searchParams.set('path', streamName);
+        }
+        return url.toString();
+    } catch {
+        const normalizedBase = fallbackBase.replace(/\/$/, '');
+        const query = streamName ? `?path=${encodedStream}` : '';
+        return `${normalizedBase}/v2/webrtc${query}`;
+    }
+};
+
+function WebRTCConnectivityTest({ streamName = 'stream' }) {
     const videoRef = useRef(null);
     const streamRef = useRef(new MediaStream());
 
     useEffect(() => {
         const peerConnection = new RTCPeerConnection();
         const abortController = new AbortController();
+        const signalingUrl = buildSignalingUrl(SIGNALING_BASE_URL, streamName);
 
         peerConnection.addTransceiver('video', { direction: 'recvonly' });
 
@@ -69,7 +96,7 @@ function WebRTCConnectivityTest() {
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
 
-                const response = await fetch(SIGNALING_URL, {
+                const response = await fetch(signalingUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -145,7 +172,7 @@ function WebRTCConnectivityTest() {
             }
             peerConnection.close();
         };
-    }, []);
+    }, [streamName]);
 
     return (
         <div>
