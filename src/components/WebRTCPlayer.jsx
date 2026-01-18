@@ -1,18 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
+import styles from "./WebRTCPlayer.module.css";
 
 const resolveSignalingBaseUrl = () => {
-    return (
-        import.meta.env.VITE_WEBRTC_SIGNALING_URL ||
-        import.meta.env.VITE_CAM_BASE_URL ||
-        ""
-    );
+    return import.meta.env.VITE_WEBRTC_SIGNALING_URL || "";
 };
 
 const buildSignalingUrl = (baseUrl, streamName) => {
     if (!baseUrl) {
-        throw new Error(
-            "Missing WebRTC signaling base URL. Set VITE_WEBRTC_SIGNALING_URL (or VITE_CAM_BASE_URL).",
-        );
+        throw new Error("Missing WebRTC signaling base URL. Set VITE_WEBRTC_SIGNALING_URL.");
     }
     const fallbackBase = baseUrl;
     const encodedStream = encodeURIComponent(streamName || "");
@@ -38,17 +33,9 @@ const buildSignalingUrl = (baseUrl, streamName) => {
 };
 
 const STATUS = {
-    idle: "idle",
-    loading: "loading",
-    playing: "playing",
-    recovering: "recovering",
-    offline: "offline",
-};
-
-const CONNECTION_STATUS = {
     connecting: "connecting",
-    connected: "connected",
-    failed: "failed",
+    playing: "playing",
+    error: "error",
 };
 
 export default function WebRTCPlayer({
@@ -61,11 +48,10 @@ export default function WebRTCPlayer({
 }) {
     const localVideoRef = useRef(null);
     const videoRef = externalVideoRef || localVideoRef;
-    const [, setStatus] = useState(STATUS.idle);
-    const [connectionStatus, setConnectionStatus] = useState(CONNECTION_STATUS.connecting);
+    const [status, setStatus] = useState(STATUS.connecting);
+    const [errorMessage, setErrorMessage] = useState("");
     const onStatusChangeRef = useRef(onStatusChange);
     const onErrorRef = useRef(onError);
-    const statusRef = useRef(STATUS.idle);
 
     useEffect(() => {
         onStatusChangeRef.current = onStatusChange;
@@ -77,12 +63,16 @@ export default function WebRTCPlayer({
 
     const updateStatus = (nextStatus) => {
         setStatus(nextStatus);
-        statusRef.current = nextStatus;
         onStatusChangeRef.current?.(nextStatus);
     };
 
-    const updateConnectionStatus = (nextStatus) => {
-        setConnectionStatus(nextStatus);
+    const reportError = (message, error) => {
+        if (error?.name !== "AbortError") {
+            console.error("[WebRTCPlayer]", error);
+        }
+        setErrorMessage(message);
+        onErrorRef.current?.(message);
+        updateStatus(STATUS.error);
     };
 
     useEffect(() => {
@@ -92,19 +82,18 @@ export default function WebRTCPlayer({
         const stream = new MediaStream();
         const videoElement = videoRef.current;
         const signalingBaseUrl = resolveSignalingBaseUrl();
+        updateStatus(STATUS.connecting);
+        setErrorMessage("");
         if (!signalingBaseUrl) {
-            updateStatus(STATUS.offline);
-            updateConnectionStatus(CONNECTION_STATUS.failed);
-            onErrorRef.current?.(
-                "WebRTC signaling base URL is not configured. Set VITE_WEBRTC_SIGNALING_URL (or VITE_CAM_BASE_URL).",
+            reportError(
+                "WebRTC signaling base URL is not configured. Set VITE_WEBRTC_SIGNALING_URL.",
             );
             return undefined;
         }
         const signalingUrl = buildSignalingUrl(signalingBaseUrl, streamName);
 
         if (!videoElement) {
-            updateStatus(STATUS.offline);
-            onErrorRef.current?.("Unable to load the camera stream.");
+            reportError("Unable to load the camera stream.");
             return undefined;
         }
 
@@ -127,6 +116,7 @@ export default function WebRTCPlayer({
             if (event.streams && event.streams[0]) {
                 attachStreamToVideo(event.streams[0]);
                 updateStatus(STATUS.playing);
+                setErrorMessage("");
                 return;
             }
 
@@ -134,6 +124,7 @@ export default function WebRTCPlayer({
                 stream.addTrack(event.track);
                 attachStreamToVideo(stream);
                 updateStatus(STATUS.playing);
+                setErrorMessage("");
             }
         };
 
@@ -142,56 +133,60 @@ export default function WebRTCPlayer({
             const state = peerConnection.connectionState;
             if (state === "connected") {
                 updateStatus(STATUS.playing);
-                updateConnectionStatus(CONNECTION_STATUS.connected);
+                setErrorMessage("");
                 return;
             }
-            if (state === "disconnected") {
-                updateStatus(STATUS.recovering);
-                updateConnectionStatus(CONNECTION_STATUS.connecting);
+            if (state === "disconnected" || state === "connecting") {
+                updateStatus(STATUS.connecting);
                 return;
             }
             if (state === "failed" || state === "closed") {
-                updateStatus(STATUS.offline);
-                updateConnectionStatus(CONNECTION_STATUS.failed);
-                onErrorRef.current?.("Live stream unavailable.");
+                reportError("WebRTC connection failed. Please check the stream.");
                 return;
             }
-            updateConnectionStatus(CONNECTION_STATUS.connecting);
+            updateStatus(STATUS.connecting);
         };
 
         const handleIceState = () => {
             if (!mounted) return;
             const state = peerConnection.iceConnectionState;
             if (state === "checking") {
-                updateStatus(STATUS.loading);
-                updateConnectionStatus(CONNECTION_STATUS.connecting);
+                updateStatus(STATUS.connecting);
                 return;
             }
             if (state === "connected" || state === "completed") {
                 updateStatus(STATUS.playing);
-                updateConnectionStatus(CONNECTION_STATUS.connected);
+                setErrorMessage("");
                 return;
             }
             if (state === "disconnected") {
-                updateStatus(STATUS.recovering);
-                updateConnectionStatus(CONNECTION_STATUS.connecting);
+                updateStatus(STATUS.connecting);
                 return;
             }
             if (state === "failed") {
-                updateStatus(STATUS.offline);
-                updateConnectionStatus(CONNECTION_STATUS.failed);
-                onErrorRef.current?.("Live stream unavailable.");
+                reportError("ICE negotiation failed. Unable to play the stream.");
             }
         };
 
         const handlePlaying = () => {
             if (!mounted) return;
             updateStatus(STATUS.playing);
+            setErrorMessage("");
+        };
+
+        const handleVideoError = () => {
+            if (!mounted) return;
+            reportError("Media playback failed. Please try again.");
         };
 
         const runSignaling = async () => {
+            let didTimeout = false;
+            const timeoutId = setTimeout(() => {
+                didTimeout = true;
+                abortController.abort();
+            }, 12000);
             try {
-                updateStatus(STATUS.loading);
+                updateStatus(STATUS.connecting);
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
 
@@ -226,20 +221,25 @@ export default function WebRTCPlayer({
                 }
 
                 if (!answerSdp) {
-                    throw new Error("MediaMTX did not return an SDP answer.");
+                    throw new Error("Signaling helper did not return an SDP answer.");
                 }
 
                 await peerConnection.setRemoteDescription(
                     new RTCSessionDescription({ type: answerType, sdp: answerSdp }),
                 );
             } catch (error) {
-                if (!mounted || error?.name === "AbortError") {
+                if (!mounted) {
                     return;
                 }
-                updateStatus(STATUS.offline);
-                updateConnectionStatus(CONNECTION_STATUS.failed);
-                onErrorRef.current?.("Unable to load the camera stream.");
-                console.error("[WebRTCPlayer] Signaling failed.", error);
+                if (error?.name === "AbortError") {
+                    if (didTimeout) {
+                        reportError("Signaling request timed out.", error);
+                    }
+                    return;
+                }
+                reportError(error?.message || "Unable to load the camera stream.", error);
+            } finally {
+                clearTimeout(timeoutId);
             }
         };
 
@@ -248,6 +248,7 @@ export default function WebRTCPlayer({
         peerConnection.addEventListener("connectionstatechange", handleConnectionState);
         peerConnection.addEventListener("iceconnectionstatechange", handleIceState);
         videoElement.addEventListener("playing", handlePlaying);
+        videoElement.addEventListener("error", handleVideoError);
         videoElement.muted = true;
         videoElement.playsInline = true;
 
@@ -256,11 +257,11 @@ export default function WebRTCPlayer({
         return () => {
             mounted = false;
             abortController.abort();
-            updateConnectionStatus(CONNECTION_STATUS.connecting);
             peerConnection.removeEventListener("track", handleTrackEvent);
             peerConnection.removeEventListener("connectionstatechange", handleConnectionState);
             peerConnection.removeEventListener("iceconnectionstatechange", handleIceState);
             videoElement.removeEventListener("playing", handlePlaying);
+            videoElement.removeEventListener("error", handleVideoError);
             stream.getTracks().forEach((track) => {
                 track.stop();
             });
@@ -277,19 +278,41 @@ export default function WebRTCPlayer({
         };
     }, [streamName, videoRef]);
 
+    const overlayMessage =
+        status === STATUS.connecting
+            ? "Connecting to live stream…"
+            : status === STATUS.error
+                ? errorMessage || "Live stream unavailable."
+                : "";
+
     return (
-        <div className={wrapperClassName}>
-            <video ref={videoRef} className={videoClassName} autoPlay playsInline muted />
+        <div className={`${styles.wrapper} ${wrapperClassName}`}>
+            <video
+                ref={videoRef}
+                className={`${styles.video} ${videoClassName}`}
+                autoPlay
+                playsInline
+                muted
+            />
+            {overlayMessage ? (
+                <div
+                    className={styles.overlay}
+                    role={status === STATUS.error ? "alert" : "status"}
+                    aria-live="polite"
+                >
+                    <div className={styles.overlayContent}>
+                        <p className={styles.message}>{overlayMessage}</p>
+                    </div>
+                </div>
+            ) : null}
             <div
+                className={`${styles.statusRow} ${
+                    status === STATUS.error ? styles.statusError : ""
+                }`}
                 aria-live="polite"
-                style={{
-                    marginTop: "0.4rem",
-                    fontSize: "0.75rem",
-                    color: "#a5bfff",
-                    letterSpacing: "0.04em",
-                }}
             >
-                Connection: {connectionStatus}
+                Status: {status}
+                {status === STATUS.error && errorMessage ? ` — ${errorMessage}` : ""}
             </div>
         </div>
     );

@@ -1,0 +1,49 @@
+.wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.video {
+    width: 100%;
+    height: 100%;
+    background: #0b0f1f;
+    object-fit: cover;
+}
+
+.overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(7, 12, 26, 0.6);
+    z-index: 2;
+}
+
+.overlayContent {
+    max-width: 80%;
+    padding: 1.2rem 1.6rem;
+    border-radius: 16px;
+    background: rgba(9, 20, 46, 0.85);
+    border: 1px solid rgba(128, 170, 255, 0.25);
+    text-align: center;
+}
+
+.message {
+    margin: 0;
+    color: #e1e8ff;
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+}
+
+.statusRow {
+    margin-top: 0.4rem;
+    font-size: 0.75rem;
+    color: #a5bfff;
+    letter-spacing: 0.04em;
+}
+
+.statusError {
+    color: #ffb3b3;
+}
