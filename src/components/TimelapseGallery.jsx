@@ -173,7 +173,7 @@ export default function TimelapseGallery() {
             </div>
             {!hasBaseUrl && (
                 <p className={styles.errorMessage}>
-                    Timelapse base URL is not configured. Set VITE_TIMELAPSE_BASE_URL to enable playback.
+                    Timelapse base URL is not configured. Set VITE_CAM_BASE_URL to enable playback.
                 </p>
             )}
             {isLoading && (
