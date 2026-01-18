@@ -1,8 +1,9 @@
 // pages/Cameras/index.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./Cameras.module.css";
-import { CAMERA_CONFIG, isAdminUser } from "../../config/cameras";
+import { CAMERA_CONFIG, getStreamMode, isAdminUser } from "../../config/cameras";
 import PageHeader from "../../components/PageHeader.jsx";
+import LiveHlsPlayer from "../../components/LiveHlsPlayer.jsx";
 import WebRTCPlayer from "../../components/WebRTCPlayer.jsx";
 import TimelapseGallery from "../../components/TimelapseGallery.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -74,6 +75,7 @@ export default function Cameras() {
     const videoRef = useRef(null);
     const [streamStatus, setStreamStatus] = useState("idle");
     const [streamError, setStreamError] = useState("");
+    const streamMode = getStreamMode();
     const selectedCamera = useMemo(
         () =>
             CAMERA_SOURCES.find((camera) => camera.id === selectedCameraId) ||
@@ -231,20 +233,40 @@ export default function Cameras() {
                             <span>Timelapse videos remain available to all users.</span>
                         </div>
                     ) : canDisplayVideo ? (
-                        <WebRTCPlayer
-                            key={`${selectedCamera?.id}-${reloadKey}`}
-                            streamName="CAM111_main"
-                            videoClassName={styles.video}
-                            wrapperClassName={styles.videoWrapper}
-                            videoRef={videoRef}
-                            onStatusChange={(nextStatus) => {
-                                setStreamStatus(nextStatus);
-                                if (nextStatus === "playing") {
-                                    setStreamError("");
+                        streamMode === "hls" ? (
+                            <LiveHlsPlayer
+                                key={`${selectedCamera?.id}-${reloadKey}`}
+                                cameraId={selectedCamera?.id}
+                                reloadKey={reloadKey}
+                                videoClassName={styles.video}
+                                wrapperClassName={styles.videoWrapper}
+                                videoRef={videoRef}
+                                onStatusChange={(nextStatus) => {
+                                    setStreamStatus(nextStatus);
+                                    if (nextStatus === "playing") {
+                                        setStreamError("");
+                                    }
+                                }}
+                                onError={setStreamError}
+                            />
+                        ) : (
+                            <WebRTCPlayer
+                                key={`${selectedCamera?.id}-${reloadKey}`}
+                                streamName={
+                                    selectedCamera?.streamId || selectedCamera?.id || "stream"
                                 }
-                            }}
-                            onError={setStreamError}
-                        />
+                                videoClassName={styles.video}
+                                wrapperClassName={styles.videoWrapper}
+                                videoRef={videoRef}
+                                onStatusChange={(nextStatus) => {
+                                    setStreamStatus(nextStatus);
+                                    if (nextStatus === "playing") {
+                                        setStreamError("");
+                                    }
+                                }}
+                                onError={setStreamError}
+                            />
+                        )
                     ) : hasStreamError ? (
                         <div className={styles.errorBox} role="alert">
                             <h3>Live stream unavailable</h3>
