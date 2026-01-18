@@ -9,7 +9,9 @@ import { PERMISSIONS, hasPerm } from "../utils/permissions.js";
 
 const TIMELAPSE_BASE_URL = import.meta?.env?.VITE_TIMELAPSE_BASE_URL || "";
 const LIVE_HLS_BASE_URL =
-    import.meta?.env?.VITE_LIVE_HLS_BASE_URL || "https://cam.hydroleaf.se";
+    import.meta?.env?.VITE_LIVE_HLS_BASE_URL ??
+    (import.meta?.env?.DEV ? import.meta?.env?.VITE_LIVE_HLS_BASE_URL_DEV : undefined) ??
+    "";
 
 const normalizeBaseUrl = (value) => value?.replace(/\/$/, "") ?? "";
 
@@ -26,7 +28,9 @@ export const getTimelapseBaseUrl = () => normalizeBaseUrl(TIMELAPSE_BASE_URL);
 export const buildLiveHlsUrl = ({ cameraId }) => {
     const liveBaseUrl = normalizeBaseUrl(LIVE_HLS_BASE_URL);
     if (!liveBaseUrl) {
-        throw new Error("Missing live HLS base URL. Set VITE_LIVE_HLS_BASE_URL.");
+        throw new Error(
+            "Missing live HLS base URL. Set VITE_LIVE_HLS_BASE_URL (or VITE_LIVE_HLS_BASE_URL_DEV in dev)."
+        );
     }
     if (!cameraId) {
         throw new Error("Missing cameraId for live stream.");

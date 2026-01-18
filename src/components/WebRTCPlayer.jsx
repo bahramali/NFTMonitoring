@@ -1,12 +1,25 @@
 import React, { useEffect, useRef, useState } from "react";
 
-const SIGNALING_BASE_URL =
-    import.meta.env.REACT_APP_WEBRTC_SIGNALING_URL ||
-    import.meta.env.VITE_MEDIAMTX_WEBRTC_ENDPOINT ||
-    "http://localhost:8889";
+const resolveSignalingBaseUrl = () => {
+    if (import.meta.env.REACT_APP_WEBRTC_SIGNALING_URL) {
+        return import.meta.env.REACT_APP_WEBRTC_SIGNALING_URL;
+    }
+    if (import.meta.env.VITE_MEDIAMTX_WEBRTC_ENDPOINT) {
+        return import.meta.env.VITE_MEDIAMTX_WEBRTC_ENDPOINT;
+    }
+    if (import.meta.env.DEV) {
+        return import.meta.env.VITE_MEDIAMTX_WEBRTC_ENDPOINT_DEV || "";
+    }
+    return "";
+};
 
 const buildSignalingUrl = (baseUrl, streamName) => {
-    const fallbackBase = baseUrl || "http://localhost:8889";
+    if (!baseUrl) {
+        throw new Error(
+            "Missing WebRTC signaling base URL. Set VITE_MEDIAMTX_WEBRTC_ENDPOINT (or VITE_MEDIAMTX_WEBRTC_ENDPOINT_DEV in dev).",
+        );
+    }
+    const fallbackBase = baseUrl;
     const encodedStream = encodeURIComponent(streamName || "");
 
     try {
@@ -83,7 +96,16 @@ export default function WebRTCPlayer({
         const abortController = new AbortController();
         const stream = new MediaStream();
         const videoElement = videoRef.current;
-        const signalingUrl = buildSignalingUrl(SIGNALING_BASE_URL, streamName);
+        const signalingBaseUrl = resolveSignalingBaseUrl();
+        if (!signalingBaseUrl) {
+            updateStatus(STATUS.offline);
+            updateConnectionStatus(CONNECTION_STATUS.failed);
+            onErrorRef.current?.(
+                "WebRTC signaling base URL is not configured. Set VITE_MEDIAMTX_WEBRTC_ENDPOINT.",
+            );
+            return undefined;
+        }
+        const signalingUrl = buildSignalingUrl(signalingBaseUrl, streamName);
 
         if (!videoElement) {
             updateStatus(STATUS.offline);
