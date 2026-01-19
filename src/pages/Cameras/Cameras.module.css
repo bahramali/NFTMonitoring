@@ -173,6 +173,58 @@
   backdrop-filter: blur(4px);
 }
 
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  padding: 1rem 1.25rem;
+  border-radius: 16px;
+  border: 1px solid rgba(76, 120, 188, 0.35);
+  background: rgba(10, 20, 38, 0.65);
+}
+
+.controlGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: min(280px, 100%);
+  flex: 1 1 240px;
+  color: inherit;
+  font-size: 0.9rem;
+}
+
+.controlLabel {
+  font-weight: 600;
+  color: #e6edff;
+}
+
+.select {
+  padding: 0.65rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid rgba(102, 146, 214, 0.5);
+  background: rgba(9, 18, 34, 0.9);
+  color: #f1f6ff;
+  font-size: 0.95rem;
+}
+
+.modeGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+}
+
+.modeOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.92rem;
+  color: #d6e4ff;
+}
+
+.modeOption input {
+  accent-color: #8feaa4;
+}
+
 .videoHeader {
   display: flex;
   align-items: flex-start;
@@ -206,6 +258,10 @@
   object-fit: cover;
   box-shadow: 0 34px 68px rgba(4, 12, 28, 0.6);
   border: 1px solid rgba(98, 140, 210, 0.32);
+}
+
+.videoFrame {
+  border: none;
 }
 
 .videoWrapper {
