@@ -1,186 +1,94 @@
 // pages/Cameras/index.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./Cameras.module.css";
-import { CAMERA_CONFIG, getStreamMode, isAdminUser } from "../../config/cameras";
 import PageHeader from "../../components/PageHeader.jsx";
-import LiveHlsPlayer from "../../components/LiveHlsPlayer.jsx";
-import WebRTCPlayer from "../../components/WebRTCPlayer.jsx";
-import TimelapseGallery from "../../components/TimelapseGallery.jsx";
-import { useAuth } from "../../context/AuthContext.jsx";
+import MediaMTXWebRTCReader from "../../components/MediaMTXWebRTCReader.jsx";
 
-const STATUS_MESSAGES = {
-    playing: "Live stream",
-    reloading: "Refreshing stream",
-    loading: "Loading stream",
-    error: "Live stream unavailable.",
-    restricted: "Live stream available to admins only.",
-};
+const CAMERA_PATHS = ["s01l01", "S2L1", "S2L2", "S2L3", "S2L4"];
 
-const STATUS_CLASS = {
-    playing: styles.statusPlaying,
-    reloading: styles.statusLoading,
-    loading: styles.statusLoading,
-    error: styles.statusError,
-    restricted: styles.statusError,
-};
+const getIframeUrl = (path) => `https://cam.hydroleaf.se:8443/${path}/`;
+const getWhepUrl = (path) => `https://cam.hydroleaf.se:8443/${path}/whep`;
 
-const getStatusMessage = (state, camera) => {
-    const base = STATUS_MESSAGES[state] || "";
-    if (!camera?.name) {
-        return base;
-    }
-
-    if (!base) {
-        return camera.name;
-    }
-
-    if (state === "playing") {
-        return `${base} — ${camera.name}`;
-    }
-
-    return `${base} (${camera.name})`;
-};
-
-const CAMERA_SOURCES = CAMERA_CONFIG;
-
-function CameraPreview({ camera, isActive, onSelect }) {
-    return (
-        <button
-            type="button"
-            onClick={() => onSelect(camera.id)}
-            className={`${styles.cameraPreview} ${isActive ? styles.cameraPreviewActive : ""}`}
-            aria-pressed={isActive}
-        >
-            <div className={styles.cameraPreviewVideoWrapper}>
-                <div className={styles.cameraPreviewError}>
-                    <span>Preview in player</span>
-                </div>
-            </div>
-            <div className={styles.cameraPreviewDetails}>
-                <span className={styles.cameraName}>{camera.name}</span>
-            </div>
-        </button>
-    );
-}
+const MODE_OPTIONS = [
+    { value: "iframe", label: "iframe mode" },
+    { value: "webrtc", label: "native WebRTC" },
+];
 
 export default function Cameras() {
-    const { role, roles, permissions } = useAuth();
-    const user = useMemo(() => ({ role, roles, permissions }), [permissions, role, roles]);
-    const isAdmin = isAdminUser(user);
-    const [selectedCameraId, setSelectedCameraId] = useState(
-        () => CAMERA_SOURCES[0]?.id ?? null,
-    );
-    const [isReloading, setIsReloading] = useState(false);
-    const reloadTimeoutRef = useRef(null);
-    const videoRef = useRef(null);
-    const [streamStatus, setStreamStatus] = useState("idle");
-    const [streamError, setStreamError] = useState("");
-    const streamMode = getStreamMode();
-    const selectedCamera = useMemo(
-        () =>
-            CAMERA_SOURCES.find((camera) => camera.id === selectedCameraId) ||
-            CAMERA_SOURCES[0] ||
-            null,
-        [selectedCameraId],
-    );
-    const selectedCameraIndex = useMemo(
-        () =>
-            CAMERA_SOURCES.findIndex((camera) => camera.id === selectedCamera?.id),
-        [selectedCamera?.id],
-    );
-    const viewerPosition = selectedCameraIndex >= 0 ? selectedCameraIndex + 1 : 1;
-    const hasMultipleCameras = CAMERA_SOURCES.length > 1;
-    const [reloadKey, setReloadKey] = useState(0);
+    const [selectedPath, setSelectedPath] = useState(CAMERA_PATHS[0]);
+    const [mode, setMode] = useState("iframe");
+    const [isLoading, setIsLoading] = useState(true);
+    const [errorMessage, setErrorMessage] = useState("");
+    const iframeTimeoutRef = useRef(null);
+
+    const iframeUrl = useMemo(() => getIframeUrl(selectedPath), [selectedPath]);
+    const whepUrl = useMemo(() => getWhepUrl(selectedPath), [selectedPath]);
+
+    useEffect(() => {
+        setErrorMessage("");
+        setIsLoading(true);
+
+        if (iframeTimeoutRef.current) {
+            clearTimeout(iframeTimeoutRef.current);
+            iframeTimeoutRef.current = null;
+        }
+
+        if (mode === "iframe") {
+            iframeTimeoutRef.current = setTimeout(() => {
+                setErrorMessage("Timed out while loading the iframe stream.");
+                setIsLoading(false);
+            }, 12000);
+        }
+
+        return () => {
+            if (iframeTimeoutRef.current) {
+                clearTimeout(iframeTimeoutRef.current);
+                iframeTimeoutRef.current = null;
+            }
+        };
+    }, [mode, selectedPath]);
 
     useEffect(() => {
         return () => {
-            if (reloadTimeoutRef.current) {
-                clearTimeout(reloadTimeoutRef.current);
+            if (iframeTimeoutRef.current) {
+                clearTimeout(iframeTimeoutRef.current);
             }
         };
     }, []);
 
-    useEffect(() => {
-        setStreamError("");
-        setStreamStatus("idle");
-    }, [selectedCameraId]);
-
-    const handleReload = () => {
-        setReloadKey((key) => key + 1);
-        setIsReloading(true);
-        setStreamError("");
-        setStreamStatus("loading");
-        if (reloadTimeoutRef.current) {
-            clearTimeout(reloadTimeoutRef.current);
+    const handleIframeLoad = () => {
+        if (iframeTimeoutRef.current) {
+            clearTimeout(iframeTimeoutRef.current);
+            iframeTimeoutRef.current = null;
         }
-        reloadTimeoutRef.current = setTimeout(() => setIsReloading(false), 1500);
+        setIsLoading(false);
+        setErrorMessage("");
     };
 
-    const handleCameraSelect = (cameraId) => {
-        if (!cameraId || cameraId === selectedCameraId) return;
-        setSelectedCameraId(cameraId);
+    const handleIframeError = () => {
+        if (iframeTimeoutRef.current) {
+            clearTimeout(iframeTimeoutRef.current);
+            iframeTimeoutRef.current = null;
+        }
+        setIsLoading(false);
+        setErrorMessage("Failed to load the iframe stream.");
     };
 
-    const handleCameraStep = (direction) => {
-        if (!hasMultipleCameras) return;
-        const currentIndex = selectedCameraIndex >= 0 ? selectedCameraIndex : 0;
-        const nextIndex =
-            (currentIndex + direction + CAMERA_SOURCES.length) % CAMERA_SOURCES.length;
-        const nextCamera = CAMERA_SOURCES[nextIndex];
-        if (nextCamera?.id) {
-            setSelectedCameraId(nextCamera.id);
+    const handleReaderStateChange = (state) => {
+        if (state === "loading") {
+            setIsLoading(true);
+        }
+        if (state === "playing") {
+            setIsLoading(false);
+        }
+        if (state === "error") {
+            setIsLoading(false);
         }
     };
 
-    const handlePreviousCamera = () => handleCameraStep(-1);
-    const handleNextCamera = () => handleCameraStep(1);
-
-    const handleFullscreen = () => {
-        const element = videoRef.current;
-        if (!element?.requestFullscreen) {
-            return;
-        }
-        if (document.fullscreenElement) {
-            document.exitFullscreen?.();
-            return;
-        }
-        element.requestFullscreen();
+    const handleReaderError = (error) => {
+        setErrorMessage(error?.message || String(error));
     };
-
-    const hasCameraSources = CAMERA_SOURCES.length > 0;
-    const hasStreamError = Boolean(streamError);
-    const canDisplayVideo = Boolean(selectedCamera?.id) && isAdmin;
-    const reloadDisabled = !canDisplayVideo;
-    const isConnecting =
-        streamStatus === "loading" ||
-        streamStatus === "idle" ||
-        streamStatus === "recovering" ||
-        streamStatus === "connecting";
-    const statusState = !isAdmin
-        ? "restricted"
-        : isReloading
-            ? "reloading"
-            : streamStatus === "playing"
-                ? "playing"
-                : isConnecting
-                    ? "loading"
-                    : hasStreamError
-                        ? "error"
-                        : "error";
-    const statusLabel = !isAdmin
-        ? "Admins only"
-        : isReloading || isConnecting
-            ? "Connecting"
-            : streamStatus === "playing"
-                ? "Live"
-                : "Offline";
-    const statusTone = !isAdmin
-        ? "offline"
-        : isReloading || isConnecting
-            ? "reconnecting"
-            : streamStatus === "playing"
-                ? "online"
-                : "offline";
 
     return (
         <div className={styles.page}>
@@ -189,156 +97,85 @@ export default function Cameras() {
                     breadcrumbItems={[
                         { label: "Monitoring", to: "/monitoring" },
                         { label: "Cameras", to: "/monitoring/cameras" },
-                        { label: selectedCamera?.name || "Camera Stream" },
                     ]}
-                    title={selectedCamera?.name || "Camera Stream"}
-                    status={{ label: statusLabel, tone: statusTone }}
-                    actions={[
-                        {
-                            label: "Reload",
-                            onClick: handleReload,
-                            disabled: reloadDisabled,
-                            variant: "primary",
-                        },
-                        {
-                            label: "Fullscreen",
-                            onClick: handleFullscreen,
-                            disabled: !canDisplayVideo,
-                            variant: "ghost",
-                        },
-                    ]}
+                    title="MediaMTX Cameras"
                     variant="dark"
                 />
-                <section className={styles.viewer}>
-                    <div className={styles.videoHeader}>
-                        <div>
-                            <h2 className={styles.title}>{selectedCamera?.name || "Camera Stream"}</h2>
-                        </div>
-                        <button
-                            type="button"
-                            className={styles.button}
-                            onClick={handleReload}
-                            disabled={reloadDisabled}
-                        >
-                            Reload
-                        </button>
-                    </div>
 
-                    {!isAdmin ? (
-                        <div className={styles.emptyState}>
-                            <strong>Live view is available to admins only.</strong>
-                            <span>Timelapse videos remain available to all users.</span>
+                <section className={styles.controls}>
+                    <div className={styles.controlGroup}>
+                        <label className={styles.controlLabel} htmlFor="camera-path">
+                            Camera path
+                        </label>
+                        <select
+                            id="camera-path"
+                            className={styles.select}
+                            value={selectedPath}
+                            onChange={(event) => setSelectedPath(event.target.value)}
+                        >
+                            {CAMERA_PATHS.map((path) => (
+                                <option key={path} value={path}>
+                                    {path}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <fieldset className={styles.modeGroup}>
+                        <legend className={styles.controlLabel}>Mode</legend>
+                        <div className={styles.modeOptions}>
+                            {MODE_OPTIONS.map((option) => (
+                                <label key={option.value} className={styles.modeOption}>
+                                    <input
+                                        type="radio"
+                                        name="stream-mode"
+                                        value={option.value}
+                                        checked={mode === option.value}
+                                        onChange={(event) => setMode(event.target.value)}
+                                    />
+                                    <span>{option.label}</span>
+                                </label>
+                            ))}
                         </div>
-                    ) : canDisplayVideo ? (
-                        streamMode === "hls" ? (
-                            <LiveHlsPlayer
-                                key={`${selectedCamera?.id}-${reloadKey}`}
-                                cameraId={selectedCamera?.id}
-                                reloadKey={reloadKey}
-                                videoClassName={styles.video}
-                                wrapperClassName={styles.videoWrapper}
-                                videoRef={videoRef}
-                                onStatusChange={(nextStatus) => {
-                                    setStreamStatus(nextStatus);
-                                    if (nextStatus === "playing") {
-                                        setStreamError("");
-                                    }
-                                }}
-                                onError={setStreamError}
+                    </fieldset>
+                </section>
+
+                <section className={styles.playerCard}>
+                    <div className={styles.playerHeader}>
+                        <div>
+                            <h2 className={styles.playerTitle}>Stream preview</h2>
+                            <p className={styles.playerSubtitle}>{selectedPath}</p>
+                        </div>
+                        <div className={styles.status}>
+                            {isLoading && <span className={styles.statusLoading}>Loading…</span>}
+                            {!isLoading && errorMessage && (
+                                <span className={styles.statusError}>Error: {errorMessage}</span>
+                            )}
+                            {!isLoading && !errorMessage && (
+                                <span className={styles.statusOk}>Live</span>
+                            )}
+                        </div>
+                    </div>
+                    <div className={styles.playerArea}>
+                        {mode === "iframe" ? (
+                            <iframe
+                                key={selectedPath}
+                                title={`Camera ${selectedPath}`}
+                                src={iframeUrl}
+                                className={styles.iframe}
+                                onLoad={handleIframeLoad}
+                                onError={handleIframeError}
+                                allow="autoplay; fullscreen"
                             />
                         ) : (
-                            <WebRTCPlayer
-                                key={`${selectedCamera?.id}-${reloadKey}`}
-                                streamName={
-                                    selectedCamera?.streamId || selectedCamera?.id || "stream"
-                                }
-                                videoClassName={styles.video}
-                                wrapperClassName={styles.videoWrapper}
-                                videoRef={videoRef}
-                                onStatusChange={(nextStatus) => {
-                                    setStreamStatus(nextStatus);
-                                    if (nextStatus === "playing") {
-                                        setStreamError("");
-                                    }
-                                }}
-                                onError={setStreamError}
+                            <MediaMTXWebRTCReader
+                                whepUrl={whepUrl}
+                                onStateChange={handleReaderStateChange}
+                                onError={handleReaderError}
+                                className={styles.video}
                             />
-                        )
-                    ) : hasStreamError ? (
-                        <div className={styles.errorBox} role="alert">
-                            <h3>Live stream unavailable</h3>
-                            <p>{streamError}</p>
-                        </div>
-                    ) : (
-                        <div className={styles.emptyState}>
-                            <strong>No live preview available.</strong>
-                            <span>Provide a valid stream URL to start monitoring.</span>
-                        </div>
-                    )}
-
-                    {hasMultipleCameras ? (
-                        <div className={styles.videoNavigation}>
-                            <button
-                                type="button"
-                                className={styles.secondaryButton}
-                                onClick={handlePreviousCamera}
-                                aria-label="View previous camera"
-                            >
-                                Previous
-                            </button>
-                            <span className={styles.viewerPosition}>
-                                {viewerPosition} / {CAMERA_SOURCES.length}
-                            </span>
-                            <button
-                                type="button"
-                                className={styles.secondaryButton}
-                                onClick={handleNextCamera}
-                                aria-label="View next camera"
-                            >
-                                Next
-                            </button>
-                        </div>
-                    ) : null}
-
-                    <div className={styles.statusRow}>
-                        <p
-                            className={`${styles.statusMessage} ${
-                                STATUS_CLASS[statusState] || styles.statusError
-                            }`}
-                            aria-live="polite"
-                        >
-                            {getStatusMessage(statusState, selectedCamera)}
-                        </p>
+                        )}
                     </div>
                 </section>
-
-                <section className={styles.selectorPanel}>
-                    <div className={styles.selectorHeader}>
-                        <h2 className={styles.selectorTitle}>Available Cameras</h2>
-                        <p className={styles.selectorHint}>Select a feed to view it below.</p>
-                    </div>
-                    {hasCameraSources ? (
-                        <ul className={styles.cameraList}>
-                            {CAMERA_SOURCES.map((camera) => {
-                                const isActive = camera.id === selectedCamera?.id;
-                                return (
-                                    <li key={camera.id}>
-                                        <CameraPreview
-                                            camera={camera}
-                                            isActive={isActive}
-                                            onSelect={handleCameraSelect}
-                                        />
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    ) : (
-                        <p className={styles.emptySelectorMessage}>
-                            No camera feeds configured yet.
-                        </p>
-                    )}
-                </section>
-                <TimelapseGallery />
             </div>
         </div>
     );
