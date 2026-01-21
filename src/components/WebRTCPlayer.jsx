@@ -7,7 +7,9 @@ const resolveSignalingBaseUrl = () => {
 
 const buildSignalingUrl = (baseUrl, streamName) => {
     if (!baseUrl) {
-        throw new Error("Missing WebRTC signaling base URL. Set VITE_WEBRTC_SIGNALING_URL.");
+        throw new Error(
+            "Missing WebRTC signaling base URL. Set VITE_WEBRTC_SIGNALING_URL (no /v2/webrtc).",
+        );
     }
     const fallbackBase = baseUrl;
     const encodedStream = encodeURIComponent(streamName || "");
@@ -86,7 +88,7 @@ export default function WebRTCPlayer({
         setErrorMessage("");
         if (!signalingBaseUrl) {
             reportError(
-                "WebRTC signaling base URL is not configured. Set VITE_WEBRTC_SIGNALING_URL.",
+                "WebRTC signaling base URL is not configured. Set VITE_WEBRTC_SIGNALING_URL (no /v2/webrtc).",
             );
             return undefined;
         }
