@@ -26,6 +26,9 @@ import Overview from './pages/Overview/index.jsx';
 import ControlPanel from './pages/ControlPanel/index.jsx';
 import LiveDashboard from './pages/Live/index.jsx';
 import Germination from './pages/Germination/index.jsx';
+import HallPage from './pages/Hall/HallPage.jsx';
+import HallRackPage from './pages/Hall/HallRackPage.jsx';
+import HallLayerPage from './pages/Hall/HallLayerPage.jsx';
 import Cameras from './pages/Cameras/index.jsx';
 import Reports from './pages/Reports/index.jsx';
 import Note from './pages/Note/index.jsx';
@@ -202,6 +205,9 @@ function AppRoutes() {
                         <Route path="shelly-control" element={<ShellyControlPage />} />
                         <Route path="live" element={<LiveDashboard />} />
                         <Route path="germination" element={<Germination />} />
+                        <Route path="hall" element={<HallPage />} />
+                        <Route path="hall/racks/:rackId" element={<HallRackPage />} />
+                        <Route path="hall/racks/:rackId/layers/:layerId" element={<HallLayerPage />} />
                         <Route path="cameras" element={<Cameras />} />
                         <Route
                             path="reports"

@@ -37,6 +37,7 @@ const NAV_SECTIONS = [
             { to: `${MONITORING_BASE}/shelly-control`, icon: "🔌", label: "Shelly Control", permissions: [PERMISSIONS.MONITORING_VIEW] },
             { to: `${MONITORING_BASE}/live`, icon: "📡", label: "NFT Channels", permissions: [PERMISSIONS.MONITORING_VIEW] },
             { to: `${MONITORING_BASE}/germination`, icon: "🌱", label: "Germination", permissions: [PERMISSIONS.MONITORING_VIEW] },
+            { to: `${MONITORING_BASE}/hall`, icon: "🏭", label: "Hall", permissions: [PERMISSIONS.MONITORING_VIEW] },
             { to: `${MONITORING_BASE}/cameras`, icon: "📷", label: "Cameras", permissions: [PERMISSIONS.MONITORING_VIEW] },
             { to: `${MONITORING_BASE}/reports`, icon: "📈", label: "Reports", permissions: [PERMISSIONS.MONITORING_VIEW] },
             { to: `${MONITORING_BASE}/note`, icon: "📝", label: "Note", permissions: [PERMISSIONS.MONITORING_VIEW] },
