@@ -1,17 +1,11 @@
-export const SENSOR_TOPIC = "growSensors";
+import { HYDROLEAF_TOPICS } from "../../utils/telemetryAdapter.js";
+
+export const SENSOR_TOPIC = "hydroleaf/telemetry";
 export const LIVE_NOW_TOPIC = "live_now";
 export const GERMINATION_TOPIC = "germinationTopic";
 export const WATER_FLOW_TOPIC = "water_flow";
 // Topic list used for device-level streams; excludes aggregated `live_now` data
-export const topics = [
-  SENSOR_TOPIC,
-  "rootImages",
-  "waterOutput",
-  "waterTank",
-  GERMINATION_TOPIC,
-  "actuator/oxygenPump",
-  WATER_FLOW_TOPIC,
-];
+export const topics = HYDROLEAF_TOPICS;
 
 export const bandMap = {
   F1: "415nm",

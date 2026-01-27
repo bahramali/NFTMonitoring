@@ -1,6 +1,7 @@
 import React from "react";
 import { useStomp } from "../../../hooks/useStomp";
 import { normalizeSensors } from "../utils";
+import { HYDROLEAF_TOPICS, normalizeTelemetryPayload, parseEnvelope } from "../../../utils/telemetryAdapter.js";
 
 export default function useLayerCompositeCards(systemKeyInput, layerId) {
   const [cards, setCards] = React.useState({});
@@ -56,20 +57,25 @@ export default function useLayerCompositeCards(systemKeyInput, layerId) {
     });
   }, []);
 
-  const topics = React.useMemo(() => ["/topic/growSensors"], []);
-  useStomp(topics, (topic, data) => {
+  const topics = React.useMemo(() => HYDROLEAF_TOPICS, []);
+  useStomp(topics, (_topic, data) => {
     if (!data) return;
-    let compId = data.compositeId || data.composite_id || data.cid;
+    const envelope = parseEnvelope(data);
+    const telemetry = normalizeTelemetryPayload(envelope);
+    if (envelope && envelope.kind !== "telemetry") return;
+    const message = telemetry || data;
+
+    let compId = message.compositeId || message.composite_id || message.cid;
     if (!compId) {
-      const sys = data.system || data.systemId;
-      const lay = data.layer || data.layerId;
-      const dev = data.deviceId || data.device || data.devId;
+      const sys = message.system || message.systemId;
+      const lay = message.layer || message.layerId;
+      const dev = message.deviceId || message.device || message.devId;
       if (sys && lay && dev) compId = `${sys}-${lay}-${dev}`;
     }
     if (!compId) return;
-    if (!isMine(compId, data)) return;
-    const sensors = data.sensors || data.values || data.env || data.water || data.payload || data.readings || [];
-    upsert(compId, sensors, data.timestamp || data.ts);
+    if (!isMine(compId, message)) return;
+    const sensors = message.sensors || message.values || message.env || message.water || message.payload || message.readings || [];
+    upsert(compId, sensors, message.timestamp || message.ts);
   });
 
   React.useEffect(() => {
