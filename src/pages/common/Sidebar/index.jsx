@@ -71,7 +71,7 @@ export default function Sidebar() {
     const [isMobile, setIsMobile] = useState(() => getWindowWidth() < BREAKPOINTS.mobile);
     const [collapsed, setCollapsed] = useState(() => {
         const width = getWindowWidth();
-        if (width < BREAKPOINTS.mobile) return false;
+        if (width < BREAKPOINTS.mobile) return true;
         return width < BREAKPOINTS.collapse;
     });
     const handleResize = useCallback(() => {
@@ -79,7 +79,7 @@ export default function Sidebar() {
         setIsMobile(width < BREAKPOINTS.mobile);
 
         if (width < BREAKPOINTS.mobile) {
-            setCollapsed(false);
+            setCollapsed(true);
         } else if (width < BREAKPOINTS.collapse) {
             setCollapsed(true);
         } else {
