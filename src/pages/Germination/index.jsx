@@ -268,9 +268,14 @@ export default function Germination() {
                 (typeof device?.extra?.rack_id === "string" && device.extra.rack_id) ||
                 (typeof device?.rackId === "string" && device.rackId) ||
                 "";
+            const rack = typeof device?.rack === "string" ? device.rack.toLowerCase() : "";
             const deviceId = typeof device?.deviceId === "string" ? device.deviceId : "";
 
-            return rackId === "S01-germination" || deviceId.startsWith("LOG-GER_");
+            return (
+                rackId === "S01-germination" ||
+                deviceId.startsWith("LOG-GER_") ||
+                rack === "germination"
+            );
         };
     }, []);
 
