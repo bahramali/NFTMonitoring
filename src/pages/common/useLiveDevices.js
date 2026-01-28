@@ -1,8 +1,9 @@
-import {useCallback, useMemo, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import {filterNoise, normalizeSensorData} from "../../utils.js";
 import {useStomp} from "../../hooks/useStomp.js";
 import {isAs7343Sensor, makeMeasurementKey, sanitize} from "./measurementUtils.js";
 import {adaptFlatTelemetryToSensors} from "../../utils/telemetryAdapter.js";
+import {logTelemetryDebug} from "./liveTelemetry.js";
 
 const EXTREMA_WINDOW_MS = 5 * 60 * 1000;
 const TELEMETRY_TOPIC = "hydroleaf/telemetry";
@@ -119,7 +120,16 @@ export function useLiveDevices(topics) {
         });
     }, []);
 
+    const subscribedTopics = useMemo(() => {
+        const list = Array.isArray(topics) ? topics : [topics];
+        return list.filter(Boolean);
+    }, [topics]);
+
     const handleStompMessage = useCallback((topic, msg) => {
+        logTelemetryDebug("received message", {
+            topic,
+            keys: msg && typeof msg === "object" ? Object.keys(msg) : [],
+        });
         const envelope = msg && typeof msg === "object" ? msg : null;
         const kind = envelope?.kind || null;
         const mqttTopic = envelope?.mqttTopic || null;
@@ -251,6 +261,12 @@ export function useLiveDevices(topics) {
             return {...prev, [site]: {...sys, [topicKey]: topicMap}};
         });
     }, [resolveOnline, updateDeviceEvents, updateSensorExtrema]);
+
+    useEffect(() => {
+        if (subscribedTopics.length > 0) {
+            logTelemetryDebug("subscribed topics", subscribedTopics);
+        }
+    }, [subscribedTopics]);
 
     useStomp(topics, handleStompMessage);
 

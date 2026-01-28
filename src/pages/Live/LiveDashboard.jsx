@@ -3,6 +3,7 @@ import Header from "../common/Header";
 import {useLiveDevices} from "../common/useLiveDevices.js";
 import {WS_TOPICS} from "../common/dashboard.constants.js";
 import {AS7343_MODEL_KEY, makeMeasurementKey, sanitize} from "../common/measurementUtils.js";
+import {buildAggregatedTopics, buildTopicList} from "../common/liveTelemetry.js";
 import {useSensorConfig} from "../../context/SensorConfigContext.jsx";
 import SpectrumBarChart from "./SpectrumBarChart.jsx";
 import spectralColors from "../../spectralColors";
@@ -29,11 +30,6 @@ function resolveStageRange(normalizedType, topic, rangeLookup) {
     }
 
     return null;
-}
-
-function buildTopicList(systemTopics = {}) {
-    return Object.entries(systemTopics)
-        .filter(([, devices = {}]) => Object.keys(devices).length > 0);
 }
 
 function formatValue(value) {
@@ -289,15 +285,7 @@ function LiveDashboard() {
     const [selectedMetricKey, setSelectedMetricKey] = useState("");
     const stageContext = useMemo(() => getNftStageContext(21), []);
 
-    const aggregatedTopics = useMemo(() => {
-        const allTopics = {};
-        for (const systemTopic of Object.values(deviceData)) {
-            for (const [topic, devices] of Object.entries(systemTopic)) {
-                allTopics[topic] = {...(allTopics[topic] || {}), ...devices};
-            }
-        }
-        return allTopics;
-    }, [deviceData]);
+    const aggregatedTopics = useMemo(() => buildAggregatedTopics(deviceData), [deviceData]);
 
     const topicDevices = useMemo(() => buildTopicList(aggregatedTopics), [aggregatedTopics]);
 
