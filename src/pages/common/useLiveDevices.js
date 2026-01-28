@@ -5,8 +5,7 @@ import {isAs7343Sensor, makeMeasurementKey, sanitize} from "./measurementUtils.j
 import {normalizeTelemetryPayload} from "../../utils/telemetryAdapter.js";
 
 const EXTREMA_WINDOW_MS = 5 * 60 * 1000;
-const TELEMETRY_TOPIC =
-    WS_TOPICS.find((topic) => topic?.includes("telemetry")) || "hydroleaf/telemetry";
+const TELEMETRY_TOPIC = "hydroleaf/telemetry";
 const RESERVED_EXTRA_KEYS = new Set([
     "controllers",
     "deviceId",
