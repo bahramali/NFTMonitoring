@@ -116,7 +116,7 @@ Cloudflare Edge
 cloudflared (Docker container)
    |\
    | \
-   |  +--> sensor-backend:8080 (api.hydroleaf.se)
+   |  +--> backend:8080 (api.hydroleaf.se)
    |
    +----> mediamtx:8888 (cam.hydroleaf.se)
 ```
@@ -129,7 +129,7 @@ Cloudflare Tunnel uses an **ingress rule list** to map domains to services.
 
 Example mappings:
 
-- `api.hydroleaf.se` → `sensor-backend:8080`
+- `api.hydroleaf.se` → `backend:8080`
 - `cam.hydroleaf.se` → `mediamtx:8888`
 
 And a **catch-all** rule for anything else:
@@ -152,7 +152,7 @@ credentials-file: /etc/cloudflared/<tunnel-id>.json
 
 ingress:
   - hostname: api.hydroleaf.se
-    service: http://sensor-backend:8080
+    service: http://backend:8080
   - hostname: cam.hydroleaf.se
     service: http://mediamtx:8888
   - service: http_status:404
@@ -173,10 +173,10 @@ Inside a Docker network, **container names become DNS hostnames**.
 
 So:
 
-- `sensor-backend` is a valid hostname
+- `backend` is a valid hostname
 - `mediamtx` is a valid hostname
 
-That’s why `http://sensor-backend:8080` works—Docker provides internal DNS.
+That’s why `http://backend:8080` works—Docker provides internal DNS.
 
 ---
 
@@ -214,7 +214,7 @@ All containers are on the same Docker network, like a private LAN.
 ```
 +-------------------- Docker Network --------------------+
 |                                                        |
-|  cloudflared   sensor-backend   mediamtx               |
+|  cloudflared      backend       mediamtx               |
 |      |               |             |                   |
 +--------------------------------------------------------+
 ```
@@ -223,7 +223,7 @@ All containers are on the same Docker network, like a private LAN.
 
 Because everything is inside the same private network:
 
-- `cloudflared` can connect to `sensor-backend:8080`
+- `cloudflared` can connect to `backend:8080`
 - No public port is needed
 
 This keeps services private but still reachable *internally*.
@@ -303,7 +303,7 @@ Cloudflare Edge (HTTPS + DNS)
 cloudflared (tunnel client in Docker)
    |
    v
-Internal Service (sensor-backend / mediamtx)
+Internal Service (backend / mediamtx)
 ```
 
 ### Mental Model in One Sentence
