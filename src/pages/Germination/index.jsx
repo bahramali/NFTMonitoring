@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Header from "../common/Header";
 import { useLiveDevices } from "../common/useLiveDevices";
-import { GERMINATION_TOPIC, topics } from "../common/dashboard.constants";
+import { WS_TOPICS } from "../common/dashboard.constants";
 import GerminationCamera from "./components/GerminationCamera";
 import HistoryChart from "../../components/HistoryChart.jsx";
 import { transformAggregatedData } from "../../utils.js";
@@ -144,7 +144,7 @@ function toLocalInputValueIfValid(value) {
 }
 
 export default function Germination() {
-    const { deviceData } = useLiveDevices(topics);
+    const { deviceData } = useLiveDevices(WS_TOPICS);
     const [startTime, setStartTime] = useState("");
     const [elapsed, setElapsed] = useState(() => calculateElapsed(""));
     const [statusLoading, setStatusLoading] = useState(true);
@@ -244,19 +244,24 @@ export default function Germination() {
         return allTopics;
     }, [deviceData]);
 
+    const telemetryTopic = useMemo(
+        () => WS_TOPICS.find((topic) => topic?.includes("telemetry")) || "hydroleaf/telemetry",
+        [],
+    );
+
     const germinationTopics = useMemo(() => {
-        if (!aggregatedTopics[GERMINATION_TOPIC]) {
+        if (!aggregatedTopics[telemetryTopic]) {
             return {};
         }
 
         return {
-            [GERMINATION_TOPIC]: aggregatedTopics[GERMINATION_TOPIC],
+            [telemetryTopic]: aggregatedTopics[telemetryTopic],
         };
-    }, [aggregatedTopics]);
+    }, [aggregatedTopics, telemetryTopic]);
 
     const hasTopics = Object.keys(germinationTopics).length > 0;
 
-    const germinationDevices = germinationTopics[GERMINATION_TOPIC] || {};
+    const germinationDevices = germinationTopics[telemetryTopic] || {};
     const deviceOptions = useMemo(
         () =>
             Object.entries(germinationDevices).map(([id, device]) => ({
@@ -332,7 +337,7 @@ export default function Germination() {
     const metricReports = useMemo(() => {
         if (!hasTopics) return [];
 
-        const devices = germinationTopics[GERMINATION_TOPIC] || {};
+        const devices = germinationTopics[telemetryTopic] || {};
         const compositeIds = Object.keys(devices);
         const entries = new Map();
 
