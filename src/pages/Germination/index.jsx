@@ -253,6 +253,7 @@ export default function Germination() {
                 (typeof device?.rackId === "string" && device.rackId) ||
                 (typeof device?.rack === "string" && device.rack) ||
                 "";
+            const rack = typeof device?.rack === "string" ? device.rack.toLowerCase() : "";
             const deviceId = typeof device?.deviceId === "string" ? device.deviceId : "";
 
             const normalizedRack = rackId.toLowerCase();
