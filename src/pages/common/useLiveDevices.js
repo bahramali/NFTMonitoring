@@ -1,12 +1,10 @@
 import {useCallback, useMemo, useState} from "react";
 import {filterNoise, normalizeSensorData} from "../../utils.js";
 import {useStomp} from "../../hooks/useStomp.js";
-import {WS_TOPICS} from "./dashboard.constants.js";
 import {isAs7343Sensor, makeMeasurementKey, sanitize} from "./measurementUtils.js";
-import {normalizeTelemetryPayload, parseEnvelope} from "../../utils/telemetryAdapter.js";
+import {normalizeTelemetryPayload} from "../../utils/telemetryAdapter.js";
 
 const EXTREMA_WINDOW_MS = 5 * 60 * 1000;
-const TELEMETRY_TOPIC = WS_TOPICS.find((topic) => topic?.includes("telemetry")) || "hydroleaf/telemetry";
 const RESERVED_EXTRA_KEYS = new Set([
     "controllers",
     "deviceId",
@@ -14,10 +12,14 @@ const RESERVED_EXTRA_KEYS = new Set([
     "health",
     "layer",
     "meta",
+    "mqttTopic",
     "payload",
     "sensors",
+    "site",
+    "rack",
     "system",
     "compositeId",
+    "kind",
     "online",
 ]);
 
@@ -117,45 +119,64 @@ export function useLiveDevices(topics) {
     }, []);
 
     const handleStompMessage = useCallback((topic, msg) => {
-        const envelope = parseEnvelope(msg);
-        const kind = envelope?.kind ?? null;
+        const envelope = msg && typeof msg === "object" ? msg : null;
+        const kind = envelope?.kind || null;
+        const mqttTopic = envelope?.mqttTopic || null;
 
-        const telemetryPayload = normalizeTelemetryPayload(envelope);
-        let payload = telemetryPayload ?? msg;
-        if (!telemetryPayload && msg && typeof msg === "object" && "payload" in msg) {
-            payload = typeof msg.payload === "string" ? JSON.parse(msg.payload) : msg.payload;
+        let payload = envelope?.payload ?? msg;
+        if (typeof payload === "string") {
+            try {
+                payload = JSON.parse(payload);
+            } catch {
+                payload = envelope?.payload ?? msg;
+            }
         }
+
+        const telemetryPayload = normalizeTelemetryPayload(
+            envelope && typeof envelope === "object"
+                ? { ...envelope, payload }
+                : null
+        );
+        payload = telemetryPayload ?? payload;
 
         if (!payload || typeof payload !== "object") return;
 
-        let baseId = payload.deviceId || payload.device || payload.devId;
-        let systemId = payload.system || payload.systemId;
+        let baseId = envelope?.deviceId || payload.deviceId || payload.device || payload.devId;
+        let site = envelope?.site || payload.site || payload.system || payload.systemId;
+        let rack = envelope?.rack || payload.rack;
         // Some payloads send `layer` as an object `{ layer: "L01" }` while others
         // use a plain string. Normalise to a string so the composite ID is built
         // correctly regardless of format.
-        let loc = payload.layer?.layer || payload.layer || payload.meta?.layer || "";
+        let loc = envelope?.layer || payload.layer?.layer || payload.layer || payload.meta?.layer || "";
 
         let compositeId =
+            envelope?.compositeId ||
             payload.compositeId ||
             payload.composite_id ||
             payload.cid ||
-            envelope?.compositeId ||
             null;
 
-        if ((!baseId || !systemId || !loc) && compositeId) {
+        if ((!baseId || !site || !loc) && compositeId) {
             const parts = String(compositeId).split("-");
-            if (parts.length >= 3) {
-                systemId = systemId || parts[0];
+            if (parts.length >= 4) {
+                site = site || parts[0];
+                rack = rack || parts[1];
+                loc = loc || parts[2];
+                baseId = baseId || parts.slice(3).join("-");
+            } else if (parts.length >= 3) {
+                site = site || parts[0];
                 loc = loc || parts[1];
                 baseId = baseId || parts.slice(2).join("-");
             }
         }
 
         baseId = baseId || "unknown";
-        systemId = systemId || "unknown";
+        site = site || "unknown";
+        rack = rack || null;
 
         if (!compositeId) {
-            compositeId = loc ? `${loc}${baseId}` : baseId;
+            const segments = [site, rack, loc, baseId].filter(Boolean);
+            compositeId = segments.length > 0 ? segments.join("-") : baseId;
         }
 
         if (kind === "event") {
@@ -171,7 +192,7 @@ export function useLiveDevices(topics) {
             payload = {...payload, online};
         }
 
-        const isTelemetryTopic = kind === "telemetry" || topic === TELEMETRY_TOPIC;
+        const isTelemetryTopic = kind === "telemetry";
 
         if (Array.isArray(payload.sensors)) {
             const normalized = normalizeSensorData(payload);
@@ -190,6 +211,10 @@ export function useLiveDevices(topics) {
             ...(loc ? {layer: loc} : {}),
             deviceId: baseId,
             compositeId,
+            kind,
+            mqttTopic,
+            ...(site ? {site} : {}),
+            ...(rack ? {rack} : {}),
             receivedAt: Date.now()
         };
 
@@ -213,10 +238,10 @@ export function useLiveDevices(topics) {
         if (!topicKey) return;
 
         setDeviceData(prev => {
-            const sys = {...(prev[systemId] || {})};
+            const sys = {...(prev[site] || {})};
             const topicMap = {...(sys[topicKey] || {})};
             topicMap[compositeId] = tableData;
-            return {...prev, [systemId]: {...sys, [topicKey]: topicMap}};
+            return {...prev, [site]: {...sys, [topicKey]: topicMap}};
         });
     }, [resolveOnline, updateDeviceEvents, updateSensorExtrema]);
 
