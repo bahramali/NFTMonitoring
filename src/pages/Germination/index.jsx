@@ -251,11 +251,16 @@ export default function Germination() {
                 (typeof device?.extra?.rackId === "string" && device.extra.rackId) ||
                 (typeof device?.extra?.rack_id === "string" && device.extra.rack_id) ||
                 (typeof device?.rackId === "string" && device.rackId) ||
+                (typeof device?.rack === "string" && device.rack) ||
                 "";
             const rack = typeof device?.rack === "string" ? device.rack.toLowerCase() : "";
             const deviceId = typeof device?.deviceId === "string" ? device.deviceId : "";
 
-            const matched = rackId === "S01-germination" || deviceId.startsWith("LOG-GER_");
+            const normalizedRack = rackId.toLowerCase();
+            const matched =
+                normalizedRack === "s01-germination" ||
+                normalizedRack.includes("germination") ||
+                deviceId.startsWith("LOG-GER_");
             logTelemetryDebug("germination filter", {
                 deviceId,
                 rackId,
