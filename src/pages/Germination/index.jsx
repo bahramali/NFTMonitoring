@@ -254,8 +254,20 @@ export default function Germination() {
             return {};
         }
 
+        const germinationDevices = Object.fromEntries(
+            Object.entries(aggregatedTopics[telemetryTopic]).filter(([, device]) => {
+                const rack = typeof device?.rack === "string" ? device.rack.toLowerCase() : "";
+                if (rack) {
+                    return rack === "germination";
+                }
+
+                const mqttTopic = device?.mqttTopic;
+                return typeof mqttTopic === "string" && mqttTopic.includes("/germination/");
+            }),
+        );
+
         return {
-            [telemetryTopic]: aggregatedTopics[telemetryTopic],
+            [telemetryTopic]: germinationDevices,
         };
     }, [aggregatedTopics, telemetryTopic]);
 
