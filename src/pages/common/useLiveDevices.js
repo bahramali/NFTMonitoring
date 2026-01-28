@@ -1,10 +1,14 @@
 import {useCallback, useMemo, useState} from "react";
 import {filterNoise, normalizeSensorData} from "../../utils.js";
 import {useStomp} from "../../hooks/useStomp.js";
-import {SENSOR_TOPIC} from "./dashboard.constants.js";
+import {SENSOR_TOPIC as SENSOR_TOPIC_CONST} from "./dashboard.constants.js";
 import {isAs7343Sensor, makeMeasurementKey, sanitize} from "./measurementUtils.js";
+import {normalizeTelemetryPayload, parseEnvelope} from "../../utils/telemetryAdapter.js";
 
 const EXTREMA_WINDOW_MS = 5 * 60 * 1000;
+const SENSOR_TOPIC = typeof SENSOR_TOPIC_CONST === "string" && SENSOR_TOPIC_CONST
+    ? SENSOR_TOPIC_CONST
+    : "hydroleaf/telemetry";
 const RESERVED_EXTRA_KEYS = new Set([
     "controllers",
     "deviceId",
@@ -16,6 +20,7 @@ const RESERVED_EXTRA_KEYS = new Set([
     "sensors",
     "system",
     "compositeId",
+    "online",
 ]);
 
 function mergeControllers(a = [], b = []) {
@@ -36,6 +41,30 @@ export function useLiveDevices(topics) {
     const [deviceData, setDeviceData] = useState({});
     const [sensorData, setSensorData] = useState({});
     const [sensorExtrema, setSensorExtrema] = useState({});
+    const [deviceEvents, setDeviceEvents] = useState({});
+
+    const updateDeviceEvents = useCallback((compositeId, payload) => {
+        if (!compositeId) return;
+        setDeviceEvents((prev) => {
+            const existing = Array.isArray(prev[compositeId]) ? prev[compositeId] : [];
+            const nextList = [...existing, payload].slice(-200);
+            return {...prev, [compositeId]: nextList};
+        });
+    }, []);
+
+    const resolveOnline = useCallback((payload) => {
+        if (!payload || typeof payload !== "object") return null;
+        if (typeof payload.online === "boolean") return payload.online;
+        if (typeof payload.isOnline === "boolean") return payload.isOnline;
+        if (typeof payload.status === "boolean") return payload.status;
+        if (typeof payload.state === "boolean") return payload.state;
+        if (typeof payload.status === "string") {
+            const normalized = payload.status.toLowerCase();
+            if (normalized === "online") return true;
+            if (normalized === "offline") return false;
+        }
+        return null;
+    }, []);
 
     const updateSensorExtrema = useCallback((compositeId, sensors = []) => {
         if (!Array.isArray(sensors) || sensors.length === 0) return;
@@ -90,23 +119,66 @@ export function useLiveDevices(topics) {
     }, []);
 
     const handleStompMessage = useCallback((topic, msg) => {
-        let payload = msg;
-        if (msg && typeof msg === "object" && "payload" in msg) {
+        const envelope = parseEnvelope(msg);
+        const kind = envelope?.kind ?? null;
+
+        const telemetryPayload = normalizeTelemetryPayload(envelope);
+        let payload = telemetryPayload ?? msg;
+        if (!telemetryPayload && msg && typeof msg === "object" && "payload" in msg) {
             payload = typeof msg.payload === "string" ? JSON.parse(msg.payload) : msg.payload;
         }
 
-        const baseId = payload.deviceId || "unknown";
-        const systemId = payload.system || "unknown";
+        if (!payload || typeof payload !== "object") return;
+
+        let baseId = payload.deviceId || payload.device || payload.devId;
+        let systemId = payload.system || payload.systemId;
         // Some payloads send `layer` as an object `{ layer: "L01" }` while others
         // use a plain string. Normalise to a string so the composite ID is built
         // correctly regardless of format.
-        const loc = payload.layer?.layer || payload.layer || payload.meta?.layer || "";
-        const compositeId = payload.compositeId || (loc ? `${loc}${baseId}` : baseId);
+        let loc = payload.layer?.layer || payload.layer || payload.meta?.layer || "";
+
+        let compositeId =
+            payload.compositeId ||
+            payload.composite_id ||
+            payload.cid ||
+            envelope?.compositeId ||
+            null;
+
+        if ((!baseId || !systemId || !loc) && compositeId) {
+            const parts = String(compositeId).split("-");
+            if (parts.length >= 3) {
+                systemId = systemId || parts[0];
+                loc = loc || parts[1];
+                baseId = baseId || parts.slice(2).join("-");
+            }
+        }
+
+        baseId = baseId || "unknown";
+        systemId = systemId || "unknown";
+
+        if (!compositeId) {
+            compositeId = loc ? `${loc}${baseId}` : baseId;
+        }
+
+        if (kind === "event") {
+            updateDeviceEvents(compositeId, {
+                ...payload,
+                compositeId,
+                receivedAt: Date.now(),
+            });
+        }
+
+        const online = kind === "status" ? resolveOnline(payload) : null;
+        if (online !== null) {
+            payload = {...payload, online};
+        }
+
+        const isTelemetryTopic = kind === "telemetry" || topic === SENSOR_TOPIC;
 
         if (Array.isArray(payload.sensors)) {
             const normalized = normalizeSensorData(payload);
-            const cleaned = topic === SENSOR_TOPIC ? filterNoise(normalized) : normalized;
-            if (cleaned && topic === SENSOR_TOPIC) {
+            const cleaned = isTelemetryTopic ? filterNoise(normalized) : normalized;
+            if (cleaned && isTelemetryTopic) {
                 setSensorData(prev => ({...prev, [compositeId]: cleaned}));
             }
 
@@ -123,6 +195,10 @@ export function useLiveDevices(topics) {
             receivedAt: Date.now()
         };
 
+        if (online !== null) {
+            tableData.online = online;
+        }
+
         if (payload && typeof payload === "object" && !Array.isArray(payload)) {
             const extras = Object.entries(payload).reduce((acc, [key, value]) => {
                 if (RESERVED_EXTRA_KEYS.has(key)) return acc;
@@ -135,13 +211,16 @@ export function useLiveDevices(topics) {
             }
         }
 
+        const topicKey = kind || topic;
+        if (!topicKey) return;
+
         setDeviceData(prev => {
             const sys = {...(prev[systemId] || {})};
-            const topicMap = {...(sys[topic] || {})};
+            const topicMap = {...(sys[topicKey] || {})};
             topicMap[compositeId] = tableData;
-            return {...prev, [systemId]: {...sys, [topic]: topicMap}};
+            return {...prev, [systemId]: {...sys, [topicKey]: topicMap}};
         });
-    }, [updateSensorExtrema]);
+    }, [resolveOnline, updateDeviceEvents, updateSensorExtrema]);
 
     useStomp(topics, handleStompMessage);
 
@@ -193,6 +272,5 @@ export function useLiveDevices(topics) {
         return combined;
     }, [deviceData]);
 
-    return {deviceData, sensorData, availableCompositeIds, mergedDevices, sensorExtrema};
+    return {deviceData, sensorData, availableCompositeIds, mergedDevices, sensorExtrema, deviceEvents};
 }
-

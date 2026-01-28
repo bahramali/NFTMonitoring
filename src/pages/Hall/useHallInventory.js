@@ -3,6 +3,7 @@ import { authFetch, parseApiResponse } from "../../api/http.js";
 import { getApiBaseUrl } from "../../config/apiBase.js";
 import { useStomp } from "../../hooks/useStomp.js";
 import { normalizeDeviceCatalog } from "../Reports/utils/catalog.js";
+import { HYDROLEAF_TOPICS } from "../../utils/telemetryAdapter.js";
 import {
     buildInventoryFromMessages,
     getCompositeIdFromMessage,
@@ -14,7 +15,7 @@ import {
 
 const API_BASE = getApiBaseUrl();
 const FALLBACK_DELAY_MS = 2500;
-const TOPICS = ["/topic/growSensors", "/topic/waterTank"];
+const TOPICS = HYDROLEAF_TOPICS;
 
 const resolveDeviceList = (data) => {
     const catalog = normalizeDeviceCatalog(data);

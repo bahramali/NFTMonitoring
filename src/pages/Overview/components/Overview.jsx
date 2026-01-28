@@ -8,6 +8,7 @@ import { useSensorConfig } from "../../../context/SensorConfigContext.jsx";
 import useWaterCompositeCards from "./useWaterCompositeCards.js";
 import { useStomp } from "../../../hooks/useStomp";
 import Header from "../../common/Header";
+import { HYDROLEAF_TOPICS, normalizeTelemetryPayload, parseEnvelope } from "../../../utils/telemetryAdapter.js";
 
 // utils
 import {
@@ -89,21 +90,25 @@ function aggregateWaterFromCards(cards = []) {
 function useSystemsIndex() {
     const [index, setIndex] = React.useState({}); // { S01: { id, layers: ["L01","L02"], lastTs } }
 
-    const topics = React.useMemo(() => ["/topic/growSensors", "/topic/waterTank"], []);
+    const topics = React.useMemo(() => HYDROLEAF_TOPICS, []);
     useStomp(topics, (_topic, data) => {
         if (!data) return;
+        const envelope = parseEnvelope(data);
+        const telemetry = normalizeTelemetryPayload(envelope);
+        if (envelope && envelope.kind !== "telemetry") return;
+        const message = telemetry || data;
 
-        let cid = data.compositeId || data.composite_id || data.cid;
+        let cid = message.compositeId || message.composite_id || message.cid;
         let sys, lay;
         if (cid) {
             ({ sys, lay } = splitComp(cid));
         } else {
-            sys = String(data.system || data.systemId || "").toUpperCase();
-            lay = String(data.layer || data.layerId || "");
+            sys = String(message.system || message.systemId || "").toUpperCase();
+            lay = String(message.layer || message.layerId || "");
         }
         if (!sys) return;
 
-        const ts = Number(data.timestamp || data.ts || Date.now());
+        const ts = Number(message.timestamp || message.ts || Date.now());
         const layerId = normLayerIdSafe(lay);
 
         setIndex((prev) => {
@@ -174,15 +179,19 @@ function useSystemCompositeCards(systemKeyInput) {
         });
     }, []);
 
-    const topics = React.useMemo(() => ["/topic/growSensors", "/topic/waterTank"], []);
+    const topics = React.useMemo(() => HYDROLEAF_TOPICS, []);
     useStomp(topics, (_topic, data) => {
         if (!data) return;
+        const envelope = parseEnvelope(data);
+        const telemetry = normalizeTelemetryPayload(envelope);
+        if (envelope && envelope.kind !== "telemetry") return;
+        const message = telemetry || data;
 
-        let cid = data.compositeId || data.composite_id || data.cid;
+        let cid = message.compositeId || message.composite_id || message.cid;
         if (!cid) {
-            const sys = data.system || data.systemId;
-            const lay = data.layer || data.layerId;
-            const dev = data.deviceId || data.device || data.devId;
+            const sys = message.system || message.systemId;
+            const lay = message.layer || message.layerId;
+            const dev = message.deviceId || message.device || message.devId;
             if (sys && lay && dev) cid = `${sys}-${lay}-${dev}`;
         }
         if (!cid) return;
@@ -191,14 +200,14 @@ function useSystemCompositeCards(systemKeyInput) {
         if (!sys || sys.toUpperCase() !== sysKey) return;
 
         const sensors =
-            data.sensors ||
-            data.values ||
-            data.env ||
-            data.water ||
-            data.payload ||
-            data.readings ||
+            message.sensors ||
+            message.values ||
+            message.env ||
+            message.water ||
+            message.payload ||
+            message.readings ||
             [];
-        upsert(cid, sensors, data.timestamp || data.ts);
+        upsert(cid, sensors, message.timestamp || message.ts);
     });
 
     React.useEffect(() => {
