@@ -2,7 +2,7 @@ import {useCallback, useMemo, useState} from "react";
 import {filterNoise, normalizeSensorData} from "../../utils.js";
 import {useStomp} from "../../hooks/useStomp.js";
 import {isAs7343Sensor, makeMeasurementKey, sanitize} from "./measurementUtils.js";
-import {normalizeTelemetryPayload} from "../../utils/telemetryAdapter.js";
+import {adaptFlatTelemetryToSensors} from "../../utils/telemetryAdapter.js";
 
 const EXTREMA_WINDOW_MS = 5 * 60 * 1000;
 const TELEMETRY_TOPIC = "hydroleaf/telemetry";
@@ -133,13 +133,6 @@ export function useLiveDevices(topics) {
             }
         }
 
-        const telemetryPayload = normalizeTelemetryPayload(
-            envelope && typeof envelope === "object"
-                ? { ...envelope, payload }
-                : null
-        );
-        payload = telemetryPayload ?? payload;
-
         if (!payload || typeof payload !== "object") return;
 
         let baseId = envelope?.deviceId || payload.deviceId || payload.device || payload.devId;
@@ -202,6 +195,11 @@ export function useLiveDevices(topics) {
         }
 
         const isTelemetryTopic = kind === "telemetry" || (!kind && topic === TELEMETRY_TOPIC);
+
+        if (kind === "telemetry" && !Array.isArray(payload.sensors)) {
+            const adapted = adaptFlatTelemetryToSensors(payload);
+            payload = { ...payload, ...adapted };
+        }
 
         if (Array.isArray(payload.sensors)) {
             const normalized = normalizeSensorData(payload);
