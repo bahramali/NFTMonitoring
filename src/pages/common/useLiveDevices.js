@@ -1,7 +1,6 @@
 import {useCallback, useMemo, useState} from "react";
 import {filterNoise, normalizeSensorData} from "../../utils.js";
 import {useStomp} from "../../hooks/useStomp.js";
-import {SENSOR_TOPIC} from "./dashboard.constants.js";
 import {isAs7343Sensor, makeMeasurementKey, sanitize} from "./measurementUtils.js";
 import {normalizeTelemetryPayload, parseEnvelope} from "../../utils/telemetryAdapter.js";
 
