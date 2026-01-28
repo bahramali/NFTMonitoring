@@ -126,16 +126,19 @@ export function useLiveDevices(topics) {
 
         if (!payload || typeof payload !== "object") return;
 
-        const compositeIdFromEnvelope = envelope?.compositeId;
-        const compositeIdPayload = payload.compositeId || payload.composite_id || payload.cid;
-        const compositeId = compositeIdPayload || compositeIdFromEnvelope || "unknown";
-
         let baseId = payload.deviceId || payload.device || payload.devId;
         let systemId = payload.system || payload.systemId;
         // Some payloads send `layer` as an object `{ layer: "L01" }` while others
         // use a plain string. Normalise to a string so the composite ID is built
         // correctly regardless of format.
         let loc = payload.layer?.layer || payload.layer || payload.meta?.layer || "";
+
+        let compositeId =
+            payload.compositeId ||
+            payload.composite_id ||
+            payload.cid ||
+            envelope?.compositeId ||
+            null;
 
         if ((!baseId || !systemId || !loc) && compositeId) {
             const parts = String(compositeId).split("-");
@@ -148,6 +151,10 @@ export function useLiveDevices(topics) {
 
         baseId = baseId || "unknown";
         systemId = systemId || "unknown";
+
+        if (!compositeId) {
+            compositeId = loc ? `${loc}${baseId}` : baseId;
+        }
 
         if (kind === "event") {
             updateDeviceEvents(compositeId, {
@@ -162,10 +169,12 @@ export function useLiveDevices(topics) {
             payload = {...payload, online};
         }
 
+        const isTelemetryTopic = kind === "telemetry" || topic === SENSOR_TOPIC;
+
         if (Array.isArray(payload.sensors)) {
             const normalized = normalizeSensorData(payload);
-            const cleaned = kind === "telemetry" ? filterNoise(normalized) : normalized;
-            if (cleaned && kind === "telemetry") {
+            const cleaned = isTelemetryTopic ? filterNoise(normalized) : normalized;
+            if (cleaned && isTelemetryTopic) {
                 setSensorData(prev => ({...prev, [compositeId]: cleaned}));
             }
 
