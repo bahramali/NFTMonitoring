@@ -1,7 +1,6 @@
 import {useCallback, useMemo, useState} from "react";
 import {filterNoise, normalizeSensorData} from "../../utils.js";
 import {useStomp} from "../../hooks/useStomp.js";
-import {WS_TOPICS} from "./dashboard.constants.js";
 import {isAs7343Sensor, makeMeasurementKey, sanitize} from "./measurementUtils.js";
 import {normalizeTelemetryPayload} from "../../utils/telemetryAdapter.js";
 
@@ -166,7 +165,7 @@ export function useLiveDevices(topics) {
             payload.cid ||
             null;
 
-        if ((!baseId || !systemId || !loc) && compositeId) {
+        if ((!baseId || !site || !loc) && compositeId) {
             const parts = String(compositeId).split("-");
             if (parts.length >= 4) {
                 site = site || parts[0];
@@ -186,7 +185,8 @@ export function useLiveDevices(topics) {
         rack = rack || null;
 
         if (!compositeId) {
-            compositeId = loc ? `${loc}${baseId}` : baseId;
+            const segments = [site, rack, loc, baseId].filter(Boolean);
+            compositeId = segments.length > 0 ? segments.join("-") : baseId;
         }
 
         if (kind === "event") {
@@ -248,10 +248,10 @@ export function useLiveDevices(topics) {
         if (!topicKey) return;
 
         setDeviceData(prev => {
-            const sys = {...(prev[systemId] || {})};
+            const sys = {...(prev[site] || {})};
             const topicMap = {...(sys[topicKey] || {})};
             topicMap[compositeId] = tableData;
-            return {...prev, [systemId]: {...sys, [topicKey]: topicMap}};
+            return {...prev, [site]: {...sys, [topicKey]: topicMap}};
         });
     }, [resolveOnline, updateDeviceEvents, updateSensorExtrema]);
 
