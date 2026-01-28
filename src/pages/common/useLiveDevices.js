@@ -1,14 +1,12 @@
 import {useCallback, useMemo, useState} from "react";
 import {filterNoise, normalizeSensorData} from "../../utils.js";
 import {useStomp} from "../../hooks/useStomp.js";
-import {SENSOR_TOPIC as SENSOR_TOPIC_CONST} from "./dashboard.constants.js";
+import {WS_TOPICS} from "./dashboard.constants.js";
 import {isAs7343Sensor, makeMeasurementKey, sanitize} from "./measurementUtils.js";
 import {normalizeTelemetryPayload, parseEnvelope} from "../../utils/telemetryAdapter.js";
 
 const EXTREMA_WINDOW_MS = 5 * 60 * 1000;
-const SENSOR_TOPIC = typeof SENSOR_TOPIC_CONST === "string" && SENSOR_TOPIC_CONST
-    ? SENSOR_TOPIC_CONST
-    : "hydroleaf/telemetry";
+const TELEMETRY_TOPIC = WS_TOPICS.find((topic) => topic?.includes("telemetry")) || "hydroleaf/telemetry";
 const RESERVED_EXTRA_KEYS = new Set([
     "controllers",
     "deviceId",
@@ -173,7 +171,7 @@ export function useLiveDevices(topics) {
             payload = {...payload, online};
         }
 
-        const isTelemetryTopic = kind === "telemetry" || topic === SENSOR_TOPIC;
+        const isTelemetryTopic = kind === "telemetry" || topic === TELEMETRY_TOPIC;
 
         if (Array.isArray(payload.sensors)) {
             const normalized = normalizeSensorData(payload);

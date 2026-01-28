@@ -1,7 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { vi } from 'vitest';
 import { useLiveDevices } from '../src/pages/common/useLiveDevices.js';
-import { SENSOR_TOPIC } from '../src/pages/common/dashboard.constants.js';
+import { WS_TOPICS } from '../src/pages/common/dashboard.constants.js';
 import growPayload from './data/growSensors.json';
 import tankPayload from './data/waterTank.json';
 import oxyPayload from './data/oxygenPump.json';
@@ -13,17 +13,20 @@ vi.mock('../src/hooks/useStomp', () => ({
   }
 }));
 
+const TELEMETRY_TOPIC =
+  WS_TOPICS.find((topic) => topic?.includes('telemetry')) || 'hydroleaf/telemetry';
+
 test('stores sensor data and actuator controllers per composite device', () => {
   const { result } = renderHook(() =>
-    useLiveDevices([SENSOR_TOPIC, 'actuator/oxygenPump'])
+    useLiveDevices([TELEMETRY_TOPIC, 'actuator/oxygenPump'])
   );
 
   act(() => {
-    global.__stompHandler(SENSOR_TOPIC, growPayload);
+    global.__stompHandler(TELEMETRY_TOPIC, growPayload);
   });
 
   act(() => {
-    global.__stompHandler(SENSOR_TOPIC, tankPayload);
+    global.__stompHandler(TELEMETRY_TOPIC, tankPayload);
   });
 
   act(() => {
@@ -40,10 +43,10 @@ test('stores sensor data and actuator controllers per composite device', () => {
 });
 
 test('aggregates devices across multiple systems', () => {
-  const { result } = renderHook(() => useLiveDevices([SENSOR_TOPIC]));
+  const { result } = renderHook(() => useLiveDevices([TELEMETRY_TOPIC]));
 
   act(() => {
-    global.__stompHandler(SENSOR_TOPIC, {
+    global.__stompHandler(TELEMETRY_TOPIC, {
       deviceId: 'G01',
       layer: 'L01',
       system: 'S01',
@@ -52,7 +55,7 @@ test('aggregates devices across multiple systems', () => {
   });
 
   act(() => {
-    global.__stompHandler(SENSOR_TOPIC, {
+    global.__stompHandler(TELEMETRY_TOPIC, {
       deviceId: 'G02',
       layer: 'L02',
       system: 'S02',
@@ -70,10 +73,10 @@ test('aggregates devices across multiple systems', () => {
 });
 
 test('merges controllers from multiple topics', () => {
-  const { result } = renderHook(() => useLiveDevices([SENSOR_TOPIC, 'waterOutput']));
+  const { result } = renderHook(() => useLiveDevices([TELEMETRY_TOPIC, 'waterOutput']));
 
   act(() => {
-    global.__stompHandler(SENSOR_TOPIC, {
+    global.__stompHandler(TELEMETRY_TOPIC, {
       deviceId: 'G01',
       layer: 'L01',
       system: 'S01',
@@ -109,11 +112,11 @@ test('merges controllers from multiple topics', () => {
 
 test('handles actuator payloads with JSON payload and merges controllers', () => {
   const { result } = renderHook(() =>
-    useLiveDevices([SENSOR_TOPIC, 'actuator/oxygenPump'])
+    useLiveDevices([TELEMETRY_TOPIC, 'actuator/oxygenPump'])
   );
 
   act(() => {
-    global.__stompHandler(SENSOR_TOPIC, {
+    global.__stompHandler(TELEMETRY_TOPIC, {
       deviceId: 'G01',
       layer: 'L01',
       system: 'S01',
@@ -152,10 +155,10 @@ test('handles actuator payloads with JSON payload and merges controllers', () =>
 });
 
 test('uses provided compositeId when present', () => {
-  const { result } = renderHook(() => useLiveDevices([SENSOR_TOPIC]));
+  const { result } = renderHook(() => useLiveDevices([TELEMETRY_TOPIC]));
 
   act(() => {
-    global.__stompHandler(SENSOR_TOPIC, {
+    global.__stompHandler(TELEMETRY_TOPIC, {
       compositeId: 'C123',
       deviceId: 'ignored',
       layer: 'L99',
@@ -172,10 +175,10 @@ test('uses provided compositeId when present', () => {
 });
 
 test('constructs compositeId from object layer field', () => {
-  const { result } = renderHook(() => useLiveDevices([SENSOR_TOPIC]));
+  const { result } = renderHook(() => useLiveDevices([TELEMETRY_TOPIC]));
 
   act(() => {
-    global.__stompHandler(SENSOR_TOPIC, {
+    global.__stompHandler(TELEMETRY_TOPIC, {
       deviceId: 'T01',
       layer: { layer: 'L01' },
       system: 'S01',

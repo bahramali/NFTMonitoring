@@ -1,7 +1,7 @@
 import React, {useEffect, useMemo, useState} from "react";
 import Header from "../common/Header";
 import {useLiveDevices} from "../common/useLiveDevices.js";
-import {GERMINATION_TOPIC, topics} from "../common/dashboard.constants.js";
+import {WS_TOPICS} from "../common/dashboard.constants.js";
 import {AS7343_MODEL_KEY, makeMeasurementKey, sanitize} from "../common/measurementUtils.js";
 import {useSensorConfig} from "../../context/SensorConfigContext.jsx";
 import SpectrumBarChart from "./SpectrumBarChart.jsx";
@@ -284,7 +284,7 @@ function DeviceMetricCard({topic, device, rangeLookup}) {
 }
 
 function LiveDashboard() {
-    const {deviceData, mergedDevices, sensorData} = useLiveDevices(topics);
+    const {deviceData, mergedDevices, sensorData} = useLiveDevices(WS_TOPICS);
     const [selectedCompositeId, setSelectedCompositeId] = useState("");
     const [selectedMetricKey, setSelectedMetricKey] = useState("");
     const stageContext = useMemo(() => getNftStageContext(21), []);
@@ -299,13 +299,7 @@ function LiveDashboard() {
         return allTopics;
     }, [deviceData]);
 
-    const filteredTopics = useMemo(() => {
-        const entries = Object.entries(aggregatedTopics)
-            .filter(([topic]) => topic !== GERMINATION_TOPIC);
-        return Object.fromEntries(entries);
-    }, [aggregatedTopics]);
-
-    const topicDevices = useMemo(() => buildTopicList(filteredTopics), [filteredTopics]);
+    const topicDevices = useMemo(() => buildTopicList(aggregatedTopics), [aggregatedTopics]);
 
     const allDeviceEntries = useMemo(() => {
         const list = [];
