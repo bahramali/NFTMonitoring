@@ -67,9 +67,9 @@ test('aggregates devices across multiple systems', () => {
   });
 
   expect(result.current.availableCompositeIds).toEqual(
-    expect.arrayContaining(['L01G01', 'L02G02'])
+    expect.arrayContaining(['S01-L01-G01', 'S02-L02-G02'])
   );
-  expect(result.current.sensorData['L02G02'].temperature.value).toBe(25);
+  expect(result.current.sensorData['S02-L02-G02'].temperature.value).toBe(25);
 });
 
 test('merges controllers from multiple topics', () => {
@@ -102,7 +102,7 @@ test('merges controllers from multiple topics', () => {
     });
   });
 
-  const ctrls = result.current.mergedDevices['L01G01'].controllers;
+  const ctrls = result.current.mergedDevices['S01-L01-G01'].controllers;
   expect(ctrls).toHaveLength(2);
   const valve = ctrls.find(c => c.name === 'Valve1');
   const pump = ctrls.find(c => c.name === 'Pump1');
@@ -146,7 +146,7 @@ test('handles actuator payloads with JSON payload and merges controllers', () =>
     global.__stompHandler('actuator/oxygenPump', { payload });
   });
 
-  const ctrls = result.current.mergedDevices['L01G01'].controllers;
+  const ctrls = result.current.mergedDevices['S01-L01-G01'].controllers;
   expect(ctrls).toHaveLength(2);
   const valve = ctrls.find((c) => c.name === 'Valve1');
   const pump = ctrls.find((c) => c.name === 'OxyPump');
@@ -189,7 +189,7 @@ test('constructs compositeId from object layer field', () => {
     });
   });
 
-  expect(result.current.sensorData['L01T01'].temperature.value).toBe(20);
+  expect(result.current.sensorData['S01-L01-T01'].temperature.value).toBe(20);
 });
 
 test('captures auxiliary payload fields for non-sensor topics', () => {
@@ -208,7 +208,7 @@ test('captures auxiliary payload fields for non-sensor topics', () => {
     });
   });
 
-  const topicEntry = result.current.deviceData['SYS01']['water_flow']['L03WF01'];
+  const topicEntry = result.current.deviceData['SYS01']['water_flow']['SYS01-L03-WF01'];
   expect(topicEntry.extra).toEqual({ status: 'on' });
   expect(topicEntry.receivedAt).toBe(fixedDate.getTime());
 
