@@ -8,3 +8,11 @@ export function getApiBaseUrl() {
 
     return baseUrl.replace(TRAILING_SLASH_REGEX, "");
 }
+
+export function getWsHttpUrl() {
+    const wsUrl = import.meta.env?.VITE_WS_HTTP_URL;
+    if (wsUrl) {
+        return wsUrl.replace(TRAILING_SLASH_REGEX, "");
+    }
+    return `${getApiBaseUrl()}/ws`;
+}
