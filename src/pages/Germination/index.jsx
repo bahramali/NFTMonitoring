@@ -2,6 +2,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import Header from "../common/Header";
 import { useLiveDevices } from "../common/useLiveDevices";
 import { WS_TOPICS } from "../common/dashboard.constants";
+import {
+    buildAggregatedTopics,
+    logTelemetryDebug,
+    resolveTelemetryTopics,
+} from "../common/liveTelemetry.js";
 import GerminationCamera from "./components/GerminationCamera";
 import HistoryChart from "../../components/HistoryChart.jsx";
 import { transformAggregatedData } from "../../utils.js";
@@ -144,7 +149,7 @@ function toLocalInputValueIfValid(value) {
 }
 
 export default function Germination() {
-    const { deviceData } = useLiveDevices(WS_TOPICS);
+    const { deviceData, mergedDevices } = useLiveDevices(WS_TOPICS);
     const [startTime, setStartTime] = useState("");
     const [elapsed, setElapsed] = useState(() => calculateElapsed(""));
     const [statusLoading, setStatusLoading] = useState(true);
@@ -234,31 +239,10 @@ export default function Germination() {
         return () => clearInterval(interval);
     }, [startTime]);
 
-    const aggregatedTopics = useMemo(() => {
-        const allTopics = {};
-        for (const sysTopics of Object.values(deviceData)) {
-            for (const [topic, devices] of Object.entries(sysTopics)) {
-                allTopics[topic] = { ...(allTopics[topic] || {}), ...devices };
-            }
-        }
-        return allTopics;
-    }, [deviceData]);
+    const aggregatedTopics = useMemo(() => buildAggregatedTopics(deviceData), [deviceData]);
 
     const telemetryTopics = useMemo(() => {
-        const keys = new Set();
-        for (const topic of WS_TOPICS) {
-            if (topic?.includes("telemetry")) {
-                keys.add(topic);
-            }
-        }
-        for (const topic of Object.keys(aggregatedTopics)) {
-            if (topic?.includes("telemetry")) {
-                keys.add(topic);
-            }
-        }
-        keys.add("telemetry");
-        keys.add("hydroleaf/telemetry");
-        return Array.from(keys).filter(Boolean);
+        return resolveTelemetryTopics(WS_TOPICS, aggregatedTopics);
     }, [aggregatedTopics]);
 
     const isGerminationTelemetry = useMemo(() => {
@@ -267,10 +251,21 @@ export default function Germination() {
                 (typeof device?.extra?.rackId === "string" && device.extra.rackId) ||
                 (typeof device?.extra?.rack_id === "string" && device.extra.rack_id) ||
                 (typeof device?.rackId === "string" && device.rackId) ||
+                (typeof device?.rack === "string" && device.rack) ||
                 "";
             const deviceId = typeof device?.deviceId === "string" ? device.deviceId : "";
 
-            return rackId === "S01-germination" || deviceId.startsWith("LOG-GER_");
+            const normalizedRack = rackId.toLowerCase();
+            const matched =
+                normalizedRack === "s01-germination" ||
+                normalizedRack.includes("germination") ||
+                deviceId.startsWith("LOG-GER_");
+            logTelemetryDebug("germination filter", {
+                deviceId,
+                rackId,
+                matched,
+            });
+            return matched;
         };
     }, []);
 
@@ -281,11 +276,11 @@ export default function Germination() {
             if (!topicDevices) return;
             Object.entries(topicDevices).forEach(([id, device]) => {
                 if (!isGerminationTelemetry(device)) return;
-                devices[id] = device;
+                devices[id] = mergedDevices?.[id] || device;
             });
         });
         return devices;
-    }, [aggregatedTopics, isGerminationTelemetry, telemetryTopics]);
+    }, [aggregatedTopics, isGerminationTelemetry, mergedDevices, telemetryTopics]);
 
     const hasTopics = Object.keys(germinationDevices).length > 0;
     const deviceOptions = useMemo(
