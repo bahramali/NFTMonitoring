@@ -1,0 +1,12 @@
+{
+  "kind": "event",
+  "mqttTopic": "hydroleaf/event",
+  "payload": {
+    "system": "S01",
+    "layer": "L01",
+    "deviceId": "G01",
+    "compositeId": "S01-L01-G01",
+    "event": "watering",
+    "value": 1
+  }
+}
