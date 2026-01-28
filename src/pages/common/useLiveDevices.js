@@ -5,6 +5,8 @@ import {isAs7343Sensor, makeMeasurementKey, sanitize} from "./measurementUtils.j
 import {normalizeTelemetryPayload} from "../../utils/telemetryAdapter.js";
 
 const EXTREMA_WINDOW_MS = 5 * 60 * 1000;
+const TELEMETRY_TOPIC =
+    WS_TOPICS.find((topic) => topic?.includes("telemetry")) || "hydroleaf/telemetry";
 const RESERVED_EXTRA_KEYS = new Set([
     "controllers",
     "deviceId",
@@ -142,12 +144,19 @@ export function useLiveDevices(topics) {
         if (!payload || typeof payload !== "object") return;
 
         let baseId = envelope?.deviceId || payload.deviceId || payload.device || payload.devId;
-        let site = envelope?.site || payload.site || payload.system || payload.systemId;
+        let systemId = payload.system || payload.systemId || payload.site || envelope?.site;
+        let site = envelope?.site || payload.site || systemId;
         let rack = envelope?.rack || payload.rack;
         // Some payloads send `layer` as an object `{ layer: "L01" }` while others
         // use a plain string. Normalise to a string so the composite ID is built
         // correctly regardless of format.
-        let loc = envelope?.layer || payload.layer?.layer || payload.layer || payload.meta?.layer || "";
+        let loc =
+            envelope?.layer?.layer ||
+            envelope?.layer ||
+            payload.layer?.layer ||
+            payload.layer ||
+            payload.meta?.layer ||
+            "";
 
         let compositeId =
             envelope?.compositeId ||
@@ -164,14 +173,15 @@ export function useLiveDevices(topics) {
                 loc = loc || parts[2];
                 baseId = baseId || parts.slice(3).join("-");
             } else if (parts.length >= 3) {
-                site = site || parts[0];
+                systemId = systemId || parts[0];
                 loc = loc || parts[1];
                 baseId = baseId || parts.slice(2).join("-");
             }
         }
 
         baseId = baseId || "unknown";
-        site = site || "unknown";
+        systemId = systemId || "unknown";
+        site = site || systemId;
         rack = rack || null;
 
         if (!compositeId) {
@@ -192,7 +202,7 @@ export function useLiveDevices(topics) {
             payload = {...payload, online};
         }
 
-        const isTelemetryTopic = kind === "telemetry";
+        const isTelemetryTopic = kind === "telemetry" || (!kind && topic === TELEMETRY_TOPIC);
 
         if (Array.isArray(payload.sensors)) {
             const normalized = normalizeSensorData(payload);
