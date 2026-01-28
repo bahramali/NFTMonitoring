@@ -1,0 +1,11 @@
+{
+  "kind": "status",
+  "mqttTopic": "hydroleaf/status",
+  "payload": {
+    "system": "S01",
+    "layer": "L01",
+    "deviceId": "G01",
+    "compositeId": "S01-L01-G01",
+    "status": "online"
+  }
+}

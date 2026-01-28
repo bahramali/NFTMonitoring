@@ -2,9 +2,11 @@ import { renderHook, act } from '@testing-library/react';
 import { vi } from 'vitest';
 import { useLiveDevices } from '../src/pages/common/useLiveDevices.js';
 import { WS_TOPICS } from '../src/pages/common/dashboard.constants.js';
-import growPayload from './data/growSensors.json';
 import tankPayload from './data/waterTank.json';
 import oxyPayload from './data/oxygenPump.json';
+import telemetryEnvelope from './data/wsTelemetryEnvelope.json';
+import statusEnvelope from './data/wsStatusEnvelope.json';
+import eventEnvelope from './data/wsEventEnvelope.json';
 
 // Mock useStomp to capture the message handler
 vi.mock('../src/hooks/useStomp', () => ({
@@ -16,17 +18,24 @@ vi.mock('../src/hooks/useStomp', () => ({
 const TELEMETRY_TOPIC =
   WS_TOPICS.find((topic) => topic?.includes('telemetry')) || 'hydroleaf/telemetry';
 
+const makeTelemetryEnvelope = (payload, overrides = {}) => ({
+  ...telemetryEnvelope,
+  payload,
+  compositeId: payload?.compositeId ?? telemetryEnvelope.compositeId,
+  ...overrides,
+});
+
 test('stores sensor data and actuator controllers per composite device', () => {
   const { result } = renderHook(() =>
     useLiveDevices([TELEMETRY_TOPIC, 'actuator/oxygenPump'])
   );
 
   act(() => {
-    global.__stompHandler(TELEMETRY_TOPIC, growPayload);
+    global.__stompHandler(TELEMETRY_TOPIC, telemetryEnvelope);
   });
 
   act(() => {
-    global.__stompHandler(TELEMETRY_TOPIC, tankPayload);
+    global.__stompHandler(TELEMETRY_TOPIC, makeTelemetryEnvelope(tankPayload));
   });
 
   act(() => {
@@ -34,8 +43,9 @@ test('stores sensor data and actuator controllers per composite device', () => {
   });
 
   expect(
-    result.current.sensorData[growPayload.compositeId].temperature.value
+    result.current.sensorData[telemetryEnvelope.payload.compositeId].temperature.value
   ).toBeCloseTo(27.75);
+  expect(result.current.sensorData[telemetryEnvelope.payload.compositeId]).toBeDefined();
   expect(result.current.sensorData[tankPayload.compositeId]).toBeUndefined();
   expect(
     result.current.mergedDevices[oxyPayload.compositeId].controllers[0]
@@ -46,24 +56,30 @@ test('aggregates devices across multiple systems', () => {
   const { result } = renderHook(() => useLiveDevices([TELEMETRY_TOPIC]));
 
   act(() => {
-    global.__stompHandler(TELEMETRY_TOPIC, {
-      deviceId: 'G01',
-      layer: 'L01',
-      system: 'S01',
-      sensors: [{ sensorType: 'temperature', value: 20 }]
-    });
+    global.__stompHandler(
+      TELEMETRY_TOPIC,
+      makeTelemetryEnvelope({
+        deviceId: 'G01',
+        layer: 'L01',
+        system: 'S01',
+        sensors: [{ sensorType: 'temperature', value: 20 }]
+      })
+    );
   });
 
   act(() => {
-    global.__stompHandler(TELEMETRY_TOPIC, {
-      deviceId: 'G02',
-      layer: 'L02',
-      system: 'S02',
-      sensors: [
-        { sensorType: 'temperature', value: 25 },
-        { sensorType: 'humidity', value: 50 }
-      ]
-    });
+    global.__stompHandler(
+      TELEMETRY_TOPIC,
+      makeTelemetryEnvelope({
+        deviceId: 'G02',
+        layer: 'L02',
+        system: 'S02',
+        sensors: [
+          { sensorType: 'temperature', value: 25 },
+          { sensorType: 'humidity', value: 50 }
+        ]
+      })
+    );
   });
 
   expect(result.current.availableCompositeIds).toEqual(
@@ -76,12 +92,15 @@ test('merges controllers from multiple topics', () => {
   const { result } = renderHook(() => useLiveDevices([TELEMETRY_TOPIC, 'waterOutput']));
 
   act(() => {
-    global.__stompHandler(TELEMETRY_TOPIC, {
-      deviceId: 'G01',
-      layer: 'L01',
-      system: 'S01',
-      controllers: [{ name: 'Valve1', type: 'valve', state: 'open' }]
-    });
+    global.__stompHandler(
+      TELEMETRY_TOPIC,
+      makeTelemetryEnvelope({
+        deviceId: 'G01',
+        layer: 'L01',
+        system: 'S01',
+        controllers: [{ name: 'Valve1', type: 'valve', state: 'open' }]
+      })
+    );
   });
 
   act(() => {
@@ -116,12 +135,15 @@ test('handles actuator payloads with JSON payload and merges controllers', () =>
   );
 
   act(() => {
-    global.__stompHandler(TELEMETRY_TOPIC, {
-      deviceId: 'G01',
-      layer: 'L01',
-      system: 'S01',
-      controllers: [{ name: 'Valve1', type: 'valve', state: 'open' }],
-    });
+    global.__stompHandler(
+      TELEMETRY_TOPIC,
+      makeTelemetryEnvelope({
+        deviceId: 'G01',
+        layer: 'L01',
+        system: 'S01',
+        controllers: [{ name: 'Valve1', type: 'valve', state: 'open' }],
+      })
+    );
   });
 
   act(() => {
@@ -158,16 +180,19 @@ test('uses provided compositeId when present', () => {
   const { result } = renderHook(() => useLiveDevices([TELEMETRY_TOPIC]));
 
   act(() => {
-    global.__stompHandler(TELEMETRY_TOPIC, {
-      compositeId: 'C123',
-      deviceId: 'ignored',
-      layer: 'L99',
-      system: 'S01',
-      sensors: [
-        { sensorType: 'temperature', value: '22' },
-        { sensorType: 'humidity', value: '55' }
-      ]
-    });
+    global.__stompHandler(
+      TELEMETRY_TOPIC,
+      makeTelemetryEnvelope({
+        compositeId: 'C123',
+        deviceId: 'ignored',
+        layer: 'L99',
+        system: 'S01',
+        sensors: [
+          { sensorType: 'temperature', value: '22' },
+          { sensorType: 'humidity', value: '55' }
+        ]
+      })
+    );
   });
 
   expect(result.current.sensorData['C123'].temperature.value).toBe(22);
@@ -178,15 +203,18 @@ test('constructs compositeId from object layer field', () => {
   const { result } = renderHook(() => useLiveDevices([TELEMETRY_TOPIC]));
 
   act(() => {
-    global.__stompHandler(TELEMETRY_TOPIC, {
-      deviceId: 'T01',
-      layer: { layer: 'L01' },
-      system: 'S01',
-      sensors: [
-        { sensorType: 'temperature', value: 20 },
-        { sensorType: 'humidity', value: 50 }
-      ]
-    });
+    global.__stompHandler(
+      TELEMETRY_TOPIC,
+      makeTelemetryEnvelope({
+        deviceId: 'T01',
+        layer: { layer: 'L01' },
+        system: 'S01',
+        sensors: [
+          { sensorType: 'temperature', value: 20 },
+          { sensorType: 'humidity', value: 50 }
+        ]
+      })
+    );
   });
 
   expect(result.current.sensorData['S01-L01-T01'].temperature.value).toBe(20);
@@ -213,4 +241,44 @@ test('captures auxiliary payload fields for non-sensor topics', () => {
   expect(topicEntry.receivedAt).toBe(fixedDate.getTime());
 
   vi.useRealTimers();
+});
+
+test('adapts flat telemetry payloads into sensors and stores by compositeId', () => {
+  const { result } = renderHook(() => useLiveDevices([TELEMETRY_TOPIC]));
+  const flatPayload = {
+    deviceId: 'G99',
+    layer: 'L07',
+    system: 'S77',
+    compositeId: 'S77-L07-G99',
+    temperature: '22.5',
+    humidity: 48
+  };
+
+  act(() => {
+    global.__stompHandler(TELEMETRY_TOPIC, makeTelemetryEnvelope(flatPayload));
+  });
+
+  expect(result.current.sensorData['S77-L07-G99'].temperature.value).toBeCloseTo(22.5);
+  expect(result.current.sensorData['S77-L07-G99'].humidity.value).toBe(48);
+});
+
+test('stores device events from event envelopes', () => {
+  const { result } = renderHook(() => useLiveDevices(['hydroleaf/event']));
+
+  act(() => {
+    global.__stompHandler('hydroleaf/event', eventEnvelope);
+  });
+
+  expect(result.current.deviceEvents['S01-L01-G01']).toHaveLength(1);
+  expect(result.current.deviceEvents['S01-L01-G01'][0].event).toBe('watering');
+});
+
+test('resolves online state from status envelopes', () => {
+  const { result } = renderHook(() => useLiveDevices(['hydroleaf/status']));
+
+  act(() => {
+    global.__stompHandler('hydroleaf/status', statusEnvelope);
+  });
+
+  expect(result.current.mergedDevices['S01-L01-G01'].online).toBe(true);
 });
