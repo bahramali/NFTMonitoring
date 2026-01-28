@@ -255,15 +255,21 @@ export default function Germination() {
                 "";
             const rack = typeof device?.rack === "string" ? device.rack.toLowerCase() : "";
             const deviceId = typeof device?.deviceId === "string" ? device.deviceId : "";
+            const mqttTopic = typeof device?.mqttTopic === "string" ? device.mqttTopic.toLowerCase() : "";
 
             const normalizedRack = rackId.toLowerCase();
             const matched =
                 normalizedRack === "s01-germination" ||
                 normalizedRack.includes("germination") ||
-                deviceId.startsWith("LOG-GER_");
+                rack.includes("germination") ||
+                mqttTopic.includes("germination") ||
+                deviceId.startsWith("LOG-GER_") ||
+                deviceId.startsWith("GER_") ||
+                deviceId.includes("GER-");
             logTelemetryDebug("germination filter", {
                 deviceId,
                 rackId,
+                mqttTopic,
                 matched,
             });
             return matched;
