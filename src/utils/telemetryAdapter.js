@@ -24,6 +24,17 @@ const RESERVED_TELEMETRY_KEYS = new Set([
   "online",
 ]);
 
+const FLAT_TELEMETRY_IGNORED_KEYS = new Set([
+  "timestamp",
+  "site",
+  "rack",
+  "layer",
+  "deviceId",
+  "compositeId",
+  "receivedAt",
+  "meta",
+]);
+
 const coerceNumber = (value) => {
   if (typeof value === "number") {
     return Number.isFinite(value) ? value : null;
@@ -106,4 +117,36 @@ export function normalizeTelemetryPayload(envelope) {
     sensors,
     compositeId: payload.compositeId ?? envelope.compositeId,
   };
+}
+
+export function adaptFlatTelemetryToSensors(flatPayload) {
+  if (!flatPayload || typeof flatPayload !== "object" || Array.isArray(flatPayload)) {
+    return { sensors: [], meta: {} };
+  }
+
+  const sensors = [];
+  const meta =
+    flatPayload.meta && typeof flatPayload.meta === "object" && !Array.isArray(flatPayload.meta)
+      ? { ...flatPayload.meta }
+      : {};
+
+  for (const [key, value] of Object.entries(flatPayload)) {
+    if (FLAT_TELEMETRY_IGNORED_KEYS.has(key)) {
+      if (key !== "meta") {
+        meta[key] = value;
+      }
+      continue;
+    }
+
+    const numeric = coerceNumber(value);
+    if (numeric === null) continue;
+
+    sensors.push({
+      sensorType: key,
+      value: numeric,
+      unit: "",
+    });
+  }
+
+  return { sensors, meta };
 }
