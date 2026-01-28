@@ -244,36 +244,50 @@ export default function Germination() {
         return allTopics;
     }, [deviceData]);
 
-    const telemetryTopic = useMemo(
-        () => WS_TOPICS.find((topic) => topic?.includes("telemetry")) || "hydroleaf/telemetry",
-        [],
-    );
-
-    const germinationTopics = useMemo(() => {
-        if (!aggregatedTopics[telemetryTopic]) {
-            return {};
+    const telemetryTopics = useMemo(() => {
+        const keys = new Set();
+        for (const topic of WS_TOPICS) {
+            if (topic?.includes("telemetry")) {
+                keys.add(topic);
+            }
         }
+        for (const topic of Object.keys(aggregatedTopics)) {
+            if (topic?.includes("telemetry")) {
+                keys.add(topic);
+            }
+        }
+        keys.add("telemetry");
+        keys.add("hydroleaf/telemetry");
+        return Array.from(keys).filter(Boolean);
+    }, [aggregatedTopics]);
 
-        const germinationDevices = Object.fromEntries(
-            Object.entries(aggregatedTopics[telemetryTopic]).filter(([, device]) => {
-                const rack = typeof device?.rack === "string" ? device.rack.toLowerCase() : "";
-                if (rack) {
-                    return rack === "germination";
-                }
+    const isGerminationTelemetry = useMemo(() => {
+        return (device) => {
+            const rackId =
+                (typeof device?.extra?.rackId === "string" && device.extra.rackId) ||
+                (typeof device?.extra?.rack_id === "string" && device.extra.rack_id) ||
+                (typeof device?.rackId === "string" && device.rackId) ||
+                "";
+            const deviceId = typeof device?.deviceId === "string" ? device.deviceId : "";
 
-                const mqttTopic = device?.mqttTopic;
-                return typeof mqttTopic === "string" && mqttTopic.includes("/germination/");
-            }),
-        );
-
-        return {
-            [telemetryTopic]: germinationDevices,
+            return rackId === "S01-germination" || deviceId.startsWith("LOG-GER_");
         };
-    }, [aggregatedTopics, telemetryTopic]);
+    }, []);
 
-    const hasTopics = Object.keys(germinationTopics).length > 0;
+    const germinationDevices = useMemo(() => {
+        const devices = {};
+        telemetryTopics.forEach((topic) => {
+            const topicDevices = aggregatedTopics[topic];
+            if (!topicDevices) return;
+            Object.entries(topicDevices).forEach(([id, device]) => {
+                if (!isGerminationTelemetry(device)) return;
+                devices[id] = device;
+            });
+        });
+        return devices;
+    }, [aggregatedTopics, isGerminationTelemetry, telemetryTopics]);
 
-    const germinationDevices = germinationTopics[telemetryTopic] || {};
+    const hasTopics = Object.keys(germinationDevices).length > 0;
     const deviceOptions = useMemo(
         () =>
             Object.entries(germinationDevices).map(([id, device]) => ({
@@ -349,7 +363,7 @@ export default function Germination() {
     const metricReports = useMemo(() => {
         if (!hasTopics) return [];
 
-        const devices = germinationTopics[telemetryTopic] || {};
+        const devices = germinationDevices || {};
         const compositeIds = Object.keys(devices);
         const entries = new Map();
 
@@ -489,7 +503,7 @@ export default function Germination() {
                 values: formattedValues,
             };
         });
-    }, [germinationTopics, hasTopics, stageDetails]);
+    }, [germinationDevices, hasTopics, stageDetails]);
 
     const handleStartChange = (event) => {
         setSaveMessage("");
