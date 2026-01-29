@@ -25,6 +25,11 @@ export default function HistoricalTrendsPanel({
     chartDomain,
     emptyStateMessage = "No germination nodes available for history.",
 }) {
+    const hasSelection = Boolean(selectedCompositeId && selectedMetricKey);
+    const emptyChartMessage = hasSelection
+        ? "No data available for the selected range."
+        : "Select a sensor and metric to view historical trends.";
+
     return (
         <section className={`${styles.sectionCard} ${styles.chartSection}`}>
             <div className={styles.sectionHeader}>
@@ -129,9 +134,7 @@ export default function HistoricalTrendsPanel({
                         xDomain={chartDomain}
                     />
                 ) : (
-                    <div className={styles.chartMessage}>
-                        Select a sensor and metric to view historical trends.
-                    </div>
+                    <div className={styles.chartMessage}>{emptyChartMessage}</div>
                 )}
             </div>
         </section>
