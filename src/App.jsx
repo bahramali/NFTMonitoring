@@ -26,6 +26,7 @@ import Overview from './pages/Overview/index.jsx';
 import ControlPanel from './pages/ControlPanel/index.jsx';
 import LiveDashboard from './pages/Live/index.jsx';
 import Germination from './pages/Germination/index.jsx';
+import RackDashboardPage from './pages/RackDashboard/index.jsx';
 import HallPage from './pages/Hall/HallPage.jsx';
 import HallRackPage from './pages/Hall/HallRackPage.jsx';
 import HallLayerPage from './pages/Hall/HallLayerPage.jsx';
@@ -220,6 +221,14 @@ function AppRoutes() {
                         <Route path="note" element={<Note />} />
                         <Route path="sensor-config" element={<SensorConfig />} />
                     </Route>
+                    <Route
+                        path="/racks/:rackId"
+                        element={(
+                            <ProtectedRoute requiredPermissions={[PERMISSIONS.MONITORING_VIEW]}>
+                                <RackDashboardPage />
+                            </ProtectedRoute>
+                        )}
+                    />
 
                     <Route
                         path="/admin"

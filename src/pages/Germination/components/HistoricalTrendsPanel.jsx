@@ -22,6 +22,7 @@ export default function HistoricalTrendsPanel({
     chartSeries,
     chartYLabel,
     chartDomain,
+    emptyStateMessage = "No germination nodes available for history.",
 }) {
     return (
         <section className={`${styles.sectionCard} ${styles.chartSection}`}>
@@ -107,7 +108,7 @@ export default function HistoricalTrendsPanel({
                     </button>
                 </div>
             ) : (
-                <div className={styles.emptyState}>No germination nodes available for history.</div>
+                <div className={styles.emptyState}>{emptyStateMessage}</div>
             )}
 
             {chartError && <div className={styles.errorMessage}>{chartError}</div>}
