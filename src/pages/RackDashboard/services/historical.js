@@ -35,10 +35,10 @@ function toPointsFromEntries(entries, metricKey) {
 }
 
 export async function fetchHistorical({ rackId, nodeId, metric, from, to, signal }) {
+    const compositeId = nodeId || rackId;
     const params = new URLSearchParams({
-        rackId,
-        nodeId,
-        metric,
+        compositeId,
+        sensorType: metric,
         from: from.toISOString(),
         to: to.toISOString(),
     });
