@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { PERMISSIONS, hasPerm, hasStoreAdminAccess } from "../../../utils/permissions.js";
+import { useHallInventory } from "../../Hall/useHallInventory.js";
 import styles from "./Sidebar.module.css";
 
 const DEFAULT_VIEWPORT_WIDTH = 1024;
@@ -10,6 +11,15 @@ const BREAKPOINTS = { mobile: 768, collapse: 1024 };
 const getWindowWidth = () => (typeof window === "undefined" ? DEFAULT_VIEWPORT_WIDTH : window.innerWidth);
 
 const MONITORING_BASE = "/monitoring";
+
+const sortByNumericSuffix = (a, b) => {
+    const numA = Number(String(a).replace(/\D/g, ""));
+    const numB = Number(String(b).replace(/\D/g, ""));
+    if (Number.isFinite(numA) && Number.isFinite(numB) && numA !== numB) {
+        return numA - numB;
+    }
+    return String(a).localeCompare(String(b));
+};
 
 const hasAccess = (item, role, roles = [], permissions = []) => {
     const availableRoles = roles.length > 0 ? roles : role ? [role] : [];
@@ -68,6 +78,7 @@ const NAV_SECTIONS = [
 
 export default function Sidebar() {
     const { role, roles, permissions } = useAuth();
+    const { inventory } = useHallInventory();
     const [isMobile, setIsMobile] = useState(() => getWindowWidth() < BREAKPOINTS.mobile);
     const [collapsed, setCollapsed] = useState(() => {
         const width = getWindowWidth();
@@ -117,8 +128,21 @@ export default function Sidebar() {
         ? "/store/admin/products"
         : "/store";
 
+    const rackItems = useMemo(() => {
+        const rackIds = Array.from(inventory.racks.keys()).sort(sortByNumericSuffix);
+        if (rackIds.length === 0) {
+            return [{ icon: "🧱", label: "No racks detected", disabled: true }];
+        }
+        return rackIds.map((rackId) => ({
+            to: `/racks/${rackId}`,
+            icon: "🧱",
+            label: `Rack ${rackId}`,
+            permissions: [PERMISSIONS.MONITORING_VIEW],
+        }));
+    }, [inventory.racks]);
+
     const sections = useMemo(() => {
-        return NAV_SECTIONS.map((section) => {
+        const mappedSections = NAV_SECTIONS.map((section) => {
             if (section.id === "store") {
                 return {
                     ...section,
@@ -129,7 +153,16 @@ export default function Sidebar() {
             }
             return section;
         });
-    }, [storeTarget]);
+        const racksSection = {
+            id: "racks",
+            label: "Racks",
+            items: rackItems,
+        };
+        if (mappedSections.length === 0) {
+            return [racksSection];
+        }
+        return [mappedSections[0], racksSection, ...mappedSections.slice(1)];
+    }, [rackItems, storeTarget]);
 
     const filteredSections = useMemo(() => {
         return sections
