@@ -2,6 +2,8 @@ const COMPOSITE_REGEX = /^(S\d+)-(L\d+)-([CTR]\d+)$/i;
 
 const normalizeCompositeId = (value) => String(value ?? "").trim().toUpperCase();
 
+const normalizeLocationValue = (value) => String(value ?? "").trim().toUpperCase();
+
 const extractCompositeId = (payload) =>
     payload?.compositeId ??
     payload?.composite_id ??
@@ -48,6 +50,19 @@ const resolvePayload = (message) => {
     return payload ?? message;
 };
 
+const getLocationFromMessage = (message) => {
+    if (!message || typeof message !== "object") {
+        return { site: null, rack: null, layer: null };
+    }
+
+    const payload = resolvePayload(message);
+    return {
+        site: payload?.site ?? message?.site ?? null,
+        rack: payload?.rack ?? message?.rack ?? null,
+        layer: payload?.layer ?? message?.layer ?? null,
+    };
+};
+
 const getCompositeIdFromMessage = (message) => {
     const payload = resolvePayload(message);
     return extractCompositeId(payload) ?? extractCompositeId(message);
@@ -79,34 +94,55 @@ const buildInventoryFromMessages = (messages = []) => {
 
     for (const entry of messages) {
         if (!entry) continue;
+        const message = entry.message ?? entry;
+        const explicitLocation = getLocationFromMessage(message);
+        const site = normalizeLocationValue(explicitLocation.site);
+        const rack = normalizeLocationValue(explicitLocation.rack);
+        let layer = normalizeLocationValue(explicitLocation.layer);
+        let rackId = site && rack ? `${site}-${rack}` : null;
         const compositeId =
             entry.compositeId ??
             entry.composite_id ??
             entry.cid ??
+            getCompositeIdFromMessage(message) ??
             getCompositeIdFromMessage(entry);
         const parsed = parseCompositeId(compositeId);
+        const deviceKind = parsed?.deviceKind ?? null;
 
-        if (!parsed) {
+        if (!rackId && parsed) {
+            rackId = parsed.rackId;
+        }
+
+        if (!layer && parsed?.layerId) {
+            layer = parsed.layerId;
+        }
+
+        if (!rackId) {
             unmappedCount += 1;
             continue;
         }
 
         const timestamp =
             Number(entry.timestamp ?? entry.ts) ||
+            getTimestampFromMessage(message) ||
             getTimestampFromMessage(entry) ||
             Date.now();
 
-        const current = racks.get(parsed.rackId) ?? {
+        const current = racks.get(rackId) ?? {
             layers: new Set(),
             deviceCounts: { C: 0, T: 0, R: 0 },
             lastUpdate: 0,
         };
 
-        current.layers.add(parsed.layerId);
-        current.deviceCounts[parsed.deviceKind] = (current.deviceCounts[parsed.deviceKind] || 0) + 1;
+        if (layer) {
+            current.layers.add(layer);
+        }
+        if (deviceKind) {
+            current.deviceCounts[deviceKind] = (current.deviceCounts[deviceKind] || 0) + 1;
+        }
         current.lastUpdate = Math.max(current.lastUpdate || 0, timestamp || 0);
 
-        racks.set(parsed.rackId, current);
+        racks.set(rackId, current);
     }
 
     return { racks, unmappedCount };
@@ -135,6 +171,7 @@ export {
     normalizeCompositeId,
     extractCompositeId,
     extractTimestamp,
+    getLocationFromMessage,
     getCompositeIdFromMessage,
     getTimestampFromMessage,
     parseCompositeId,
