@@ -88,82 +88,51 @@ const parseCompositeId = (value) => {
     };
 };
 
-const buildInventoryFromMessages = (messages = []) => {
-    const racks = new Map();
-    let unmappedCount = 0;
-
-    for (const entry of messages) {
-        if (!entry) continue;
-        const message = entry.message ?? entry;
-        const explicitLocation = getLocationFromMessage(message);
-        const site = normalizeLocationValue(explicitLocation.site);
-        const rack = normalizeLocationValue(explicitLocation.rack);
-        let layer = normalizeLocationValue(explicitLocation.layer);
-        let rackId = site && rack ? `${site}-${rack}` : null;
-        const compositeId =
-            entry.compositeId ??
-            entry.composite_id ??
-            entry.cid ??
-            getCompositeIdFromMessage(message) ??
-            getCompositeIdFromMessage(entry);
-        const parsed = parseCompositeId(compositeId);
-        const deviceKind = parsed?.deviceKind ?? null;
-
-        if (!rackId && parsed) {
-            rackId = parsed.rackId;
-        }
-
-        if (!layer && parsed?.layerId) {
-            layer = parsed.layerId;
-        }
-
-        if (!rackId) {
-            unmappedCount += 1;
-            continue;
-        }
-
-        const timestamp =
-            Number(entry.timestamp ?? entry.ts) ||
-            getTimestampFromMessage(message) ||
-            getTimestampFromMessage(entry) ||
-            Date.now();
-
-        const current = racks.get(rackId) ?? {
-            layers: new Set(),
-            deviceCounts: { C: 0, T: 0, R: 0 },
-            lastUpdate: 0,
+const getInventoryAttributes = (entry) => {
+    if (!entry) {
+        return {
+            rackId: null,
+            layer: null,
+            deviceKind: null,
+            timestamp: null,
         };
-
-        if (layer) {
-            current.layers.add(layer);
-        }
-        if (deviceKind) {
-            current.deviceCounts[deviceKind] = (current.deviceCounts[deviceKind] || 0) + 1;
-        }
-        current.lastUpdate = Math.max(current.lastUpdate || 0, timestamp || 0);
-
-        racks.set(rackId, current);
     }
 
-    return { racks, unmappedCount };
-};
+    const message = entry.message ?? entry;
+    const explicitLocation = getLocationFromMessage(message);
+    const site = normalizeLocationValue(explicitLocation.site);
+    const rack = normalizeLocationValue(explicitLocation.rack);
+    let layer = normalizeLocationValue(explicitLocation.layer);
+    let rackId = site && rack ? `${site}-${rack}` : null;
+    const compositeId =
+        entry.compositeId ??
+        entry.composite_id ??
+        entry.cid ??
+        getCompositeIdFromMessage(message) ??
+        getCompositeIdFromMessage(entry);
+    const parsed = parseCompositeId(compositeId);
+    const deviceKind = parsed?.deviceKind ?? null;
 
-const mergeRealtimeCache = (cache, newMessage) => {
-    const next = new Map(cache ?? []);
-    const compositeId = getCompositeIdFromMessage(newMessage);
-    const normalized = normalizeCompositeId(compositeId);
-    const cacheKey = normalized || "UNMAPPED";
+    if (!rackId && parsed) {
+        rackId = parsed.rackId;
+    }
 
-    const timestamp = getTimestampFromMessage(newMessage) ?? Date.now();
-    const payload = resolvePayload(newMessage);
+    if (!layer && parsed?.layerId) {
+        layer = parsed.layerId;
+    }
 
-    next.set(cacheKey, {
-        compositeId: normalized || null,
-        message: payload ?? newMessage,
+    const timestamp =
+        Number(entry.timestamp ?? entry.ts) ||
+        getTimestampFromMessage(message) ||
+        getTimestampFromMessage(entry) ||
+        Date.now();
+
+    return {
+        rackId,
+        layer,
+        deviceKind,
         timestamp,
-    });
-
-    return next;
+    };
 };
 
 export {
@@ -171,10 +140,10 @@ export {
     normalizeCompositeId,
     extractCompositeId,
     extractTimestamp,
+    resolvePayload,
     getLocationFromMessage,
     getCompositeIdFromMessage,
     getTimestampFromMessage,
     parseCompositeId,
-    buildInventoryFromMessages,
-    mergeRealtimeCache,
+    getInventoryAttributes,
 };

@@ -42,7 +42,7 @@ export default function HallRackPage() {
     const layers = useMemo(() => {
         if (!rackInfo) return [];
         return Array.from(rackInfo.layers).sort((a, b) => a.localeCompare(b));
-    }, [rackInfo]);
+    }, [rackInfo, cacheEntries]);
 
     const devices = useMemo(() => {
         return cacheEntries
