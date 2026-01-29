@@ -23,6 +23,7 @@ export default function HistoricalTrendsPanel({
     chartSeries,
     chartYLabel,
     chartDomain,
+    emptyStateMessage = "No germination nodes available for history.",
 }) {
     return (
         <section className={`${styles.sectionCard} ${styles.chartSection}`}>
