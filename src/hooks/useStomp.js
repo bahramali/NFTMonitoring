@@ -120,7 +120,10 @@ export function useStomp(topics, onMessage, opts = {}) {
                             /* ignore */
                         }
                         const topicName = dest.startsWith("/topic/") ? dest.slice(7) : dest;
-                        handlerRef.current?.(topicName, payload);
+                        handlerRef.current?.(topicName, payload, {
+                            destination: dest,
+                            raw: frame?.body,
+                        });
                     });
                 }
             });

@@ -30,20 +30,59 @@ const resolveDeviceList = (data) => {
     return [];
 };
 
+const stringifyPayload = (value) => {
+    if (typeof value === "string") return value;
+    try {
+        return JSON.stringify(value ?? null);
+    } catch {
+        return String(value);
+    }
+};
+
 export function useHallInventory({ enableFallback = true } = {}) {
     const [cache, setCache] = useState(() => new Map());
     const [fallbackStatus, setFallbackStatus] = useState({ loading: false, error: "" });
     const hasRealtimeCompositeRef = useRef(false);
+    const providerLoggedRef = useRef(false);
 
-    const handleMessage = useCallback((_topic, message) => {
-        const compositeId = getCompositeIdFromMessage(message);
-        if (parseCompositeId(compositeId)) {
+    const handleMessage = useCallback((topic, message, meta = {}) => {
+        const compositeIdRaw = getCompositeIdFromMessage(message);
+        const compositeId = compositeIdRaw ? normalizeCompositeId(compositeIdRaw) : null;
+        const parsed = parseCompositeId(compositeIdRaw);
+        const payloadRaw = typeof meta.raw === "string" ? meta.raw : null;
+        const payload = payloadRaw ?? stringifyPayload(message);
+        const parsedOutput = {
+            site: parsed?.rackId ?? null,
+            layer: parsed?.layerId ?? null,
+            rackId: parsed?.rackId ?? null,
+            channel: parsed?.deviceCode ?? null,
+        };
+
+        // eslint-disable-next-line no-console
+        console.log(`[WS][IN]\ntopic=${meta.destination ?? topic}\npayload=${payload}`);
+        // eslint-disable-next-line no-console
+        console.log(
+            `[PARSE]\ncompositeId=${compositeId ?? "null"}\nregexMatch=${Boolean(parsed)}\nparsed=${JSON.stringify(parsedOutput)}`,
+        );
+
+        if (parsed) {
             hasRealtimeCompositeRef.current = true;
         }
         setCache((prev) => mergeRealtimeCache(prev, message));
     }, []);
 
     useStomp(TOPICS, handleMessage);
+
+    useEffect(() => {
+        if (providerLoggedRef.current) return;
+        providerLoggedRef.current = true;
+        if (typeof window === "undefined") return;
+        const hasProvider = Boolean(window.__hlStomp || window.hydroLeafStomp);
+        if (!hasProvider) {
+            // eslint-disable-next-line no-console
+            console.log("[WS][STATUS]\nproviderActive=false\nnote=Monitoring provider not detected");
+        }
+    }, []);
 
     const loadFallback = useCallback(async () => {
         if (!API_BASE) return;
@@ -86,7 +125,14 @@ export function useHallInventory({ enableFallback = true } = {}) {
     }, [enableFallback, loadFallback]);
 
     const cacheEntries = useMemo(() => Array.from(cache.values()), [cache]);
-    const inventory = useMemo(() => buildInventoryFromMessages(cacheEntries), [cacheEntries]);
+    const inventory = useMemo(() => {
+        // eslint-disable-next-line no-console
+        console.log(`[INVENTORY]\nphase=before-build\nentries=${cacheEntries.length}`);
+        const nextInventory = buildInventoryFromMessages(cacheEntries);
+        // eslint-disable-next-line no-console
+        console.log(`[INVENTORY]\nracksSize=${nextInventory.racks.size}`);
+        return nextInventory;
+    }, [cacheEntries]);
 
     return {
         cache,
