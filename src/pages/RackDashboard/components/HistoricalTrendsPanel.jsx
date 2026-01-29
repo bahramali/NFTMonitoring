@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import GerminationHistoricalTrendsPanel from "../../Germination/components/HistoricalTrendsPanel.jsx";
-import { fetchHistorical } from "../../Germination/services/historical.js";
+import { fetchHistorical } from "../services/historical.js";
 import { getPresetRange, parseLocalInput, toLocalInputValue } from "../../Germination/germinationUtils.js";
 import { useLiveTelemetry } from "../../Germination/hooks/useLiveTelemetry.js";
 import { deviceMatchesRack, normalizeRackId } from "../rackTelemetry.js";
@@ -116,7 +116,7 @@ export default function HistoricalTrendsPanel({ rackId }) {
     }, [rangePreset, customFrom, customTo]);
 
     useEffect(() => {
-        if (!selectedCompositeId || !selectedMetricKeyValue) {
+        if (!normalizedRackId || !selectedCompositeId || !selectedMetricKeyValue) {
             setChartData([]);
             setChartDomain(null);
             return;
@@ -146,11 +146,11 @@ export default function HistoricalTrendsPanel({ rackId }) {
             setChartError("");
             try {
                 const points = await fetchHistorical({
-                    compositeId: selectedCompositeId,
+                    rackId: normalizedRackId,
+                    nodeId: selectedCompositeId,
+                    metric: selectedMetricKeyValue,
                     from: range.from,
                     to: range.to,
-                    sensorType: selectedMetricSensorType,
-                    metricKey: selectedMetricKeyValue,
                     signal: controller.signal,
                 });
                 if (cancelled) return;
@@ -178,11 +178,11 @@ export default function HistoricalTrendsPanel({ rackId }) {
     }, [
         customFrom,
         customTo,
+        normalizedRackId,
         rangePreset,
         refreshIndex,
         selectedCompositeId,
         selectedMetricKeyValue,
-        selectedMetricSensorType,
     ]);
 
     const selectedMetricLabel = selectedMetric?.label ?? "";
