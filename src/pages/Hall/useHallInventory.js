@@ -31,15 +31,6 @@ const resolveDeviceList = (data) => {
     return [];
 };
 
-const stringifyPayload = (value) => {
-    if (typeof value === "string") return value;
-    try {
-        return JSON.stringify(value ?? null);
-    } catch {
-        return String(value);
-    }
-};
-
 const createRackSnapshot = () => ({
     layers: new Set(),
     layerCounts: new Map(),
@@ -149,7 +140,7 @@ export function useHallInventory({ enableFallback = true, subscribeToTelemetry =
         rack.lastUpdate = Math.max(rack.lastUpdate || 0, nextInfo.timestamp || 0);
 
         return { rackListChanged };
-    }, [applyCacheEntries]);
+    }, []);
 
     const applyCacheEntries = useCallback(
         (entries) => {
@@ -180,8 +171,6 @@ export function useHallInventory({ enableFallback = true, subscribeToTelemetry =
         const site = location?.site ?? null;
         const rack = location?.rack ?? null;
         const layer = location?.layer ?? null;
-        const payloadRaw = typeof meta.raw === "string" ? meta.raw : null;
-        const payload = payloadRaw ?? stringifyPayload(message);
         const parsedOutput = {
             site: parsed?.rackId ?? null,
             layer: parsed?.layerId ?? null,
