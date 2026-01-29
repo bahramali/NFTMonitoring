@@ -1,27 +1,22 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Header from "../common/Header";
-import { useLiveDevices } from "../common/useLiveDevices";
-import { WS_TOPICS } from "../common/dashboard.constants";
-import {
-    buildAggregatedTopics,
-    logTelemetryDebug,
-    resolveTelemetryTopics,
-} from "../common/liveTelemetry.js";
 import GerminationCamera from "./components/GerminationCamera";
-import HistoryChart from "../../components/HistoryChart.jsx";
-import { transformAggregatedData } from "../../utils.js";
-import { authFetch } from "../../api/http.js";
 import {
     getGerminationStatus,
     triggerGerminationStart,
     updateGerminationStart,
 } from "../../api/germination.js";
-import { getGerminationStageByDay, getStageRangeForMetric } from "./germinationStages.js";
+import { getGerminationStageByDay } from "./germinationStages.js";
+import { useLiveTelemetry } from "./hooks/useLiveTelemetry.js";
+import { fetchHistorical } from "./services/historical.js";
+import LiveSensorsPanel from "./components/LiveSensorsPanel.jsx";
+import HistoricalTrendsPanel from "./components/HistoricalTrendsPanel.jsx";
+import {
+    getPresetRange,
+    parseLocalInput,
+    toLocalInputValue,
+} from "./germinationUtils.js";
 import styles from "./Germination.module.css";
-
-import { getApiBaseUrl } from '../../config/apiBase.js';
-
-const API_BASE = getApiBaseUrl();
 
 const RANGE_OPTIONS = [
     { key: "1h", label: "Last hour" },
@@ -29,89 +24,6 @@ const RANGE_OPTIONS = [
     { key: "24h", label: "Last 24 hours" },
     { key: "custom", label: "Custom" },
 ];
-
-function toLocalInputValue(date) {
-    const pad = (value) => `${value}`.padStart(2, "0");
-    const year = date.getFullYear();
-    const month = pad(date.getMonth() + 1);
-    const day = pad(date.getDate());
-    const hours = pad(date.getHours());
-    const minutes = pad(date.getMinutes());
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-}
-
-function parseLocalInput(value) {
-    if (!value) return null;
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return null;
-    return parsed;
-}
-
-function getPresetRange(preset) {
-    const now = new Date();
-    switch (preset) {
-        case "1h":
-            return { from: new Date(now.getTime() - 60 * 60 * 1000), to: now };
-        case "6h":
-            return { from: new Date(now.getTime() - 6 * 60 * 60 * 1000), to: now };
-        case "24h":
-            return { from: new Date(now.getTime() - 24 * 60 * 60 * 1000), to: now };
-        default:
-            return { from: new Date(now.getTime() - 60 * 60 * 1000), to: now };
-    }
-}
-
-function getEntryValue(entry, metricKey) {
-    if (!metricKey) return null;
-    const normalized = metricKey.toLowerCase();
-    const valueFromMap = {
-        temperature: entry.temperature?.value,
-        humidity: entry.humidity?.value,
-        light: entry.lux?.value ?? entry.light?.value,
-        lux: entry.lux?.value ?? entry.light?.value,
-        tds: entry.tds?.value,
-        dissolvedtds: entry.tds?.value,
-        ec: entry.ec?.value,
-        dissolvedec: entry.ec?.value,
-        ph: entry.ph?.value,
-        do: entry.do?.value,
-        dissolvedoxygen: entry.do?.value,
-    };
-
-    if (normalized in valueFromMap && valueFromMap[normalized] !== undefined) {
-        const mapped = valueFromMap[normalized];
-        return mapped === null || Number.isNaN(Number(mapped)) ? null : Number(mapped);
-    }
-
-    const directValue = entry[metricKey] ?? entry[normalized];
-    if (typeof directValue === "number") {
-        return Number.isNaN(directValue) ? null : directValue;
-    }
-    if (directValue && typeof directValue === "object" && "value" in directValue) {
-        const numeric = Number(directValue.value);
-        return Number.isNaN(numeric) ? null : numeric;
-    }
-
-    return null;
-}
-
-function formatRangeValue(value) {
-    if (typeof value !== "number" || Number.isNaN(value)) return "-";
-    const abs = Math.abs(value);
-    let decimals = 0;
-    if (abs >= 100 || Number.isInteger(value)) {
-        decimals = 0;
-    } else if (abs >= 10) {
-        decimals = 1;
-    } else if (abs >= 1) {
-        decimals = 1;
-    } else if (abs >= 0.1) {
-        decimals = 2;
-    } else {
-        decimals = 3;
-    }
-    return Number(value.toFixed(decimals)).toString();
-}
 
 function calculateElapsed(value) {
     if (!value) return null;
@@ -149,7 +61,30 @@ function toLocalInputValueIfValid(value) {
 }
 
 export default function Germination() {
-    const { deviceData, mergedDevices } = useLiveDevices(WS_TOPICS);
+    const isGerminationTelemetry = useMemo(() => {
+        return (device) => {
+            const rackId =
+                (typeof device?.extra?.rackId === "string" && device.extra.rackId) ||
+                (typeof device?.extra?.rack_id === "string" && device.extra.rack_id) ||
+                (typeof device?.rackId === "string" && device.rackId) ||
+                (typeof device?.rack === "string" && device.rack) ||
+                "";
+            const rack = typeof device?.rack === "string" ? device.rack.toLowerCase() : "";
+            const deviceId = typeof device?.deviceId === "string" ? device.deviceId : "";
+            const mqttTopic = typeof device?.mqttTopic === "string" ? device.mqttTopic.toLowerCase() : "";
+
+            const normalizedRack = rackId.toLowerCase();
+            return (
+                normalizedRack === "s01-germination" ||
+                normalizedRack.includes("germination") ||
+                rack.includes("germination") ||
+                mqttTopic.includes("germination") ||
+                deviceId.startsWith("LOG-GER_") ||
+                deviceId.startsWith("GER_") ||
+                deviceId.includes("GER-")
+            );
+        };
+    }, []);
     const [startTime, setStartTime] = useState("");
     const [elapsed, setElapsed] = useState(() => calculateElapsed(""));
     const [statusLoading, setStatusLoading] = useState(true);
@@ -239,71 +174,10 @@ export default function Germination() {
         return () => clearInterval(interval);
     }, [startTime]);
 
-    const aggregatedTopics = useMemo(() => buildAggregatedTopics(deviceData), [deviceData]);
-
-    const telemetryTopics = useMemo(() => {
-        return resolveTelemetryTopics(WS_TOPICS, aggregatedTopics);
-    }, [aggregatedTopics]);
-
-    const isGerminationTelemetry = useMemo(() => {
-        return (device) => {
-            const rackId =
-                (typeof device?.extra?.rackId === "string" && device.extra.rackId) ||
-                (typeof device?.extra?.rack_id === "string" && device.extra.rack_id) ||
-                (typeof device?.rackId === "string" && device.rackId) ||
-                (typeof device?.rack === "string" && device.rack) ||
-                "";
-            const rack = typeof device?.rack === "string" ? device.rack.toLowerCase() : "";
-            const deviceId = typeof device?.deviceId === "string" ? device.deviceId : "";
-            const mqttTopic = typeof device?.mqttTopic === "string" ? device.mqttTopic.toLowerCase() : "";
-
-            const normalizedRack = rackId.toLowerCase();
-            const matched =
-                normalizedRack === "s01-germination" ||
-                normalizedRack.includes("germination") ||
-                rack.includes("germination") ||
-                mqttTopic.includes("germination") ||
-                deviceId.startsWith("LOG-GER_") ||
-                deviceId.startsWith("GER_") ||
-                deviceId.includes("GER-");
-            logTelemetryDebug("germination filter", {
-                deviceId,
-                rackId,
-                mqttTopic,
-                matched,
-            });
-            return matched;
-        };
-    }, []);
-
-    const germinationDevices = useMemo(() => {
-        const devices = {};
-        telemetryTopics.forEach((topic) => {
-            const topicDevices = aggregatedTopics[topic];
-            if (!topicDevices) return;
-            Object.entries(topicDevices).forEach(([id, device]) => {
-                if (!isGerminationTelemetry(device)) return;
-                devices[id] = mergedDevices?.[id] || device;
-            });
-        });
-        return devices;
-    }, [aggregatedTopics, isGerminationTelemetry, mergedDevices, telemetryTopics]);
-
-    const hasTopics = Object.keys(germinationDevices).length > 0;
-    const deviceOptions = useMemo(
-        () =>
-            Object.entries(germinationDevices).map(([id, device]) => ({
-                id,
-                label:
-                    device?.displayName ||
-                    device?.deviceName ||
-                    device?.compositeId ||
-                    device?.name ||
-                    id,
-                sensors: device?.sensors || [],
-            })),
-        [germinationDevices],
-    );
+    const { devices: germinationDevices, deviceOptions, metricReports } = useLiveTelemetry({
+        stageDetails,
+        filterDevice: isGerminationTelemetry,
+    });
 
     useEffect(() => {
         if (!deviceOptions.length) {
@@ -361,151 +235,6 @@ export default function Germination() {
 
     const selectedMetricKeyValue = selectedMetric?.key ?? "";
     const selectedMetricSensorType = selectedMetric?.sensorType ?? "";
-
-    const metricReports = useMemo(() => {
-        if (!hasTopics) return [];
-
-        const devices = germinationDevices || {};
-        const compositeIds = Object.keys(devices);
-        const entries = new Map();
-
-        function sanitize(value) {
-            if (value === undefined || value === null) return "";
-            return String(value).toLowerCase().replace(/[^a-z0-9]/g, "");
-        }
-
-        compositeIds.forEach((compositeId) => {
-            const { sensors = [], health = {}, compositeId: label } = devices[compositeId] || {};
-            sensors.forEach((sensor) => {
-                const measurementType = sensor?.sensorType || sensor?.valueType;
-                const sensorModel = sensor?.sensorName || sensor?.source || "-";
-                if (!measurementType) return;
-
-                const normalizedType = sanitize(measurementType);
-                const normalizedModel = sanitize(sensorModel) || normalizedType;
-                const key = `${normalizedType}|${normalizedModel}`;
-
-                if (!entries.has(key)) {
-                    entries.set(key, {
-                        measurementType,
-                        sensorModel,
-                        values: [],
-                    });
-                }
-
-                const okKey = sensor?.sensorName?.toLowerCase();
-                const rawHealth = okKey ? health[okKey] ?? health[sensor?.sensorName] : undefined;
-                entries.get(key).values.push({
-                    deviceId: label || compositeId,
-                    rawValue: sensor?.value,
-                    unit: sensor?.unit || "",
-                    healthy:
-                        rawHealth === undefined || rawHealth === null
-                            ? null
-                            : Boolean(rawHealth),
-                });
-            });
-        });
-
-        return Array.from(entries.values()).map((entry) => {
-            const stageRange = stageDetails?.stage
-                ? getStageRangeForMetric(entry.measurementType, stageDetails.stage)
-                : null;
-            const range = stageRange ?? null;
-
-            const formattedValues = entry.values.map((value) => {
-                const numericValue = typeof value.rawValue === "number" ? value.rawValue : Number(value.rawValue);
-                const hasNumeric = !Number.isNaN(numericValue);
-                return {
-                    deviceId: value.deviceId,
-                    displayValue:
-                        value.rawValue === undefined || value.rawValue === null
-                            ? "-"
-                            : `${
-                                  typeof value.rawValue === "number"
-                                      ? value.rawValue.toFixed(1)
-                                      : value.rawValue
-                              }${value.unit ? ` ${value.unit}` : ""}`,
-                    numericValue: hasNumeric ? numericValue : null,
-                    healthy: value.healthy,
-                };
-            });
-
-            const numericValues = formattedValues.filter((value) => value.numericValue !== null);
-            const hasMin = range && typeof range.min === "number" && Number.isFinite(range.min);
-            const hasMax = range && typeof range.max === "number" && Number.isFinite(range.max);
-            const outOfRange =
-                range && numericValues.length > 0
-                    ? numericValues.some((value) => {
-                          const val = value.numericValue;
-                          if (val === null) return false;
-                          if (hasMin && val < range.min) return true;
-                          if (hasMax && val > range.max) return true;
-                          return false;
-                      })
-                    : false;
-            const tolerance = 0.01;
-            const atBoundary =
-                !outOfRange && range && numericValues.length > 0
-                    ? numericValues.some((value) => {
-                          const val = value.numericValue;
-                          if (val === null) return false;
-                          const nearMin =
-                              hasMin && Math.abs(val - range.min) <= Math.max(Math.abs(range.min) * tolerance, tolerance);
-                          const nearMax =
-                              hasMax && Math.abs(val - range.max) <= Math.max(Math.abs(range.max) * tolerance, tolerance);
-                          return nearMin || nearMax;
-                      })
-                    : false;
-            const rangeStatus = !range || numericValues.length === 0
-                ? "none"
-                : outOfRange
-                ? "alert"
-                : atBoundary
-                ? "warning"
-                : "ok";
-            const healthyValues = formattedValues.filter((value) => value.healthy === true);
-            const unhealthyValues = formattedValues.filter((value) => value.healthy === false);
-            const hasUnknown = formattedValues.some((value) => value.healthy === null);
-
-            let status = "No data";
-            let tone = "neutral";
-
-            if (formattedValues.length === 0) {
-                status = "No data";
-                tone = "neutral";
-            } else if (outOfRange) {
-                status = "Out of range";
-                tone = "alert";
-            } else if (unhealthyValues.length > 0) {
-                status = "Check sensors";
-                tone = "warning";
-            } else if (rangeStatus === "warning") {
-                status = "Approaching limit";
-                tone = "warning";
-            } else if (healthyValues.length > 0 && !hasUnknown) {
-                status = "Stable";
-                tone = "success";
-            } else {
-                status = "Monitoring";
-                tone = "neutral";
-            }
-
-            return {
-                measurementType: entry.measurementType,
-                sensorModel: entry.sensorModel,
-                label: entry.measurementType,
-                range,
-                rangeStatus,
-                stageDescription: range?.stageDescription ?? "",
-                stageDaysLabel: range?.stageDaysLabel ?? "",
-                stageBeyondDefinedRange: range?.stageBeyondDefinedRange ?? false,
-                status,
-                tone,
-                values: formattedValues,
-            };
-        });
-    }, [germinationDevices, hasTopics, stageDetails]);
 
     const handleStartChange = (event) => {
         setSaveMessage("");
@@ -614,30 +343,14 @@ export default function Germination() {
             setChartLoading(true);
             setChartError("");
             try {
-                const params = new URLSearchParams({
+                const points = await fetchHistorical({
                     compositeId: selectedCompositeId,
-                    from: range.from.toISOString(),
-                    to: range.to.toISOString(),
-                });
-                if (selectedMetricSensorType) {
-                    params.append("sensorType", selectedMetricSensorType);
-                }
-
-                const response = await authFetch(`${API_BASE}/api/records/history/aggregated?${params.toString()}`, {
+                    from: range.from,
+                    to: range.to,
+                    sensorType: selectedMetricSensorType,
+                    metricKey: selectedMetricKeyValue,
                     signal: controller.signal,
                 });
-                if (!response.ok) {
-                    throw new Error(`Request failed with status ${response.status}`);
-                }
-                const json = await response.json();
-                const entries = transformAggregatedData(json);
-                const points = entries
-                    .map((entry) => ({
-                        time: entry.timestamp,
-                        value: getEntryValue(entry, selectedMetricKeyValue),
-                    }))
-                    .filter((point) => point.value !== null);
-
                 if (cancelled) return;
                 setChartData(points);
                 setChartDomain([range.from.getTime(), range.to.getTime()]);
@@ -797,185 +510,29 @@ export default function Germination() {
                 </div>
             </section>
 
-            <section className={`${styles.sectionCard} ${styles.metricsSection}`}>
-                <div className={styles.sectionHeader}>
-                    <h2 className={styles.sectionTitle}>Live sensors data</h2>
-                </div>
-                {metricReports.length > 0 ? (
-                    <div className={styles.reportGrid}>
-                        {metricReports.map((report) => {
-                            const rangeClassName =
-                                report.rangeStatus === "alert"
-                                    ? styles.rangeAlert
-                                    : report.rangeStatus === "warning"
-                                    ? styles.rangeWarning
-                                    : report.rangeStatus === "ok"
-                                    ? styles.rangeOk
-                                    : "";
-                            const stageMeta = report.stageDescription
-                                ? `${report.stageDescription}${
-                                      report.stageDaysLabel ? ` • Days ${report.stageDaysLabel}` : ""
-                                  }${report.stageBeyondDefinedRange ? " • Beyond schedule" : ""}`
-                                : "";
+            <LiveSensorsPanel metricReports={metricReports} />
 
-                            const rangeLabelPrefix = stageMeta ? `Target range (${stageMeta})` : "Target range";
-                            const minDisplay = formatRangeValue(report.range?.min);
-                            const maxDisplay = formatRangeValue(report.range?.max);
-
-                            return (
-                                <article
-                                    key={`${report.measurementType}-${report.sensorModel}`}
-                                    className={`${styles.reportCard} ${styles[`${report.tone}Tone`]}`}
-                                >
-                                    <header className={styles.reportCardHeader}>
-                                        <h3 className={styles.reportMetric}>{report.label}</h3>
-                                        <span className={styles.reportStatus}>{report.status}</span>
-                                    </header>
-                                    <div className={styles.reportMeta}>
-                                        <span className={styles.reportModel}>{report.sensorModel}</span>
-                                        {report.range ? (
-                                            <span className={`${styles.reportRange} ${rangeClassName}`}>
-                                                {rangeLabelPrefix}: {minDisplay} - {maxDisplay}
-                                            </span>
-                                        ) : (
-                                            <span className={styles.reportRange}>No configured range</span>
-                                        )}
-                                    </div>
-                                    <ul className={styles.reportValues}>
-                                        {report.values.map((value) => {
-                                            const toneClass =
-                                                value.healthy === true
-                                                    ? styles.healthy
-                                                    : value.healthy === false
-                                                    ? styles.unhealthy
-                                                    : styles.unknown;
-                                            return (
-                                                <li key={value.deviceId} className={styles.reportValueItem}>
-                                                    <span className={`${styles.reportDot} ${toneClass}`} />
-                                                    <span className={styles.reportDevice}>{value.deviceId}</span>
-                                                    <span className={styles.reportValue}>{value.displayValue}</span>
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
-                                </article>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <div className={styles.emptyState}>No summary data available.</div>
-                )}
-            </section>
-
-            <section className={`${styles.sectionCard} ${styles.chartSection}`}>
-                <div className={styles.sectionHeader}>
-                    <h2 className={styles.sectionTitle}>Historical trends</h2>
-                </div>
-                {deviceOptions.length ? (
-                    <div className={styles.chartControls}>
-                        <div className={styles.chartSelectors}>
-                            <label className={styles.chartLabel}>
-                                Sensor node
-                                <select
-                                    className={styles.chartSelect}
-                                    value={selectedCompositeId}
-                                    onChange={(event) => setSelectedCompositeId(event.target.value)}
-                                >
-                                    {deviceOptions.map((option) => (
-                                        <option key={option.id} value={option.id}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
-                            <label className={styles.chartLabel}>
-                                Metric
-                                <select
-                                    className={styles.chartSelect}
-                                    value={selectedMetricKey}
-                                    onChange={(event) => setSelectedMetricKey(event.target.value)}
-                                    disabled={!availableMetrics.length}
-                                >
-                                    {availableMetrics.map((metric) => (
-                                        <option key={metric.key} value={metric.key}>
-                                            {metric.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
-                        </div>
-                        <div className={styles.rangeControls}>
-                            <span className={styles.rangeLabel}>Range</span>
-                            <div className={styles.rangeButtons}>
-                                {RANGE_OPTIONS.map((option) => (
-                                    <button
-                                        key={option.key}
-                                        type="button"
-                                        className={`${styles.rangeButton} ${
-                                            rangePreset === option.key ? styles.rangeButtonActive : ""
-                                        }`}
-                                        onClick={() => setRangePreset(option.key)}
-                                    >
-                                        {option.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        {rangePreset === "custom" && (
-                            <div className={styles.customRangeInputs}>
-                                <label className={styles.chartLabel}>
-                                    From
-                                    <input
-                                        type="datetime-local"
-                                        value={customFrom}
-                                        onChange={(event) => setCustomFrom(event.target.value)}
-                                        className={styles.timeInput}
-                                        max={customTo || undefined}
-                                    />
-                                </label>
-                                <label className={styles.chartLabel}>
-                                    To
-                                    <input
-                                        type="datetime-local"
-                                        value={customTo}
-                                        onChange={(event) => setCustomTo(event.target.value)}
-                                        className={styles.timeInput}
-                                        min={customFrom || undefined}
-                                    />
-                                </label>
-                            </div>
-                        )}
-                        <button
-                            type="button"
-                            className={styles.refreshButton}
-                            onClick={handleRefresh}
-                        >
-                            Refresh
-                        </button>
-                    </div>
-                ) : (
-                    <div className={styles.emptyState}>No germination nodes available for history.</div>
-                )}
-
-                {chartError && <div className={styles.errorMessage}>{chartError}</div>}
-
-                <div className={styles.chartArea}>
-                    {chartLoading ? (
-                        <div className={styles.chartMessage}>Loading historical data…</div>
-                    ) : chartSeries.length ? (
-                        <HistoryChart
-                            xDataKey="time"
-                            series={chartSeries}
-                            yLabel={chartYLabel}
-                            xDomain={chartDomain}
-                        />
-                    ) : (
-                        <div className={styles.chartMessage}>
-                            Select a sensor and metric to view historical trends.
-                        </div>
-                    )}
-                </div>
-            </section>
+            <HistoricalTrendsPanel
+                deviceOptions={deviceOptions}
+                selectedCompositeId={selectedCompositeId}
+                onCompositeChange={setSelectedCompositeId}
+                availableMetrics={availableMetrics}
+                selectedMetricKey={selectedMetricKey}
+                onMetricChange={setSelectedMetricKey}
+                rangePreset={rangePreset}
+                rangeOptions={RANGE_OPTIONS}
+                onRangePreset={setRangePreset}
+                customFrom={customFrom}
+                customTo={customTo}
+                onCustomFrom={setCustomFrom}
+                onCustomTo={setCustomTo}
+                onRefresh={handleRefresh}
+                chartError={chartError}
+                chartLoading={chartLoading}
+                chartSeries={chartSeries}
+                chartYLabel={chartYLabel}
+                chartDomain={chartDomain}
+            />
 
             <section className={`${styles.sectionCard} ${styles.cameraSection}`}>
                 <div className={styles.sectionHeader}>
