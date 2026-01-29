@@ -1,3 +1,4 @@
+import React from "react";
 import styles from "../Germination.module.css";
 import { formatRangeValue } from "../germinationUtils.js";
 

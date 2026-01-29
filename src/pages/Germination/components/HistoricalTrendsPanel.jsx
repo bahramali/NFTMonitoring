@@ -1,3 +1,4 @@
+import React from "react";
 import HistoryChart from "../../../components/HistoryChart.jsx";
 import styles from "../Germination.module.css";
 
