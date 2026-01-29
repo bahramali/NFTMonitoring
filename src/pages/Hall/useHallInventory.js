@@ -6,6 +6,7 @@ import { normalizeDeviceCatalog } from "../Reports/utils/catalog.js";
 import { HYDROLEAF_TOPICS } from "../../utils/telemetryAdapter.js";
 import {
     buildInventoryFromMessages,
+    getLocationFromMessage,
     getCompositeIdFromMessage,
     getTimestampFromMessage,
     mergeRealtimeCache,
@@ -49,6 +50,10 @@ export function useHallInventory({ enableFallback = true } = {}) {
         const compositeIdRaw = getCompositeIdFromMessage(message);
         const compositeId = compositeIdRaw ? normalizeCompositeId(compositeIdRaw) : null;
         const parsed = parseCompositeId(compositeIdRaw);
+        const location = getLocationFromMessage(message);
+        const site = location?.site ?? null;
+        const rack = location?.rack ?? null;
+        const layer = location?.layer ?? null;
         const payloadRaw = typeof meta.raw === "string" ? meta.raw : null;
         const payload = payloadRaw ?? stringifyPayload(message);
         const parsedOutput = {
@@ -59,7 +64,9 @@ export function useHallInventory({ enableFallback = true } = {}) {
         };
 
         // eslint-disable-next-line no-console
-        console.log(`[WS][IN]\ntopic=${meta.destination ?? topic}\npayload=${payload}`);
+        console.log(
+            `[WS][IN]\ntopic=${meta.destination ?? topic}\ncompositeId=${compositeId ?? "null"}\nsite=${site ?? "null"}\nrack=${rack ?? "null"}\nlayer=${layer ?? "null"}`,
+        );
         // eslint-disable-next-line no-console
         console.log(
             `[PARSE]\ncompositeId=${compositeId ?? "null"}\nregexMatch=${Boolean(parsed)}\nparsed=${JSON.stringify(parsedOutput)}`,
