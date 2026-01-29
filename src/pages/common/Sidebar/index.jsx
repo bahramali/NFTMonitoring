@@ -78,7 +78,7 @@ const NAV_SECTIONS = [
 
 export default function Sidebar() {
     const { role, roles, permissions } = useAuth();
-    const { inventory } = useHallInventory();
+    const { inventory, inventoryVersion } = useHallInventory({ subscribeToTelemetry: false });
     const [isMobile, setIsMobile] = useState(() => getWindowWidth() < BREAKPOINTS.mobile);
     const [collapsed, setCollapsed] = useState(() => {
         const width = getWindowWidth();
@@ -139,7 +139,7 @@ export default function Sidebar() {
             label: `Rack ${rackId}`,
             permissions: [PERMISSIONS.MONITORING_VIEW],
         }));
-    }, [inventory.racks]);
+    }, [inventory.racks, inventoryVersion]);
 
     const sections = useMemo(() => {
         const mappedSections = NAV_SECTIONS.map((section) => {

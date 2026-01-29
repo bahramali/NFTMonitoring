@@ -22,7 +22,7 @@ const sortByNumericSuffix = (a, b) => {
 
 export default function HallPage() {
     const navigate = useNavigate();
-    const { inventory, unmappedCount, fallbackStatus } = useHallInventory();
+    const { inventory, unmappedCount, fallbackStatus, telemetryVersion } = useHallInventory();
 
     const rackCards = useMemo(() => {
         return Array.from(inventory.racks.entries())
@@ -36,7 +36,7 @@ export default function HallPage() {
                 };
             })
             .sort((a, b) => sortByNumericSuffix(a.rackId, b.rackId));
-    }, [inventory.racks]);
+    }, [inventory.racks, telemetryVersion]);
 
     return (
         <div className={styles.page}>
