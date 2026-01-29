@@ -60,29 +60,35 @@ function toLocalInputValueIfValid(value) {
     return toLocalInputValue(date);
 }
 
+const GERMINATION_RACK_IDS = new Set(["s01-germination", "germination"]);
+
+const normalizeRackId = (value) => {
+    if (value === undefined || value === null) return "";
+    return String(value).trim().toLowerCase();
+};
+
+const resolveRackId = (device) => {
+    const candidates = [
+        device?.rackId,
+        device?.rack,
+        device?.extra?.rackId,
+        device?.extra?.rack_id,
+        device?.meta?.rackId,
+        device?.meta?.rack_id,
+    ];
+    for (const candidate of candidates) {
+        const normalized = normalizeRackId(candidate);
+        if (normalized) return normalized;
+    }
+    return "";
+};
+
 export default function Germination() {
     const isGerminationTelemetry = useMemo(() => {
         return (device) => {
-            const rackId =
-                (typeof device?.extra?.rackId === "string" && device.extra.rackId) ||
-                (typeof device?.extra?.rack_id === "string" && device.extra.rack_id) ||
-                (typeof device?.rackId === "string" && device.rackId) ||
-                (typeof device?.rack === "string" && device.rack) ||
-                "";
-            const rack = typeof device?.rack === "string" ? device.rack.toLowerCase() : "";
-            const deviceId = typeof device?.deviceId === "string" ? device.deviceId : "";
-            const mqttTopic = typeof device?.mqttTopic === "string" ? device.mqttTopic.toLowerCase() : "";
-
-            const normalizedRack = rackId.toLowerCase();
-            return (
-                normalizedRack === "s01-germination" ||
-                normalizedRack.includes("germination") ||
-                rack.includes("germination") ||
-                mqttTopic.includes("germination") ||
-                deviceId.startsWith("LOG-GER_") ||
-                deviceId.startsWith("GER_") ||
-                deviceId.includes("GER-")
-            );
+            const rackId = resolveRackId(device);
+            if (!rackId) return false;
+            return GERMINATION_RACK_IDS.has(rackId);
         };
     }, []);
     const [startTime, setStartTime] = useState("");
@@ -519,6 +525,7 @@ export default function Germination() {
                 availableMetrics={availableMetrics}
                 selectedMetricKey={selectedMetricKey}
                 onMetricChange={setSelectedMetricKey}
+                emptyStateLabel="Germination"
                 rangePreset={rangePreset}
                 rangeOptions={RANGE_OPTIONS}
                 onRangePreset={setRangePreset}

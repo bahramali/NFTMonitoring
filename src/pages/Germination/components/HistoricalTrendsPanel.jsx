@@ -9,6 +9,7 @@ export default function HistoricalTrendsPanel({
     availableMetrics,
     selectedMetricKey,
     onMetricChange,
+    emptyStateLabel,
     rangePreset,
     rangeOptions,
     onRangePreset,
@@ -108,7 +109,11 @@ export default function HistoricalTrendsPanel({
                     </button>
                 </div>
             ) : (
-                <div className={styles.emptyState}>{emptyStateMessage}</div>
+                <div className={styles.emptyState}>
+                    {emptyStateLabel
+                        ? `No sensor nodes available for ${emptyStateLabel} rack.`
+                        : "No sensor nodes available for this rack."}
+                </div>
             )}
 
             {chartError && <div className={styles.errorMessage}>{chartError}</div>}
