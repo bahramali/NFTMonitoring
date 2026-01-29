@@ -23,8 +23,14 @@ export default function HistoricalTrendsPanel({
     chartSeries,
     chartYLabel,
     chartDomain,
-    emptyStateMessage = "No germination nodes available for history.",
+    emptyStateMessage = null,
 }) {
+    const resolvedEmptyStateMessage =
+        emptyStateMessage ||
+        (emptyStateLabel
+            ? `No sensor nodes available for ${emptyStateLabel} rack.`
+            : "No sensor nodes available for this rack.");
+    const hasDevices = deviceOptions.length > 0;
     const hasSelection = Boolean(selectedCompositeId && selectedMetricKey);
     const emptyChartMessage = hasSelection
         ? "No data available for the selected range."
@@ -114,17 +120,15 @@ export default function HistoricalTrendsPanel({
                     </button>
                 </div>
             ) : (
-                <div className={styles.emptyState}>
-                    {emptyStateLabel
-                        ? `No sensor nodes available for ${emptyStateLabel} rack.`
-                        : "No sensor nodes available for this rack."}
-                </div>
+                <div className={styles.emptyState}>{resolvedEmptyStateMessage}</div>
             )}
 
             {chartError && <div className={styles.errorMessage}>{chartError}</div>}
 
             <div className={styles.chartArea}>
-                {chartLoading ? (
+                {!hasDevices ? (
+                    <div className={styles.chartMessage}>{resolvedEmptyStateMessage}</div>
+                ) : chartLoading ? (
                     <div className={styles.chartMessage}>Loading historical data…</div>
                 ) : chartSeries.length ? (
                     <HistoryChart
