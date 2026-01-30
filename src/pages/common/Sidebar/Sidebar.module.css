@@ -107,12 +107,50 @@
     cursor: not-allowed;
 }
 
+.skeletonItem {
+    position: relative;
+    overflow: hidden;
+    background: #152338;
+    color: transparent;
+}
+
+.skeletonItem::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+    animation: shimmer 1.4s infinite;
+}
+
+.skeletonIcon {
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 999px;
+    background: #20324c;
+    display: inline-block;
+}
+
+.skeletonText {
+    width: 70%;
+    height: 0.75rem;
+    border-radius: 999px;
+    background: #20324c;
+    display: inline-block;
+}
+
 .icon {
     font-size: 1.1rem;
 }
 
 .text {
     white-space: nowrap;
+}
+
+@keyframes shimmer {
+    100% {
+        transform: translateX(100%);
+    }
 }
 
 /* divider */

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { PERMISSIONS, hasPerm, hasStoreAdminAccess } from "../../../utils/permissions.js";
-import { useHallInventory } from "../../Hall/useHallInventory.js";
 import styles from "./Sidebar.module.css";
 
 const DEFAULT_VIEWPORT_WIDTH = 1024;
@@ -12,13 +11,11 @@ const getWindowWidth = () => (typeof window === "undefined" ? DEFAULT_VIEWPORT_W
 
 const MONITORING_BASE = "/monitoring";
 
-const sortByNumericSuffix = (a, b) => {
-    const numA = Number(String(a).replace(/\D/g, ""));
-    const numB = Number(String(b).replace(/\D/g, ""));
-    if (Number.isFinite(numA) && Number.isFinite(numB) && numA !== numB) {
-        return numA - numB;
-    }
-    return String(a).localeCompare(String(b));
+const sortBySortOrder = (a, b) => {
+    const orderA = Number.isFinite(a?.sortOrder) ? a.sortOrder : 0;
+    const orderB = Number.isFinite(b?.sortOrder) ? b.sortOrder : 0;
+    if (orderA !== orderB) return orderA - orderB;
+    return String(a?.title ?? "").localeCompare(String(b?.title ?? ""));
 };
 
 const hasAccess = (item, role, roles = [], permissions = []) => {
@@ -78,12 +75,15 @@ const NAV_SECTIONS = [
 
 export default function Sidebar() {
     const { role, roles, permissions } = useAuth();
-    const { inventory, inventoryVersion } = useHallInventory({ subscribeToTelemetry: false });
     const [isMobile, setIsMobile] = useState(() => getWindowWidth() < BREAKPOINTS.mobile);
     const [collapsed, setCollapsed] = useState(() => {
         const width = getWindowWidth();
         if (width < BREAKPOINTS.mobile) return true;
         return width < BREAKPOINTS.collapse;
+    });
+    const [rackPagesState, setRackPagesState] = useState({
+        status: "loading",
+        pages: [],
     });
     const handleResize = useCallback(() => {
         const width = getWindowWidth();
@@ -103,6 +103,41 @@ export default function Sidebar() {
         window.addEventListener("resize", handleResize);
         return () => window.removeEventListener("resize", handleResize);
     }, [handleResize]);
+
+    useEffect(() => {
+        let isMounted = true;
+        const controller = new AbortController();
+
+        const loadRackPages = async () => {
+            setRackPagesState({ status: "loading", pages: [] });
+            try {
+                const response = await fetch("/api/monitoring-pages", { signal: controller.signal });
+                if (!response.ok) {
+                    throw new Error(`Failed to load rack pages: ${response.status}`);
+                }
+                const payload = await response.json();
+                const pages = Array.isArray(payload)
+                    ? payload
+                    : Array.isArray(payload?.pages)
+                        ? payload.pages
+                        : [];
+                const sortedPages = [...pages].sort(sortBySortOrder);
+                if (isMounted) {
+                    setRackPagesState({ status: "success", pages: sortedPages });
+                }
+            } catch (error) {
+                if (!isMounted || error?.name === "AbortError") return;
+                setRackPagesState({ status: "error", pages: [] });
+            }
+        };
+
+        loadRackPages();
+
+        return () => {
+            isMounted = false;
+            controller.abort();
+        };
+    }, []);
 
     const linkClass = useCallback(
         ({ isActive }) => `${styles.menuItem} ${isActive ? styles.active : ""}`,
@@ -128,18 +163,45 @@ export default function Sidebar() {
         ? "/store/admin/products"
         : "/store";
 
-    const rackItems = useMemo(() => {
-        const rackIds = Array.from(inventory.racks.keys()).sort(sortByNumericSuffix);
-        if (rackIds.length === 0) {
-            return [{ icon: "🧱", label: "No racks detected", disabled: true }];
+    const rackPagesItems = useMemo(() => {
+        if (rackPagesState.status === "loading") {
+            return Array.from({ length: 3 }, (_, index) => ({
+                label: `Loading rack pages ${index + 1}`,
+                icon: "🧱",
+                disabled: true,
+                placeholder: true,
+            }));
         }
-        return rackIds.map((rackId) => ({
-            to: `/racks/${rackId}`,
-            icon: "🧱",
-            label: `Rack ${rackId}`,
-            permissions: [PERMISSIONS.MONITORING_VIEW],
-        }));
-    }, [inventory.racks, inventoryVersion]);
+
+        if (rackPagesState.status === "error") {
+            return [
+                {
+                    icon: "⚠️",
+                    label: "Failed to load rack pages",
+                    disabled: true,
+                },
+            ];
+        }
+
+        if (rackPagesState.pages.length === 0) {
+            return [
+                {
+                    icon: "🧱",
+                    label: "No rack pages configured",
+                    disabled: true,
+                },
+            ];
+        }
+
+        return rackPagesState.pages
+            .filter((page) => page?.slug && page?.title)
+            .map((page) => ({
+                to: `${MONITORING_BASE}/pages/${page.slug}`,
+                icon: "🧱",
+                label: page.title,
+                permissions: [PERMISSIONS.MONITORING_VIEW],
+            }));
+    }, [rackPagesState.pages, rackPagesState.status]);
 
     const sections = useMemo(() => {
         const mappedSections = NAV_SECTIONS.map((section) => {
@@ -153,16 +215,16 @@ export default function Sidebar() {
             }
             return section;
         });
-        const racksSection = {
-            id: "racks",
-            label: "Racks",
-            items: rackItems,
+        const rackPagesSection = {
+            id: "rack-pages",
+            label: "Rack Pages",
+            items: rackPagesItems,
         };
         if (mappedSections.length === 0) {
-            return [racksSection];
+            return [rackPagesSection];
         }
-        return [mappedSections[0], racksSection, ...mappedSections.slice(1)];
-    }, [rackItems, storeTarget]);
+        return [mappedSections[0], rackPagesSection, ...mappedSections.slice(1)];
+    }, [rackPagesItems, storeTarget]);
 
     const filteredSections = useMemo(() => {
         return sections
@@ -181,7 +243,7 @@ export default function Sidebar() {
                         return item;
                     }
 
-                    return { ...item, disabled: true };
+                    return { ...item, disabled: true, disabledTitle: "Requires permission" };
                 });
 
                 return { ...section, items: visibleItems };
@@ -205,16 +267,22 @@ export default function Sidebar() {
                     <div key={section.id} className={styles.section}>
                         {!collapsed && <div className={styles.sectionLabel}>{section.label}</div>}
                         <div className={styles.sectionItems}>
-                            {section.items.map(({ to, icon, label, disabled }) => {
+                            {section.items.map(({ to, icon, label, disabled, placeholder, disabledTitle }) => {
                                 if (disabled || !to) {
                                     return (
                                         <div
                                             key={`${section.id}-${label}`}
-                                            className={`${styles.menuItem} ${styles.disabledItem}`}
-                                            title="Requires permission"
+                                            className={`${styles.menuItem} ${styles.disabledItem} ${
+                                                placeholder ? styles.skeletonItem : ""
+                                            }`}
+                                            title={disabledTitle}
                                         >
-                                            <span className={styles.icon}>{icon}</span>
-                                            {!collapsed && <span className={styles.text}>{label}</span>}
+                                            <span className={placeholder ? styles.skeletonIcon : styles.icon}>{icon}</span>
+                                            {!collapsed && (
+                                                <span className={placeholder ? styles.skeletonText : styles.text}>
+                                                    {label}
+                                                </span>
+                                            )}
                                         </div>
                                     );
                                 }
