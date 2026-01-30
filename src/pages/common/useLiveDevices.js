@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {filterNoise, normalizeSensorData} from "../../utils.js";
 import {useStomp} from "../../hooks/useStomp.js";
 import {isAs7343Sensor, makeMeasurementKey, sanitize} from "./measurementUtils.js";
@@ -7,6 +7,7 @@ import {logTelemetryDebug} from "./liveTelemetry.js";
 
 const EXTREMA_WINDOW_MS = 5 * 60 * 1000;
 const TELEMETRY_TOPIC = "hydroleaf/telemetry";
+const BATCH_INTERVAL_MS = process.env.NODE_ENV === "test" ? 0 : 300;
 const RESERVED_EXTRA_KEYS = new Set([
     "controllers",
     "deviceId",
@@ -18,11 +19,18 @@ const RESERVED_EXTRA_KEYS = new Set([
     "payload",
     "sensors",
     "site",
+    "siteId",
     "rack",
+    "rackId",
     "system",
     "compositeId",
+    "nodeType",
+    "nodeId",
+    "nodeInstance",
     "kind",
     "online",
+    "schemaVersion",
+    "timestamp",
 ]);
 
 function mergeControllers(a = [], b = []) {
@@ -44,6 +52,69 @@ export function useLiveDevices(topics) {
     const [sensorData, setSensorData] = useState({});
     const [sensorExtrema, setSensorExtrema] = useState({});
     const [deviceEvents, setDeviceEvents] = useState({});
+    const pendingUpdatesRef = useRef({deviceData: new Map(), sensorData: new Map()});
+    const flushTimeoutRef = useRef(null);
+
+    const flushPending = useCallback((pending) => {
+        if (pending.sensorData.size > 0) {
+            setSensorData((prev) => {
+                const next = {...prev};
+                pending.sensorData.forEach((data, compositeId) => {
+                    next[compositeId] = data;
+                });
+                return next;
+            });
+        }
+
+        if (pending.deviceData.size > 0) {
+            setDeviceData((prev) => {
+                let next = prev;
+                pending.deviceData.forEach((topicsMap, site) => {
+                    const prevSite = next[site] || {};
+                    let siteChanged = false;
+                    const nextSite = {...prevSite};
+
+                    topicsMap.forEach((topicUpdates, topicKey) => {
+                        const prevTopic = prevSite[topicKey] || {};
+                        let topicChanged = false;
+                        const nextTopic = {...prevTopic};
+                        topicUpdates.forEach((data, compositeId) => {
+                            nextTopic[compositeId] = data;
+                            topicChanged = true;
+                        });
+                        if (topicChanged) {
+                            nextSite[topicKey] = nextTopic;
+                            siteChanged = true;
+                        }
+                    });
+
+                    if (siteChanged) {
+                        if (next === prev) {
+                            next = {...prev};
+                        }
+                        next[site] = nextSite;
+                    }
+                });
+                return next;
+            });
+        }
+    }, []);
+
+    const scheduleFlush = useCallback(() => {
+        if (BATCH_INTERVAL_MS === 0) {
+            const pending = pendingUpdatesRef.current;
+            pendingUpdatesRef.current = {deviceData: new Map(), sensorData: new Map()};
+            flushPending(pending);
+            return;
+        }
+        if (flushTimeoutRef.current) return;
+        flushTimeoutRef.current = setTimeout(() => {
+            const pending = pendingUpdatesRef.current;
+            pendingUpdatesRef.current = {deviceData: new Map(), sensorData: new Map()};
+            flushTimeoutRef.current = null;
+            flushPending(pending);
+        }, BATCH_INTERVAL_MS);
+    }, [flushPending]);
 
     const updateDeviceEvents = useCallback((compositeId, payload) => {
         if (!compositeId) return;
@@ -66,6 +137,17 @@ export function useLiveDevices(topics) {
             if (normalized === "offline") return false;
         }
         return null;
+    }, []);
+
+    const resolveTimestamp = useCallback((payload) => {
+        if (!payload || typeof payload !== "object") return null;
+        const candidate = payload.timestamp ?? payload.ts ?? payload.time ?? payload.receivedAt;
+        if (candidate === undefined || candidate === null) return null;
+        if (typeof candidate === "number") {
+            return Number.isFinite(candidate) ? candidate : null;
+        }
+        const parsed = Date.parse(candidate);
+        return Number.isNaN(parsed) ? null : parsed;
     }, []);
 
     const updateSensorExtrema = useCallback((compositeId, sensors = []) => {
@@ -147,8 +229,8 @@ export function useLiveDevices(topics) {
 
         let baseId = envelope?.deviceId || payload.deviceId || payload.device || payload.devId;
         let systemId = payload.system || payload.systemId || payload.site || envelope?.site;
-        let site = envelope?.site || payload.site || systemId;
-        let rack = envelope?.rack || payload.rack;
+        let siteId = payload.siteId || payload.site_id || payload.site || envelope?.site;
+        let rackId = payload.rackId || payload.rack_id || payload.rack || envelope?.rack;
         // Some payloads send `layer` as an object `{ layer: "L01" }` while others
         // use a plain string. Normalise to a string so the composite ID is built
         // correctly regardless of format.
@@ -159,6 +241,10 @@ export function useLiveDevices(topics) {
             payload.layer ||
             payload.meta?.layer ||
             "";
+        const nodeType = payload.nodeType || payload.node_type || payload.meta?.nodeType || payload.meta?.node_type || null;
+        const nodeId = payload.nodeId || payload.node_id || payload.meta?.nodeId || payload.meta?.node_id || null;
+        const nodeInstance =
+            payload.nodeInstance || payload.node_instance || payload.meta?.nodeInstance || payload.meta?.node_instance || null;
 
         let compositeId =
             envelope?.compositeId ||
@@ -167,27 +253,13 @@ export function useLiveDevices(topics) {
             payload.cid ||
             null;
 
-        if ((!baseId || !site || !loc) && compositeId) {
-            const parts = String(compositeId).split("-");
-            if (parts.length >= 4) {
-                site = site || parts[0];
-                rack = rack || parts[1];
-                loc = loc || parts[2];
-                baseId = baseId || parts.slice(3).join("-");
-            } else if (parts.length >= 3) {
-                systemId = systemId || parts[0];
-                loc = loc || parts[1];
-                baseId = baseId || parts.slice(2).join("-");
-            }
-        }
-
         baseId = baseId || "unknown";
         systemId = systemId || "unknown";
-        site = site || systemId;
-        rack = rack || null;
+        siteId = siteId || systemId;
+        rackId = rackId || null;
 
         if (!compositeId) {
-            const segments = [site, rack, loc, baseId].filter(Boolean);
+            const segments = [siteId, rackId, loc || nodeId, baseId].filter(Boolean);
             compositeId = segments.length > 0 ? segments.join("-") : baseId;
         }
 
@@ -215,7 +287,8 @@ export function useLiveDevices(topics) {
             const normalized = normalizeSensorData(payload);
             const cleaned = isTelemetryTopic ? filterNoise(normalized) : normalized;
             if (cleaned && isTelemetryTopic) {
-                setSensorData(prev => ({...prev, [compositeId]: cleaned}));
+                pendingUpdatesRef.current.sensorData.set(compositeId, cleaned);
+                scheduleFlush();
             }
 
             updateSensorExtrema(compositeId, payload.sensors);
@@ -230,9 +303,15 @@ export function useLiveDevices(topics) {
             compositeId,
             kind,
             mqttTopic,
-            ...(site ? {site} : {}),
-            ...(rack ? {rack} : {}),
-            receivedAt: Date.now()
+            ...(siteId ? {site: siteId} : {}),
+            ...(rackId ? {rack: rackId} : {}),
+            ...(siteId ? {siteId} : {}),
+            ...(rackId ? {rackId} : {}),
+            ...(nodeType ? {nodeType} : {}),
+            ...(nodeId ? {nodeId} : {}),
+            ...(nodeInstance !== null && nodeInstance !== undefined ? {nodeInstance} : {}),
+            timestamp: resolveTimestamp(payload),
+            receivedAt: Date.now(),
         };
 
         if (online !== null) {
@@ -254,19 +333,31 @@ export function useLiveDevices(topics) {
         const topicKey = kind || topic;
         if (!topicKey) return;
 
-        setDeviceData(prev => {
-            const sys = {...(prev[site] || {})};
-            const topicMap = {...(sys[topicKey] || {})};
-            topicMap[compositeId] = tableData;
-            return {...prev, [site]: {...sys, [topicKey]: topicMap}};
-        });
-    }, [resolveOnline, updateDeviceEvents, updateSensorExtrema]);
+        const pendingDeviceData = pendingUpdatesRef.current.deviceData;
+        if (!pendingDeviceData.has(siteId)) {
+            pendingDeviceData.set(siteId, new Map());
+        }
+        const siteMap = pendingDeviceData.get(siteId);
+        if (!siteMap.has(topicKey)) {
+            siteMap.set(topicKey, new Map());
+        }
+        siteMap.get(topicKey).set(compositeId, tableData);
+        scheduleFlush();
+    }, [resolveOnline, resolveTimestamp, scheduleFlush, updateDeviceEvents, updateSensorExtrema]);
 
     useEffect(() => {
         if (subscribedTopics.length > 0) {
             logTelemetryDebug("subscribed topics", subscribedTopics);
         }
     }, [subscribedTopics]);
+
+    useEffect(() => {
+        return () => {
+            if (flushTimeoutRef.current) {
+                clearTimeout(flushTimeoutRef.current);
+            }
+        };
+    }, []);
 
     useStomp(topics, handleStompMessage);
 

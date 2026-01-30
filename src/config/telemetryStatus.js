@@ -1,0 +1,1 @@
+export const DEFAULT_STALE_THRESHOLD_MS = 60 * 1000;
