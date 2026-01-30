@@ -7,7 +7,7 @@ import {logTelemetryDebug} from "./liveTelemetry.js";
 
 const EXTREMA_WINDOW_MS = 5 * 60 * 1000;
 const TELEMETRY_TOPIC = "hydroleaf/telemetry";
-const BATCH_INTERVAL_MS = 300;
+const BATCH_INTERVAL_MS = process.env.NODE_ENV === "test" ? 0 : 300;
 const RESERVED_EXTRA_KEYS = new Set([
     "controllers",
     "deviceId",
@@ -55,57 +55,66 @@ export function useLiveDevices(topics) {
     const pendingUpdatesRef = useRef({deviceData: new Map(), sensorData: new Map()});
     const flushTimeoutRef = useRef(null);
 
+    const flushPending = useCallback((pending) => {
+        if (pending.sensorData.size > 0) {
+            setSensorData((prev) => {
+                const next = {...prev};
+                pending.sensorData.forEach((data, compositeId) => {
+                    next[compositeId] = data;
+                });
+                return next;
+            });
+        }
+
+        if (pending.deviceData.size > 0) {
+            setDeviceData((prev) => {
+                let next = prev;
+                pending.deviceData.forEach((topicsMap, site) => {
+                    const prevSite = next[site] || {};
+                    let siteChanged = false;
+                    const nextSite = {...prevSite};
+
+                    topicsMap.forEach((topicUpdates, topicKey) => {
+                        const prevTopic = prevSite[topicKey] || {};
+                        let topicChanged = false;
+                        const nextTopic = {...prevTopic};
+                        topicUpdates.forEach((data, compositeId) => {
+                            nextTopic[compositeId] = data;
+                            topicChanged = true;
+                        });
+                        if (topicChanged) {
+                            nextSite[topicKey] = nextTopic;
+                            siteChanged = true;
+                        }
+                    });
+
+                    if (siteChanged) {
+                        if (next === prev) {
+                            next = {...prev};
+                        }
+                        next[site] = nextSite;
+                    }
+                });
+                return next;
+            });
+        }
+    }, []);
+
     const scheduleFlush = useCallback(() => {
+        if (BATCH_INTERVAL_MS === 0) {
+            const pending = pendingUpdatesRef.current;
+            pendingUpdatesRef.current = {deviceData: new Map(), sensorData: new Map()};
+            flushPending(pending);
+            return;
+        }
         if (flushTimeoutRef.current) return;
         flushTimeoutRef.current = setTimeout(() => {
             const pending = pendingUpdatesRef.current;
             pendingUpdatesRef.current = {deviceData: new Map(), sensorData: new Map()};
             flushTimeoutRef.current = null;
-
-            if (pending.sensorData.size > 0) {
-                setSensorData((prev) => {
-                    const next = {...prev};
-                    pending.sensorData.forEach((data, compositeId) => {
-                        next[compositeId] = data;
-                    });
-                    return next;
-                });
-            }
-
-            if (pending.deviceData.size > 0) {
-                setDeviceData((prev) => {
-                    let next = prev;
-                    pending.deviceData.forEach((topicsMap, site) => {
-                        const prevSite = next[site] || {};
-                        let siteChanged = false;
-                        const nextSite = {...prevSite};
-
-                        topicsMap.forEach((topicUpdates, topicKey) => {
-                            const prevTopic = prevSite[topicKey] || {};
-                            let topicChanged = false;
-                            const nextTopic = {...prevTopic};
-                            topicUpdates.forEach((data, compositeId) => {
-                                nextTopic[compositeId] = data;
-                                topicChanged = true;
-                            });
-                            if (topicChanged) {
-                                nextSite[topicKey] = nextTopic;
-                                siteChanged = true;
-                            }
-                        });
-
-                        if (siteChanged) {
-                            if (next === prev) {
-                                next = {...prev};
-                            }
-                            next[site] = nextSite;
-                        }
-                    });
-                    return next;
-                });
-            }
+            flushPending(pending);
         }, BATCH_INTERVAL_MS);
-    }, []);
+    }, [flushPending]);
 
     const updateDeviceEvents = useCallback((compositeId, payload) => {
         if (!compositeId) return;

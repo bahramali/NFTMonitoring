@@ -45,10 +45,10 @@ export const formatNodeTitle = (device) => {
 export const formatNodeSubtitle = (device) => {
     const rackId = normalizeText(device?.rackId || device?.rack || device?.meta?.rackId || device?.meta?.rack);
     const siteId = normalizeText(device?.siteId || device?.site || device?.systemId || device?.system);
-    if (rackId && siteId) {
-        return `${rackId} · ${siteId}`;
+    if (!rackId || !siteId) {
+        return "";
     }
-    return rackId || siteId || "";
+    return `${rackId} · ${siteId}`;
 };
 
 export const formatNodeOptionLabel = (device) => {
