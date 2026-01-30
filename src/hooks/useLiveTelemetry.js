@@ -38,6 +38,8 @@ const resolveNodeId = (payload, envelope) => {
         payload?.deviceId ||
         payload?.device ||
         payload?.devId ||
+        envelope?.nodeId ||
+        envelope?.deviceId ||
         payload?.compositeId ||
         payload?.composite_id ||
         envelope?.compositeId ||
@@ -47,6 +49,13 @@ const resolveNodeId = (payload, envelope) => {
 
 const resolveTimestamp = (payload) => {
     const value = payload?.timestamp ?? payload?.ts ?? payload?.time ?? payload?.receivedAt;
+    if (typeof value === "number") {
+        return Number.isFinite(value) ? value : Date.now();
+    }
+    if (typeof value === "string" && value.trim() !== "") {
+        const parsed = Date.parse(value);
+        return Number.isNaN(parsed) ? Date.now() : parsed;
+    }
     const numeric = Number(value);
     return Number.isFinite(numeric) ? numeric : Date.now();
 };
