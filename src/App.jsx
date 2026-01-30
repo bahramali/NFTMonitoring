@@ -34,6 +34,7 @@ import Cameras from './pages/Cameras/index.jsx';
 import Reports from './pages/Reports/index.jsx';
 import Note from './pages/Note/index.jsx';
 import SensorConfig from './pages/SensorConfig/index.jsx';
+import MonitoringPage from './pages/MonitoringPage/index.jsx';
 import ShellyControlPage from './pages/ShellyControl/index.jsx';
 import AcceptInvite from './pages/AcceptInvite.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
@@ -209,6 +210,7 @@ function AppRoutes() {
                         <Route path="hall" element={<HallPage />} />
                         <Route path="hall/racks/:rackId" element={<HallRackPage />} />
                         <Route path="hall/racks/:rackId/layers/:layerId" element={<HallLayerPage />} />
+                        <Route path="pages/:slug" element={<MonitoringPage />} />
                         <Route path="cameras" element={<Cameras />} />
                         <Route
                             path="reports"

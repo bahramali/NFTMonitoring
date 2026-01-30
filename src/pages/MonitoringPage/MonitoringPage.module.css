@@ -1,0 +1,93 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+    padding-bottom: 2.5rem;
+    color: #e6edff;
+}
+
+.card {
+    background: linear-gradient(160deg, rgba(10, 20, 38, 0.92), rgba(7, 14, 28, 0.94));
+    border: 1px solid rgba(74, 110, 176, 0.45);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    box-shadow: 0 26px 48px rgba(5, 10, 24, 0.55);
+}
+
+.metaRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: baseline;
+}
+
+.label {
+    font-size: 0.75rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #8faeff;
+    font-weight: 700;
+}
+
+.value {
+    font-size: 1rem;
+    color: #f6f8ff;
+    font-weight: 600;
+}
+
+.statusMessage {
+    margin: 0;
+    color: #9fb7ff;
+    font-size: 0.95rem;
+}
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.sectionTitle {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #f6f8ff;
+}
+
+.sectionMeta {
+    font-size: 0.85rem;
+    color: #9fb7ff;
+}
+
+.deviceList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+}
+
+.deviceItem {
+    border-radius: 0.85rem;
+    padding: 0.85rem 1rem;
+    background: rgba(16, 28, 52, 0.82);
+    border: 1px solid rgba(92, 130, 204, 0.35);
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.deviceName {
+    font-weight: 600;
+    color: #f6f8ff;
+}
+
+.deviceMeta {
+    font-size: 0.85rem;
+    color: #9fb7ff;
+}
