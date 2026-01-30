@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-    createAdminMonitoringPage,
-    deleteAdminMonitoringPage,
-    listAdminMonitoringPages,
+    adminCreateMonitoringPage,
+    adminDeleteMonitoringPage,
+    adminListMonitoringPages,
+    adminUpdateMonitoringPage,
     listRacks,
-    updateAdminMonitoringPage,
-} from '../api/adminMonitoringPages.js';
+} from '../api/monitoringPages.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import styles from './AdminRackPages.module.css';
 
@@ -154,7 +154,7 @@ export default function AdminRackPages() {
         setLoading(true);
         setListError('');
         try {
-            const payload = await listAdminMonitoringPages(token);
+            const payload = await adminListMonitoringPages();
             setPages(normalizeMonitoringPages(payload));
         } catch (error) {
             console.error('Failed to load monitoring pages', error);
@@ -167,7 +167,7 @@ export default function AdminRackPages() {
     const loadRacks = useCallback(async () => {
         if (!token) return;
         try {
-            const payload = await listRacks(token);
+            const payload = await listRacks();
             setRacks(normalizeRacks(payload));
         } catch (error) {
             console.error('Failed to load racks', error);
@@ -232,9 +232,9 @@ export default function AdminRackPages() {
 
         try {
             if (isEditing) {
-                await updateAdminMonitoringPage(selectedPage.id ?? selectedPage._id ?? selectedPage.slug, payload, token);
+                await adminUpdateMonitoringPage(selectedPage.id ?? selectedPage._id ?? selectedPage.slug, payload);
             } else {
-                await createAdminMonitoringPage(payload, token);
+                await adminCreateMonitoringPage(payload);
             }
             await loadPages();
             resetForm();
@@ -256,7 +256,7 @@ export default function AdminRackPages() {
         const confirmed = window.confirm('Delete this rack page? This cannot be undone.');
         if (!confirmed) return;
         try {
-            await deleteAdminMonitoringPage(page.id ?? page._id ?? page.slug, token);
+            await adminDeleteMonitoringPage(page.id ?? page._id ?? page.slug);
             await loadPages();
             if (selectedPage && (selectedPage.id === page.id || selectedPage.slug === page.slug)) {
                 resetForm();

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { authFetch, parseApiResponse } from "../../api/http.js";
+import { getMonitoringPageBySlug } from "../../api/monitoringPages.js";
 import { getApiBaseUrl } from "../../config/apiBase.js";
 import Header from "../common/Header";
 import RackDashboardView from "../RackDashboard/RackDashboardView.jsx";
@@ -91,11 +92,7 @@ export default function MonitoringPage() {
             setRackId("");
 
             try {
-                const response = await authFetch(
-                    `${API_BASE}/api/monitoring-pages/${encodeURIComponent(normalizedSlug)}`,
-                    { signal: controller.signal },
-                );
-                const data = await parseApiResponse(response, "Unable to load monitoring page");
+                const data = await getMonitoringPageBySlug(normalizedSlug, { signal: controller.signal });
                 if (cancelled) return;
                 setPageData(data);
                 setRackId(resolveRackId(data));
