@@ -227,10 +227,37 @@ export function useLiveDevices(topics) {
 
         if (!payload || typeof payload !== "object") return;
 
+        if (envelope && typeof envelope === "object") {
+            if (payload.deviceId == null && envelope.deviceId != null) {
+                payload.deviceId = envelope.deviceId;
+            }
+            if (payload.siteId == null && envelope.siteId != null) {
+                payload.siteId = envelope.siteId;
+            }
+            if (payload.rackId == null && envelope.rackId != null) {
+                payload.rackId = envelope.rackId;
+            }
+            if (payload.nodeType == null && envelope.nodeType != null) {
+                payload.nodeType = envelope.nodeType;
+            }
+            if (payload.nodeId == null && envelope.nodeId != null) {
+                payload.nodeId = envelope.nodeId;
+            }
+            if (payload.nodeInstance == null && envelope.nodeInstance != null) {
+                payload.nodeInstance = envelope.nodeInstance;
+            }
+            if (payload.timestamp == null && envelope.timestamp != null) {
+                payload.timestamp = envelope.timestamp;
+            }
+        }
+
         let baseId = envelope?.deviceId || payload.deviceId || payload.device || payload.devId;
-        let systemId = payload.system || payload.systemId || payload.site || envelope?.site;
-        let siteId = payload.siteId || payload.site_id || payload.site || envelope?.site;
-        let rackId = payload.rackId || payload.rack_id || payload.rack || envelope?.rack;
+        let systemId =
+            payload.system || payload.systemId || payload.site || envelope?.site || envelope?.siteId;
+        let siteId =
+            payload.siteId || payload.site_id || payload.site || envelope?.site || envelope?.siteId;
+        let rackId =
+            payload.rackId || payload.rack_id || payload.rack || envelope?.rack || envelope?.rackId;
         // Some payloads send `layer` as an object `{ layer: "L01" }` while others
         // use a plain string. Normalise to a string so the composite ID is built
         // correctly regardless of format.
@@ -241,10 +268,22 @@ export function useLiveDevices(topics) {
             payload.layer ||
             payload.meta?.layer ||
             "";
-        const nodeType = payload.nodeType || payload.node_type || payload.meta?.nodeType || payload.meta?.node_type || null;
-        const nodeId = payload.nodeId || payload.node_id || payload.meta?.nodeId || payload.meta?.node_id || null;
+        const nodeType =
+            payload.nodeType ||
+            payload.node_type ||
+            payload.meta?.nodeType ||
+            payload.meta?.node_type ||
+            envelope?.nodeType ||
+            null;
+        const nodeId =
+            payload.nodeId || payload.node_id || payload.meta?.nodeId || payload.meta?.node_id || envelope?.nodeId || null;
         const nodeInstance =
-            payload.nodeInstance || payload.node_instance || payload.meta?.nodeInstance || payload.meta?.node_instance || null;
+            payload.nodeInstance ||
+            payload.node_instance ||
+            payload.meta?.nodeInstance ||
+            payload.meta?.node_instance ||
+            envelope?.nodeInstance ||
+            null;
 
         let compositeId =
             envelope?.compositeId ||
