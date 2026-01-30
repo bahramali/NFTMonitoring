@@ -217,6 +217,12 @@ export function useLiveDevices(topics) {
         const mqttTopic = envelope?.mqttTopic || null;
 
         let payload = envelope?.payload ?? msg;
+        // Fix schema mismatch: backend timestamp is on envelope, UI expects it on payload.
+        if (envelope && payload && typeof payload === "object" && !Array.isArray(payload)) {
+            if (payload.timestamp == null && envelope.timestamp != null) {
+                payload = {...payload, timestamp: envelope.timestamp};
+            }
+        }
         if (typeof payload === "string") {
             try {
                 payload = JSON.parse(payload);
