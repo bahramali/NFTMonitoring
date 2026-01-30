@@ -133,17 +133,26 @@ export function normalizeTelemetryPayload(envelope) {
     payload.nodeInstance ?? payload.node_instance ?? envelope.nodeInstance ?? envelope.node_instance;
   const timestamp =
     payload.timestamp ?? payload.ts ?? payload.time ?? payload.receivedAt ?? envelope.timestamp ?? null;
+  const systemId = payload.systemId ?? payload.system ?? siteId;
+  const layerId = payload.layerId ?? payload.layer ?? (nodeType === "LAYER" ? nodeId : undefined);
+  const resolvedCompositeId =
+    compositeId ??
+    (siteId && nodeId && deviceId
+      ? `${siteId}${rackId ? `-${rackId}` : ""}-${nodeId}-${deviceId}`
+      : null);
 
   return {
     ...payload,
     sensors,
-    compositeId,
+    ...(resolvedCompositeId ? { compositeId: resolvedCompositeId } : {}),
     ...(deviceId ? { deviceId } : {}),
     ...(siteId ? { siteId } : {}),
     ...(rackId ? { rackId } : {}),
     ...(nodeType ? { nodeType } : {}),
     ...(nodeId ? { nodeId } : {}),
     ...(nodeInstance !== null && nodeInstance !== undefined ? { nodeInstance } : {}),
+    ...(systemId ? { systemId } : {}),
+    ...(layerId ? { layerId } : {}),
     ...(timestamp ? { timestamp } : {}),
   };
 }

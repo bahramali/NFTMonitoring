@@ -103,8 +103,8 @@ function useSystemsIndex() {
         if (cid) {
             ({ sys, lay } = splitComp(cid));
         } else {
-            sys = String(message.system || message.systemId || "").toUpperCase();
-            lay = String(message.layer || message.layerId || "");
+            sys = String(message.system || message.systemId || message.siteId || "").toUpperCase();
+            lay = String(message.layer || message.layerId || message.nodeId || "");
         }
         if (!sys) return;
 
@@ -189,10 +189,13 @@ function useSystemCompositeCards(systemKeyInput) {
 
         let cid = message.compositeId || message.composite_id || message.cid;
         if (!cid) {
-            const sys = message.system || message.systemId;
-            const lay = message.layer || message.layerId;
+            const sys = message.siteId || message.system || message.systemId;
+            const lay = message.nodeId || message.layerId || message.layer;
             const dev = message.deviceId || message.device || message.devId;
-            if (sys && lay && dev) cid = `${sys}-${lay}-${dev}`;
+            const rack = message.rackId || message.rack;
+            if (sys && lay && dev) {
+                cid = rack ? `${sys}-${rack}-${lay}-${dev}` : `${sys}-${lay}-${dev}`;
+            }
         }
         if (!cid) return;
 
