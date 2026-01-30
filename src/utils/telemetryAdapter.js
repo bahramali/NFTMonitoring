@@ -68,6 +68,18 @@ export function parseEnvelope(message) {
   return {
     compositeId: message.compositeId ?? payload?.compositeId ?? payload?.composite_id ?? null,
     kind: message.kind,
+    deviceId: message.deviceId ?? message.device_id ?? payload?.deviceId ?? payload?.device_id ?? null,
+    siteId: message.siteId ?? message.site_id ?? payload?.siteId ?? payload?.site_id ?? null,
+    rackId: message.rackId ?? message.rack_id ?? payload?.rackId ?? payload?.rack_id ?? null,
+    nodeType: message.nodeType ?? message.node_type ?? payload?.nodeType ?? payload?.node_type ?? null,
+    nodeId: message.nodeId ?? message.node_id ?? payload?.nodeId ?? payload?.node_id ?? null,
+    nodeInstance:
+      message.nodeInstance ??
+      message.node_instance ??
+      payload?.nodeInstance ??
+      payload?.node_instance ??
+      null,
+    timestamp: message.timestamp ?? payload?.timestamp ?? payload?.ts ?? payload?.time ?? null,
     payload,
   };
 }
@@ -111,11 +123,28 @@ export function normalizeTelemetryPayload(envelope) {
   if (!envelope || envelope.kind !== "telemetry") return null;
   const payload = envelope.payload && typeof envelope.payload === "object" ? envelope.payload : {};
   const sensors = Array.isArray(payload.sensors) ? payload.sensors : buildSensorsFromTelemetry(payload);
+  const compositeId = payload.compositeId ?? envelope.compositeId;
+  const deviceId = payload.deviceId ?? payload.device_id ?? envelope.deviceId;
+  const siteId = payload.siteId ?? payload.site_id ?? payload.site ?? envelope.siteId ?? envelope.site;
+  const rackId = payload.rackId ?? payload.rack_id ?? payload.rack ?? envelope.rackId ?? envelope.rack;
+  const nodeType = payload.nodeType ?? payload.node_type ?? envelope.nodeType;
+  const nodeId = payload.nodeId ?? payload.node_id ?? envelope.nodeId;
+  const nodeInstance =
+    payload.nodeInstance ?? payload.node_instance ?? envelope.nodeInstance ?? envelope.node_instance;
+  const timestamp =
+    payload.timestamp ?? payload.ts ?? payload.time ?? payload.receivedAt ?? envelope.timestamp ?? null;
 
   return {
     ...payload,
     sensors,
-    compositeId: payload.compositeId ?? envelope.compositeId,
+    compositeId,
+    ...(deviceId ? { deviceId } : {}),
+    ...(siteId ? { siteId } : {}),
+    ...(rackId ? { rackId } : {}),
+    ...(nodeType ? { nodeType } : {}),
+    ...(nodeId ? { nodeId } : {}),
+    ...(nodeInstance !== null && nodeInstance !== undefined ? { nodeInstance } : {}),
+    ...(timestamp ? { timestamp } : {}),
   };
 }
 
