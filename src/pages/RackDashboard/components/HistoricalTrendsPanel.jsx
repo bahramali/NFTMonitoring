@@ -62,12 +62,20 @@ export default function HistoricalTrendsPanel({ rackId }) {
             if (!measurementType) return;
             const key = measurementType.toLowerCase();
             if (entries.has(key)) return;
+            const sensorName = sensor?.sensorName || sensor?.source;
+            const isAs7343 = sensorName && sensorName.toLowerCase() === "as7343";
+            const historyKey = isAs7343 ? `as7343_counts_${measurementType}` : measurementType;
+            const label =
+                isAs7343
+                    ? `AS7343 ${measurementType}`
+                    : measurementType;
 
             entries.set(key, {
                 key,
-                sensorType: measurementType,
+                sensorType: historyKey,
                 unit: sensor?.unit || "",
-                label: measurementType,
+                label,
+                historyKey,
             });
         });
 
@@ -93,11 +101,13 @@ export default function HistoricalTrendsPanel({ rackId }) {
             sensorType: metric.sensorType,
             unit: metric.unit,
             label: metric.label,
+            historyKey: metric.historyKey,
         };
     }, [availableMetrics, selectedMetricKey]);
 
     const selectedMetricKeyValue = selectedMetric?.key ?? "";
     const selectedMetricSensorType = selectedMetric?.sensorType ?? "";
+    const selectedMetricHistoryKey = selectedMetric?.historyKey ?? selectedMetricKeyValue;
 
     const handleRefresh = () => {
         if (rangePreset === "custom") {
@@ -148,7 +158,8 @@ export default function HistoricalTrendsPanel({ rackId }) {
                 const points = await fetchHistorical({
                     rackId: normalizedRackId,
                     nodeId: selectedCompositeId,
-                    metric: selectedMetricKeyValue,
+                    metricKey: selectedMetricHistoryKey,
+                    sensorType: selectedMetricSensorType,
                     from: range.from,
                     to: range.to,
                     signal: controller.signal,
@@ -182,7 +193,9 @@ export default function HistoricalTrendsPanel({ rackId }) {
         rangePreset,
         refreshIndex,
         selectedCompositeId,
+        selectedMetricHistoryKey,
         selectedMetricKeyValue,
+        selectedMetricSensorType,
     ]);
 
     const selectedMetricLabel = selectedMetric?.label ?? "";
