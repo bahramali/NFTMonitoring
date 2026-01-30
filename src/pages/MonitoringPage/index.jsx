@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { authFetch, parseApiResponse } from "../../api/http.js";
 import { getApiBaseUrl } from "../../config/apiBase.js";
 import Header from "../common/Header";
+import RackDashboardView from "../RackDashboard/RackDashboardView.jsx";
 import styles from "./MonitoringPage.module.css";
 
 const API_BASE = getApiBaseUrl();
@@ -211,6 +212,8 @@ export default function MonitoringPage() {
                     </ul>
                 )}
             </section>
+
+            {rackId && <RackDashboardView rackId={rackId} />}
         </div>
     );
 }
