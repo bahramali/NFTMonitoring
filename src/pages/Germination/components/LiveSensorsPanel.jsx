@@ -56,10 +56,28 @@ export default function LiveSensorsPanel({ metricReports }) {
                                                 : value.healthy === false
                                                 ? styles.unhealthy
                                                 : styles.unknown;
+                                        const statusTone =
+                                            value.status === "ERROR"
+                                                ? styles.statusError
+                                                : value.status === "STALE"
+                                                ? styles.statusStale
+                                                : styles.statusOk;
                                         return (
-                                            <li key={value.deviceId} className={styles.reportValueItem}>
+                                            <li
+                                                key={value.id}
+                                                className={styles.reportValueItem}
+                                                title={value.debugId || undefined}
+                                            >
                                                 <span className={`${styles.reportDot} ${toneClass}`} />
-                                                <span className={styles.reportDevice}>{value.deviceId}</span>
+                                                <div className={styles.reportDeviceMeta}>
+                                                    <span className={styles.reportDevice}>{value.title}</span>
+                                                    {value.subtitle ? (
+                                                        <span className={styles.reportDeviceSub}>{value.subtitle}</span>
+                                                    ) : null}
+                                                </div>
+                                                <span className={`${styles.statusBadge} ${statusTone}`}>
+                                                    {value.status}
+                                                </span>
                                                 <span className={styles.reportValue}>{value.displayValue}</span>
                                             </li>
                                         );

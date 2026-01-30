@@ -1,8 +1,10 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLiveDevices } from "../../common/useLiveDevices";
 import { buildAggregatedTopics, resolveTelemetryTopics } from "../../common/liveTelemetry.js";
 import { getStageRangeForMetric } from "../germinationStages.js";
 import { TELEMETRY_ENDPOINTS } from "../../../config/telemetryEndpoints.js";
+import { DEFAULT_STALE_THRESHOLD_MS } from "../../../config/telemetryStatus.js";
+import { formatNodeOptionLabel, formatNodeSubtitle, formatNodeTitle, getDeviceDebugId } from "../../common/telemetryLabels.js";
 
 const defaultFilter = () => true;
 
@@ -10,8 +12,17 @@ export function useLiveTelemetry({
     stageDetails = null,
     topics = TELEMETRY_ENDPOINTS.ws.topics,
     filterDevice = defaultFilter,
+    staleThresholdMs = DEFAULT_STALE_THRESHOLD_MS,
 } = {}) {
     const { deviceData, mergedDevices } = useLiveDevices(topics);
+    const [now, setNow] = useState(() => Date.now());
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setNow(Date.now());
+        }, 15000);
+        return () => clearInterval(interval);
+    }, []);
 
     const aggregatedTopics = useMemo(() => buildAggregatedTopics(deviceData), [deviceData]);
 
@@ -38,12 +49,7 @@ export function useLiveTelemetry({
         () =>
             Object.entries(filteredDevices).map(([id, device]) => ({
                 id,
-                label:
-                    device?.displayName ||
-                    device?.deviceName ||
-                    device?.compositeId ||
-                    device?.name ||
-                    id,
+                label: formatNodeOptionLabel(device),
                 sensors: device?.sensors || [],
             })),
         [filteredDevices],
@@ -64,7 +70,12 @@ export function useLiveTelemetry({
         }
 
         compositeIds.forEach((compositeId) => {
-            const { sensors = [], health = {}, compositeId: label } = devices[compositeId] || {};
+            const device = devices[compositeId] || {};
+            const { sensors = [], health = {} } = device;
+            const title = formatNodeTitle(device);
+            const subtitle = formatNodeSubtitle(device);
+            const debugId = getDeviceDebugId(device);
+            const timestamp = device?.timestamp || device?.receivedAt || 0;
             sensors.forEach((sensor) => {
                 const measurementType = sensor?.sensorType || sensor?.valueType;
                 const sensorModel = sensor?.sensorName || sensor?.source || "-";
@@ -85,9 +96,13 @@ export function useLiveTelemetry({
                 const okKey = sensor?.sensorName?.toLowerCase();
                 const rawHealth = okKey ? health[okKey] ?? health[sensor?.sensorName] : undefined;
                 entries.get(key).values.push({
-                    deviceId: label || compositeId,
+                    id: compositeId,
+                    title,
+                    subtitle,
+                    debugId,
                     rawValue: sensor?.value,
                     unit: sensor?.unit || "",
+                    timestamp,
                     healthy:
                         rawHealth === undefined || rawHealth === null
                             ? null
@@ -105,8 +120,18 @@ export function useLiveTelemetry({
             const formattedValues = entry.values.map((value) => {
                 const numericValue = typeof value.rawValue === "number" ? value.rawValue : Number(value.rawValue);
                 const hasNumeric = !Number.isNaN(numericValue);
+                const ageMs = value.timestamp ? now - value.timestamp : Number.POSITIVE_INFINITY;
+                const status =
+                    value.healthy === false
+                        ? "ERROR"
+                        : ageMs > staleThresholdMs
+                        ? "STALE"
+                        : "OK";
                 return {
-                    deviceId: value.deviceId,
+                    id: value.id,
+                    title: value.title,
+                    subtitle: value.subtitle,
+                    debugId: value.debugId,
                     displayValue:
                         value.rawValue === undefined || value.rawValue === null
                             ? "-"
@@ -117,6 +142,7 @@ export function useLiveTelemetry({
                               }${value.unit ? ` ${value.unit}` : ""}`,
                     numericValue: hasNumeric ? numericValue : null,
                     healthy: value.healthy,
+                    status,
                 };
             });
 
@@ -194,7 +220,7 @@ export function useLiveTelemetry({
                 values: formattedValues,
             };
         });
-    }, [filteredDevices, hasTopics, stageDetails]);
+    }, [filteredDevices, hasTopics, now, stageDetails, staleThresholdMs]);
 
     return {
         devices: filteredDevices,

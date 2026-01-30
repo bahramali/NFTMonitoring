@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStomp } from "./useStomp.js";
 import { normalizeTelemetryPayload, parseEnvelope } from "../utils/telemetryAdapter.js";
 import { canonKey, normalizeSensors } from "../pages/Overview/utils/index.js";
 import { deviceMatchesRack, normalizeRackId } from "../pages/RackDashboard/rackTelemetry.js";
 
 const DEFAULT_TELEMETRY_TOPIC = "hydroleaf/telemetry";
+const BATCH_INTERVAL_MS = 300;
 
 const normalizeList = (items, { keyResolvers = [], normalizer = (value) => value } = {}) => {
     if (!items) return [];
@@ -118,6 +119,8 @@ const buildTelemetryTopics = ({ rackId, nodeIds, metricKeys }) => {
 
 export function useLiveTelemetry({ rackId, selectedNodes, metrics } = {}) {
     const [telemetryByNode, setTelemetryByNode] = useState({});
+    const pendingUpdatesRef = useRef(new Map());
+    const flushTimeoutRef = useRef(null);
 
     const normalizedRackId = useMemo(() => normalizeRackId(rackId), [rackId]);
 
@@ -159,6 +162,38 @@ export function useLiveTelemetry({ rackId, selectedNodes, metrics } = {}) {
         [metricKeys, nodeIds, normalizedRackId],
     );
 
+    const flushUpdates = useCallback(() => {
+        if (flushTimeoutRef.current) return;
+        flushTimeoutRef.current = setTimeout(() => {
+            const pending = pendingUpdatesRef.current;
+            pendingUpdatesRef.current = new Map();
+            flushTimeoutRef.current = null;
+            if (pending.size === 0) return;
+
+            setTelemetryByNode((prev) => {
+                let next = prev;
+                pending.forEach((update, nodeId) => {
+                    const existing = prev[nodeId] || {};
+                    const nextMetrics = {
+                        ...(existing.metrics || {}),
+                        ...(update.metrics || {}),
+                    };
+                    const nextEntry = {
+                        ...existing,
+                        ...update,
+                        metrics: nextMetrics,
+                        lastUpdate: Math.max(existing.lastUpdate || 0, update.lastUpdate || 0),
+                    };
+                    if (next === prev) {
+                        next = {...prev};
+                    }
+                    next[nodeId] = nextEntry;
+                });
+                return next;
+            });
+        }, BATCH_INTERVAL_MS);
+    }, []);
+
     const handleMessage = useCallback(
         (_topic, message) => {
             const envelope = parseEnvelope(message);
@@ -181,21 +216,17 @@ export function useLiveTelemetry({ rackId, selectedNodes, metrics } = {}) {
 
             const timestamp = resolveTimestamp(payload);
 
-            setTelemetryByNode((prev) => {
-                const existing = prev[normalizedNodeId] || {};
-                return {
-                    ...prev,
-                    [normalizedNodeId]: {
-                        ...existing,
-                        metrics: { ...(existing.metrics || {}), ...filtered },
-                        lastUpdate: Math.max(existing.lastUpdate || 0, timestamp),
-                        nodeId: normalizedNodeId,
-                        rackId: normalizedRackId || existing.rackId,
-                    },
-                };
+            const pendingEntry = pendingUpdatesRef.current.get(normalizedNodeId) || {};
+            pendingUpdatesRef.current.set(normalizedNodeId, {
+                ...pendingEntry,
+                metrics: { ...(pendingEntry.metrics || {}), ...filtered },
+                lastUpdate: Math.max(pendingEntry.lastUpdate || 0, timestamp),
+                nodeId: normalizedNodeId,
+                rackId: normalizedRackId || pendingEntry.rackId,
             });
+            flushUpdates();
         },
-        [metricSet, nodeSet, normalizedRackId],
+        [flushUpdates, metricSet, nodeSet, normalizedRackId],
     );
 
     useStomp(topics, handleMessage);
@@ -203,6 +234,14 @@ export function useLiveTelemetry({ rackId, selectedNodes, metrics } = {}) {
     useEffect(() => {
         setTelemetryByNode({});
     }, [normalizedRackId, nodeIds, metricKeys]);
+
+    useEffect(() => {
+        return () => {
+            if (flushTimeoutRef.current) {
+                clearTimeout(flushTimeoutRef.current);
+            }
+        };
+    }, []);
 
     return { telemetryByNode, topics };
 }
