@@ -10,7 +10,6 @@ import React, {
 import { useLocation } from "react-router-dom";
 import { fetchDeviceCatalog } from "../utils/catalog";
 import { pickBucket, toISOSeconds, toLocalInputValue } from "../utils/datetime";
-import { useLiveDevices } from "../../common/useLiveDevices";
 import { fetchTopicSensors } from "../../../api/topics.js";
 import { ensureString } from "../utils/strings";
 
@@ -26,6 +25,20 @@ const formatTopicLabel = (id) =>
         .replace(/^./, (ch) => ch.toUpperCase());
 
 const toCID = (d) => `${d.systemId}-${d.layerId}-${d.deviceId}`;
+
+const normalizeSensorKey = (value) =>
+    ensureString(value).toLowerCase().replace(/[\s._-]/g, "");
+
+const resolveLayerId = (device) =>
+    ensureString(device?.layerId, device?.layer?.id, device?.layer);
+
+const shouldIncludeDeviceForTopic = (topic, device) => {
+    if (!topic || !device) return false;
+    if (topic === "growSensors") {
+        return !!resolveLayerId(device);
+    }
+    return true;
+};
 
 const dedupeTopics = (defaults, apiTopics) => {
     const seen = new Set();
@@ -66,10 +79,56 @@ const toggleValue = (values, value) => {
     return [...values, value];
 };
 
-const buildTopicSensorMap = (topics, apiTopicSensors, deviceData) => {
+const buildTopicSensorMap = (topics, apiTopicSensors, deviceRows) => {
     const sensorsByTopic = new Map();
     topics.forEach((topic) => {
         sensorsByTopic.set(topic, new Map());
+    });
+
+    const registerSensor = (topicMap, topic, rawLabel) => {
+        const label = ensureString(rawLabel);
+        const normalized = normalizeSensorKey(label);
+        if (!label || !normalized) return { added: false, normalized: false };
+        if (!topicMap.has(normalized)) {
+            topicMap.set(normalized, {
+                id: label,
+                label,
+                topic,
+            });
+            return { added: true, normalized: true };
+        }
+        return { added: false, normalized: true };
+    };
+
+    (deviceRows || []).forEach((device) => {
+        const sensors = Array.isArray(device?.sensors) ? device.sensors : [];
+        if (!sensors.length) return;
+        topics.forEach((topic) => {
+            if (!shouldIncludeDeviceForTopic(topic, device)) return;
+            if (!sensorsByTopic.has(topic)) {
+                sensorsByTopic.set(topic, new Map());
+            }
+            const topicMap = sensorsByTopic.get(topic);
+            let hasNormalized = false;
+            sensors.forEach((sensor) => {
+                const rawLabel =
+                    ensureString(sensor?.sensorType) ||
+                    ensureString(sensor?.valueType) ||
+                    ensureString(sensor?.sensorName) ||
+                    ensureString(sensor?.name) ||
+                    ensureString(sensor);
+                const { normalized } = registerSensor(topicMap, topic, rawLabel);
+                if (normalized) {
+                    hasNormalized = true;
+                }
+            });
+            if (!hasNormalized) {
+                console.warn("Reports: sensors empty after normalization", {
+                    deviceId: ensureString(device?.deviceId, device?.compositeId),
+                    sensors,
+                });
+            }
+        });
     });
 
     Object.entries(apiTopicSensors || {}).forEach(([topic, sensors]) => {
@@ -79,42 +138,7 @@ const buildTopicSensorMap = (topics, apiTopicSensors, deviceData) => {
         const topicMap = sensorsByTopic.get(topic);
         (sensors || []).forEach((sensor) => {
             const rawLabel = ensureString(sensor?.label, sensor?.id, sensor);
-            if (!rawLabel) return;
-            const id = ensureString(sensor?.id, rawLabel.toLowerCase());
-            if (!topicMap.has(id)) {
-                topicMap.set(id, {
-                    id,
-                    label: rawLabel,
-                    topic,
-                });
-            }
-        });
-    });
-
-    Object.values(deviceData || {}).forEach((systemEntry) => {
-        Object.entries(systemEntry || {}).forEach(([topic, devices]) => {
-            if (!sensorsByTopic.has(topic)) {
-                sensorsByTopic.set(topic, new Map());
-            }
-            const topicMap = sensorsByTopic.get(topic);
-            Object.values(devices || {}).forEach((device) => {
-                (device?.sensors || []).forEach((sensor) => {
-                    const rawLabel =
-                        ensureString(sensor?.sensorType) ||
-                        ensureString(sensor?.valueType) ||
-                        ensureString(sensor?.sensorName) ||
-                        ensureString(sensor?.name);
-                    if (!rawLabel) return;
-                    const id = rawLabel.toLowerCase();
-                    if (!topicMap.has(id)) {
-                        topicMap.set(id, {
-                            id,
-                            label: rawLabel,
-                            topic,
-                        });
-                    }
-                });
-            });
+            registerSensor(topicMap, topic, rawLabel);
         });
     });
 
@@ -125,28 +149,27 @@ const buildTopicSensorMap = (topics, apiTopicSensors, deviceData) => {
     return result;
 };
 
-const buildTopicDeviceMap = (topics, deviceData) => {
+const buildTopicDeviceMap = (topics, deviceRows) => {
     const devicesByTopic = new Map();
     topics.forEach((topic) => {
         devicesByTopic.set(topic, new Map());
     });
 
-    Object.values(deviceData || {}).forEach((systemEntry) => {
-        Object.entries(systemEntry || {}).forEach(([topic, devices]) => {
+    (deviceRows || []).forEach((device) => {
+        topics.forEach((topic) => {
+            if (!shouldIncludeDeviceForTopic(topic, device)) return;
             if (!devicesByTopic.has(topic)) {
                 devicesByTopic.set(topic, new Map());
             }
             const topicMap = devicesByTopic.get(topic);
-            Object.values(devices || {}).forEach((device) => {
-                const compositeId = ensureString(device?.compositeId);
-                if (!compositeId || topicMap.has(compositeId)) return;
-                topicMap.set(compositeId, {
-                    id: compositeId,
-                    compositeId,
-                    deviceId: ensureString(device?.deviceId, compositeId),
-                    label: ensureString(device?.deviceId || device?.compositeId, compositeId),
-                    layerId: ensureString(device?.layer),
-                });
+            const compositeId = ensureString(device?.compositeId, toCID(device));
+            if (!compositeId || topicMap.has(compositeId)) return;
+            topicMap.set(compositeId, {
+                id: compositeId,
+                compositeId,
+                deviceId: ensureString(device?.deviceId, compositeId),
+                label: ensureString(device?.deviceId || device?.compositeId, compositeId),
+                layerId: resolveLayerId(device),
             });
         });
     });
@@ -169,8 +192,6 @@ export function ReportsFiltersProvider({ children }) {
 
     const [deviceMeta, setDeviceMeta] = useState({ devices: [] });
     const [topicIds, setTopicIds] = useState(() => DEFAULT_REPORT_TOPICS.slice());
-    const { deviceData } = useLiveDevices(topicIds);
-
     const [fromDate, setFromDate] = useState(() => {
         const d = new Date();
         d.setHours(d.getHours() - 6);
@@ -249,14 +270,13 @@ export function ReportsFiltersProvider({ children }) {
                         sensorList.forEach((sensor) => {
                             const label = ensureString(sensor);
                             if (!label) return;
-                            const id = label.toLowerCase();
-                            if (!deduped.has(id)) {
-                                deduped.set(id, {
-                                    id,
-                                    label,
-                                    topic: topicId,
-                                });
-                            }
+                            const normalized = normalizeSensorKey(label);
+                            if (!normalized || deduped.has(normalized)) return;
+                            deduped.set(normalized, {
+                                id: label,
+                                label,
+                                topic: topicId,
+                            });
                         });
                         nextSensors[topicId] = Array.from(deduped.values());
                     });
@@ -385,14 +405,14 @@ export function ReportsFiltersProvider({ children }) {
         [deviceRows, locationFilters],
     );
 
-    const availableTopicSensors = useMemo(
-        () => buildTopicSensorMap(topicIds, apiTopicSensors, deviceData),
-        [topicIds, apiTopicSensors, deviceData],
+    const availableTopicDevices = useMemo(
+        () => buildTopicDeviceMap(topicIds, deviceRows),
+        [topicIds, deviceRows],
     );
 
-    const availableTopicDevices = useMemo(
-        () => buildTopicDeviceMap(topicIds, deviceData),
-        [topicIds, deviceData],
+    const availableTopicSensors = useMemo(
+        () => buildTopicSensorMap(topicIds, apiTopicSensors, deviceRows),
+        [topicIds, apiTopicSensors, deviceRows],
     );
 
     const knownCompositeIds = useMemo(() => {
@@ -405,6 +425,9 @@ export function ReportsFiltersProvider({ children }) {
         return set;
     }, [availableTopicDevices]);
 
+    const selectedTopicIds = useMemo(() => [...selectedTopics], [selectedTopics]);
+    const selectedTopicsSet = useMemo(() => new Set(selectedTopicIds), [selectedTopicIds]);
+
     useEffect(() => {
         setSelectedCompositeIds((prev) => {
             if (!prev.length) return prev;
@@ -414,18 +437,39 @@ export function ReportsFiltersProvider({ children }) {
     }, [knownCompositeIds]);
 
     useEffect(() => {
+        if (!selectedTopicIds.length) return;
+        const topic = selectedTopicIds[0];
+        const rawCount = deviceRows.length;
+        const filteredCount = availableTopicDevices?.[topic]?.length || 0;
+        if (rawCount > 0 && filteredCount === 0) {
+            console.warn("Reports: devices filtered out", {
+                topic,
+                rawCount,
+                filteredCount,
+                sample: deviceRows[0],
+            });
+        }
+    }, [selectedTopicIds, deviceRows, availableTopicDevices]);
+
+    useEffect(() => {
         if (isReportsRoute) return;
         setSelectedCompositeIds([]);
     }, [isReportsRoute]);
 
     const selectedCIDs = useMemo(() => {
         if (selectedCompositeIds.length) return selectedCompositeIds;
+        if (selectedTopicIds.length === 1) {
+            const topicDevices = availableTopicDevices?.[selectedTopicIds[0]] || [];
+            if (topicDevices.length) {
+                return Array.from(new Set(topicDevices.map((device) => device?.compositeId).filter(Boolean)));
+            }
+        }
         const uniques = new Set();
         filteredDeviceRows.forEach((row) => {
             uniques.add(toCID(row));
         });
         return Array.from(uniques);
-    }, [selectedCompositeIds, filteredDeviceRows]);
+    }, [selectedCompositeIds, selectedTopicIds, availableTopicDevices, filteredDeviceRows]);
 
     const handleCompositeSelectionChange = useCallback((compositeIds = []) => {
         if (!Array.isArray(compositeIds) || compositeIds.length === 0) {
@@ -549,9 +593,6 @@ export function ReportsFiltersProvider({ children }) {
             })),
         [topicIds],
     );
-
-    const selectedTopicIds = useMemo(() => [...selectedTopics], [selectedTopics]);
-    const selectedTopicsSet = useMemo(() => new Set(selectedTopicIds), [selectedTopicIds]);
 
     const selectedTopicSensors = useMemo(() => {
         const map = {};
