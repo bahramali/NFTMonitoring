@@ -12,6 +12,7 @@ import palette from "../colorPalette";
  * - title?: string
  * - height?: number
  * - xDomain?: [number, number]
+ * - showLegend?: boolean
  */
 const HistoryChart = ({
                           xDataKey,
@@ -20,6 +21,7 @@ const HistoryChart = ({
                           title,
                           height = 300,
                           xDomain,
+                          showLegend = true,
                       }) => {
     const mergedData = useMemo(() => {
         if (!series.length) return [];
@@ -106,12 +108,14 @@ const HistoryChart = ({
                     itemStyle={{ color: "#e4ecff" }}
                     labelFormatter={(value) => formatTimestamp(value)}
                 />
-                <Legend
-                    wrapperStyle={{
-                        paddingTop: 12,
-                        color: "#d0dcff",
-                    }}
-                />
+                {showLegend && (
+                    <Legend
+                        wrapperStyle={{
+                            paddingTop: 12,
+                            color: "#d0dcff",
+                        }}
+                    />
+                )}
                 {series.map((s, i) => (
                     <Line
                         key={s.name}
