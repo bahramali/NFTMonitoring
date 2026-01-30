@@ -425,6 +425,9 @@ export function ReportsFiltersProvider({ children }) {
         return set;
     }, [availableTopicDevices]);
 
+    const selectedTopicIds = useMemo(() => [...selectedTopics], [selectedTopics]);
+    const selectedTopicsSet = useMemo(() => new Set(selectedTopicIds), [selectedTopicIds]);
+
     useEffect(() => {
         setSelectedCompositeIds((prev) => {
             if (!prev.length) return prev;
@@ -590,9 +593,6 @@ export function ReportsFiltersProvider({ children }) {
             })),
         [topicIds],
     );
-
-    const selectedTopicIds = useMemo(() => [...selectedTopics], [selectedTopics]);
-    const selectedTopicsSet = useMemo(() => new Set(selectedTopicIds), [selectedTopicIds]);
 
     const selectedTopicSensors = useMemo(() => {
         const map = {};
