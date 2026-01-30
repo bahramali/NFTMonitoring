@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { NavLink } from "react-router-dom";
+import { getMonitoringPages } from "../../../api/monitoringPages.js";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import { PERMISSIONS, hasPerm, hasStoreAdminAccess } from "../../../utils/permissions.js";
 import styles from "./Sidebar.module.css";
@@ -111,11 +112,7 @@ export default function Sidebar() {
         const loadRackPages = async () => {
             setRackPagesState({ status: "loading", pages: [] });
             try {
-                const response = await fetch("/api/monitoring-pages", { signal: controller.signal });
-                if (!response.ok) {
-                    throw new Error(`Failed to load rack pages: ${response.status}`);
-                }
-                const payload = await response.json();
+                const payload = await getMonitoringPages({ signal: controller.signal });
                 const pages = Array.isArray(payload)
                     ? payload
                     : Array.isArray(payload?.pages)
