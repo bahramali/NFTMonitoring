@@ -326,6 +326,10 @@ export default function As7343TrendsPanel({ rackId }) {
         ? "No spectrum data available for the selected range."
         : "Select an AS7343 sensor node to view spectrum history.";
 
+    if (!hasDevices) {
+        return null;
+    }
+
     return (
         <section className={`${styles.sectionCard} ${styles.chartSection}`}>
             <div className={styles.sectionHeader}>
@@ -336,56 +340,50 @@ export default function As7343TrendsPanel({ rackId }) {
                     </span>
                 )}
             </div>
-            {hasDevices ? (
-                <div className={styles.chartControls}>
-                    <div className={styles.chartSelectors}>
-                        <label className={styles.chartLabel}>
-                            Sensor node
-                            <select
-                                className={styles.chartSelect}
-                                value={selectedCompositeId}
-                                onChange={(event) => setSelectedCompositeId(event.target.value)}
-                            >
-                                {as7343DeviceOptions.map((option) => (
-                                    <option key={option.id} value={option.id}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
-                    </div>
-                    <div className={styles.rangeControls}>
-                        <span className={styles.rangeLabel}>Range</span>
-                        <div className={styles.rangeButtons}>
-                            {RANGE_OPTIONS.map((option) => (
-                                <button
-                                    key={option.key}
-                                    type="button"
-                                    className={`${styles.rangeButton} ${
-                                        rangePreset === option.key ? styles.rangeButtonActive : ""
-                                    }`}
-                                    onClick={() => setRangePreset(option.key)}
-                                >
+            <div className={styles.chartControls}>
+                <div className={styles.chartSelectors}>
+                    <label className={styles.chartLabel}>
+                        Sensor node
+                        <select
+                            className={styles.chartSelect}
+                            value={selectedCompositeId}
+                            onChange={(event) => setSelectedCompositeId(event.target.value)}
+                        >
+                            {as7343DeviceOptions.map((option) => (
+                                <option key={option.id} value={option.id}>
                                     {option.label}
-                                </button>
+                                </option>
                             ))}
-                        </div>
-                    </div>
-                    <button type="button" className={styles.refreshButton} onClick={handleRefresh}>
-                        Refresh
-                    </button>
+                        </select>
+                    </label>
                 </div>
-            ) : (
-                <div className={styles.emptyState}>No AS7343 sensors available for this rack yet.</div>
-            )}
+                <div className={styles.rangeControls}>
+                    <span className={styles.rangeLabel}>Range</span>
+                    <div className={styles.rangeButtons}>
+                        {RANGE_OPTIONS.map((option) => (
+                            <button
+                                key={option.key}
+                                type="button"
+                                className={`${styles.rangeButton} ${
+                                    rangePreset === option.key ? styles.rangeButtonActive : ""
+                                }`}
+                                onClick={() => setRangePreset(option.key)}
+                            >
+                                {option.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <button type="button" className={styles.refreshButton} onClick={handleRefresh}>
+                    Refresh
+                </button>
+            </div>
 
             {chartError && <div className={styles.errorMessage}>{chartError}</div>}
 
             <div className={styles.spectrumCharts}>
                 <div className={styles.chartArea}>
-                    {!hasDevices ? (
-                        <div className={styles.chartMessage}>No AS7343 sensors available for this rack yet.</div>
-                    ) : chartLoading ? (
+                    {chartLoading ? (
                         <div className={styles.chartMessage}>Loading spectrum balance…</div>
                     ) : balanceData.length ? (
                         <ResponsiveContainer width="100%" height={320} debounce={200}>
