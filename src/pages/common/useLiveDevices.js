@@ -270,8 +270,14 @@ export function useLiveDevices(topics) {
         let loc =
             envelope?.layer?.layer ||
             envelope?.layer ||
+            envelope?.layerId ||
+            envelope?.layer_id ||
             payload.layer?.layer ||
             payload.layer ||
+            payload.layerId ||
+            payload.layer_id ||
+            payload.meta?.layerId ||
+            payload.meta?.layer_id ||
             payload.meta?.layer ||
             "";
         const nodeType =
