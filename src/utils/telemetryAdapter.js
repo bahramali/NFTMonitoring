@@ -97,7 +97,7 @@ export function buildSensorsFromTelemetry(payload = {}) {
         const numeric = coerceNumber(bandValue);
         if (numeric === null) continue;
         sensors.push({
-          sensorType: `as7343_counts_${bandKey}`,
+          sensorType: bandKey,
           value: numeric,
           unit: "counts",
           sensorName: "as7343",
@@ -172,6 +172,20 @@ export function adaptFlatTelemetryToSensors(flatPayload) {
     if (FLAT_TELEMETRY_IGNORED_KEYS.has(key)) {
       if (key !== "meta") {
         meta[key] = value;
+      }
+      continue;
+    }
+
+    if (key === "as7343_counts" && value && typeof value === "object" && !Array.isArray(value)) {
+      for (const [bandKey, bandValue] of Object.entries(value)) {
+        const numeric = coerceNumber(bandValue);
+        if (numeric === null) continue;
+        sensors.push({
+          sensorType: bandKey,
+          value: numeric,
+          unit: "counts",
+          sensorName: "as7343",
+        });
       }
       continue;
     }
