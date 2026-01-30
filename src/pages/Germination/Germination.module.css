@@ -384,6 +384,25 @@
     text-transform: uppercase;
 }
 
+.headerToggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.85rem;
+    color: #d5e2ff;
+}
+
+.headerToggleLabel {
+    font-weight: 600;
+}
+
+.headerToggleInput {
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: #9fb4ff;
+    cursor: pointer;
+}
+
 .cameraWrapper {
     width: 100%;
     min-height: 18rem;

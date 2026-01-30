@@ -2,11 +2,12 @@ import React from "react";
 import styles from "../Germination.module.css";
 import { formatRangeValue } from "../germinationUtils.js";
 
-export default function LiveSensorsPanel({ metricReports }) {
+export default function LiveSensorsPanel({ metricReports, headerActions = null }) {
     return (
         <section className={`${styles.sectionCard} ${styles.metricsSection}`}>
             <div className={styles.sectionHeader}>
                 <h2 className={styles.sectionTitle}>Live sensors data</h2>
+                {headerActions}
             </div>
             {metricReports.length > 0 ? (
                 <div className={styles.reportGrid}>
