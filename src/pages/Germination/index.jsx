@@ -205,12 +205,17 @@ export default function Germination() {
             if (!measurementType) return;
             const key = measurementType.toLowerCase();
             if (entries.has(key)) return;
+            const sensorName = sensor?.sensorName || sensor?.source;
+            const label =
+                sensorName && sensorName.toLowerCase() === "as7343"
+                    ? `AS7343 ${measurementType}`
+                    : measurementType;
 
             entries.set(key, {
                 key,
                 sensorType: measurementType,
                 unit: sensor?.unit || "",
-                label: measurementType,
+                label,
             });
         });
 
