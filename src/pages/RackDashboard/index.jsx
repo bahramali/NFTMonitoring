@@ -10,12 +10,13 @@ export default function RackDashboardPage() {
     const { rackId } = useParams();
     const normalizedRackId = String(rackId ?? "").trim();
     const title = normalizedRackId ? `Rack ${normalizedRackId}` : "Rack Dashboard";
+    const isGerminationRack = normalizedRackId.toLowerCase().includes("germination");
 
     return (
         <div className={styles.page}>
             <Header title={title} />
             <LiveSensorsPanel rackId={normalizedRackId} />
-            <As7343TrendsPanel rackId={normalizedRackId} />
+            {!isGerminationRack && <As7343TrendsPanel rackId={normalizedRackId} />}
             <HistoricalTrendsPanel rackId={normalizedRackId} />
         </div>
     );
