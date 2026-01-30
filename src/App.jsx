@@ -11,6 +11,7 @@ import AdminManagement from './pages/AdminManagement.jsx';
 import AdminOverview from './pages/AdminOverview.jsx';
 import AdminTeam from './pages/AdminTeam.jsx';
 import AdminHome from './pages/AdminHome.jsx';
+import AdminRackPages from './pages/AdminRackPages.jsx';
 import WorkerDashboard from './pages/WorkerDashboard.jsx';
 import CustomerLayout from './pages/customer/CustomerLayout.jsx';
 import CustomerDashboard from './pages/customer/CustomerDashboard.jsx';
@@ -274,6 +275,14 @@ function AppRoutes() {
                             element={(
                                 <ProtectedRoute requiredRoles={["SUPER_ADMIN"]}>
                                     <AdminManagement />
+                                </ProtectedRoute>
+                            )}
+                        />
+                        <Route
+                            path="rack-pages"
+                            element={(
+                                <ProtectedRoute requiredPermissions={[PERMISSIONS.ADMIN_OVERVIEW_VIEW]}>
+                                    <AdminRackPages />
                                 </ProtectedRoute>
                             )}
                         />
