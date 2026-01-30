@@ -1,4 +1,4 @@
-const COMPOSITE_REGEX = /^(S\d+)-(L\d+)-([CTR]\d+)$/i;
+const COMPOSITE_REGEX = /^(S\d+)(?:-(R\d+))?-(L\d+)-([CTR]\d+)$/i;
 
 const normalizeCompositeId = (value) => String(value ?? "").trim().toUpperCase();
 
@@ -57,9 +57,25 @@ const getLocationFromMessage = (message) => {
 
     const payload = resolvePayload(message);
     return {
-        site: payload?.site ?? message?.site ?? null,
-        rack: payload?.rack ?? message?.rack ?? null,
-        layer: payload?.layer ?? message?.layer ?? null,
+        site:
+            payload?.site ??
+            payload?.siteId ??
+            payload?.system ??
+            payload?.systemId ??
+            message?.site ??
+            message?.siteId ??
+            message?.system ??
+            message?.systemId ??
+            null,
+        rack: payload?.rack ?? payload?.rackId ?? message?.rack ?? message?.rackId ?? null,
+        layer:
+            payload?.layer ??
+            payload?.layerId ??
+            payload?.nodeId ??
+            message?.layer ??
+            message?.layerId ??
+            message?.nodeId ??
+            null,
     };
 };
 
@@ -78,9 +94,12 @@ const parseCompositeId = (value) => {
     const match = COMPOSITE_REGEX.exec(normalized);
     if (!match) return null;
 
-    const [, rackId, layerId, deviceCode] = match;
+    const [, siteId, rackSegment, layerId, deviceCode] = match;
     const deviceKind = deviceCode?.charAt(0)?.toUpperCase() ?? "";
+    const rackId = rackSegment ? `${siteId}-${rackSegment}` : siteId;
     return {
+        siteId,
+        rackSegment,
         rackId,
         layerId,
         deviceCode,
@@ -103,7 +122,14 @@ const getInventoryAttributes = (entry) => {
     const site = normalizeLocationValue(explicitLocation.site);
     const rack = normalizeLocationValue(explicitLocation.rack);
     let layer = normalizeLocationValue(explicitLocation.layer);
-    let rackId = site && rack ? `${site}-${rack}` : null;
+    let rackId = null;
+    if (site && rack) {
+        const normalizedSite = normalizeLocationValue(site);
+        const normalizedRack = normalizeLocationValue(rack);
+        rackId = normalizedRack.startsWith(`${normalizedSite}-`)
+            ? normalizedRack
+            : `${normalizedSite}-${normalizedRack}`;
+    }
     const compositeId =
         entry.compositeId ??
         entry.composite_id ??
