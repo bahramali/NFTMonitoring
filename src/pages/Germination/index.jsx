@@ -206,16 +206,19 @@ export default function Germination() {
             const key = measurementType.toLowerCase();
             if (entries.has(key)) return;
             const sensorName = sensor?.sensorName || sensor?.source;
+            const isAs7343 = sensorName && sensorName.toLowerCase() === "as7343";
+            const historyKey = isAs7343 ? `as7343_counts_${measurementType}` : measurementType;
             const label =
-                sensorName && sensorName.toLowerCase() === "as7343"
+                isAs7343
                     ? `AS7343 ${measurementType}`
                     : measurementType;
 
             entries.set(key, {
                 key,
-                sensorType: measurementType,
+                sensorType: historyKey,
                 unit: sensor?.unit || "",
                 label,
+                historyKey,
             });
         });
 
@@ -241,11 +244,13 @@ export default function Germination() {
             sensorType: metric.sensorType,
             unit: metric.unit,
             label: metric.label,
+            historyKey: metric.historyKey,
         };
     }, [availableMetrics, selectedMetricKey]);
 
     const selectedMetricKeyValue = selectedMetric?.key ?? "";
     const selectedMetricSensorType = selectedMetric?.sensorType ?? "";
+    const selectedMetricHistoryKey = selectedMetric?.historyKey ?? selectedMetricKeyValue;
 
     const handleStartChange = (event) => {
         setSaveMessage("");
@@ -359,7 +364,7 @@ export default function Germination() {
                     from: range.from,
                     to: range.to,
                     sensorType: selectedMetricSensorType,
-                    metricKey: selectedMetricKeyValue,
+                    metricKey: selectedMetricHistoryKey,
                     signal: controller.signal,
                 });
                 if (cancelled) return;
@@ -391,6 +396,7 @@ export default function Germination() {
         refreshIndex,
         selectedCompositeId,
         selectedMetricKeyValue,
+        selectedMetricHistoryKey,
         selectedMetricSensorType,
     ]);
 

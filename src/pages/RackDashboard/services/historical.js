@@ -34,11 +34,20 @@ function toPointsFromEntries(entries, metricKey) {
         .filter(Boolean);
 }
 
-export async function fetchHistorical({ rackId, nodeId, metric, from, to, signal }) {
+export async function fetchHistorical({
+    rackId,
+    nodeId,
+    metricKey,
+    sensorType,
+    from,
+    to,
+    signal,
+}) {
     const compositeId = nodeId || rackId;
+    const resolvedSensorType = sensorType || metricKey;
     const params = new URLSearchParams({
         compositeId,
-        sensorType: metric,
+        sensorType: resolvedSensorType,
         from: from.toISOString(),
         to: to.toISOString(),
     });
@@ -65,5 +74,5 @@ export async function fetchHistorical({ rackId, nodeId, metric, from, to, signal
     }
 
     const entries = transformAggregatedData(json);
-    return toPointsFromEntries(entries, metric);
+    return toPointsFromEntries(entries, metricKey || resolvedSensorType);
 }
