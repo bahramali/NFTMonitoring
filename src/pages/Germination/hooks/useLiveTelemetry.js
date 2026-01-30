@@ -88,6 +88,7 @@ export function useLiveTelemetry({
                 if (!entries.has(key)) {
                     entries.set(key, {
                         measurementType,
+                        sensorType: sensor?.sensorType ?? measurementType,
                         sensorModel,
                         values: [],
                     });
@@ -208,6 +209,7 @@ export function useLiveTelemetry({
 
             return {
                 measurementType: entry.measurementType,
+                sensorType: entry.sensorType,
                 sensorModel: entry.sensorModel,
                 label: entry.measurementType,
                 range,

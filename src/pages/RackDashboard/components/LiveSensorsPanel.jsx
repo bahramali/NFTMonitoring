@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import GerminationLiveSensorsPanel from "../../Germination/components/LiveSensorsPanel.jsx";
 import styles from "../../Germination/Germination.module.css";
 import { useLiveTelemetry } from "../../Germination/hooks/useLiveTelemetry.js";
@@ -40,7 +40,9 @@ const AS7343_GROUPS = [
 const SUMMARY_SENSOR_MODEL = "AS7343 summary";
 
 const buildSummaryReports = (metricReports) => {
-    const asReports = metricReports.filter((report) => report.measurementType?.startsWith?.(AS7343_PREFIX));
+    const asReports = metricReports.filter((report) =>
+        (report.sensorType || report.measurementType)?.startsWith?.(AS7343_PREFIX),
+    );
     if (asReports.length === 0) {
         return { summaryReports: [], hasAs7343: false, totalsByGroup: new Map() };
     }
@@ -60,7 +62,8 @@ const buildSummaryReports = (metricReports) => {
                 });
             }
         });
-        reportsByType.set(report.measurementType, valueMap);
+        const key = report.sensorType || report.measurementType;
+        reportsByType.set(key, valueMap);
     });
 
     const totalsByGroup = new Map();
@@ -185,7 +188,7 @@ const buildSummaryReports = (metricReports) => {
     return { summaryReports, hasAs7343: true };
 };
 
-export default function LiveSensorsPanel({ rackId }) {
+export default function LiveSensorsPanel({ rackId, aggregateAs7343 = true }) {
     const normalizedRackId = normalizeRackId(rackId);
     const [showAdvancedSpectrum, setShowAdvancedSpectrum] = useState(false);
 
@@ -194,19 +197,42 @@ export default function LiveSensorsPanel({ rackId }) {
     }, [normalizedRackId]);
 
     const { metricReports } = useLiveTelemetry({ filterDevice });
+    const as7343Reports = useMemo(
+        () =>
+            metricReports.filter((report) =>
+                (report.sensorType || report.measurementType)?.startsWith?.(AS7343_PREFIX),
+            ),
+        [metricReports],
+    );
     const { summaryReports, hasAs7343 } = useMemo(() => buildSummaryReports(metricReports), [metricReports]);
 
     const visibleReports = useMemo(() => {
-        if (!hasAs7343) {
+        if (!aggregateAs7343 || !hasAs7343) {
             return metricReports;
         }
         const filteredReports = showAdvancedSpectrum
             ? metricReports
-            : metricReports.filter((report) => !report.measurementType?.startsWith?.(AS7343_PREFIX));
+            : metricReports.filter(
+                  (report) => !(report.sensorType || report.measurementType)?.startsWith?.(AS7343_PREFIX),
+              );
         return [...summaryReports, ...filteredReports];
-    }, [hasAs7343, metricReports, showAdvancedSpectrum, summaryReports]);
+    }, [aggregateAs7343, hasAs7343, metricReports, showAdvancedSpectrum, summaryReports]);
 
-    const headerActions = hasAs7343 ? (
+    useEffect(() => {
+        if (!aggregateAs7343) return;
+        const renderedAs7343 = visibleReports.filter((report) =>
+            (report.sensorType || report.measurementType)?.startsWith?.(AS7343_PREFIX),
+        );
+        console.log("[LiveSensorsPanel] AS7343 aggregation", {
+            totalMetrics: metricReports.length,
+            as7343Metrics: as7343Reports.length,
+            renderedCards: visibleReports.length,
+            renderedAs7343: renderedAs7343.length,
+            showAdvancedSpectrum,
+        });
+    }, [aggregateAs7343, as7343Reports.length, metricReports.length, showAdvancedSpectrum, visibleReports]);
+
+    const headerActions = aggregateAs7343 && hasAs7343 ? (
         <label className={styles.headerToggle}>
             <span className={styles.headerToggleLabel}>Advanced spectrum (nm)</span>
             <input
