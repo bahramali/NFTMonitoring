@@ -12,12 +12,23 @@ const RANGE_OPTIONS = [
     { key: "custom", label: "Custom" },
 ];
 
-export default function HistoricalTrendsPanel({ rackId }) {
+export default function HistoricalTrendsPanel({ rackId, selectedDeviceIds }) {
     const normalizedRackId = normalizeRackId(rackId);
 
+    const selectedSet = useMemo(() => {
+        if (!Array.isArray(selectedDeviceIds) || selectedDeviceIds.length === 0) return null;
+        return new Set(selectedDeviceIds.map((value) => String(value).trim()));
+    }, [selectedDeviceIds]);
+
     const filterDevice = useMemo(() => {
-        return (device) => deviceMatchesRack(device, normalizedRackId);
-    }, [normalizedRackId]);
+        return (device) => {
+            if (!deviceMatchesRack(device, normalizedRackId)) return false;
+            if (!selectedSet) return true;
+
+            const id = String(device?.deviceId || device?.compositeId || "").trim();
+            return Boolean(id) && selectedSet.has(id);
+        };
+    }, [normalizedRackId, selectedSet]);
 
     const { devices, deviceOptions } = useLiveTelemetry({ filterDevice });
     const [selectedCompositeId, setSelectedCompositeId] = useState("");
