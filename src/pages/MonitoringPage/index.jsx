@@ -37,6 +37,25 @@ const resolveRackId = (pageData) => {
     return "";
 };
 
+const resolveTelemetryRackId = (pageData) => {
+    const candidates = [
+        pageData?.telemetryRackId,
+        pageData?.telemetry_rack_id,
+        pageData?.telemetryRack,
+        pageData?.telemetry_rack,
+        pageData?.telemetryRack?.id,
+        pageData?.telemetryRack?.rackId,
+        pageData?.telemetryRack?.rack_id,
+        pageData?.telemetryRack?.rack,
+    ];
+    for (const candidate of candidates) {
+        if (candidate === undefined || candidate === null) continue;
+        const value = String(candidate).trim();
+        if (value) return value;
+    }
+    return "";
+};
+
 const resolveDeviceList = (payload) => {
     if (Array.isArray(payload)) return payload;
     if (Array.isArray(payload?.nodes)) return payload.nodes;
@@ -66,6 +85,7 @@ export default function MonitoringPage() {
     const normalizedSlug = useMemo(() => String(slug ?? "").trim(), [slug]);
     const [pageData, setPageData] = useState(null);
     const [rackId, setRackId] = useState("");
+    const [telemetryRackId, setTelemetryRackId] = useState("");
     const [pageLoading, setPageLoading] = useState(true);
     const [pageError, setPageError] = useState("");
     const [pageNotFound, setPageNotFound] = useState(false);
@@ -81,6 +101,7 @@ export default function MonitoringPage() {
             setPageNotFound(false);
             setPageData(null);
             setRackId("");
+            setTelemetryRackId("");
             return;
         }
 
@@ -93,12 +114,14 @@ export default function MonitoringPage() {
             setPageNotFound(false);
             setPageData(null);
             setRackId("");
+            setTelemetryRackId("");
 
             try {
                 const data = await getMonitoringPageBySlug(normalizedSlug, { signal: controller.signal });
                 if (cancelled) return;
                 setPageData(data);
                 setRackId(resolveRackId(data));
+                setTelemetryRackId(resolveTelemetryRackId(data));
             } catch (error) {
                 if (cancelled || controller.signal.aborted) return;
                 if (error?.status === 404) {
@@ -110,6 +133,7 @@ export default function MonitoringPage() {
                 }
                 setPageData(null);
                 setRackId("");
+                setTelemetryRackId("");
             } finally {
                 if (!cancelled) {
                     setPageLoading(false);
@@ -126,7 +150,7 @@ export default function MonitoringPage() {
     }, [normalizedSlug]);
 
     useEffect(() => {
-        if (!rackId) {
+        if (!telemetryRackId) {
             setDevices([]);
             setDevicesLoading(false);
             setDevicesError("");
@@ -141,7 +165,7 @@ export default function MonitoringPage() {
             setDevicesError("");
             try {
                 const response = await authFetch(
-                    `${API_BASE}/api/racks/${encodeURIComponent(rackId)}/nodes`,
+                    `${API_BASE}/api/racks/${encodeURIComponent(telemetryRackId)}/nodes`,
                     { signal: controller.signal },
                 );
                 const payload = await parseApiResponse(response, "Unable to load rack devices");
@@ -165,7 +189,7 @@ export default function MonitoringPage() {
             cancelled = true;
             controller.abort();
         };
-    }, [rackId]);
+    }, [telemetryRackId]);
 
     const title = resolvePageTitle(pageData);
 
@@ -181,6 +205,10 @@ export default function MonitoringPage() {
                     <span className={styles.label}>Rack</span>
                     <span className={styles.value}>{rackId || "Not configured"}</span>
                 </div>
+                <div className={styles.metaRow}>
+                    <span className={styles.label}>Telemetry rack</span>
+                    <span className={styles.value}>{telemetryRackId || "Not configured"}</span>
+                </div>
                 {pageLoading && <p className={styles.statusMessage}>Loading page configuration…</p>}
                 {pageNotFound && <p className={styles.statusMessage}>Page not found.</p>}
                 {pageError && <p className={styles.statusMessage}>{pageError}</p>}
@@ -191,18 +219,25 @@ export default function MonitoringPage() {
                     <h2 className={styles.sectionTitle}>Devices</h2>
                     <span className={styles.sectionMeta}>{devices.length} total</span>
                 </div>
-                {!rackId && !pageLoading && !pageNotFound && (
-                    <p className={styles.statusMessage}>Rack configuration is missing for this page.</p>
+                {!telemetryRackId && !pageLoading && !pageNotFound && (
+                    <p className={styles.statusMessage}>Telemetry rack configuration is missing for this page.</p>
                 )}
                 {devicesLoading && <p className={styles.statusMessage}>Loading devices…</p>}
                 {devicesError && <p className={styles.statusMessage}>{devicesError}</p>}
-                {!devicesLoading && !devicesError && rackId && devices.length === 0 && (
+                {!devicesLoading && !devicesError && telemetryRackId && devices.length === 0 && (
                     <p className={styles.statusMessage}>No devices found for this rack.</p>
                 )}
                 {!devicesLoading && !devicesError && devices.length > 0 && (
                     <ul className={styles.deviceList}>
                         {devices.map((device, index) => (
-                            <li key={device?.id ?? device?.nodeId ?? `${rackId}-${index}`} className={styles.deviceItem}>
+                            <li
+                                key={
+                                    device?.id ??
+                                    device?.nodeId ??
+                                    `${telemetryRackId || rackId}-${index}`
+                                }
+                                className={styles.deviceItem}
+                            >
                                 <span className={styles.deviceName}>{resolveDeviceLabel(device, index)}</span>
                                 <span className={styles.deviceMeta}>
                                     {device?.type || device?.model || device?.category || "Device"}
@@ -213,7 +248,7 @@ export default function MonitoringPage() {
                 )}
             </section>
 
-            {rackId && <RackDashboardView rackId={rackId} />}
+            {telemetryRackId && <RackDashboardView rackId={telemetryRackId} />}
         </div>
     );
 }
