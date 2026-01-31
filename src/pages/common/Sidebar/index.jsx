@@ -67,6 +67,7 @@ const NAV_SECTIONS = [
         label: "Admin",
         items: [
             { to: "/admin/overview", icon: "📊", label: "Admin Overview", permissions: [PERMISSIONS.ADMIN_OVERVIEW_VIEW] },
+            { to: "/admin/rack-pages", icon: "🧱", label: "Rack Pages", permissions: [PERMISSIONS.ADMIN_OVERVIEW_VIEW] },
             { to: "/admin/team", icon: "🧭", label: "Admin Management", permissions: [PERMISSIONS.ADMIN_PERMISSIONS_MANAGE] },
             { to: "/admin/tools", icon: "🛡️", label: "Super Admin Tools", roles: ["SUPER_ADMIN"] },
             { to: "/admin/directory", icon: "🗂️", label: "Admin Directory", roles: ["SUPER_ADMIN"] },
