@@ -12,6 +12,7 @@ import styles from './AdminRackPages.module.css';
 const emptyForm = {
     title: '',
     rackId: '',
+    telemetryRackId: '',
     slug: '',
     enabled: true,
     sortOrder: 0,
@@ -65,6 +66,21 @@ const resolvePageRackId = (page) => {
     return '';
 };
 
+const resolvePageTelemetryRackId = (page) => {
+    const candidates = [
+        page?.telemetryRackId,
+        page?.telemetry_rack_id,
+        page?.telemetryRack,
+        page?.telemetry_rack,
+    ];
+    for (const candidate of candidates) {
+        if (candidate === undefined || candidate === null) continue;
+        const value = `${candidate}`.trim();
+        if (value) return value;
+    }
+    return '';
+};
+
 const slugify = (value) =>
     `${value || ''}`
         .trim()
@@ -87,7 +103,13 @@ const detectFieldErrors = (error) => {
             const rawField = entry.field || entry.path || entry.key || entry.name;
             const message = entry.message || entry.error || entry.detail;
             const field =
-                rawField === 'rack_id' || rawField === 'rack' ? 'rackId' : rawField === 'slug' ? 'slug' : rawField;
+                rawField === 'rack_id' || rawField === 'rack'
+                    ? 'rackId'
+                    : rawField === 'telemetry_rack_id' || rawField === 'telemetry_rack'
+                      ? 'telemetryRackId'
+                      : rawField === 'slug'
+                        ? 'slug'
+                        : rawField;
             pushFieldError(field, message);
         });
     }
@@ -148,6 +170,7 @@ export default function AdminRackPages() {
         setFormState({
             title: resolvePageField(page, ['title', 'name', 'pageTitle'], ''),
             rackId: resolvePageRackId(page),
+            telemetryRackId: resolvePageTelemetryRackId(page),
             slug: resolvePageField(page, ['slug', 'path'], ''),
             enabled: page?.enabled !== false,
             sortOrder: Number(resolvePageField(page, ['sortOrder', 'order'], 0)),
@@ -209,6 +232,16 @@ export default function AdminRackPages() {
             if (field === 'slug') {
                 setSlugTouched(true);
             }
+            if (field === 'rackId') {
+                const selectedRack = racks.find((rack) => resolveRackId(rack) === value);
+                const telemetryId =
+                    selectedRack?.telemetryRackId ??
+                    selectedRack?.telemetry_rack_id ??
+                    selectedRack?.telemetryRack ??
+                    selectedRack?.telemetry_rack ??
+                    '';
+                next.telemetryRackId = telemetryId ? `${telemetryId}`.trim() : '';
+            }
             if (field === 'sortOrder') {
                 const numeric = Number.isNaN(Number(value)) ? 0 : Number(value);
                 next.sortOrder = numeric;
@@ -233,6 +266,7 @@ export default function AdminRackPages() {
         const payload = {
             title: formState.title.trim(),
             rackId: formState.rackId,
+            telemetryRackId: formState.telemetryRackId.trim(),
             slug: formState.slug.trim(),
             enabled: formState.enabled,
             sortOrder: Number(formState.sortOrder) || 0,
@@ -412,6 +446,19 @@ export default function AdminRackPages() {
                             </select>
                         )}
                         {fieldErrors.rackId && <div className={styles.inlineError}>{fieldErrors.rackId}</div>}
+
+                        <label className={styles.label} htmlFor="rack-page-telemetry-rack">Telemetry rack ID</label>
+                        <input
+                            id="rack-page-telemetry-rack"
+                            className={styles.input}
+                            value={formState.telemetryRackId}
+                            onChange={handleChange('telemetryRackId')}
+                            placeholder="Telemetry rack identifier"
+                            required
+                        />
+                        {fieldErrors.telemetryRackId && (
+                            <div className={styles.inlineError}>{fieldErrors.telemetryRackId}</div>
+                        )}
 
                         <label className={styles.label} htmlFor="rack-page-slug">Slug</label>
                         <input
