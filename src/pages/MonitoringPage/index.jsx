@@ -9,6 +9,24 @@ import styles from "./MonitoringPage.module.css";
 
 const API_BASE = getApiBaseUrl();
 
+/**
+ * @typedef {Object} MonitoringPage
+ * @property {string} [title]
+ * @property {string} [name]
+ * @property {string} [pageTitle]
+ * @property {string} [displayName]
+ * @property {string} [rackId]
+ * @property {string} [rack_id]
+ * @property {string | {id?: string, rackId?: string, rack_id?: string, rack?: string}} [rack]
+ * @property {string} [telemetryRackId]
+ * @property {string} [telemetry_rack_id]
+ * @property {string | {id?: string, rackId?: string, rack_id?: string, rack?: string}} [telemetryRack]
+ * @property {string} [telemetry_rack]
+ */
+
+/**
+ * @param {MonitoringPage | null | undefined} pageData
+ */
 const resolvePageTitle = (pageData) => {
     const candidates = [
         pageData?.title,
@@ -19,6 +37,9 @@ const resolvePageTitle = (pageData) => {
     return candidates.find((value) => typeof value === "string" && value.trim()) || "Monitoring Page";
 };
 
+/**
+ * @param {MonitoringPage | null | undefined} pageData
+ */
 const resolveRackId = (pageData) => {
     const candidates = [
         pageData?.rackId,
@@ -37,6 +58,9 @@ const resolveRackId = (pageData) => {
     return "";
 };
 
+/**
+ * @param {MonitoringPage | null | undefined} pageData
+ */
 const resolveTelemetryRackId = (pageData) => {
     const candidates = [
         pageData?.telemetryRackId,
