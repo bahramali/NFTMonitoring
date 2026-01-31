@@ -188,13 +188,24 @@ const buildSummaryReports = (metricReports) => {
     return { summaryReports, hasAs7343: true };
 };
 
-export default function LiveSensorsPanel({ rackId, aggregateAs7343 = true }) {
+export default function LiveSensorsPanel({ rackId, aggregateAs7343 = true, selectedDeviceIds }) {
     const normalizedRackId = normalizeRackId(rackId);
     const [showAdvancedSpectrum, setShowAdvancedSpectrum] = useState(false);
 
+    const selectedSet = useMemo(() => {
+        if (!Array.isArray(selectedDeviceIds) || selectedDeviceIds.length === 0) return null;
+        return new Set(selectedDeviceIds.map((value) => String(value).trim()));
+    }, [selectedDeviceIds]);
+
     const filterDevice = useMemo(() => {
-        return (device) => deviceMatchesRack(device, normalizedRackId);
-    }, [normalizedRackId]);
+        return (device) => {
+            if (!deviceMatchesRack(device, normalizedRackId)) return false;
+            if (!selectedSet) return true;
+
+            const id = String(device?.deviceId || device?.compositeId || "").trim();
+            return Boolean(id) && selectedSet.has(id);
+        };
+    }, [normalizedRackId, selectedSet]);
 
     const { metricReports } = useLiveTelemetry({ filterDevice });
     const as7343Reports = useMemo(
