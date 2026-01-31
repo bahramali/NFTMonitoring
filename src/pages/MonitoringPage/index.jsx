@@ -297,7 +297,7 @@ export default function MonitoringPage() {
                         <span className={styles.sectionMeta}>{devices.length} total</span>
                         <button
                             type="button"
-                            className={styles.sectionButton}
+                            className={`${styles.sectionButton} ${styles.actionButton}`}
                             onClick={selectAllDevices}
                             disabled={devices.length === 0}
                         >
@@ -305,7 +305,7 @@ export default function MonitoringPage() {
                         </button>
                         <button
                             type="button"
-                            className={styles.sectionButton}
+                            className={`${styles.sectionButton} ${styles.actionButton}`}
                             onClick={clearAllDevices}
                             disabled={devices.length === 0}
                         >
