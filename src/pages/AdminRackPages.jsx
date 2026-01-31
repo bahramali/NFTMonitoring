@@ -33,7 +33,7 @@ const normalizeRacks = (payload) => {
     return [];
 };
 
-const resolveRackId = (rack) => rack?.rackId ?? rack?.id ?? '';
+const resolveRackId = (rack) => rack?.rackId ?? rack?.rack_id ?? rack?.rack ?? rack?.id ?? '';
 
 const resolveRackLabel = (rack) => rack?.name || rack?.title || rack?.label || resolveRackId(rack);
 
@@ -48,7 +48,15 @@ const resolvePageField = (page, candidates, fallback = '') => {
 };
 
 const resolvePageRackId = (page) => {
-    const candidates = [page?.rackId, page?.rack_id, page?.rack?.id, page?.rack?.rackId];
+    const candidates = [
+        page?.rackId,
+        page?.rack_id,
+        page?.rack,
+        page?.rack?.id,
+        page?.rack?.rackId,
+        page?.rack?.rack_id,
+        page?.rack?.rack,
+    ];
     for (const candidate of candidates) {
         if (candidate === undefined || candidate === null) continue;
         const value = `${candidate}`.trim();

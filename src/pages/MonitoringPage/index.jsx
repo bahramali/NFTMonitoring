@@ -23,8 +23,11 @@ const resolveRackId = (pageData) => {
     const candidates = [
         pageData?.rackId,
         pageData?.rack_id,
+        pageData?.rack,
         pageData?.rack?.id,
         pageData?.rack?.rackId,
+        pageData?.rack?.rack_id,
+        pageData?.rack?.rack,
     ];
     for (const candidate of candidates) {
         if (candidate === undefined || candidate === null) continue;
