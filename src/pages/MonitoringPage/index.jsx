@@ -104,6 +104,19 @@ const resolveDeviceLabel = (device, index) => {
     return `Device ${index + 1}`;
 };
 
+// English comment: Stable device identifier aligned with live telemetry (prefer compositeId).
+const resolveDeviceKey = (device, index, rackId) => {
+    const candidates = [
+        device?.compositeId,
+        device?.deviceId,
+        device?.id,
+        device?.nodeId,
+        device?.serial,
+    ];
+    const value = candidates.find((v) => v !== undefined && v !== null && String(v).trim());
+    return value ? String(value).trim() : `${rackId || "rack"}-${index}`;
+};
+
 export default function MonitoringPage() {
     const { slug } = useParams();
     const normalizedSlug = useMemo(() => String(slug ?? "").trim(), [slug]);
@@ -117,6 +130,8 @@ export default function MonitoringPage() {
     const [devices, setDevices] = useState([]);
     const [devicesLoading, setDevicesLoading] = useState(false);
     const [devicesError, setDevicesError] = useState("");
+    // English comment: Local-only selection (no persistence).
+    const [selectedDeviceIds, setSelectedDeviceIds] = useState(() => new Set());
     const showTelemetryWarning = Boolean(
         !telemetryRackId && !pageLoading && !pageNotFound && !pageError,
     );
@@ -225,6 +240,33 @@ export default function MonitoringPage() {
         );
     }, [showTelemetryWarning]);
 
+    // English comment: Auto-select all devices after devices list loads.
+    useEffect(() => {
+        if (!devices || devices.length === 0) {
+            setSelectedDeviceIds(new Set());
+            return;
+        }
+        const all = new Set(devices.map((device, index) => resolveDeviceKey(device, index, rackId)));
+        setSelectedDeviceIds(all);
+    }, [devices, rackId]);
+
+    // English comment: Toggle selection by device id.
+    const toggleDeviceSelection = (id) => {
+        setSelectedDeviceIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    // English comment: Convenience actions.
+    const selectAllDevices = () => {
+        const all = new Set(devices.map((device, index) => resolveDeviceKey(device, index, rackId)));
+        setSelectedDeviceIds(all);
+    };
+    const clearAllDevices = () => setSelectedDeviceIds(new Set());
+
     const title = resolvePageTitle(pageData);
 
     return (
@@ -251,7 +293,25 @@ export default function MonitoringPage() {
             <section className={styles.card}>
                 <div className={styles.sectionHeader}>
                     <h2 className={styles.sectionTitle}>Devices</h2>
-                    <span className={styles.sectionMeta}>{devices.length} total</span>
+                    <div className={styles.sectionActions}>
+                        <span className={styles.sectionMeta}>{devices.length} total</span>
+                        <button
+                            type="button"
+                            className={styles.sectionButton}
+                            onClick={selectAllDevices}
+                            disabled={devices.length === 0}
+                        >
+                            Select all
+                        </button>
+                        <button
+                            type="button"
+                            className={styles.sectionButton}
+                            onClick={clearAllDevices}
+                            disabled={devices.length === 0}
+                        >
+                            Clear
+                        </button>
+                    </div>
                 </div>
                 {showTelemetryWarning && (
                     <div className={styles.warningBox}>
@@ -269,26 +329,37 @@ export default function MonitoringPage() {
                 )}
                 {!devicesLoading && !devicesError && devices.length > 0 && (
                     <ul className={styles.deviceList}>
-                        {devices.map((device, index) => (
-                            <li
-                                key={
-                                    device?.id ??
-                                    device?.nodeId ??
-                                    `${telemetryRackId || rackId}-${index}`
-                                }
-                                className={styles.deviceItem}
-                            >
-                                <span className={styles.deviceName}>{resolveDeviceLabel(device, index)}</span>
-                                <span className={styles.deviceMeta}>
-                                    {device?.type || device?.model || device?.category || "Device"}
-                                </span>
-                            </li>
-                        ))}
+                        {devices.map((device, index) => {
+                            const id = resolveDeviceKey(device, index, rackId);
+                            const checked = selectedDeviceIds.has(id);
+
+                            return (
+                                <li key={id} className={styles.deviceItem}>
+                                    <label className={styles.deviceRow}>
+                                        <input
+                                            type="checkbox"
+                                            className={styles.deviceCheckbox}
+                                            checked={checked}
+                                            onChange={() => toggleDeviceSelection(id)}
+                                        />
+                                        <span className={styles.deviceName}>{resolveDeviceLabel(device, index)}</span>
+                                        <span className={styles.deviceMeta}>
+                                            {device?.type || device?.model || device?.category || "Device"}
+                                        </span>
+                                    </label>
+                                </li>
+                            );
+                        })}
                     </ul>
                 )}
             </section>
 
-            {telemetryRackId && <RackDashboardView rackId={telemetryRackId} />}
+            {telemetryRackId && (
+                <RackDashboardView
+                    rackId={telemetryRackId}
+                    selectedDeviceIds={Array.from(selectedDeviceIds)}
+                />
+            )}
         </div>
     );
 }

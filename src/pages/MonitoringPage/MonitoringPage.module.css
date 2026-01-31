@@ -52,6 +52,13 @@
     flex-wrap: wrap;
 }
 
+.sectionActions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
 .sectionTitle {
     margin: 0;
     font-size: 1.1rem;
@@ -62,6 +69,28 @@
 .sectionMeta {
     font-size: 0.85rem;
     color: #9fb7ff;
+}
+
+.sectionButton {
+    background: rgba(29, 45, 82, 0.8);
+    border: 1px solid rgba(92, 130, 204, 0.45);
+    color: #e6edff;
+    border-radius: 999px;
+    padding: 0.25rem 0.9rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.sectionButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.sectionButton:not(:disabled):hover {
+    border-color: rgba(138, 176, 255, 0.8);
+    background: rgba(42, 62, 108, 0.85);
 }
 
 .deviceList {
@@ -77,14 +106,25 @@
     padding: 0.85rem 1rem;
     background: rgba(16, 28, 52, 0.82);
     border: 1px solid rgba(92, 130, 204, 0.35);
+}
+
+.deviceRow {
     display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.deviceCheckbox {
+    accent-color: #8fb2ff;
+    width: 1rem;
+    height: 1rem;
+    cursor: pointer;
 }
 
 .deviceName {
     font-weight: 600;
     color: #f6f8ff;
+    flex: 1;
 }
 
 .deviceMeta {
