@@ -117,6 +117,9 @@ export default function MonitoringPage() {
     const [devices, setDevices] = useState([]);
     const [devicesLoading, setDevicesLoading] = useState(false);
     const [devicesError, setDevicesError] = useState("");
+    const showTelemetryWarning = Boolean(
+        !telemetryRackId && !pageLoading && !pageNotFound && !pageError,
+    );
 
     useEffect(() => {
         if (!normalizedSlug) {
@@ -215,6 +218,13 @@ export default function MonitoringPage() {
         };
     }, [telemetryRackId]);
 
+    useEffect(() => {
+        if (!showTelemetryWarning) return;
+        console.warn(
+            "Telemetry rack mapping is missing for this monitoring page. The dashboard will remain empty until telemetryRackId is configured.",
+        );
+    }, [showTelemetryWarning]);
+
     const title = resolvePageTitle(pageData);
 
     return (
@@ -243,8 +253,14 @@ export default function MonitoringPage() {
                     <h2 className={styles.sectionTitle}>Devices</h2>
                     <span className={styles.sectionMeta}>{devices.length} total</span>
                 </div>
-                {!telemetryRackId && !pageLoading && !pageNotFound && (
-                    <p className={styles.statusMessage}>Telemetry rack configuration is missing for this page.</p>
+                {showTelemetryWarning && (
+                    <div className={styles.warningBox}>
+                        <p className={styles.warningTitle}>Telemetry rack mapping missing</p>
+                        <p className={styles.warningMessage}>
+                            This page has no telemetry rack configured, so the live dashboard cannot load devices or
+                            telemetry until a telemetry rack ID is added.
+                        </p>
+                    </div>
                 )}
                 {devicesLoading && <p className={styles.statusMessage}>Loading devices…</p>}
                 {devicesError && <p className={styles.statusMessage}>{devicesError}</p>}
