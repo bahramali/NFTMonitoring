@@ -97,7 +97,7 @@ const SpectrumBalanceTooltip = ({ active, payload, label, formatter }) => {
     );
 };
 
-export default function As7343TrendsPanel({ rackId }) {
+export default function As7343TrendsPanel({ rackId, selectedDeviceIds }) {
     const normalizedRackId = normalizeRackId(rackId);
     const [selectedCompositeId, setSelectedCompositeId] = useState("");
     const [rangePreset, setRangePreset] = useState("1h");
@@ -107,9 +107,20 @@ export default function As7343TrendsPanel({ rackId }) {
     const [channelHistory, setChannelHistory] = useState({});
     const [chartDomain, setChartDomain] = useState(null);
 
+    const selectedSet = useMemo(() => {
+        if (!Array.isArray(selectedDeviceIds) || selectedDeviceIds.length === 0) return null;
+        return new Set(selectedDeviceIds.map((value) => String(value).trim()));
+    }, [selectedDeviceIds]);
+
     const filterDevice = useMemo(() => {
-        return (device) => deviceMatchesRack(device, normalizedRackId);
-    }, [normalizedRackId]);
+        return (device) => {
+            if (!deviceMatchesRack(device, normalizedRackId)) return false;
+            if (!selectedSet) return true;
+
+            const id = String(device?.deviceId || device?.compositeId || "").trim();
+            return Boolean(id) && selectedSet.has(id);
+        };
+    }, [normalizedRackId, selectedSet]);
 
     const { devices, deviceOptions } = useLiveTelemetry({ filterDevice });
 
@@ -127,6 +138,12 @@ export default function As7343TrendsPanel({ rackId }) {
             setSelectedCompositeId(as7343DeviceOptions[0].id);
         }
     }, [as7343DeviceOptions, devices, selectedCompositeId]);
+
+    useEffect(() => {
+        if (!selectedCompositeId) return;
+        const stillExists = as7343DeviceOptions.some((opt) => opt.id === selectedCompositeId);
+        if (!stillExists) setSelectedCompositeId("");
+    }, [as7343DeviceOptions, selectedCompositeId]);
 
     const deviceSensors = devices[selectedCompositeId]?.sensors || [];
 
