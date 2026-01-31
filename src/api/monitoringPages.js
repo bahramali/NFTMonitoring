@@ -22,7 +22,11 @@ export const getMonitoringPageBySlug = (slug, { signal } = {}) =>
     );
 
 export const adminListMonitoringPages = ({ signal } = {}) =>
-    requestJson(ADMIN_MONITORING_PAGES_URL, { signal }, 'Failed to load monitoring pages');
+    requestJson(
+        ADMIN_MONITORING_PAGES_URL,
+        { signal, headers: buildAuthHeaders() },
+        'Failed to load monitoring pages',
+    );
 
 export const adminCreateMonitoringPage = (payload, { signal } = {}) =>
     requestJson(
@@ -60,4 +64,4 @@ export const adminDeleteMonitoringPage = (id, { signal } = {}) =>
     );
 
 export const listRacks = ({ signal } = {}) =>
-    requestJson(RACKS_URL, { signal }, 'Failed to load racks');
+    requestJson(RACKS_URL, { signal, headers: buildAuthHeaders() }, 'Failed to load racks');
