@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import GerminationLiveSensorsPanel from "../../Germination/components/LiveSensorsPanel.jsx";
 import styles from "../../Germination/Germination.module.css";
 import { useLiveTelemetry } from "../../Germination/hooks/useLiveTelemetry.js";
-import { deviceMatchesRack, normalizeRackId } from "../rackTelemetry.js";
+import { deviceMatchesRack, normalizeRackId, resolveDeviceSelectionKey } from "../rackTelemetry.js";
 
 const AS7343_PREFIX = "as7343_counts_";
 const AS7343_GROUPS = [
@@ -202,7 +202,7 @@ export default function LiveSensorsPanel({ rackId, aggregateAs7343 = true, selec
             if (!deviceMatchesRack(device, normalizedRackId)) return false;
             if (!selectedSet) return true;
 
-            const id = String(device?.deviceId || device?.compositeId || "").trim();
+            const id = resolveDeviceSelectionKey(device);
             return Boolean(id) && selectedSet.has(id);
         };
     }, [normalizedRackId, selectedSet]);

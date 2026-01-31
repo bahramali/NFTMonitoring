@@ -5,6 +5,7 @@ import { getMonitoringPageBySlug } from "../../api/monitoringPages.js";
 import { getApiBaseUrl } from "../../config/apiBase.js";
 import Header from "../common/Header";
 import RackDashboardView from "../RackDashboard/RackDashboardView.jsx";
+import { resolveDeviceSelectionKey } from "../RackDashboard/rackTelemetry.js";
 import styles from "./MonitoringPage.module.css";
 
 const API_BASE = getApiBaseUrl();
@@ -105,17 +106,10 @@ const resolveDeviceLabel = (device, index) => {
 };
 
 // English comment: Stable device identifier aligned with live telemetry (prefer compositeId).
-const resolveDeviceKey = (device, index, rackId) => {
-    const candidates = [
-        device?.compositeId,
-        device?.deviceId,
-        device?.id,
-        device?.nodeId,
-        device?.serial,
-    ];
-    const value = candidates.find((v) => v !== undefined && v !== null && String(v).trim());
-    return value ? String(value).trim() : `${rackId || "rack"}-${index}`;
-};
+const resolveDeviceKey = (device) => resolveDeviceSelectionKey(device);
+
+const resolveDeviceRowKey = (device, index, rackId) =>
+    resolveDeviceSelectionKey(device) || `${rackId || "rack"}-${index}`;
 
 export default function MonitoringPage() {
     const { slug } = useParams();
@@ -246,12 +240,17 @@ export default function MonitoringPage() {
             setSelectedDeviceIds(new Set());
             return;
         }
-        const all = new Set(devices.map((device, index) => resolveDeviceKey(device, index, rackId)));
+        const all = new Set(
+            devices
+                .map((device) => resolveDeviceKey(device))
+                .filter((value) => value),
+        );
         setSelectedDeviceIds(all);
     }, [devices, rackId]);
 
     // English comment: Toggle selection by device id.
     const toggleDeviceSelection = (id) => {
+        if (!id) return;
         setSelectedDeviceIds((prev) => {
             const next = new Set(prev);
             if (next.has(id)) next.delete(id);
@@ -262,7 +261,11 @@ export default function MonitoringPage() {
 
     // English comment: Convenience actions.
     const selectAllDevices = () => {
-        const all = new Set(devices.map((device, index) => resolveDeviceKey(device, index, rackId)));
+        const all = new Set(
+            devices
+                .map((device) => resolveDeviceKey(device))
+                .filter((value) => value),
+        );
         setSelectedDeviceIds(all);
     };
     const clearAllDevices = () => setSelectedDeviceIds(new Set());
@@ -330,8 +333,9 @@ export default function MonitoringPage() {
                 {!devicesLoading && !devicesError && devices.length > 0 && (
                     <ul className={styles.deviceList}>
                         {devices.map((device, index) => {
-                            const id = resolveDeviceKey(device, index, rackId);
-                            const checked = selectedDeviceIds.has(id);
+                            const selectionId = resolveDeviceKey(device);
+                            const id = resolveDeviceRowKey(device, index, rackId);
+                            const checked = selectionId ? selectedDeviceIds.has(selectionId) : false;
 
                             return (
                                 <li key={id} className={styles.deviceItem}>
@@ -340,7 +344,8 @@ export default function MonitoringPage() {
                                             type="checkbox"
                                             className={styles.deviceCheckbox}
                                             checked={checked}
-                                            onChange={() => toggleDeviceSelection(id)}
+                                            onChange={() => toggleDeviceSelection(selectionId)}
+                                            disabled={!selectionId}
                                         />
                                         <span className={styles.deviceName}>{resolveDeviceLabel(device, index)}</span>
                                         <span className={styles.deviceMeta}>

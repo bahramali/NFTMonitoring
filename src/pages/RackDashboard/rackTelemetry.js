@@ -58,3 +58,19 @@ export function deviceMatchesRack(device, rackId) {
 
     return deviceRackId === targetRackId;
 }
+
+export function resolveDeviceSelectionKey(device) {
+    const candidates = [
+        device?.compositeId,
+        device?.deviceId,
+        device?.id,
+        device?.nodeId,
+        device?.serial,
+    ];
+    for (const candidate of candidates) {
+        if (candidate === undefined || candidate === null) continue;
+        const value = String(candidate).trim();
+        if (value) return value;
+    }
+    return "";
+}

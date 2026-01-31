@@ -3,7 +3,7 @@ import GerminationHistoricalTrendsPanel from "../../Germination/components/Histo
 import { fetchHistorical } from "../services/historical.js";
 import { getPresetRange, parseLocalInput, toLocalInputValue } from "../../Germination/germinationUtils.js";
 import { useLiveTelemetry } from "../../Germination/hooks/useLiveTelemetry.js";
-import { deviceMatchesRack, normalizeRackId } from "../rackTelemetry.js";
+import { deviceMatchesRack, normalizeRackId, resolveDeviceSelectionKey } from "../rackTelemetry.js";
 
 const RANGE_OPTIONS = [
     { key: "1h", label: "Last hour" },
@@ -25,7 +25,7 @@ export default function HistoricalTrendsPanel({ rackId, selectedDeviceIds }) {
             if (!deviceMatchesRack(device, normalizedRackId)) return false;
             if (!selectedSet) return true;
 
-            const id = String(device?.deviceId || device?.compositeId || "").trim();
+            const id = resolveDeviceSelectionKey(device);
             return Boolean(id) && selectedSet.has(id);
         };
     }, [normalizedRackId, selectedSet]);
