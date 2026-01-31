@@ -13,7 +13,7 @@ import HistoryChart from "../../../components/HistoryChart.jsx";
 import styles from "../../Germination/Germination.module.css";
 import { getPresetRange } from "../../Germination/germinationUtils.js";
 import { useLiveTelemetry } from "../../Germination/hooks/useLiveTelemetry.js";
-import { deviceMatchesRack, normalizeRackId } from "../rackTelemetry.js";
+import { deviceMatchesRack, normalizeRackId, resolveDeviceSelectionKey } from "../rackTelemetry.js";
 import { fetchHistorical } from "../services/historical.js";
 
 const AS7343_PREFIX = "as7343_counts_";
@@ -117,7 +117,7 @@ export default function As7343TrendsPanel({ rackId, selectedDeviceIds }) {
             if (!deviceMatchesRack(device, normalizedRackId)) return false;
             if (!selectedSet) return true;
 
-            const id = String(device?.deviceId || device?.compositeId || "").trim();
+            const id = resolveDeviceSelectionKey(device);
             return Boolean(id) && selectedSet.has(id);
         };
     }, [normalizedRackId, selectedSet]);
