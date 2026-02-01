@@ -93,16 +93,17 @@ const resolveDeviceList = (payload) => {
 
 const resolveDeviceLabel = (device, index) => {
     const candidates = [
-        device?.name,
-        device?.label,
-        device?.displayName,
+        resolveDeviceSelectionKey(device),
         device?.id,
         device?.nodeId,
         device?.serial,
+        device?.name,
+        device?.label,
+        device?.displayName,
     ];
     const value = candidates.find((candidate) => candidate !== undefined && candidate !== null);
     if (value) return String(value);
-    return `Device ${index + 1}`;
+    return `ID ${index + 1}`;
 };
 
 // English comment: Stable device identifier aligned with live telemetry (prefer compositeId).
