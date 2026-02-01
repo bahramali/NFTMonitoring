@@ -413,7 +413,7 @@ export default function AdminRackPages() {
                             <thead>
                                 <tr>
                                     <th>Title</th>
-                                    <th>Rack</th>
+                                    <th>Telemetry target</th>
                                     <th>Slug</th>
                                     <th>Enabled</th>
                                     <th>Sort</th>
@@ -512,7 +512,7 @@ export default function AdminRackPages() {
                             ))}
                         </select>
 
-                        <label className={styles.label} htmlFor="rack-page-rack">Rack</label>
+                        <label className={styles.label} htmlFor="rack-page-rack">Telemetry target</label>
                         {isEditing ? (
                             <input
                                 id="rack-page-rack"
@@ -539,13 +539,15 @@ export default function AdminRackPages() {
                         {fieldErrors.rackId && <div className={styles.inlineError}>{fieldErrors.rackId}</div>}
                         {targetsError && <div className={styles.inlineError}>{targetsError}</div>}
 
-                        <label className={styles.label} htmlFor="rack-page-telemetry-rack">Telemetry rack ID</label>
+                        <label className={styles.label} htmlFor="rack-page-telemetry-rack">
+                            Telemetry rack identifier (device)
+                        </label>
                         <input
                             id="rack-page-telemetry-rack"
                             className={styles.input}
                             value={formState.telemetryRackId}
                             onChange={handleChange('telemetryRackId')}
-                            placeholder="Telemetry rack identifier"
+                            placeholder="Device telemetry rack ID"
                             required
                         />
                         {fieldErrors.telemetryRackId && (
