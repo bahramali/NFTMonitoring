@@ -6,6 +6,8 @@ const MONITORING_PAGES_URL = `${API_BASE}/api/monitoring-pages`;
 const ADMIN_MONITORING_PAGES_URL = `${API_BASE}/api/admin/monitoring-pages`;
 const RACKS_URL = `${API_BASE}/api/racks`;
 const TELEMETRY_TARGETS_URL = `${API_BASE}/api/telemetry-targets`;
+const SYSTEMS_URL = `${API_BASE}/api/systems`;
+const SITES_URL = `${API_BASE}/api/sites`;
 
 const requestJson = async (url, options, errorMessage) => {
     const response = await authFetch(url, options);
@@ -74,4 +76,15 @@ export const listTelemetryTargets = (system, { signal } = {}) => {
     }
     const url = query.toString() ? `${TELEMETRY_TARGETS_URL}?${query}` : TELEMETRY_TARGETS_URL;
     return requestJson(url, { signal, headers: buildAuthHeaders() }, 'Failed to load telemetry targets');
+};
+
+export const listSystems = async ({ signal } = {}) => {
+    try {
+        return await requestJson(SYSTEMS_URL, { signal, headers: buildAuthHeaders() }, 'Failed to load systems');
+    } catch (error) {
+        if (error?.status === 404) {
+            return requestJson(SITES_URL, { signal, headers: buildAuthHeaders() }, 'Failed to load sites');
+        }
+        throw error;
+    }
 };
