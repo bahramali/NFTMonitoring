@@ -30,8 +30,10 @@ const normalizeMonitoringPages = (payload) => {
 
 const normalizeTelemetryTargets = (payload) => {
     if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.items)) return payload.items;
     if (Array.isArray(payload?.targets)) return payload.targets;
     if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload?.data?.items)) return payload.data.items;
     if (Array.isArray(payload?.data?.targets)) return payload.data.targets;
     return [];
 };
@@ -46,16 +48,23 @@ const normalizeSites = (payload) => {
     return [];
 };
 
-const resolveRackId = (rack) =>
-    rack?.rackId ??
-    rack?.rack_id ??
-    rack?.rack ??
-    rack?.id ??
-    rack?.telemetryRackId ??
-    rack?.telemetry_rack_id ??
-    rack?.telemetryRack ??
-    rack?.telemetry_rack ??
-    '';
+const resolveRackId = (rack) => {
+    if (typeof rack === 'string' || typeof rack === 'number') {
+        return `${rack}`.trim();
+    }
+    return (
+        rack?.rackId ??
+        rack?.rack_id ??
+        rack?.rack ??
+        rack?.telemetryTargetId ??
+        rack?.id ??
+        rack?.telemetryRackId ??
+        rack?.telemetry_rack_id ??
+        rack?.telemetryRack ??
+        rack?.telemetry_rack ??
+        ''
+    );
+};
 
 const resolveRackLabel = (rack) => rack?.name || rack?.title || rack?.label || resolveRackId(rack);
 
@@ -187,6 +196,7 @@ export default function AdminRackPages() {
     const [sitesError, setSitesError] = useState('');
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [targetsLoading, setTargetsLoading] = useState(false);
     const [listError, setListError] = useState('');
     const [targetsError, setTargetsError] = useState('');
     const [formError, setFormError] = useState('');
@@ -296,12 +306,18 @@ export default function AdminRackPages() {
             return;
         }
         setTargetsError('');
+        setTargetsLoading(true);
         try {
             const payload = await listTelemetryTargets(selectedSite);
-            setTelemetryTargets(normalizeTelemetryTargets(payload));
+            console.log('telemetryTargets response:', payload);
+            const targets = normalizeTelemetryTargets(payload);
+            console.log('parsed targets:', targets);
+            setTelemetryTargets(targets);
         } catch (error) {
             console.error('Failed to load telemetry targets', error);
             setTargetsError('Unable to load telemetry targets right now.');
+        } finally {
+            setTargetsLoading(false);
         }
     }, [selectedSite, token]);
 
@@ -317,10 +333,17 @@ export default function AdminRackPages() {
     const rackOptions = useMemo(
         () =>
             [...telemetryTargets]
-                .map((rack) => ({
-                    id: resolveRackId(rack),
-                    label: resolveRackLabel(rack),
-                }))
+                .map((rack) => {
+                    if (typeof rack === 'string' || typeof rack === 'number') {
+                        const id = `${rack}`.trim();
+                        return id ? { id, label: id } : null;
+                    }
+                    if (!rack) return null;
+                    return {
+                        id: resolveRackId(rack),
+                        label: resolveRackLabel(rack),
+                    };
+                })
                 .filter((rack) => rack.id)
                 .sort((a, b) => a.label.localeCompare(b.label)),
         [telemetryTargets],
@@ -577,6 +600,9 @@ export default function AdminRackPages() {
                         )}
                         {fieldErrors.rackId && <div className={styles.inlineError}>{fieldErrors.rackId}</div>}
                         {targetsError && <div className={styles.inlineError}>{targetsError}</div>}
+                        {selectedSite && !targetsLoading && !targetsError && rackOptions.length === 0 ? (
+                            <div className={styles.inlineNotice}>No telemetry targets found for this site.</div>
+                        ) : null}
 
                         <label className={styles.label} htmlFor="rack-page-telemetry-rack">
                             Telemetry rack identifier (device)

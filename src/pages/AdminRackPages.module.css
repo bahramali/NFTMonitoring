@@ -188,6 +188,12 @@
     margin-top: 6px;
 }
 
+.inlineNotice {
+    color: #475569;
+    font-size: 13px;
+    margin-top: 6px;
+}
+
 .emptyState {
     text-align: center;
     color: #64748b;
