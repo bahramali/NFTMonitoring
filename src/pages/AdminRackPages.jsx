@@ -5,6 +5,7 @@ import {
     adminListMonitoringPages,
     adminUpdateMonitoringPage,
     listTelemetryTargets,
+    listSystems,
 } from '../api/monitoringPages.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSearchParams } from 'react-router-dom';
@@ -35,6 +36,16 @@ const normalizeTelemetryTargets = (payload) => {
     return [];
 };
 
+const normalizeSites = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.systems)) return payload.systems;
+    if (Array.isArray(payload?.sites)) return payload.sites;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload?.data?.systems)) return payload.data.systems;
+    if (Array.isArray(payload?.data?.sites)) return payload.data.sites;
+    return [];
+};
+
 const resolveRackId = (rack) =>
     rack?.rackId ??
     rack?.rack_id ??
@@ -48,15 +59,6 @@ const resolveRackId = (rack) =>
 
 const resolveRackLabel = (rack) => rack?.name || rack?.title || rack?.label || resolveRackId(rack);
 
-const resolveTargetSystem = (target) =>
-    target?.system ??
-    target?.systemId ??
-    target?.system_id ??
-    target?.site ??
-    target?.siteId ??
-    target?.site_id ??
-    '';
-
 const resolveTargetTelemetryId = (target) =>
     target?.telemetryRackId ??
     target?.telemetry_rack_id ??
@@ -67,6 +69,20 @@ const resolveTargetTelemetryId = (target) =>
     target?.rack ??
     target?.id ??
     '';
+
+const resolveSiteId = (site) =>
+    site?.system ??
+    site?.systemId ??
+    site?.system_id ??
+    site?.site ??
+    site?.siteId ??
+    site?.site_id ??
+    site?.id ??
+    site?.value ??
+    site?.key ??
+    '';
+
+const resolveSiteLabel = (site) => site?.label || site?.name || site?.title || resolveSiteId(site);
 
 const resolvePageField = (page, candidates, fallback = '') => {
     for (const key of candidates) {
@@ -167,6 +183,8 @@ export default function AdminRackPages() {
     const [selectedSite, setSelectedSite] = useState(() => (
         searchParams.get('system') || searchParams.get('site') || ''
     ));
+    const [sitesLoading, setSitesLoading] = useState(false);
+    const [sitesError, setSitesError] = useState('');
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [listError, setListError] = useState('');
@@ -234,21 +252,41 @@ export default function AdminRackPages() {
 
     const loadSites = useCallback(async () => {
         if (!token) return;
-        if (requestedSite) {
-            setSites([requestedSite]);
-            return;
-        }
+        setSitesLoading(true);
+        setSitesError('');
         try {
-            const payload = await listTelemetryTargets();
-            const targets = normalizeTelemetryTargets(payload);
-            const nextSites = Array.from(
-                new Set(targets.map((target) => `${resolveTargetSystem(target)}`.trim()).filter(Boolean)),
-            ).sort((a, b) => a.localeCompare(b));
-            setSites(nextSites);
+            const payload = await listSystems();
+            const rawSites = normalizeSites(payload);
+            const mapped = rawSites
+                .map((site) => {
+                    if (typeof site === 'string' || typeof site === 'number') {
+                        const value = `${site}`.trim();
+                        return value ? { id: value, label: value } : null;
+                    }
+                    if (!site) return null;
+                    const id = `${resolveSiteId(site)}`.trim();
+                    if (!id) return null;
+                    const label = `${resolveSiteLabel(site)}`.trim() || id;
+                    return { id, label };
+                })
+                .filter(Boolean)
+                .sort((a, b) => a.label.localeCompare(b.label));
+            if (selectedSite && !mapped.find((site) => site.id === selectedSite)) {
+                mapped.unshift({ id: selectedSite, label: selectedSite });
+            }
+            setSites(mapped);
         } catch (error) {
-            console.error('Failed to load telemetry sites', error);
+            console.error('Failed to load sites', error);
+            setSitesError('Unable to load sites right now.');
+            if (requestedSite) {
+                setSites([{ id: requestedSite, label: requestedSite }]);
+            } else {
+                setSites([]);
+            }
+        } finally {
+            setSitesLoading(false);
         }
-    }, [requestedSite, token]);
+    }, [requestedSite, selectedSite, token]);
 
     const loadTelemetryTargets = useCallback(async () => {
         if (!token) return;
@@ -502,15 +540,16 @@ export default function AdminRackPages() {
                             value={selectedSite}
                             onChange={handleSiteChange}
                             required
-                            disabled={Boolean(requestedSite)}
+                            disabled={Boolean(requestedSite) || sitesLoading}
                         >
-                            <option value="">Select a site</option>
+                            <option value="">{sitesLoading ? 'Loading sites…' : 'Select a site'}</option>
                             {sites.map((site) => (
-                                <option key={site} value={site}>
-                                    {site}
+                                <option key={site.id} value={site.id}>
+                                    {site.label}
                                 </option>
                             ))}
                         </select>
+                        {sitesError && <div className={styles.inlineError}>{sitesError}</div>}
 
                         <label className={styles.label} htmlFor="rack-page-rack">Telemetry target</label>
                         {isEditing ? (
