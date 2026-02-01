@@ -4,9 +4,10 @@ import {
     adminDeleteMonitoringPage,
     adminListMonitoringPages,
     adminUpdateMonitoringPage,
-    listRacks,
+    listTelemetryTargets,
 } from '../api/monitoringPages.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useSearchParams } from 'react-router-dom';
 import styles from './AdminRackPages.module.css';
 
 const emptyForm = {
@@ -26,17 +27,46 @@ const normalizeMonitoringPages = (payload) => {
     return [];
 };
 
-const normalizeRacks = (payload) => {
+const normalizeTelemetryTargets = (payload) => {
     if (Array.isArray(payload)) return payload;
-    if (Array.isArray(payload?.racks)) return payload.racks;
+    if (Array.isArray(payload?.targets)) return payload.targets;
     if (Array.isArray(payload?.data)) return payload.data;
-    if (Array.isArray(payload?.data?.racks)) return payload.data.racks;
+    if (Array.isArray(payload?.data?.targets)) return payload.data.targets;
     return [];
 };
 
-const resolveRackId = (rack) => rack?.rackId ?? rack?.rack_id ?? rack?.rack ?? rack?.id ?? '';
+const resolveRackId = (rack) =>
+    rack?.rackId ??
+    rack?.rack_id ??
+    rack?.rack ??
+    rack?.id ??
+    rack?.telemetryRackId ??
+    rack?.telemetry_rack_id ??
+    rack?.telemetryRack ??
+    rack?.telemetry_rack ??
+    '';
 
 const resolveRackLabel = (rack) => rack?.name || rack?.title || rack?.label || resolveRackId(rack);
+
+const resolveTargetSystem = (target) =>
+    target?.system ??
+    target?.systemId ??
+    target?.system_id ??
+    target?.site ??
+    target?.siteId ??
+    target?.site_id ??
+    '';
+
+const resolveTargetTelemetryId = (target) =>
+    target?.telemetryRackId ??
+    target?.telemetry_rack_id ??
+    target?.telemetryRack ??
+    target?.telemetry_rack ??
+    target?.rackId ??
+    target?.rack_id ??
+    target?.rack ??
+    target?.id ??
+    '';
 
 const resolvePageField = (page, candidates, fallback = '') => {
     for (const key of candidates) {
@@ -130,16 +160,23 @@ const detectFieldErrors = (error) => {
 
 export default function AdminRackPages() {
     const { token } = useAuth();
+    const [searchParams] = useSearchParams();
     const [pages, setPages] = useState([]);
-    const [racks, setRacks] = useState([]);
+    const [telemetryTargets, setTelemetryTargets] = useState([]);
+    const [sites, setSites] = useState([]);
+    const [selectedSite, setSelectedSite] = useState(() => (
+        searchParams.get('system') || searchParams.get('site') || ''
+    ));
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [listError, setListError] = useState('');
+    const [targetsError, setTargetsError] = useState('');
     const [formError, setFormError] = useState('');
     const [fieldErrors, setFieldErrors] = useState({});
     const [selectedPage, setSelectedPage] = useState(null);
     const [formState, setFormState] = useState(emptyForm);
     const [slugTouched, setSlugTouched] = useState(false);
+    const requestedSite = searchParams.get('system') || searchParams.get('site') || '';
 
     const isEditing = Boolean(selectedPage);
 
@@ -195,31 +232,60 @@ export default function AdminRackPages() {
         }
     }, [token]);
 
-    const loadRacks = useCallback(async () => {
+    const loadSites = useCallback(async () => {
         if (!token) return;
-        try {
-            const payload = await listRacks();
-            setRacks(normalizeRacks(payload));
-        } catch (error) {
-            console.error('Failed to load racks', error);
+        if (requestedSite) {
+            setSites([requestedSite]);
+            return;
         }
-    }, [token]);
+        try {
+            const payload = await listTelemetryTargets();
+            const targets = normalizeTelemetryTargets(payload);
+            const nextSites = Array.from(
+                new Set(targets.map((target) => `${resolveTargetSystem(target)}`.trim()).filter(Boolean)),
+            ).sort((a, b) => a.localeCompare(b));
+            setSites(nextSites);
+        } catch (error) {
+            console.error('Failed to load telemetry sites', error);
+        }
+    }, [requestedSite, token]);
+
+    const loadTelemetryTargets = useCallback(async () => {
+        if (!token) return;
+        if (!selectedSite) {
+            setTelemetryTargets([]);
+            setTargetsError('Select a site to load telemetry targets.');
+            return;
+        }
+        setTargetsError('');
+        try {
+            const payload = await listTelemetryTargets(selectedSite);
+            setTelemetryTargets(normalizeTelemetryTargets(payload));
+        } catch (error) {
+            console.error('Failed to load telemetry targets', error);
+            setTargetsError('Unable to load telemetry targets right now.');
+        }
+    }, [selectedSite, token]);
 
     useEffect(() => {
         loadPages();
-        loadRacks();
-    }, [loadPages, loadRacks]);
+        loadSites();
+    }, [loadPages, loadSites]);
+
+    useEffect(() => {
+        loadTelemetryTargets();
+    }, [loadTelemetryTargets]);
 
     const rackOptions = useMemo(
         () =>
-            [...racks]
+            [...telemetryTargets]
                 .map((rack) => ({
                     id: resolveRackId(rack),
                     label: resolveRackLabel(rack),
                 }))
                 .filter((rack) => rack.id)
                 .sort((a, b) => a.label.localeCompare(b.label)),
-        [racks],
+        [telemetryTargets],
     );
 
     const handleChange = (field) => (event) => {
@@ -233,13 +299,8 @@ export default function AdminRackPages() {
                 setSlugTouched(true);
             }
             if (field === 'rackId') {
-                const selectedRack = racks.find((rack) => resolveRackId(rack) === value);
-                const telemetryId =
-                    selectedRack?.telemetryRackId ??
-                    selectedRack?.telemetry_rack_id ??
-                    selectedRack?.telemetryRack ??
-                    selectedRack?.telemetry_rack ??
-                    '';
+                const selectedRack = telemetryTargets.find((rack) => resolveRackId(rack) === value);
+                const telemetryId = resolveTargetTelemetryId(selectedRack);
                 next.telemetryRackId = telemetryId ? `${telemetryId}`.trim() : '';
             }
             if (field === 'sortOrder') {
@@ -254,6 +315,19 @@ export default function AdminRackPages() {
 
     const handleSelect = (page) => {
         resetForm(page);
+    };
+
+    const handleSiteChange = (event) => {
+        const value = event.target.value;
+        setSelectedSite(value);
+        setTelemetryTargets([]);
+        setFormState((prev) => ({
+            ...prev,
+            rackId: '',
+            telemetryRackId: '',
+        }));
+        setFieldErrors((prev) => ({ ...prev, rackId: '', telemetryRackId: '' }));
+        setFormError('');
     };
 
     const handleSubmit = async (event) => {
@@ -421,6 +495,23 @@ export default function AdminRackPages() {
                         />
                         {fieldErrors.title && <div className={styles.inlineError}>{fieldErrors.title}</div>}
 
+                        <label className={styles.label} htmlFor="rack-page-site">Site</label>
+                        <select
+                            id="rack-page-site"
+                            className={styles.input}
+                            value={selectedSite}
+                            onChange={handleSiteChange}
+                            required
+                            disabled={Boolean(requestedSite)}
+                        >
+                            <option value="">Select a site</option>
+                            {sites.map((site) => (
+                                <option key={site} value={site}>
+                                    {site}
+                                </option>
+                            ))}
+                        </select>
+
                         <label className={styles.label} htmlFor="rack-page-rack">Rack</label>
                         {isEditing ? (
                             <input
@@ -446,6 +537,7 @@ export default function AdminRackPages() {
                             </select>
                         )}
                         {fieldErrors.rackId && <div className={styles.inlineError}>{fieldErrors.rackId}</div>}
+                        {targetsError && <div className={styles.inlineError}>{targetsError}</div>}
 
                         <label className={styles.label} htmlFor="rack-page-telemetry-rack">Telemetry rack ID</label>
                         <input
