@@ -282,11 +282,11 @@ export default function MonitoringPage() {
                     <span className={styles.value}>{normalizedSlug || "—"}</span>
                 </div>
                 <div className={styles.metaRow}>
-                    <span className={styles.label}>Rack</span>
+                    <span className={styles.label}>Telemetry target</span>
                     <span className={styles.value}>{rackId || "Not configured"}</span>
                 </div>
                 <div className={styles.metaRow}>
-                    <span className={styles.label}>Telemetry rack</span>
+                    <span className={styles.label}>Telemetry rack identifier</span>
                     <span className={styles.value}>{telemetryRackId || "Not configured"}</span>
                 </div>
                 {pageLoading && <p className={styles.statusMessage}>Loading page configuration…</p>}
