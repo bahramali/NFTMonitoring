@@ -19,14 +19,23 @@ const normalizeDevice = (payload = {}) => {
     const statusRaw = device.status ?? device.state ?? device.online;
     const status =
         typeof statusRaw === 'boolean' ? (statusRaw ? 'ONLINE' : 'OFFLINE') : statusRaw || 'UNKNOWN';
+    const metrics = device.metrics ?? device.latest ?? device.telemetry ?? {};
 
     return {
         id,
         name: device.name ?? device.displayName ?? device.deviceName ?? id ?? 'Device',
         status,
         lastSeen,
-        sensors: device.sensors ?? device.readings ?? device.sensorReadings ?? device.data ?? [],
-        metrics: device.metrics ?? device.latest ?? {},
+        telemetry: {
+            air_temp_c: metrics.air_temp_c ?? metrics.tempC ?? metrics.temperature,
+            rh_pct: metrics.rh_pct ?? metrics.humidity ?? metrics.rh,
+            co2_ppm: metrics.co2_ppm ?? metrics.co2,
+            lux: metrics.lux ?? metrics.light,
+            as7343_counts: metrics.as7343_counts ?? metrics.spectral,
+        },
+        health: device.health ?? device.sensorHealth ?? device.sensorsHealth ?? {},
+        uptime: device.uptime ?? device.uptime_human ?? '',
+        deviceType: device.deviceType ?? device.type ?? device.model ?? device.category ?? '',
         location: device.location ?? device.site ?? device.room ?? '',
         alerts: device.activeAlerts ?? device.alertsActive ?? device.alerts ?? [],
         raw: device,
@@ -149,12 +158,18 @@ export default function CustomerDeviceDetails() {
                     </div>
 
                     <DeviceCard
-                        id={device.name}
-                        compositeId={device.id}
-                        sensors={device.sensors}
-                        tempC={device.metrics.tempC ?? device.metrics.temperature}
-                        humidityPct={device.metrics.humidity}
-                        co2ppm={device.metrics.co2}
+                        device={{
+                            deviceId: device.id,
+                            deviceType: device.deviceType,
+                            status: device.status,
+                            telemetry: device.telemetry,
+                            health: device.health,
+                            uptime: device.uptime,
+                            farm: device.raw?.farm ?? device.raw?.farmId ?? '',
+                            unitType: device.raw?.unitType ?? '',
+                            unitId: device.raw?.unitId ?? '',
+                            layerId: device.raw?.layerId ?? '',
+                        }}
                     />
 
                     <div className={styles.actions}>

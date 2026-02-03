@@ -1,369 +1,363 @@
 // src/pages/Overview/components/Overview.jsx
-import React, { useMemo, useState } from "react";
-import DeviceCard from "./DeviceCard.jsx";
-import LayerCard from "./LayerCard.jsx";
-import Stat from "./Stat.jsx";
-import styles from "./Overview.module.css";
-import { useSensorConfig } from "../../../context/SensorConfigContext.jsx";
-import useWaterCompositeCards from "./useWaterCompositeCards.js";
-import { useStomp } from "../../../hooks/useStomp";
+import React, { useEffect, useMemo, useState } from "react";
 import Header from "../../common/Header";
-import { HYDROLEAF_TOPICS, normalizeTelemetryPayload, parseEnvelope } from "../../../utils/telemetryAdapter.js";
+import DeviceCard from "./DeviceCard.jsx";
+import styles from "./Overview.module.css";
+import { listFarms, listFarmDevices } from "../../../api/deviceMonitoring.js";
 
-// utils
-import {
-    fmt,
-    localDateTime,
-    aggregateFromCards,
-    normalizeSensors,
-    buildAggregatedEntries,
-} from "../utils";
-import isWaterDevice from "../utils/isWaterDevice.js"; // import local to avoid cycles
-
-/* ----------------------------- helpers ----------------------------- */
-
-// Split "S01-L02-G03" into parts
-const splitComp = (cid) => {
-    const [sys, lay, dev] = String(cid || "").trim().toUpperCase().split("-");
-    return { sys, lay, dev };
+const resolveFarmList = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.farms)) return payload.farms;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.data?.farms)) return payload.data.farms;
+  return [];
 };
 
-// Safe layer normalizer: returns "L01"/"L02"/... or null (never "--")
-const normLayerIdSafe = (raw) => {
-    const s = String(raw || "").trim();
-    if (!s) return null;
-
-    // Already "Lxx"
-    if (/^L\d+$/i.test(s)) return s.toUpperCase();
-
-    // "L 1" / "L1" / "layer1"
-    let m = /^L\s*(\d+)$/i.exec(s);
-    if (!m) m = /^layer\s*(\d+)$/i.exec(s);
-    if (m) return `L${String(m[1]).padStart(2, "0")}`;
-
-    return null;
+const resolveDeviceList = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.devices)) return payload.devices;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.data?.devices)) return payload.data.devices;
+  return [];
 };
 
-/* ---------------------- build systems & layers ---------------------- */
-
-// Map of metrics -> known key aliases in card.sensors
-const WATER_ALIASES = {
-    pH: ["pH", "ph"],
-    dissolvedOxygen: ["dissolvedOxygen", "do", "do_mgL", "doMgL", "oxygen_mgL"],
-    dissolvedEC: ["dissolvedEC", "ec", "ec_mScm", "ec_mS", "ecmScm"],
-    dissolvedTDS: ["dissolvedTDS", "tds", "tds_ppm", "tdsPpm"],
-    dissolvedTemp: ["dissolvedTemp", "waterTemp", "temp", "tempC", "water_tempC"],
+const normalizeFarm = (farm) => {
+  if (farm == null) return null;
+  if (typeof farm === "string") {
+    return { id: farm, name: farm };
+  }
+  const id = farm.id || farm.farmId || farm.farm_id || farm.code || farm.slug;
+  const name = farm.name || farm.label || farm.displayName || id || "Farm";
+  return id ? { id, name } : null;
 };
 
-// Aggregate water metrics from cards.sensors using aliases above
-function aggregateWaterFromCards(cards = []) {
-    const sums = { pH: 0, dissolvedOxygen: 0, dissolvedEC: 0, dissolvedTDS: 0, dissolvedTemp: 0 };
-    const counts = { pH: 0, dissolvedOxygen: 0, dissolvedEC: 0, dissolvedTDS: 0, dissolvedTemp: 0 };
+const normalizeDevice = (device) => {
+  const deviceId =
+    device?.deviceId ||
+    device?.device_id ||
+    device?.id ||
+    device?.compositeId ||
+    device?.composite_id ||
+    device?.serial ||
+    "";
+  return {
+    deviceId,
+    deviceType:
+      device?.deviceType ||
+      device?.device_type ||
+      device?.type ||
+      device?.model ||
+      device?.category ||
+      "",
+    status: device?.status || device?.state || device?.connectionStatus || "",
+    farm: device?.farm || device?.farmId || device?.farm_id || "",
+    unitType: device?.unitType || device?.unit_type || "",
+    unitId: device?.unitId || device?.unit_id || "",
+    layerId: device?.layerId || device?.layer_id || "",
+    telemetry:
+      device?.telemetry ||
+      device?.latestTelemetry ||
+      device?.telemetrySnapshot ||
+      device?.metrics ||
+      {},
+    health: device?.health || device?.sensorHealth || device?.sensorsHealth || {},
+    uptime: device?.uptime || device?.uptime_human || "",
+    hasAlarms:
+      device?.hasAlarms ||
+      device?.hasAlarm ||
+      device?.alarm ||
+      device?.alarmActive ||
+      false,
+    alarmLevel:
+      device?.alarmLevel ||
+      device?.alarm_level ||
+      device?.alertLevel ||
+      device?.alert_level ||
+      "",
+  };
+};
 
-    const pickVal = (sensors, aliases) => {
-        for (const k of aliases) {
-            const v = sensors?.[k]?.value;
-            if (v != null && !Number.isNaN(Number(v))) return Number(v);
-        }
-        return null;
-    };
+const resolveHasAlarm = (device) => {
+  if (device.hasAlarms) return true;
+  const alarmLevel = String(device.alarmLevel || "").toUpperCase();
+  return ["WARN", "ERROR", "ALARM", "CRITICAL"].includes(alarmLevel);
+};
 
-    for (const card of cards) {
-        const s = card.sensors || {};
-        for (const metric of Object.keys(WATER_ALIASES)) {
-            const v = pickVal(s, WATER_ALIASES[metric]);
-            if (v != null) {
-                sums[metric] += v;
-                counts[metric] += 1;
-            }
-        }
+const buildHierarchy = (devices) => {
+  const unitTypeMap = new Map();
+  devices.forEach((device) => {
+    const unitType = device.unitType || "UNKNOWN";
+    const unitId = device.unitId || "UNKNOWN";
+    const deviceType = device.deviceType || "DEVICE";
+    if (!unitTypeMap.has(unitType)) {
+      unitTypeMap.set(unitType, new Map());
     }
-
-    const avg = {};
-    for (const m of Object.keys(sums)) {
-        avg[m] = counts[m] > 0 ? (sums[m] / counts[m]) : null;
+    const unitMap = unitTypeMap.get(unitType);
+    if (!unitMap.has(unitId)) {
+      unitMap.set(unitId, new Map());
     }
-    return { avg, counts };
-}
+    const deviceTypeMap = unitMap.get(unitId);
+    if (!deviceTypeMap.has(deviceType)) {
+      deviceTypeMap.set(deviceType, []);
+    }
+    deviceTypeMap.get(deviceType).push(device);
+  });
 
-// Build system list and layer ids purely from live sensor topics
-function useSystemsIndex() {
-    const [index, setIndex] = React.useState({}); // { S01: { id, layers: ["L01","L02"], lastTs } }
+  return Array.from(unitTypeMap.entries()).map(([unitType, unitMap]) => ({
+    unitType,
+    units: Array.from(unitMap.entries()).map(([unitId, deviceTypeMap]) => ({
+      unitId,
+      deviceTypes: Array.from(deviceTypeMap.entries()).map(([deviceType, list]) => ({
+        deviceType,
+        devices: list,
+      })),
+    })),
+  }));
+};
 
-    const topics = React.useMemo(() => HYDROLEAF_TOPICS, []);
-    useStomp(topics, (_topic, data) => {
-        if (!data) return;
-        const envelope = parseEnvelope(data);
-        const telemetry = normalizeTelemetryPayload(envelope);
-        if (envelope && envelope.kind !== "telemetry") return;
-        const message = telemetry || data;
-
-        let cid = message.compositeId || message.composite_id || message.cid;
-        let sys, lay;
-        if (cid) {
-            ({ sys, lay } = splitComp(cid));
-        } else {
-            sys = String(message.system || message.systemId || message.siteId || "").toUpperCase();
-            lay = String(message.layer || message.layerId || message.nodeId || "");
-        }
-        if (!sys) return;
-
-        const ts = Number(message.timestamp || message.ts || Date.now());
-        const layerId = normLayerIdSafe(lay);
-
-        setIndex((prev) => {
-            const next = { ...prev };
-            const cur = next[sys] || { id: sys, layers: [], lastTs: 0 };
-            if (layerId && !cur.layers.includes(layerId)) cur.layers.push(layerId);
-            cur.lastTs = Math.max(cur.lastTs || 0, ts);
-            next[sys] = cur;
-            return next;
-        });
-    });
-
-    // Return as array for UI
-    return React.useMemo(() => {
-        const arr = Object.values(index).map((item) => ({
-            id: item.id,
-            name: item.id,
-            updatedAt: item.lastTs ? localDateTime(item.lastTs) : "--",
-            layers: item.layers.filter(Boolean).map((id) => ({ id, health: "ok" })), // health is cosmetic here
-        }));
-        arr.sort((a, b) => String(a.id).localeCompare(String(b.id)));
-        return arr;
-    }, [index]);
-}
-
-/* ---------------- collect all cards for a system ------------------- */
-
-function useSystemCompositeCards(systemKeyInput) {
-    const [cards, setCards] = React.useState({});
-    const sysKey = String(systemKeyInput || "").toUpperCase();
-
-    const upsert = React.useCallback((compId, sensors, ts) => {
-        setCards((prev) => {
-            const next = { ...prev };
-            const cur = next[compId] || { sensors: {}, rawSensors: [], ts: 0 };
-            const normalized = normalizeSensors(sensors);
-            for (const [k, obj] of Object.entries(normalized)) {
-                if (obj && typeof obj === "object") {
-                    cur.sensors[k] = {
-                        value: obj.value,
-                        unit: obj.unit,
-                        sensorType: obj.sensorType ?? k,
-                    };
-                } else {
-                    cur.sensors[k] = { value: obj, unit: undefined, sensorType: k };
-                }
-            }
-            cur.rawSensors = Array.isArray(sensors)
-                ? sensors.map((sensor) => {
-                      const sensorType =
-                          sensor?.sensorType ??
-                          sensor?.valueType ??
-                          sensor?.type ??
-                          sensor?.name ??
-                          "";
-                      const unit = sensor?.unit || sensor?.units || sensor?.u || "";
-                      return {
-                          sensorType,
-                          value: sensor?.value,
-                          unit,
-                          sensorName: sensor?.sensorName ?? sensor?.name ?? sensor?.source ?? "",
-                      };
-                  })
-                : [];
-            cur.ts = Math.max(cur.ts || 0, ts || Date.now());
-            next[compId] = cur;
-            return next;
-        });
-    }, []);
-
-    const topics = React.useMemo(() => HYDROLEAF_TOPICS, []);
-    useStomp(topics, (_topic, data) => {
-        if (!data) return;
-        const envelope = parseEnvelope(data);
-        const telemetry = normalizeTelemetryPayload(envelope);
-        if (envelope && envelope.kind !== "telemetry") return;
-        const message = telemetry || data;
-
-        let cid = message.compositeId || message.composite_id || message.cid;
-        if (!cid) {
-            const sys = message.siteId || message.system || message.systemId;
-            const lay = message.nodeId || message.layerId || message.layer;
-            const dev = message.deviceId || message.device || message.devId;
-            const rack = message.rackId || message.rack;
-            if (sys && lay && dev) {
-                cid = rack ? `${sys}-${rack}-${lay}-${dev}` : `${sys}-${lay}-${dev}`;
-            }
-        }
-        if (!cid) return;
-
-        const { sys } = splitComp(cid);
-        if (!sys || sys.toUpperCase() !== sysKey) return;
-
-        const sensors =
-            message.sensors ||
-            message.values ||
-            message.env ||
-            message.water ||
-            message.payload ||
-            message.readings ||
-            [];
-        upsert(cid, sensors, message.timestamp || message.ts);
-    });
-
-    React.useEffect(() => {
-        setCards({});
-    }, [sysKey]);
-
-    return React.useMemo(
-        () =>
-            Object.entries(cards)
-                .map(([compId, payload]) => ({ compId, ...payload }))
-                .sort((a, b) => String(a.compId).localeCompare(String(b.compId))),
-        [cards]
-    );
-}
-
-/* ------------------------------- page ------------------------------- */
+const sortDevices = (devices) =>
+  [...devices].sort((a, b) => {
+    const statusA = String(a.status || "").toLowerCase();
+    const statusB = String(b.status || "").toLowerCase();
+    if (statusA === "online" && statusB !== "online") return -1;
+    if (statusA !== "online" && statusB === "online") return 1;
+    return String(a.deviceId || "").localeCompare(String(b.deviceId || ""));
+  });
 
 export default function Overview() {
-    const systems = useSystemsIndex();
+  const [farms, setFarms] = useState([]);
+  const [selectedFarmId, setSelectedFarmId] = useState("");
+  const [loadingFarms, setLoadingFarms] = useState(false);
+  const [farmError, setFarmError] = useState("");
 
-    const [activeId, setActiveId] = useState(null);
-    const active = systems.find((s) => s.id === activeId) || systems[0] || null;
-    const activeIdSafe = active?.id || ""; // always defined for hooks
+  const [devices, setDevices] = useState([]);
+  const [loadingDevices, setLoadingDevices] = useState(false);
+  const [devicesError, setDevicesError] = useState("");
 
-    // Water: always call hooks (even when data not ready)
-    const waterCards = useWaterCompositeCards(activeIdSafe);
-    const waterAgg = useMemo(() => aggregateWaterFromCards(waterCards), [waterCards]);
+  const [filters, setFilters] = useState({
+    deviceType: "",
+    unitId: "",
+    hasAlarms: "all",
+  });
 
-    // Env overview from non-water cards
-    const sysCards = useSystemCompositeCards(activeIdSafe);
-    const growCards = useMemo(() => sysCards.filter((c) => !isWaterDevice(c.compId)), [sysCards]);
-    const envAgg = useMemo(() => aggregateFromCards(growCards), [growCards]);
-    const { findRange } = useSensorConfig();
-    const envStats = useMemo(
-        () => buildAggregatedEntries(envAgg, { topic: '/topic/growSensors', findRange }),
-        [envAgg, findRange]
-    );
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    const loadFarms = async () => {
+      setLoadingFarms(true);
+      setFarmError("");
+      try {
+        const payload = await listFarms({ signal: controller.signal });
+        if (cancelled) return;
+        const resolved = resolveFarmList(payload)
+          .map(normalizeFarm)
+          .filter(Boolean);
+        setFarms(resolved);
+        if (!selectedFarmId && resolved.length > 0) {
+          setSelectedFarmId(resolved[0].id);
+        }
+      } catch (error) {
+        if (cancelled || controller.signal.aborted) return;
+        console.error("Failed to load farms", error);
+        setFarmError("Unable to load farms.");
+        setFarms([]);
+      } finally {
+        if (!cancelled) setLoadingFarms(false);
+      }
+    };
+    loadFarms();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, []);
 
-    return (
-        <div className={styles.page}>
-            <Header title="Overview" />
-            {(!systems.length || !active) ? (
-                <div>Waiting for data…</div>
-                ) : (
-                <>
-            {/* System tabs */}
-            <div className={styles.tabs}>
-                {systems.map((sys) => (
-                    <button
-                        key={sys.id}
-                        className={`${styles.tab} ${active.id === sys.id ? styles.active : ""}`}
-                        onClick={() => setActiveId(sys.id)}
-                    >
-                        System: {sys.name}
-                    </button>
+  useEffect(() => {
+    if (!selectedFarmId) {
+      setDevices([]);
+      setDevicesError("");
+      setLoadingDevices(false);
+      return;
+    }
+    let cancelled = false;
+    const controller = new AbortController();
+    const loadDevices = async () => {
+      setLoadingDevices(true);
+      setDevicesError("");
+      try {
+        const payload = await listFarmDevices(selectedFarmId, { signal: controller.signal });
+        if (cancelled) return;
+        const list = resolveDeviceList(payload).map(normalizeDevice);
+        setDevices(list);
+      } catch (error) {
+        if (cancelled || controller.signal.aborted) return;
+        console.error("Failed to load devices", error);
+        setDevicesError("Unable to load devices.");
+        setDevices([]);
+      } finally {
+        if (!cancelled) setLoadingDevices(false);
+      }
+    };
+    loadDevices();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [selectedFarmId]);
+
+  const deviceTypeOptions = useMemo(() => {
+    const types = new Set();
+    devices.forEach((device) => {
+      if (device.deviceType) types.add(device.deviceType);
+    });
+    return Array.from(types).sort((a, b) => a.localeCompare(b));
+  }, [devices]);
+
+  const unitIdOptions = useMemo(() => {
+    const ids = new Set();
+    devices.forEach((device) => {
+      if (device.unitId) ids.add(device.unitId);
+    });
+    return Array.from(ids).sort((a, b) => a.localeCompare(b));
+  }, [devices]);
+
+  const filteredDevices = useMemo(() => {
+    return devices.filter((device) => {
+      if (filters.deviceType && device.deviceType !== filters.deviceType) return false;
+      if (filters.unitId && device.unitId !== filters.unitId) return false;
+      if (filters.hasAlarms === "alarms" && !resolveHasAlarm(device)) return false;
+      return true;
+    });
+  }, [devices, filters]);
+
+  const hierarchy = useMemo(() => buildHierarchy(sortDevices(filteredDevices)), [filteredDevices]);
+
+  const selectedFarm = farms.find((farm) => farm.id === selectedFarmId);
+
+  return (
+    <div className={styles.page}>
+      <Header title="Overview" />
+      <section className={styles.card}>
+        <div className={styles.headerRow}>
+          <div>
+            <h2 className={styles.title}>Device Inventory</h2>
+            <p className={styles.subtitle}>Backend-driven view of device state.</p>
+          </div>
+          <div className={styles.farmPicker}>
+            <label htmlFor="farm-select">Farm</label>
+            <select
+              id="farm-select"
+              value={selectedFarmId}
+              onChange={(event) => setSelectedFarmId(event.target.value)}
+              disabled={loadingFarms || farms.length === 0}
+            >
+              {farms.map((farm) => (
+                <option key={farm.id} value={farm.id}>
+                  {farm.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {loadingFarms ? <p className={styles.statusMessage}>Loading farms…</p> : null}
+        {farmError ? <p className={styles.statusMessage}>{farmError}</p> : null}
+        {!loadingFarms && !farmError && farms.length === 0 ? (
+          <p className={styles.statusMessage}>No farms available.</p>
+        ) : null}
+      </section>
+
+      <section className={styles.card}>
+        <div className={styles.filtersRow}>
+          <div className={styles.filterGroup}>
+            <label htmlFor="device-type-filter">Device type</label>
+            <select
+              id="device-type-filter"
+              value={filters.deviceType}
+              onChange={(event) =>
+                setFilters((prev) => ({ ...prev, deviceType: event.target.value }))
+              }
+            >
+              <option value="">All</option>
+              {deviceTypeOptions.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className={styles.filterGroup}>
+            <label htmlFor="unit-id-filter">Unit ID</label>
+            <select
+              id="unit-id-filter"
+              value={filters.unitId}
+              onChange={(event) =>
+                setFilters((prev) => ({ ...prev, unitId: event.target.value }))
+              }
+            >
+              <option value="">All</option>
+              {unitIdOptions.map((id) => (
+                <option key={id} value={id}>
+                  {id}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className={styles.filterGroup}>
+            <label htmlFor="alarm-filter">Alarms</label>
+            <select
+              id="alarm-filter"
+              value={filters.hasAlarms}
+              onChange={(event) =>
+                setFilters((prev) => ({ ...prev, hasAlarms: event.target.value }))
+              }
+            >
+              <option value="all">All</option>
+              <option value="alarms">Has alarms</option>
+            </select>
+          </div>
+          <div className={styles.filterMeta}>
+            <span>{filteredDevices.length} devices</span>
+            {selectedFarm ? <span>Farm: {selectedFarm.name}</span> : null}
+          </div>
+        </div>
+        {loadingDevices ? <p className={styles.statusMessage}>Loading devices…</p> : null}
+        {devicesError ? <p className={styles.statusMessage}>{devicesError}</p> : null}
+        {!loadingDevices && !devicesError && filteredDevices.length === 0 ? (
+          <p className={styles.statusMessage}>No devices found.</p>
+        ) : null}
+
+        {!loadingDevices && !devicesError && filteredDevices.length > 0 ? (
+          <div className={styles.hierarchy}>
+            {hierarchy.map((unitTypeGroup) => (
+              <div key={unitTypeGroup.unitType} className={styles.unitTypeGroup}>
+                <div className={styles.unitTypeHeader}>
+                  UnitType: {unitTypeGroup.unitType}
+                </div>
+                {unitTypeGroup.units.map((unit) => (
+                  <div key={unit.unitId} className={styles.unitGroup}>
+                    <div className={styles.unitHeader}>Unit: {unit.unitId}</div>
+                    {unit.deviceTypes.map((deviceTypeGroup) => (
+                      <div key={deviceTypeGroup.deviceType} className={styles.deviceTypeGroup}>
+                        <div className={styles.deviceTypeHeader}>
+                          DeviceType: {deviceTypeGroup.deviceType}
+                        </div>
+                        <div className={styles.deviceGrid}>
+                          {deviceTypeGroup.devices.map((device, index) => (
+                            <DeviceCard
+                              key={device.deviceId || `${device.deviceType}-${index}`}
+                              device={device}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 ))}
-            </div>
-
-            <div className={`${styles.card} ${styles.shadow} ${styles.systemCard}`}>
-                <div className={styles.muted}>Last update: {active.updatedAt}</div>
-                <h2>{active.name}</h2>
-
-                {/* ------------------------- Water summary ------------------------- */}
-                <div className={styles.row}>
-                    <div className={styles.col6}>
-                        <div className={`${styles.subcard} ${styles.water}`}>
-                            <h3>Water</h3>
-
-                            <div className={styles.stats}>
-                                {WATER_STATS.map(({ label, key, precision, rangeKey }) => {
-                                    const count = waterAgg?.counts?.[key] || 0;
-                                    const value = fmt(waterAgg?.avg?.[key], precision);
-                                    const range = findRange(rangeKey, { topic: '/topic/waterTank' });
-                                    return (
-                                        <Stat
-                                            key={key}
-                                            label={`${label}=`}
-                                            value={`${value} (${count} sensors)`}
-                                            range={range}
-                                        />
-                                    );
-                                })}
-                            </div>
-
-                            <div className={styles.divider} />
-                            <div className={styles.devCards}>
-                                {waterCards.length ? (
-                                    waterCards.map((card) => (
-                                        <DeviceCard
-                                            key={card.compId}
-                                            compositeId={card.compId}
-                                            sensors={(card.rawSensors || []).map((reading) => ({
-                                                sensorType:
-                                                    reading?.sensorType ??
-                                                    reading?.valueType ??
-                                                    reading?.type ??
-                                                    reading?.name ??
-                                                    "",
-                                                value: reading?.value,
-                                                unit: reading?.unit || "",
-                                            }))}
-                                        />
-                                    ))
-                                ) : (
-                                    <div className={styles.muted}>No device cards</div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className={styles.divider} />
-
-                {/* ---------------------- Layers + Env overview -------------------- */}
-                <div className={styles.section}>
-                    <h3 className={styles.muted}>Layers</h3>
-
-                    {/* Environment overview (aggregated from grow device cards) */}
-                    <div className={`${styles.subcard} ${styles.env}`}>
-                        <h3>Environment overview</h3>
-                        <div className={styles.stats}>
-                            {envStats.map((stat) => (
-                                <Stat
-                                    key={stat.key}
-                                    label={`${stat.label}=`}
-                                    value={`${stat.value} (${stat.countLabel})`}
-                                    range={stat.range}
-                                />
-                            ))}
-                        </div>
-
-                        <div className={styles.divider} />
-
-                        <div className={styles.layers}>
-                            {active.layers.map((l) => (
-                                <LayerCard key={l.id} layer={l} systemId={active.id} />
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </>
-    )}
-</div>
-);
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </section>
+    </div>
+  );
 }
-
-/* --------------------------- constants --------------------------- */
-// Keys must match normalized sensor keys from utils/normalizeSensors
-const WATER_STATS = [
-    { label: "pH", key: "pH", precision: 1, rangeKey: "ph" },
-    { label: "DO", key: "dissolvedOxygen", precision: 1, rangeKey: "dissolvedOxygen" },
-    { label: "EC", key: "dissolvedEC", precision: 2, rangeKey: "ec" },
-    { label: "TDS", key: "dissolvedTDS", precision: 0, rangeKey: "tds" },
-    { label: "Temp", key: "dissolvedTemp", precision: 1, rangeKey: "dissolvedTemp" },
-];
