@@ -69,10 +69,10 @@ export const adminDeleteMonitoringPage = (id, { signal } = {}) =>
 export const listRacks = ({ signal } = {}) =>
     requestJson(RACKS_URL, { signal, headers: buildAuthHeaders() }, 'Failed to load racks');
 
-export const listTelemetryTargets = (system, { signal } = {}) => {
+export const listTelemetryTargets = (farm, { signal } = {}) => {
     const query = new URLSearchParams();
-    if (system) {
-        query.set('system', system);
+    if (farm) {
+        query.set('farm', farm);
     }
     const url = query.toString() ? `${TELEMETRY_TARGETS_URL}?${query}` : TELEMETRY_TARGETS_URL;
     return requestJson(url, { signal, headers: buildAuthHeaders() }, 'Failed to load telemetry targets');
