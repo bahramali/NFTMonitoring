@@ -31,36 +31,94 @@
   border: 1px solid rgba(128, 198, 255, 0.45);
   color: #f0f6ff;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  font-size: 1rem;
+  color: #f3f7ff;
+  margin-bottom: 0.35rem;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 1rem;
+  font-size: 0.78rem;
+  color: #a8c1ff;
+}
+
+.status {
+  align-self: flex-start;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(86, 104, 136, 0.4);
+  border: 1px solid rgba(120, 150, 190, 0.45);
+  color: #dbe8ff;
+}
+
+.statusonline {
+  background: rgba(48, 122, 94, 0.35);
+  border-color: rgba(84, 214, 148, 0.6);
+  color: #c5ffdf;
 }
 
 .kv {
   margin-top: 0.35rem;
 }
 
-.kvTitle {
+.details {
+  border-top: 1px solid rgba(90, 130, 200, 0.35);
+  padding-top: 0.7rem;
+}
+
+.details summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: #c5d6ff;
   font-weight: 600;
-  color: #9fc6ff;
-  margin-bottom: 0.35rem;
-  font-size: 0.85rem;
+  list-style: none;
 }
 
-.pairGrid {
+.details summary::-webkit-details-marker {
+  display: none;
+}
+
+.spectralTable {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.3rem;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.45rem 1rem;
+  margin-top: 0.6rem;
+  font-size: 0.78rem;
 }
 
-.pairChip {
+.spectralRow {
   display: flex;
   justify-content: space-between;
   padding: 0.35rem 0.5rem;
+  border-radius: 0.5rem;
+  background: rgba(18, 32, 54, 0.8);
+  border: 1px solid rgba(90, 128, 198, 0.3);
+  color: #dbe9ff;
+}
+
+.events {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.eventRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.45rem 0.6rem;
   border-radius: 0.55rem;
-  background: rgba(20, 38, 64, 0.8);
-  border: 1px solid rgba(98, 148, 224, 0.35);
+  background: rgba(16, 28, 50, 0.85);
+  border: 1px solid rgba(90, 128, 198, 0.25);
   font-size: 0.75rem;
-  color: #d8e6ff;
+  color: #dce9ff;
 }
 
 .title {
