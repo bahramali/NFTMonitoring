@@ -13,8 +13,11 @@ import styles from './AdminRackPages.module.css';
 
 const emptyForm = {
     title: '',
-    rackId: '',
-    telemetryRackId: '',
+    farm: '',
+    unitType: '',
+    unitId: '',
+    subUnitType: '',
+    subUnitId: '',
     slug: '',
     enabled: true,
     sortOrder: 0,
@@ -48,36 +51,40 @@ const normalizeSites = (payload) => {
     return [];
 };
 
-const resolveRackId = (rack) => {
-    if (typeof rack === 'string' || typeof rack === 'number') {
-        return `${rack}`.trim();
+const resolveTargetValue = (target, candidates) => {
+    if (!target) return '';
+    for (const key of candidates) {
+        const value = target?.[key];
+        if (value !== undefined && value !== null && `${value}`.trim()) {
+            return `${value}`.trim();
+        }
     }
-    return (
-        rack?.rackId ??
-        rack?.rack_id ??
-        rack?.rack ??
-        rack?.telemetryTargetId ??
-        rack?.id ??
-        rack?.telemetryRackId ??
-        rack?.telemetry_rack_id ??
-        rack?.telemetryRack ??
-        rack?.telemetry_rack ??
-        ''
-    );
+    return '';
 };
 
-const resolveRackLabel = (rack) => rack?.name || rack?.title || rack?.label || resolveRackId(rack);
+const normalizeUnitType = (value) => `${value || ''}`.trim().toUpperCase();
 
-const resolveTargetTelemetryId = (target) =>
-    target?.telemetryRackId ??
-    target?.telemetry_rack_id ??
-    target?.telemetryRack ??
-    target?.telemetry_rack ??
-    target?.rackId ??
-    target?.rack_id ??
-    target?.rack ??
-    target?.id ??
-    '';
+const normalizeTarget = (target, farmFallback = '') => {
+    if (!target || typeof target !== 'object') return null;
+    const farm = resolveTargetValue(target, ['farm', 'system', 'site', 'farmId', 'systemId', 'siteId']) || farmFallback;
+    const unitType = normalizeUnitType(
+        resolveTargetValue(target, ['unitType', 'unit_type', 'type', 'unit', 'unit_type_name']),
+    );
+    const unitId = resolveTargetValue(target, ['unitId', 'unit_id', 'unit', 'unitKey', 'unit_key']);
+    const subUnitType = normalizeUnitType(resolveTargetValue(target, ['subUnitType', 'sub_unit_type', 'subUnit']));
+    const subUnitId = resolveTargetValue(target, ['subUnitId', 'sub_unit_id', 'subUnitId', 'sub_unit']);
+    if (!unitType || !unitId) return null;
+    return { farm, unitType, unitId, subUnitType, subUnitId };
+};
+
+const formatTargetLabel = (target) => {
+    if (!target?.unitType || !target?.unitId) return '';
+    const parts = [`${target.unitType} ${target.unitId}`];
+    if (target.subUnitType && target.subUnitId) {
+        parts.push(`${target.subUnitType} ${target.subUnitId}`);
+    }
+    return parts.join(' • ');
+};
 
 const resolveSiteId = (site) =>
     site?.system ??
@@ -103,37 +110,23 @@ const resolvePageField = (page, candidates, fallback = '') => {
     return fallback;
 };
 
-const resolvePageRackId = (page) => {
-    const candidates = [
-        page?.rackId,
-        page?.rack_id,
-        page?.rack,
-        page?.rack?.id,
-        page?.rack?.rackId,
-        page?.rack?.rack_id,
-        page?.rack?.rack,
-    ];
-    for (const candidate of candidates) {
-        if (candidate === undefined || candidate === null) continue;
-        const value = `${candidate}`.trim();
+const resolvePageTargetField = (page, keys) => {
+    const containers = [page, page?.target, page?.telemetryTarget, page?.telemetry_target];
+    for (const container of containers) {
+        if (!container) continue;
+        const value = resolveTargetValue(container, keys);
         if (value) return value;
     }
     return '';
 };
 
-const resolvePageTelemetryRackId = (page) => {
-    const candidates = [
-        page?.telemetryRackId,
-        page?.telemetry_rack_id,
-        page?.telemetryRack,
-        page?.telemetry_rack,
-    ];
-    for (const candidate of candidates) {
-        if (candidate === undefined || candidate === null) continue;
-        const value = `${candidate}`.trim();
-        if (value) return value;
-    }
-    return '';
+const resolvePageTarget = (page) => {
+    const farm = resolvePageTargetField(page, ['farm', 'system', 'site', 'farmId', 'systemId', 'siteId']);
+    const unitType = normalizeUnitType(resolvePageTargetField(page, ['unitType', 'unit_type', 'type', 'unit']));
+    const unitId = resolvePageTargetField(page, ['unitId', 'unit_id', 'unit']);
+    const subUnitType = normalizeUnitType(resolvePageTargetField(page, ['subUnitType', 'sub_unit_type', 'subUnit']));
+    const subUnitId = resolvePageTargetField(page, ['subUnitId', 'sub_unit_id', 'subUnitId', 'sub_unit']);
+    return { farm, unitType, unitId, subUnitType, subUnitId };
 };
 
 const slugify = (value) =>
@@ -158,13 +151,19 @@ const detectFieldErrors = (error) => {
             const rawField = entry.field || entry.path || entry.key || entry.name;
             const message = entry.message || entry.error || entry.detail;
             const field =
-                rawField === 'rack_id' || rawField === 'rack'
-                    ? 'rackId'
-                    : rawField === 'telemetry_rack_id' || rawField === 'telemetry_rack'
-                      ? 'telemetryRackId'
-                      : rawField === 'slug'
-                        ? 'slug'
-                        : rawField;
+                rawField === 'unit_type' || rawField === 'unitType'
+                    ? 'unitType'
+                    : rawField === 'unit_id' || rawField === 'unitId'
+                      ? 'unitId'
+                      : rawField === 'sub_unit_type' || rawField === 'subUnitType'
+                        ? 'subUnitType'
+                        : rawField === 'sub_unit_id' || rawField === 'subUnitId'
+                          ? 'subUnitId'
+                          : rawField === 'farm' || rawField === 'system' || rawField === 'site'
+                            ? 'farm'
+                            : rawField === 'slug'
+                              ? 'slug'
+                              : rawField;
             pushFieldError(field, message);
         });
     }
@@ -172,8 +171,8 @@ const detectFieldErrors = (error) => {
     const message = `${payload?.message || error?.message || ''}`.toLowerCase();
     const hasDuplicateHint = message.includes('duplicate') || message.includes('unique') || message.includes('exists');
 
-    if (hasDuplicateHint && message.includes('rack')) {
-        pushFieldError('rackId', 'Each rack can only be assigned to one monitoring page.');
+    if (hasDuplicateHint && (message.includes('unit') || message.includes('target'))) {
+        pushFieldError('unitId', 'Each telemetry target can only be assigned to one monitoring page.');
     }
 
     if (hasDuplicateHint && message.includes('slug')) {
@@ -188,12 +187,12 @@ export default function AdminRackPages() {
     const [searchParams] = useSearchParams();
     const [pages, setPages] = useState([]);
     const [telemetryTargets, setTelemetryTargets] = useState([]);
-    const [sites, setSites] = useState([]);
-    const [selectedSite, setSelectedSite] = useState(() => (
-        searchParams.get('system') || searchParams.get('site') || ''
+    const [farms, setFarms] = useState([]);
+    const [selectedFarm, setSelectedFarm] = useState(() => (
+        searchParams.get('farm') || searchParams.get('system') || searchParams.get('site') || ''
     ));
-    const [sitesLoading, setSitesLoading] = useState(false);
-    const [sitesError, setSitesError] = useState('');
+    const [farmsLoading, setFarmsLoading] = useState(false);
+    const [farmsError, setFarmsError] = useState('');
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [targetsLoading, setTargetsLoading] = useState(false);
@@ -204,7 +203,7 @@ export default function AdminRackPages() {
     const [selectedPage, setSelectedPage] = useState(null);
     const [formState, setFormState] = useState(emptyForm);
     const [slugTouched, setSlugTouched] = useState(false);
-    const requestedSite = searchParams.get('system') || searchParams.get('site') || '';
+    const requestedFarm = searchParams.get('farm') || searchParams.get('system') || searchParams.get('site') || '';
 
     const isEditing = Boolean(selectedPage);
 
@@ -224,26 +223,33 @@ export default function AdminRackPages() {
     const resetForm = useCallback((page = null) => {
         if (!page) {
             setSelectedPage(null);
-            setFormState(emptyForm);
+            setFormState({ ...emptyForm, farm: selectedFarm });
             setSlugTouched(false);
             setFieldErrors({});
             setFormError('');
             return;
         }
 
+        const target = resolvePageTarget(page);
         setSelectedPage(page);
         setFormState({
             title: resolvePageField(page, ['title', 'name', 'pageTitle'], ''),
-            rackId: resolvePageRackId(page),
-            telemetryRackId: resolvePageTelemetryRackId(page),
+            farm: target.farm,
+            unitType: target.unitType,
+            unitId: target.unitId,
+            subUnitType: target.subUnitType,
+            subUnitId: target.subUnitId,
             slug: resolvePageField(page, ['slug', 'path'], ''),
             enabled: page?.enabled !== false,
             sortOrder: Number(resolvePageField(page, ['sortOrder', 'order'], 0)),
         });
+        if (target.farm) {
+            setSelectedFarm(target.farm);
+        }
         setSlugTouched(true);
         setFieldErrors({});
         setFormError('');
-    }, []);
+    }, [selectedFarm]);
 
     const loadPages = useCallback(async () => {
         if (!token) return;
@@ -254,16 +260,16 @@ export default function AdminRackPages() {
             setPages(normalizeMonitoringPages(payload));
         } catch (error) {
             console.error('Failed to load monitoring pages', error);
-            setListError('Unable to load rack pages right now.');
+            setListError('Unable to load monitoring pages right now.');
         } finally {
             setLoading(false);
         }
     }, [token]);
 
-    const loadSites = useCallback(async () => {
+    const loadFarms = useCallback(async () => {
         if (!token) return;
-        setSitesLoading(true);
-        setSitesError('');
+        setFarmsLoading(true);
+        setFarmsError('');
         try {
             const payload = await listSystems();
             const rawSites = normalizeSites(payload);
@@ -281,34 +287,34 @@ export default function AdminRackPages() {
                 })
                 .filter(Boolean)
                 .sort((a, b) => a.label.localeCompare(b.label));
-            if (selectedSite && !mapped.find((site) => site.id === selectedSite)) {
-                mapped.unshift({ id: selectedSite, label: selectedSite });
+            if (selectedFarm && !mapped.find((site) => site.id === selectedFarm)) {
+                mapped.unshift({ id: selectedFarm, label: selectedFarm });
             }
-            setSites(mapped);
+            setFarms(mapped);
         } catch (error) {
-            console.error('Failed to load sites', error);
-            setSitesError('Unable to load sites right now.');
-            if (requestedSite) {
-                setSites([{ id: requestedSite, label: requestedSite }]);
+            console.error('Failed to load farms', error);
+            setFarmsError('Unable to load farms right now.');
+            if (requestedFarm) {
+                setFarms([{ id: requestedFarm, label: requestedFarm }]);
             } else {
-                setSites([]);
+                setFarms([]);
             }
         } finally {
-            setSitesLoading(false);
+            setFarmsLoading(false);
         }
-    }, [requestedSite, selectedSite, token]);
+    }, [requestedFarm, selectedFarm, token]);
 
     const loadTelemetryTargets = useCallback(async () => {
         if (!token) return;
-        if (!selectedSite) {
+        if (!selectedFarm) {
             setTelemetryTargets([]);
-            setTargetsError('Select a site to load telemetry targets.');
+            setTargetsError('Select a farm to load telemetry targets.');
             return;
         }
         setTargetsError('');
         setTargetsLoading(true);
         try {
-            const payload = await listTelemetryTargets(selectedSite);
+            const payload = await listTelemetryTargets(selectedFarm);
             console.log('telemetryTargets response:', payload);
             const targets = normalizeTelemetryTargets(payload);
             console.log('parsed targets:', targets);
@@ -319,35 +325,78 @@ export default function AdminRackPages() {
         } finally {
             setTargetsLoading(false);
         }
-    }, [selectedSite, token]);
+    }, [selectedFarm, token]);
 
     useEffect(() => {
         loadPages();
-        loadSites();
-    }, [loadPages, loadSites]);
+        loadFarms();
+    }, [loadFarms, loadPages]);
 
     useEffect(() => {
         loadTelemetryTargets();
     }, [loadTelemetryTargets]);
 
-    const rackOptions = useMemo(
+    useEffect(() => {
+        if (!selectedFarm || isEditing) return;
+        setFormState((prev) => (prev.farm === selectedFarm ? prev : { ...prev, farm: selectedFarm }));
+    }, [isEditing, selectedFarm]);
+
+    const normalizedTargets = useMemo(
         () =>
-            [...telemetryTargets]
-                .map((rack) => {
-                    if (typeof rack === 'string' || typeof rack === 'number') {
-                        const id = `${rack}`.trim();
-                        return id ? { id, label: id } : null;
-                    }
-                    if (!rack) return null;
-                    return {
-                        id: resolveRackId(rack),
-                        label: resolveRackLabel(rack),
-                    };
-                })
-                .filter((rack) => rack.id)
-                .sort((a, b) => a.label.localeCompare(b.label)),
-        [telemetryTargets],
+            telemetryTargets
+                .map((target) => normalizeTarget(target, selectedFarm))
+                .filter(Boolean),
+        [selectedFarm, telemetryTargets],
     );
+
+    const unitTypeOptions = useMemo(() => {
+        const values = Array.from(new Set(normalizedTargets.map((target) => target.unitType).filter(Boolean)));
+        return values.sort((a, b) => a.localeCompare(b));
+    }, [normalizedTargets]);
+
+    const unitIdOptions = useMemo(() => {
+        if (!formState.unitType) return [];
+        const values = Array.from(
+            new Set(
+                normalizedTargets
+                    .filter((target) => target.unitType === formState.unitType)
+                    .map((target) => target.unitId)
+                    .filter(Boolean),
+            ),
+        );
+        return values.sort((a, b) => a.localeCompare(b));
+    }, [formState.unitType, normalizedTargets]);
+
+    const subUnitTypeOptions = useMemo(() => {
+        if (formState.unitType !== 'RACK' || !formState.unitId) return [];
+        const values = Array.from(
+            new Set(
+                normalizedTargets
+                    .filter((target) => target.unitType === 'RACK' && target.unitId === formState.unitId)
+                    .map((target) => target.subUnitType)
+                    .filter(Boolean),
+            ),
+        );
+        return values.sort((a, b) => a.localeCompare(b));
+    }, [formState.unitId, formState.unitType, normalizedTargets]);
+
+    const subUnitIdOptions = useMemo(() => {
+        if (formState.unitType !== 'RACK' || !formState.unitId || !formState.subUnitType) return [];
+        const values = Array.from(
+            new Set(
+                normalizedTargets
+                    .filter(
+                        (target) =>
+                            target.unitType === 'RACK' &&
+                            target.unitId === formState.unitId &&
+                            target.subUnitType === formState.subUnitType,
+                    )
+                    .map((target) => target.subUnitId)
+                    .filter(Boolean),
+            ),
+        );
+        return values.sort((a, b) => a.localeCompare(b));
+    }, [formState.subUnitType, formState.unitId, formState.unitType, normalizedTargets]);
 
     const handleChange = (field) => (event) => {
         const value = field === 'enabled' ? event.target.checked : event.target.value;
@@ -359,10 +408,23 @@ export default function AdminRackPages() {
             if (field === 'slug') {
                 setSlugTouched(true);
             }
-            if (field === 'rackId') {
-                const selectedRack = telemetryTargets.find((rack) => resolveRackId(rack) === value);
-                const telemetryId = resolveTargetTelemetryId(selectedRack);
-                next.telemetryRackId = telemetryId ? `${telemetryId}`.trim() : '';
+            if (field === 'farm') {
+                next.unitType = '';
+                next.unitId = '';
+                next.subUnitType = '';
+                next.subUnitId = '';
+            }
+            if (field === 'unitType') {
+                next.unitId = '';
+                next.subUnitType = '';
+                next.subUnitId = '';
+            }
+            if (field === 'unitId') {
+                next.subUnitType = '';
+                next.subUnitId = '';
+            }
+            if (field === 'subUnitType') {
+                next.subUnitId = '';
             }
             if (field === 'sortOrder') {
                 const numeric = Number.isNaN(Number(value)) ? 0 : Number(value);
@@ -378,16 +440,26 @@ export default function AdminRackPages() {
         resetForm(page);
     };
 
-    const handleSiteChange = (event) => {
+    const handleFarmChange = (event) => {
         const value = event.target.value;
-        setSelectedSite(value);
+        setSelectedFarm(value);
         setTelemetryTargets([]);
         setFormState((prev) => ({
             ...prev,
-            rackId: '',
-            telemetryRackId: '',
+            farm: value,
+            unitType: '',
+            unitId: '',
+            subUnitType: '',
+            subUnitId: '',
         }));
-        setFieldErrors((prev) => ({ ...prev, rackId: '', telemetryRackId: '' }));
+        setFieldErrors((prev) => ({
+            ...prev,
+            farm: '',
+            unitType: '',
+            unitId: '',
+            subUnitType: '',
+            subUnitId: '',
+        }));
         setFormError('');
     };
 
@@ -398,10 +470,37 @@ export default function AdminRackPages() {
         setFormError('');
         setFieldErrors({});
 
+        const nextFieldErrors = {};
+        if (!formState.farm) {
+            nextFieldErrors.farm = 'Select a farm.';
+        }
+        if (!formState.unitType) {
+            nextFieldErrors.unitType = 'Select a unit type.';
+        }
+        if (!formState.unitId) {
+            nextFieldErrors.unitId = 'Select a unit ID.';
+        }
+        if (formState.unitType === 'RACK') {
+            if (formState.subUnitType && !formState.subUnitId) {
+                nextFieldErrors.subUnitId = 'Select a sub-unit ID.';
+            }
+            if (!formState.subUnitType && formState.subUnitId) {
+                nextFieldErrors.subUnitType = 'Select a sub-unit type.';
+            }
+        }
+        if (Object.keys(nextFieldErrors).length > 0) {
+            setFieldErrors(nextFieldErrors);
+            setSaving(false);
+            return;
+        }
+
         const payload = {
             title: formState.title.trim(),
-            rackId: formState.rackId,
-            telemetryRackId: formState.telemetryRackId.trim(),
+            farm: formState.farm,
+            unitType: formState.unitType,
+            unitId: formState.unitId,
+            subUnitType: formState.subUnitType || undefined,
+            subUnitId: formState.subUnitId || undefined,
             slug: formState.slug.trim(),
             enabled: formState.enabled,
             sortOrder: Number(formState.sortOrder) || 0,
@@ -421,7 +520,7 @@ export default function AdminRackPages() {
             if (Object.keys(nextFieldErrors).length > 0) {
                 setFieldErrors(nextFieldErrors);
             } else {
-                setFormError(error?.message || 'Unable to save rack page.');
+                setFormError(error?.message || 'Unable to save monitoring page.');
             }
         } finally {
             setSaving(false);
@@ -430,7 +529,7 @@ export default function AdminRackPages() {
 
     const handleDelete = async (page) => {
         if (!token || !page) return;
-        const confirmed = window.confirm('Delete this rack page? This cannot be undone.');
+        const confirmed = window.confirm('Delete this monitoring page? This cannot be undone.');
         if (!confirmed) return;
         try {
             await adminDeleteMonitoringPage(page.id ?? page._id ?? page.slug);
@@ -440,7 +539,7 @@ export default function AdminRackPages() {
             }
         } catch (error) {
             console.error('Failed to delete monitoring page', error);
-            setListError('Unable to delete rack page.');
+            setListError('Unable to delete monitoring page.');
         }
     };
 
@@ -449,8 +548,8 @@ export default function AdminRackPages() {
             <header className={styles.header}>
                 <div>
                     <p className={styles.kicker}>Admin</p>
-                    <h1 className={styles.title}>Rack Pages</h1>
-                    <p className={styles.subtitle}>Create and manage monitoring pages tied to racks.</p>
+                    <h1 className={styles.title}>Monitoring Pages</h1>
+                    <p className={styles.subtitle}>Create and manage monitoring pages tied to telemetry targets.</p>
                 </div>
                 <div className={styles.headerActions}>
                     <button type="button" className={styles.secondaryButton} onClick={loadPages}>
@@ -465,7 +564,7 @@ export default function AdminRackPages() {
             <div className={styles.grid}>
                 <section className={styles.card}>
                     <div className={styles.cardHeader}>
-                        <h2>Rack pages</h2>
+                        <h2>Monitoring pages</h2>
                         <span className={styles.meta}>{sortedPages.length} total</span>
                     </div>
                     {listError && <div className={styles.bannerError}>{listError}</div>}
@@ -489,7 +588,7 @@ export default function AdminRackPages() {
                                 ) : null}
                                 {!loading && sortedPages.length === 0 ? (
                                     <tr>
-                                        <td colSpan={6} className={styles.emptyState}>No rack pages yet.</td>
+                                        <td colSpan={6} className={styles.emptyState}>No monitoring pages yet.</td>
                                     </tr>
                                 ) : null}
                                 {!loading &&
@@ -503,7 +602,7 @@ export default function AdminRackPages() {
                                                     </div>
                                                     <div className={styles.meta}>ID: {page.id || page.slug}</div>
                                                 </td>
-                                                <td>{resolvePageRackId(page) || '—'}</td>
+                                                <td>{formatTargetLabel(resolvePageTarget(page)) || '—'}</td>
                                                 <td>{resolvePageField(page, ['slug'], '—')}</td>
                                                 <td>
                                                     {page?.enabled !== false ? (
@@ -537,7 +636,7 @@ export default function AdminRackPages() {
 
                 <section className={styles.card}>
                     <div className={styles.cardHeader}>
-                        <h2>{isEditing ? 'Edit rack page' : 'Create rack page'}</h2>
+                        <h2>{isEditing ? 'Edit monitoring page' : 'Create monitoring page'}</h2>
                         {isEditing ? (
                             <button type="button" className={styles.secondaryButton} onClick={() => resetForm()}>
                                 Clear
@@ -551,73 +650,117 @@ export default function AdminRackPages() {
                             className={styles.input}
                             value={formState.title}
                             onChange={handleChange('title')}
-                            placeholder="Rack monitoring page"
+                            placeholder="Monitoring page title"
                             required
                         />
                         {fieldErrors.title && <div className={styles.inlineError}>{fieldErrors.title}</div>}
 
-                        <label className={styles.label} htmlFor="rack-page-site">Site</label>
+                        <label className={styles.label} htmlFor="rack-page-site">Farm</label>
                         <select
                             id="rack-page-site"
                             className={styles.input}
-                            value={selectedSite}
-                            onChange={handleSiteChange}
+                            value={selectedFarm}
+                            onChange={handleFarmChange}
                             required
-                            disabled={Boolean(requestedSite) || sitesLoading}
+                            disabled={Boolean(requestedFarm) || farmsLoading}
                         >
-                            <option value="">{sitesLoading ? 'Loading sites…' : 'Select a site'}</option>
-                            {sites.map((site) => (
-                                <option key={site.id} value={site.id}>
-                                    {site.label}
+                            <option value="">{farmsLoading ? 'Loading farms…' : 'Select a farm'}</option>
+                            {farms.map((farm) => (
+                                <option key={farm.id} value={farm.id}>
+                                    {farm.label}
                                 </option>
                             ))}
                         </select>
-                        {sitesError && <div className={styles.inlineError}>{sitesError}</div>}
+                        {fieldErrors.farm && <div className={styles.inlineError}>{fieldErrors.farm}</div>}
+                        {farmsError && <div className={styles.inlineError}>{farmsError}</div>}
 
-                        <label className={styles.label} htmlFor="rack-page-rack">Telemetry target</label>
-                        {isEditing ? (
-                            <input
-                                id="rack-page-rack"
-                                className={styles.input}
-                                value={formState.rackId}
-                                readOnly
-                            />
-                        ) : (
-                            <select
-                                id="rack-page-rack"
-                                className={styles.input}
-                                value={formState.rackId}
-                                onChange={handleChange('rackId')}
-                                required
-                            >
-                                <option value="">Select a rack</option>
-                                {rackOptions.map((rack) => (
-                                    <option key={rack.id} value={rack.id}>
-                                        {rack.label}
-                                    </option>
-                                ))}
-                            </select>
-                        )}
-                        {fieldErrors.rackId && <div className={styles.inlineError}>{fieldErrors.rackId}</div>}
+                        <label className={styles.label} htmlFor="rack-page-unit-type">Unit type</label>
+                        <select
+                            id="rack-page-unit-type"
+                            className={styles.input}
+                            value={formState.unitType}
+                            onChange={handleChange('unitType')}
+                            required
+                            disabled={!selectedFarm || targetsLoading}
+                        >
+                            <option value="">
+                                {targetsLoading ? 'Loading unit types…' : 'Select a unit type'}
+                            </option>
+                            {unitTypeOptions.map((unitType) => (
+                                <option key={unitType} value={unitType}>
+                                    {unitType}
+                                </option>
+                            ))}
+                        </select>
+                        {fieldErrors.unitType && <div className={styles.inlineError}>{fieldErrors.unitType}</div>}
+
+                        <label className={styles.label} htmlFor="rack-page-unit-id">Unit ID</label>
+                        <select
+                            id="rack-page-unit-id"
+                            className={styles.input}
+                            value={formState.unitId}
+                            onChange={handleChange('unitId')}
+                            required
+                            disabled={!formState.unitType}
+                        >
+                            <option value="">Select a unit ID</option>
+                            {unitIdOptions.map((unitId) => (
+                                <option key={unitId} value={unitId}>
+                                    {unitId}
+                                </option>
+                            ))}
+                        </select>
+                        {fieldErrors.unitId && <div className={styles.inlineError}>{fieldErrors.unitId}</div>}
                         {targetsError && <div className={styles.inlineError}>{targetsError}</div>}
-                        {selectedSite && !targetsLoading && !targetsError && rackOptions.length === 0 ? (
-                            <div className={styles.inlineNotice}>No telemetry targets found for this site.</div>
+                        {selectedFarm && !targetsLoading && !targetsError && normalizedTargets.length === 0 ? (
+                            <div className={styles.inlineNotice}>No telemetry targets found for this farm.</div>
                         ) : null}
 
-                        <label className={styles.label} htmlFor="rack-page-telemetry-rack">
-                            Telemetry rack identifier (device)
-                        </label>
-                        <input
-                            id="rack-page-telemetry-rack"
-                            className={styles.input}
-                            value={formState.telemetryRackId}
-                            onChange={handleChange('telemetryRackId')}
-                            placeholder="Device telemetry rack ID"
-                            required
-                        />
-                        {fieldErrors.telemetryRackId && (
-                            <div className={styles.inlineError}>{fieldErrors.telemetryRackId}</div>
-                        )}
+                        {formState.unitType === 'RACK' ? (
+                            <>
+                                <label className={styles.label} htmlFor="rack-page-subunit-type">
+                                    Sub-unit type (optional)
+                                </label>
+                                <select
+                                    id="rack-page-subunit-type"
+                                    className={styles.input}
+                                    value={formState.subUnitType}
+                                    onChange={handleChange('subUnitType')}
+                                    disabled={!formState.unitId}
+                                >
+                                    <option value="">Select a sub-unit type</option>
+                                    {subUnitTypeOptions.map((subUnitType) => (
+                                        <option key={subUnitType} value={subUnitType}>
+                                            {subUnitType}
+                                        </option>
+                                    ))}
+                                </select>
+                                {fieldErrors.subUnitType && (
+                                    <div className={styles.inlineError}>{fieldErrors.subUnitType}</div>
+                                )}
+
+                                <label className={styles.label} htmlFor="rack-page-subunit-id">
+                                    Sub-unit ID (optional)
+                                </label>
+                                <select
+                                    id="rack-page-subunit-id"
+                                    className={styles.input}
+                                    value={formState.subUnitId}
+                                    onChange={handleChange('subUnitId')}
+                                    disabled={!formState.subUnitType}
+                                >
+                                    <option value="">Select a sub-unit ID</option>
+                                    {subUnitIdOptions.map((subUnitId) => (
+                                        <option key={subUnitId} value={subUnitId}>
+                                            {subUnitId}
+                                        </option>
+                                    ))}
+                                </select>
+                                {fieldErrors.subUnitId && (
+                                    <div className={styles.inlineError}>{fieldErrors.subUnitId}</div>
+                                )}
+                            </>
+                        ) : null}
 
                         <label className={styles.label} htmlFor="rack-page-slug">Slug</label>
                         <input
@@ -625,7 +768,7 @@ export default function AdminRackPages() {
                             className={styles.input}
                             value={formState.slug}
                             onChange={handleChange('slug')}
-                            placeholder="rack-slug"
+                            placeholder="monitoring-page"
                             required
                         />
                         {fieldErrors.slug && <div className={styles.inlineError}>{fieldErrors.slug}</div>}
