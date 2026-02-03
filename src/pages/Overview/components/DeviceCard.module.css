@@ -1,100 +1,203 @@
-.wrapper {
-  width: 100%;
-}
-
 .card {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1.25rem 1.35rem;
-  border-radius: 1.1rem;
+  gap: 1rem;
+  padding: 1.4rem;
+  border-radius: 1rem;
   background: linear-gradient(160deg, rgba(18, 32, 60, 0.95), rgba(10, 20, 40, 0.96));
-  border: 1px solid rgba(104, 154, 224, 0.35);
-  box-shadow: 0 22px 42px rgba(6, 12, 26, 0.55);
+  border: 1px solid rgba(104, 154, 224, 0.4);
+  box-shadow: 0 22px 44px rgba(6, 12, 26, 0.55);
   color: #dfe7ff;
 }
 
 .header {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
 }
 
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.45rem 1.35rem;
-  border-radius: 999px;
-  background: rgba(102, 180, 236, 0.18);
-  border: 1px solid rgba(128, 198, 255, 0.45);
-  color: #f0f6ff;
+.title {
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.row {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  font-size: 0.92rem;
-  line-height: 1.4;
-  margin: 0.2rem 0;
-  white-space: normal;
-  font-variant-numeric: tabular-nums;
-}
-
-.label {
-  flex: 0 0 auto;
-  font-weight: 600;
-  color: #8fb8ff;
-}
-
-.eq {
-  flex: 0 0 auto;
-  color: #6fa2ff;
-}
-
-.vals {
-  flex: 1 1 auto;
-  min-width: 0;
-  color: #f8fbff;
-}
-
-.kv {
-  margin-top: 0.35rem;
-}
-
-.kvTitle {
-  font-weight: 600;
-  color: #9fc6ff;
+  font-size: 1rem;
+  color: #f3f7ff;
   margin-bottom: 0.35rem;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 1rem;
+  font-size: 0.78rem;
+  color: #a8c1ff;
+}
+
+.status {
+  align-self: flex-start;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(86, 104, 136, 0.4);
+  border: 1px solid rgba(120, 150, 190, 0.45);
+  color: #dbe8ff;
+}
+
+.statusonline {
+  background: rgba(48, 122, 94, 0.35);
+  border-color: rgba(84, 214, 148, 0.6);
+  color: #c5ffdf;
+}
+
+.statusoffline {
+  background: rgba(122, 56, 56, 0.35);
+  border-color: rgba(235, 92, 92, 0.6);
+  color: #ffd2d2;
+}
+
+.uptime {
+  font-size: 0.82rem;
+  color: #b4c7ff;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.section h4 {
+  margin: 0;
   font-size: 0.85rem;
+  color: #c6d9ff;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
-.pairGrid {
+.telemetryGrid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.3rem;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.6rem;
 }
 
-.pairChip {
+.telemetryItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.65rem;
+  background: rgba(20, 38, 64, 0.75);
+  border: 1px solid rgba(98, 148, 224, 0.3);
+  font-size: 0.78rem;
+  color: #d6e5ff;
+}
+
+.telemetryItem strong {
+  font-size: 0.92rem;
+  color: #f4f8ff;
+}
+
+.healthGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.5rem;
+}
+
+.healthItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.55rem;
+  background: rgba(16, 30, 54, 0.85);
+  border: 1px solid rgba(98, 148, 224, 0.25);
+  font-size: 0.78rem;
+  color: #d7e6ff;
+}
+
+.healthName {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.healthOk {
+  color: #72f0b4;
+}
+
+.healthFail {
+  color: #ff9b9b;
+}
+
+.details {
+  border-top: 1px solid rgba(90, 130, 200, 0.35);
+  padding-top: 0.7rem;
+}
+
+.details summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: #c5d6ff;
+  font-weight: 600;
+  list-style: none;
+}
+
+.details summary::-webkit-details-marker {
+  display: none;
+}
+
+.spectralTable {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.45rem 1rem;
+  margin-top: 0.6rem;
+  font-size: 0.78rem;
+}
+
+.spectralRow {
   display: flex;
   justify-content: space-between;
   padding: 0.35rem 0.5rem;
-  border-radius: 0.55rem;
-  background: rgba(20, 38, 64, 0.8);
-  border: 1px solid rgba(98, 148, 224, 0.35);
-  font-size: 0.75rem;
-  color: #d8e6ff;
+  border-radius: 0.5rem;
+  background: rgba(18, 32, 54, 0.8);
+  border: 1px solid rgba(90, 128, 198, 0.3);
+  color: #dbe9ff;
 }
 
-.moreBtn {
-  margin-top: 0.4rem;
-  align-self: flex-start;
-  padding: 0.25rem 0.6rem;
+.events {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.eventRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.45rem 0.6rem;
   border-radius: 0.55rem;
-  border: 1px solid rgba(118, 170, 248, 0.45);
+  background: rgba(16, 28, 50, 0.85);
+  border: 1px solid rgba(90, 128, 198, 0.25);
+  font-size: 0.75rem;
+  color: #dce9ff;
+}
+
+.eventLabel {
+  flex: 1;
+}
+
+.eventTime {
+  white-space: nowrap;
+  color: #9fb6f0;
+}
+
+.loadMore {
+  align-self: flex-start;
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(120, 170, 248, 0.45);
   background: rgba(18, 34, 60, 0.85);
   color: #d8e6ff;
   font-size: 0.75rem;
@@ -102,14 +205,17 @@
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 
-.moreBtn:hover {
+.loadMore:hover {
   background: rgba(28, 52, 88, 0.95);
   border-color: rgba(148, 204, 255, 0.65);
 }
 
-.devices-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-  justify-items: stretch;
+.muted {
+  color: #9fb6f0;
+  font-size: 0.78rem;
+}
+
+.error {
+  color: #ff9b9b;
+  font-size: 0.78rem;
 }
