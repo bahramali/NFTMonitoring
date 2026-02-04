@@ -22,6 +22,13 @@ const formatValue = (value) => {
   return numberValue.toFixed(1);
 };
 
+const formatLegacyValue = (value) =>
+  value == null || Number.isNaN(value)
+    ? "--"
+    : Number(value) % 1 === 0
+    ? String(Number(value))
+    : Number(value).toFixed(1);
+
 const normalizeStatus = (statusRaw) => {
   const status = String(statusRaw || "").trim().toLowerCase();
   if (status === "online") return "online";
@@ -67,13 +74,6 @@ const resolveEventLabel = (event) => {
   const detail = event?.detail || event?.message || event?.sensor || event?.meta || "";
   return `[${level}] ${code}${detail ? ` – ${detail}` : ""}`;
 };
-
-const formatLegacyValue = (value) =>
-  value == null || Number.isNaN(value)
-    ? "--"
-    : Number(value) % 1 === 0
-    ? String(Number(value))
-    : Number(value).toFixed(1);
 
 const getAs7343Group = (sensorTypeRaw) => {
   const type = String(sensorTypeRaw || "").trim().toLowerCase();
@@ -167,6 +167,84 @@ export default function DeviceCard({ device }) {
     .filter(Boolean);
 };
 
+const buildLegacySensorEntries = (sensors = []) => {
+  if (!Array.isArray(sensors) || sensors.length === 0) {
+    return { entries: [], hasAS7343: false };
+  }
+
+  const singles = [];
+  const groupedItems = [];
+  let firstGroupIndex = null;
+  let hasGroup = false;
+
+  sensors.forEach((reading, index) => {
+    if (!reading) return;
+    const rawValue = reading.value;
+    if (rawValue == null || rawValue === "") return;
+
+    const label = reading.sensorName || reading.sensorType || `Sensor ${index + 1}`;
+    const valueNumber = Number(rawValue);
+    const formattedValue = Number.isFinite(valueNumber)
+      ? formatLegacyValue(valueNumber)
+      : String(rawValue);
+    const suffix = reading.unit ? ` ${reading.unit}` : "";
+    const display = `${formattedValue}${suffix}`.trim();
+
+    const nameNorm = String(reading.sensorName || "").trim().toLowerCase();
+    const typeNorm = String(reading.sensorType || "").trim().toLowerCase();
+    const isAs7343Reading =
+      /as7343/.test(nameNorm) ||
+      /as7343/.test(typeNorm) ||
+      /^(\d{3})nm$/.test(typeNorm) ||
+      ["vis1", "vis2", "nir855", "nir", "clear"].includes(typeNorm);
+
+    const groupInfo = isAs7343Reading
+      ? getAs7343Group(reading.sensorType || reading.sensorName)
+      : null;
+
+    if (groupInfo) {
+      hasGroup = true;
+      if (firstGroupIndex == null) firstGroupIndex = singles.length;
+      groupedItems.push({
+        groupKey: groupInfo.key,
+        groupLabel: groupInfo.label,
+        itemLabel: reading.sensorType || label,
+        display,
+      });
+      return;
+    }
+
+    if (isAs7343Reading) {
+      hasGroup = true;
+    }
+
+    singles.push({
+      key: `${label}-${index}`,
+      label,
+      display,
+    });
+  });
+
+  const groupedEntries = buildAs7343GroupEntries(groupedItems).map((entry) => ({
+    key: `as7343-${entry.key}`,
+    label: entry.label,
+    display: entry.display,
+  }));
+
+  if (!groupedEntries.length) {
+    return { entries: singles, hasAS7343: hasGroup };
+  }
+
+  const insertAt = firstGroupIndex ?? singles.length;
+  const combined = [
+    ...singles.slice(0, insertAt),
+    ...groupedEntries,
+    ...singles.slice(insertAt),
+  ];
+
+  return { entries: combined, hasAS7343: true };
+};
+
 export default function DeviceCard({
   device,
   id,
@@ -191,158 +269,43 @@ export default function DeviceCard({
     const hValid = h != null && !Number.isNaN(h);
     const co2Valid = co2 != null && !Number.isNaN(co2);
 
-    const spectrumFinal = Object.keys(spectrum).length
-      ? spectrum
-      : derived.spectrum || {};
-    const otherFinal = Object.keys(otherLight).length
-      ? otherLight
-      : derived.otherLight || {};
+    const spectrumFinal = Object.keys(spectrum).length ? spectrum : derived.spectrum || {};
+    const otherFinal = Object.keys(otherLight).length ? otherLight : derived.otherLight || {};
     const waterFinal = water || derived.water;
-    const { entries: sensorEntries, hasAS7343 } = useMemo(() => {
-      if (!Array.isArray(sensors) || sensors.length === 0) {
-        return { entries: [], hasAS7343: false };
-      }
-
-      const singles = [];
-      const groupedItems = [];
-      let firstGroupIndex = null;
-      let hasGroup = false;
-
-      sensors.forEach((reading, index) => {
-        if (!reading) return;
-        const rawValue = reading.value;
-        if (rawValue == null || rawValue === "") return;
-
-        const label =
-          reading.sensorName || reading.sensorType || `Sensor ${index + 1}`;
-        const valueNumber = Number(rawValue);
-        const formattedValue = Number.isFinite(valueNumber)
-          ? formatLegacyValue(valueNumber)
-          : String(rawValue);
-        const suffix = reading.unit ? ` ${reading.unit}` : "";
-        const display = `${formattedValue}${suffix}`.trim();
-
-        const nameNorm = String(reading.sensorName || "")
-          .trim()
-          .toLowerCase();
-        const typeNorm = String(reading.sensorType || "")
-          .trim()
-          .toLowerCase();
-        const isAs7343Reading =
-          /as7343/.test(nameNorm) ||
-          /as7343/.test(typeNorm) ||
-          /^(\d{3})nm$/.test(typeNorm) ||
-          ["vis1", "vis2", "nir855", "nir", "clear"].includes(typeNorm);
-
-        const groupInfo = isAs7343Reading
-          ? getAs7343Group(reading.sensorType || reading.sensorName)
-          : null;
-
-        if (groupInfo) {
-          hasGroup = true;
-          if (firstGroupIndex == null) firstGroupIndex = singles.length;
-          groupedItems.push({
-            groupKey: groupInfo.key,
-            groupLabel: groupInfo.label,
-            itemLabel: reading.sensorType || label,
-            display,
-          });
-          return;
-        }
-
-        if (isAs7343Reading) {
-          hasGroup = true;
-        }
-
-        singles.push({
-          key: `${label}-${index}`,
-          label,
-          display,
-        });
-      });
-
-      const groupedEntries = buildAs7343GroupEntries(groupedItems).map(
-        (entry) => ({
-          key: `as7343-${entry.key}`,
-          label: entry.label,
-          display: entry.display,
-        })
-      );
-
-      if (!groupedEntries.length) {
-        return { entries: singles, hasAS7343: hasGroup };
-      }
-
-      const insertAt = firstGroupIndex ?? singles.length;
-      const combined = [
-        ...singles.slice(0, insertAt),
-        ...groupedEntries,
-        ...singles.slice(insertAt),
-      ];
-
-      return { entries: combined, hasAS7343: true };
-    }, [sensors]);
+    const { entries: sensorEntries, hasAS7343 } = useMemo(
+      () => buildLegacySensorEntries(sensors),
+      [sensors]
+    );
 
     const fallbackEntries = useMemo(() => {
       const entries = [];
       const derivedMap = derived?.map || {};
 
       if (co2Valid && derivedMap.co2 == null) {
-        entries.push({
-          key: "fallback-co2",
-          label: "CO₂",
-          display: `${formatLegacyValue(co2)} ppm`,
-        });
+        entries.push({ key: "fallback-co2", label: "CO₂", display: `${formatLegacyValue(co2)} ppm` });
       }
 
       if (tValid && derivedMap.temp == null) {
-        entries.push({
-          key: "fallback-temp",
-          label: "Temperature",
-          display: `${formatLegacyValue(t)} °C`,
-        });
+        entries.push({ key: "fallback-temp", label: "Temperature", display: `${formatLegacyValue(t)} °C` });
       }
 
       if (hValid && derivedMap.humidity == null) {
-        entries.push({
-          key: "fallback-humidity",
-          label: "Humidity",
-          display: `${formatLegacyValue(h)} %`,
-        });
+        entries.push({ key: "fallback-humidity", label: "Humidity", display: `${formatLegacyValue(h)} %` });
       }
 
       const derivedOther = derived?.otherLight;
-      if (
-        Object.keys(otherFinal || {}).length &&
-        (!derivedOther || Object.keys(derivedOther).length === 0)
-      ) {
+      if (Object.keys(otherFinal || {}).length && (!derivedOther || Object.keys(derivedOther).length === 0)) {
         if (otherFinal.lux != null) {
-          entries.push({
-            key: "fallback-lux",
-            label: "Lux",
-            display: `${formatLegacyValue(otherFinal.lux)} lux`,
-          });
+          entries.push({ key: "fallback-lux", label: "Lux", display: `${formatLegacyValue(otherFinal.lux)} lux` });
         }
         if (otherFinal.vis1 != null) {
-          entries.push({
-            key: "fallback-vis1",
-            label: "VIS1",
-            display: formatLegacyValue(otherFinal.vis1),
-          });
+          entries.push({ key: "fallback-vis1", label: "VIS1", display: formatLegacyValue(otherFinal.vis1) });
         }
         if (otherFinal.vis2 != null) {
-          entries.push({
-            key: "fallback-vis2",
-            label: "VIS2",
-            display: formatLegacyValue(otherFinal.vis2),
-          });
+          entries.push({ key: "fallback-vis2", label: "VIS2", display: formatLegacyValue(otherFinal.vis2) });
         }
         if (otherFinal.nir855 != null) {
-          entries.push({
-            key: "fallback-nir855",
-            label: "NIR855",
-            display: formatLegacyValue(otherFinal.nir855),
-          });
+          entries.push({ key: "fallback-nir855", label: "NIR855", display: formatLegacyValue(otherFinal.nir855) });
         }
       }
 
@@ -402,19 +365,7 @@ export default function DeviceCard({
       }
 
       return entries;
-    }, [
-      co2Valid,
-      co2,
-      derived,
-      hasAS7343,
-      h,
-      hValid,
-      otherFinal,
-      spectrumFinal,
-      t,
-      tValid,
-      waterFinal,
-    ]);
+    }, [co2Valid, co2, derived, hasAS7343, h, hValid, otherFinal, spectrumFinal, t, tValid, waterFinal]);
 
     const allSensorReadings = useMemo(
       () => [...fallbackEntries, ...sensorEntries],
@@ -441,25 +392,6 @@ export default function DeviceCard({
               <div key={entry.key} className={styles.telemetryItem}>
                 <span>{entry.label}</span>
                 <strong>{entry.value}</strong>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {healthEntries.length > 0 ? (
-        <section className={styles.section}>
-          <h4>Health</h4>
-          <div className={styles.healthGrid}>
-            {healthEntries.map((entry) => (
-              <div key={entry.key} className={styles.healthItem}>
-                <span className={styles.healthName}>{entry.key}</span>
-                <span
-                  className={entry.value ? styles.healthOk : styles.healthFail}
-                  title={entry.value ? "sensor responding" : "sensor missing / not responding"}
-                >
-                  {entry.value ? "✔️" : "⚠️"}
-                </span>
               </div>
             ))}
           </div>
@@ -507,10 +439,7 @@ export default function DeviceCard({
     if (!health || typeof health !== "object") return [];
     return Object.entries(health)
       .filter(([, value]) => typeof value === "boolean")
-      .map(([key, value]) => ({
-        key,
-        value,
-      }));
+      .map(([key, value]) => ({ key, value }));
   }, [health]);
 
   const [eventsState, setEventsState] = useState({
@@ -542,9 +471,7 @@ export default function DeviceCard({
           payload?.nextPage ||
           null;
         const hasMore =
-          typeof payload?.hasMore === "boolean"
-            ? payload.hasMore
-            : Boolean(cursor);
+          typeof payload?.hasMore === "boolean" ? payload.hasMore : Boolean(cursor);
         setEventsState((prev) => ({
           loaded: true,
           loading: false,
@@ -588,7 +515,11 @@ export default function DeviceCard({
           </div>
         </div>
         <div className={`${styles.status} ${styles[`status${normalizedStatus}`] || ""}`}>
-          {normalizedStatus === "online" ? "🟢 online" : normalizedStatus === "offline" ? "🔴 offline" : normalizedStatus}
+          {normalizedStatus === "online"
+            ? "🟢 online"
+            : normalizedStatus === "offline"
+            ? "🔴 offline"
+            : normalizedStatus}
         </div>
       </header>
 
