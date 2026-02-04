@@ -5,7 +5,10 @@ import "@testing-library/jest-dom";
 import DeviceCard from "../src/pages/Overview/components/DeviceCard.jsx";
 
 test("renders device id and groups AS7343 readings inside the sensor list", () => {
-  const deviceData = {
+  const props = {
+    // Make sure legacy title has a value even if component expects compositeId
+    id: "S01-L01-G03",
+    compositeId: "S01-L01-G03",
     sensors: [
       { sensorName: "SHT3x", sensorType: "temperature", value: 22.9, unit: "°C" },
       { sensorName: "SHT3x", sensorType: "humidity", value: 56, unit: "%" },
@@ -20,7 +23,7 @@ test("renders device id and groups AS7343 readings inside the sensor list", () =
     ],
   };
 
-  render(<DeviceCard {...deviceData} />);
+  render(<DeviceCard {...props} />);
 
   // Device ID title/badge
   expect(screen.getByText("S01-L01-G03")).toBeInTheDocument();
