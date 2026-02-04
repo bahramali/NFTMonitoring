@@ -85,46 +85,83 @@ const getAs7343Group = (sensorTypeRaw) => {
     if (nm < 600) return { key: "green", label: "AS7343 (Green band)" };
     return { key: "red", label: "AS7343 (Red/NIR band)" };
   }
-
-  if (type === "vis1" || type === "vis2" || type === "clear") {
-    return { key: "green", label: "AS7343 (Green band)" };
-  }
-
-  if (type === "nir855" || type === "nir") {
-    return { key: "red", label: "AS7343 (Red/NIR band)" };
-  }
-
-  return null;
+  if (Number.isInteger(numberValue)) return String(numberValue);
+  return numberValue.toFixed(1);
 };
 
-const buildAs7343GroupEntries = (items = []) => {
-  const order = [];
-  const groups = new Map();
+const normalizeStatus = (statusRaw) => {
+  const status = String(statusRaw || "").trim().toLowerCase();
+  if (status === "online") return "online";
+  if (status === "offline") return "offline";
+  return status ? status : "unknown";
+};
 
-  items.forEach((item) => {
-    if (!item?.groupKey) return;
-    if (!groups.has(item.groupKey)) {
-      groups.set(item.groupKey, { label: item.groupLabel, items: [] });
-      order.push(item.groupKey);
-    }
-    const group = groups.get(item.groupKey);
-    group.items.push({
-      label: item.itemLabel || item.groupLabel,
-      display: item.display,
-    });
-  });
-
-  return order
-    .map((key) => {
-      const group = groups.get(key);
-      if (!group || group.items.length === 0) return null;
-      const joined = group.items
-        .map((entry) => `${entry.label}: ${entry.display}`)
-        .join(", ");
-      return {
+const resolveSpectralCounts = (counts) => {
+  if (!counts) return [];
+  if (Array.isArray(counts)) {
+    return counts
+      .map((entry, index) => ({
+        key: entry?.channel ?? entry?.band ?? index,
+        label: entry?.channel ?? entry?.band ?? `Ch ${index + 1}`,
+        value: formatValue(entry?.count ?? entry?.value ?? entry),
+      }))
+      .filter((entry) => entry.value !== null);
+  }
+  if (typeof counts === "object") {
+    return Object.entries(counts)
+      .map(([key, value]) => ({
         key,
-        label: group.label,
-        display: `[${joined}]`,
+        label: key,
+        value: formatValue(value),
+      }))
+      .filter((entry) => entry.value !== null);
+  }
+  return [];
+};
+
+const resolveEventTimestamp = (event) =>
+  event?.timestamp || event?.ts || event?.time || event?.createdAt || event?.created_at || "";
+
+const resolveEventLabel = (event) => {
+  const level =
+    event?.level ||
+    event?.severity ||
+    event?.status ||
+    event?.type ||
+    event?.eventLevel ||
+    "INFO";
+  const code = event?.code || event?.event || event?.name || event?.eventCode || "EVENT";
+  const detail = event?.detail || event?.message || event?.sensor || event?.meta || "";
+  return `[${level}] ${code}${detail ? ` – ${detail}` : ""}`;
+};
+
+export default function DeviceCard({ device }) {
+  const {
+    deviceId,
+    deviceType,
+    status,
+    farm,
+    unitType,
+    unitId,
+    layerId,
+    telemetry,
+    health,
+    uptime,
+  } = device || {};
+
+  const normalizedStatus = normalizeStatus(status);
+  const headerTitle = `${deviceType || "Device"} / ${deviceId || "—"}`;
+
+  const telemetryEntries = useMemo(() => {
+    if (!telemetry || typeof telemetry !== "object") return [];
+    return TELEMETRY_FIELDS.map((field) => {
+      if (!(field.key in telemetry)) return null;
+      const formatted = formatValue(telemetry[field.key]);
+      if (formatted == null) return null;
+      return {
+        key: field.key,
+        label: field.label,
+        value: field.unit ? `${formatted} ${field.unit}` : formatted,
       };
     })
     .filter(Boolean);
@@ -340,17 +377,23 @@ export default function DeviceCard({
         <div className={styles.legacyHeader}>
           <div className={styles.legacyBadge}>{name}</div>
         </div>
-        {allSensorReadings.length > 0 && (
-          <div className={styles.kv}>
-            <div className={styles.kvTitle}>All sensor readings</div>
-            <div className={styles.pairGrid}>
-              {allSensorReadings.map(({ key, label, display }) => (
-                <div key={key} className={styles.pairChip}>
-                  <span>{label}</span>
-                  <span>{display}</span>
-                </div>
-              ))}
-            </div>
+        <div className={`${styles.status} ${styles[`status${normalizedStatus}`] || ""}`}>
+          {normalizedStatus === "online" ? "🟢 online" : normalizedStatus === "offline" ? "🔴 offline" : normalizedStatus}
+        </div>
+      </header>
+
+      {uptime ? <div className={styles.uptime}>Uptime: {uptime}</div> : null}
+
+      {telemetryEntries.length > 0 ? (
+        <section className={styles.section}>
+          <h4>Telemetry</h4>
+          <div className={styles.telemetryGrid}>
+            {telemetryEntries.map((entry) => (
+              <div key={entry.key} className={styles.telemetryItem}>
+                <span>{entry.label}</span>
+                <strong>{entry.value}</strong>
+              </div>
+            ))}
           </div>
         )}
       </article>
