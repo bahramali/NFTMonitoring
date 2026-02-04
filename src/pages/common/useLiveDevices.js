@@ -1,9 +1,10 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {filterNoise, normalizeSensorData} from "../../utils.js";
-import {useStomp} from "../../hooks/useStomp.js";
-import {isAs7343Sensor, makeMeasurementKey, sanitize} from "./measurementUtils.js";
-import {adaptFlatTelemetryToSensors} from "../../utils/telemetryAdapter.js";
-import {logTelemetryDebug} from "./liveTelemetry.js";
+import { filterNoise, normalizeSensorData } from "../../utils.js";
+import { useStomp } from "../../hooks/useStomp.js";
+import { isAs7343Sensor, makeMeasurementKey, sanitize } from "./measurementUtils.js";
+import { adaptFlatTelemetryToSensors } from "../../utils/telemetryAdapter.js";
+import { logTelemetryDebug } from "./liveTelemetry.js";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 const EXTREMA_WINDOW_MS = 5 * 60 * 1000;
 const TELEMETRY_TOPIC = "hydroleaf/telemetry";
@@ -48,6 +49,7 @@ function mergeControllers(a = [], b = []) {
 }
 
 export function useLiveDevices(topics) {
+    const { token } = useAuth();
     const [deviceData, setDeviceData] = useState({});
     const [sensorData, setSensorData] = useState({});
     const [sensorExtrema, setSensorExtrema] = useState({});
@@ -206,6 +208,11 @@ export function useLiveDevices(topics) {
         const list = Array.isArray(topics) ? topics : [topics];
         return list.filter(Boolean);
     }, [topics]);
+
+    const connectHeaders = useMemo(() => {
+        if (!token) return {};
+        return { Authorization: `Bearer ${token}` };
+    }, [token]);
 
     const handleStompMessage = useCallback((topic, msg) => {
         logTelemetryDebug("received message", {
@@ -410,7 +417,10 @@ export function useLiveDevices(topics) {
         };
     }, []);
 
-    useStomp(topics, handleStompMessage);
+    useStomp(subscribedTopics, handleStompMessage, {
+        connectHeaders,
+        reconnectOnHeaderChange: true,
+    });
 
     const availableCompositeIds = useMemo(() => {
         const ids = new Set();

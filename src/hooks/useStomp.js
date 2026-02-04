@@ -6,6 +6,7 @@ import { getWsHttpUrl } from '../config/apiBase.js';
 let sharedClient = null;
 let isConnected = false;
 const reconnectListeners = new Set(); // called on every (re)connect
+let lastConnectHeadersKey = "";
 
 const DEFAULT_SOCKJS_URL = getWsHttpUrl();
 
@@ -22,6 +23,11 @@ function normalizeSockJsUrl(url) {
         sockJsUrl = `https://${sockJsUrl.slice(6)}`;
     }
     return sockJsUrl;
+}
+
+function buildHeadersKey(headers) {
+    if (!headers || typeof headers !== "object") return "";
+    return JSON.stringify(Object.entries(headers).sort(([a], [b]) => a.localeCompare(b)));
 }
 
 function attachReconnect(client) {
@@ -49,6 +55,16 @@ function ensureClient(opts = {}) {
     const external = (typeof window !== "undefined") && (window.__hlStomp || window.hydroLeafStomp || opts.client);
     if (external && !sharedClient) {
         sharedClient = external;
+        const nextKey = buildHeadersKey(opts.connectHeaders);
+        if (nextKey !== lastConnectHeadersKey) {
+            lastConnectHeadersKey = nextKey;
+            if (opts.connectHeaders) {
+                sharedClient.connectHeaders = opts.connectHeaders;
+            }
+            if (opts.reconnectOnHeaderChange && sharedClient.connected) {
+                sharedClient.deactivate().then(() => sharedClient.activate()).catch(() => sharedClient.activate());
+            }
+        }
         attachReconnect(sharedClient);
         // if already connected, trigger listeners shortly after
         if (sharedClient.connected) {
@@ -64,11 +80,24 @@ function ensureClient(opts = {}) {
         return sharedClient;
     }
 
-    if (sharedClient) return sharedClient;
+    if (sharedClient) {
+        const nextKey = buildHeadersKey(opts.connectHeaders);
+        if (nextKey !== lastConnectHeadersKey) {
+            lastConnectHeadersKey = nextKey;
+            if (opts.connectHeaders) {
+                sharedClient.connectHeaders = opts.connectHeaders;
+            }
+            if (opts.reconnectOnHeaderChange && sharedClient.connected) {
+                sharedClient.deactivate().then(() => sharedClient.activate()).catch(() => sharedClient.activate());
+            }
+        }
+        return sharedClient;
+    }
 
     const sockJsUrl = normalizeSockJsUrl(opts.url);
     sharedClient = new Client({
         webSocketFactory: () => new SockJS(sockJsUrl),
+        connectHeaders: opts.connectHeaders ?? {},
         reconnectDelay: opts.reconnectDelay ?? 3000,
         heartbeatIncoming: opts.heartbeatIncoming ?? 10000,
         heartbeatOutgoing: opts.heartbeatOutgoing ?? 10000,
