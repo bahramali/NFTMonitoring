@@ -8,16 +8,28 @@ import { listFarms, listFarmDevices } from "../../../api/deviceMonitoring.js";
 const resolveFarmList = (payload) => {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.farms)) return payload.farms;
+  if (Array.isArray(payload?.systems)) return payload.systems;
+  if (Array.isArray(payload?.sites)) return payload.sites;
+  if (Array.isArray(payload?.items)) return payload.items;
   if (Array.isArray(payload?.data)) return payload.data;
   if (Array.isArray(payload?.data?.farms)) return payload.data.farms;
+  if (Array.isArray(payload?.data?.systems)) return payload.data.systems;
+  if (Array.isArray(payload?.data?.sites)) return payload.data.sites;
+  if (Array.isArray(payload?.data?.items)) return payload.data.items;
   return [];
 };
 
 const resolveDeviceList = (payload) => {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.devices)) return payload.devices;
+  if (Array.isArray(payload?.telemetryTargets)) return payload.telemetryTargets;
+  if (Array.isArray(payload?.targets)) return payload.targets;
+  if (Array.isArray(payload?.items)) return payload.items;
   if (Array.isArray(payload?.data)) return payload.data;
   if (Array.isArray(payload?.data?.devices)) return payload.data.devices;
+  if (Array.isArray(payload?.data?.telemetryTargets)) return payload.data.telemetryTargets;
+  if (Array.isArray(payload?.data?.targets)) return payload.data.targets;
+  if (Array.isArray(payload?.data?.items)) return payload.data.items;
   return [];
 };
 
@@ -27,8 +39,11 @@ const normalizeFarm = (farm) => {
     return { id: farm, name: farm };
   }
   const id = farm.id || farm.farmId || farm.farm_id || farm.code || farm.slug;
-  const name = farm.name || farm.label || farm.displayName || id || "Farm";
-  return id ? { id, name } : null;
+  const fallbackId = farm.systemId || farm.system_id || farm.siteId || farm.site_id;
+  const resolvedId = id || fallbackId;
+  const name =
+    farm.name || farm.label || farm.displayName || farm.title || resolvedId || "Farm";
+  return resolvedId ? { id: resolvedId, name } : null;
 };
 
 const normalizeDevice = (device) => {
@@ -36,9 +51,13 @@ const normalizeDevice = (device) => {
     device?.deviceId ||
     device?.device_id ||
     device?.id ||
+    device?.targetId ||
+    device?.target_id ||
     device?.compositeId ||
     device?.composite_id ||
     device?.serial ||
+    device?.unitId ||
+    device?.unit_id ||
     "";
   return {
     deviceId,
@@ -48,9 +67,21 @@ const normalizeDevice = (device) => {
       device?.type ||
       device?.model ||
       device?.category ||
+      device?.unitType ||
+      device?.unit_type ||
       "",
     status: device?.status || device?.state || device?.connectionStatus || "",
-    farm: device?.farm || device?.farmId || device?.farm_id || "",
+    farm:
+      device?.farm ||
+      device?.farmId ||
+      device?.farm_id ||
+      device?.system ||
+      device?.systemId ||
+      device?.system_id ||
+      device?.site ||
+      device?.siteId ||
+      device?.site_id ||
+      "",
     unitType: device?.unitType || device?.unit_type || "",
     unitId: device?.unitId || device?.unit_id || "",
     layerId: device?.layerId || device?.layer_id || "",
