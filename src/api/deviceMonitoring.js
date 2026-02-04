@@ -2,8 +2,8 @@ import { authFetch, parseApiResponse } from "./http.js";
 import { getApiBaseUrl } from "../config/apiBase.js";
 
 const API_BASE = getApiBaseUrl();
-const FARMS_URL = `${API_BASE}/farms`;
-const DEVICES_URL = `${API_BASE}/devices`;
+const FARMS_URL = `${API_BASE}/api/farms`;
+const DEVICES_URL = `${API_BASE}/api/devices`;
 
 const requestJson = async (url, options, errorMessage) => {
   const response = await authFetch(url, options);
