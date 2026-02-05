@@ -53,8 +53,6 @@ const normalizeDevice = (device) => {
     device?.id ||
     device?.targetId ||
     device?.target_id ||
-    device?.compositeId ||
-    device?.composite_id ||
     device?.serial ||
     device?.unitId ||
     device?.unit_id ||

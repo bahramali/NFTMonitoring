@@ -71,7 +71,7 @@ export default function HallPage() {
                                             key={layerId}
                                             type="button"
                                             className={styles.chipButton}
-                                            onClick={() => navigate(`/monitoring/hall/racks/${rack.rackId}/layers/${layerId}`)}
+                                            onClick={() => navigate(`/monitoring/hall/racks/${rack.rackId}/layers/${layerId === "No layer" ? "no-layer" : layerId}`)}
                                         >
                                             {layerId}
                                         </button>

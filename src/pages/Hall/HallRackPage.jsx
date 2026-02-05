@@ -2,7 +2,6 @@ import React, { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Header from "../common/Header";
 import { normalizeSensors } from "../Overview/utils/index.js";
-import { parseCompositeId } from "./hallData.js";
 import { useHallInventory } from "./useHallInventory.js";
 import styles from "./Hall.module.css";
 
@@ -41,18 +40,24 @@ export default function HallRackPage() {
 
     const layers = useMemo(() => {
         if (!rackInfo) return [];
-        return Array.from(rackInfo.layers).sort((a, b) => a.localeCompare(b));
+        return Array.from(rackInfo.layers)
+            .map((layer) => layer || "No layer")
+            .sort((a, b) => a.localeCompare(b));
     }, [rackInfo, cacheEntries]);
 
     const devices = useMemo(() => {
         return cacheEntries
             .map((entry) => {
-                const parsed = parseCompositeId(entry?.compositeId);
-                if (!parsed || parsed.rackId !== normalizedRackId) return null;
+                const identity = entry?.identity;
+                if (!identity) return null;
+                const unitType = String(identity.unitType || "").trim().toUpperCase();
+                const unitId = String(identity.unitId || "").trim().toUpperCase();
+                if (unitType !== "RACK" || unitId !== normalizedRackId) return null;
                 const sensors = resolveSensors(entry.message);
                 const metrics = normalizeSensors(sensors);
                 return {
-                    ...parsed,
+                    deviceId: identity.deviceId,
+                    layerId: identity.layerId ?? null,
                     lastUpdate: entry.timestamp,
                     metrics,
                 };
@@ -93,7 +98,7 @@ export default function HallRackPage() {
                                 key={layerId}
                                 type="button"
                                 className={styles.chipButton}
-                                onClick={() => navigate(`/monitoring/hall/racks/${normalizedRackId}/layers/${layerId}`)}
+                                onClick={() => navigate(`/monitoring/hall/racks/${normalizedRackId}/layers/${layerId === "No layer" ? "no-layer" : layerId}`)}
                             >
                                 {layerId}
                             </button>
@@ -112,9 +117,9 @@ export default function HallRackPage() {
                 ) : (
                     <div className={styles.cardGrid}>
                         {devicesWithMetrics.map((device) => (
-                            <article key={device.deviceCode} className={styles.card}>
+                            <article key={device.deviceId} className={styles.card}>
                                 <div className={styles.cardHeader}>
-                                    <div className={styles.cardTitle}>{device.deviceCode}</div>
+                                    <div className={styles.cardTitle}>{device.deviceId}</div>
                                     <div className={styles.subtleText}>{formatTimestamp(device.lastUpdate)}</div>
                                 </div>
                                 <div className={styles.metricList}>

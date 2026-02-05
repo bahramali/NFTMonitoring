@@ -1,6 +1,6 @@
-export function isWaterDevice(compId) {
-  const parts = String(compId || "").trim().toUpperCase().split("-");
-  return parts[2]?.startsWith("T") || false;
+export function isWaterDevice(deviceId) {
+  const normalized = String(deviceId || "").trim().toUpperCase();
+  return normalized.startsWith("T");
 }
 
 export default isWaterDevice;

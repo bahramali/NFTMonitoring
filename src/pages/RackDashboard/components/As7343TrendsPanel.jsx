@@ -99,7 +99,7 @@ const SpectrumBalanceTooltip = ({ active, payload, label, formatter }) => {
 
 export default function As7343TrendsPanel({ rackId, selectedDeviceIds }) {
     const normalizedRackId = normalizeRackId(rackId);
-    const [selectedCompositeId, setSelectedCompositeId] = useState("");
+    const [selectedDeviceKey, setSelectedDeviceKey] = useState("");
     const [rangePreset, setRangePreset] = useState("1h");
     const [refreshIndex, setRefreshIndex] = useState(0);
     const [chartLoading, setChartLoading] = useState(false);
@@ -122,7 +122,10 @@ export default function As7343TrendsPanel({ rackId, selectedDeviceIds }) {
         };
     }, [normalizedRackId, selectedSet]);
 
-    const { devices, deviceOptions } = useLiveTelemetry({ filterDevice });
+    const { devices, deviceOptions } = useLiveTelemetry({
+        filterDevice,
+        scope: { unitType: "rack", unitId: normalizedRackId },
+    });
 
     const as7343DeviceOptions = useMemo(
         () => deviceOptions.filter((option) => option.sensors?.some(hasAs7343Sensor)),
@@ -131,21 +134,21 @@ export default function As7343TrendsPanel({ rackId, selectedDeviceIds }) {
 
     useEffect(() => {
         if (!as7343DeviceOptions.length) {
-            setSelectedCompositeId("");
+            setSelectedDeviceKey("");
             return;
         }
-        if (!selectedCompositeId || !devices[selectedCompositeId]) {
-            setSelectedCompositeId(as7343DeviceOptions[0].id);
+        if (!selectedDeviceKey || !devices[selectedDeviceKey]) {
+            setSelectedDeviceKey(as7343DeviceOptions[0].id);
         }
-    }, [as7343DeviceOptions, devices, selectedCompositeId]);
+    }, [as7343DeviceOptions, devices, selectedDeviceKey]);
 
     useEffect(() => {
-        if (!selectedCompositeId) return;
-        const stillExists = as7343DeviceOptions.some((opt) => opt.id === selectedCompositeId);
-        if (!stillExists) setSelectedCompositeId("");
-    }, [as7343DeviceOptions, selectedCompositeId]);
+        if (!selectedDeviceKey) return;
+        const stillExists = as7343DeviceOptions.some((opt) => opt.id === selectedDeviceKey);
+        if (!stillExists) setSelectedDeviceKey("");
+    }, [as7343DeviceOptions, selectedDeviceKey]);
 
-    const deviceSensors = devices[selectedCompositeId]?.sensors || [];
+    const deviceSensors = devices[selectedDeviceKey]?.sensors || [];
 
     const availableChannelKeys = useMemo(() => {
         const keys = new Set();
@@ -163,9 +166,9 @@ export default function As7343TrendsPanel({ rackId, selectedDeviceIds }) {
         [availableChannelKeys],
     );
 
-    const hasPartialSpectrum = Boolean(selectedCompositeId) && missingChannelKeys.length > 0;
+    const hasPartialSpectrum = Boolean(selectedDeviceKey) && missingChannelKeys.length > 0;
     const missingRedChannels =
-        Boolean(selectedCompositeId) &&
+        Boolean(selectedDeviceKey) &&
         missingChannelKeys.some((key) =>
             AS7343_GROUPS.find((group) => group.id === "red")?.keys.includes(key),
         );
@@ -173,7 +176,7 @@ export default function As7343TrendsPanel({ rackId, selectedDeviceIds }) {
     const handleRefresh = () => setRefreshIndex((value) => value + 1);
 
     useEffect(() => {
-        if (!normalizedRackId || !selectedCompositeId) {
+        if (!normalizedRackId || !selectedDeviceKey) {
             setChannelHistory({});
             setChartDomain(null);
             return;
@@ -190,8 +193,7 @@ export default function As7343TrendsPanel({ rackId, selectedDeviceIds }) {
                 const entries = await Promise.all(
                     ALL_CHANNEL_KEYS.map(async (metricKey) => {
                         const points = await fetchHistorical({
-                            rackId: normalizedRackId,
-                            nodeId: selectedCompositeId,
+                            identity: devices[selectedDeviceKey],
                             metricKey,
                             sensorType: metricKey,
                             from: range.from,
@@ -227,7 +229,7 @@ export default function As7343TrendsPanel({ rackId, selectedDeviceIds }) {
             cancelled = true;
             controller.abort();
         };
-    }, [normalizedRackId, rangePreset, refreshIndex, selectedCompositeId]);
+    }, [devices, normalizedRackId, rangePreset, refreshIndex, selectedDeviceKey]);
 
     const formatTimestamp = useMemo(() => {
         const formatter = new Intl.DateTimeFormat("en-US", {
@@ -338,7 +340,7 @@ export default function As7343TrendsPanel({ rackId, selectedDeviceIds }) {
     }, [ratioData]);
 
     const hasDevices = as7343DeviceOptions.length > 0;
-    const hasSelection = Boolean(selectedCompositeId);
+    const hasSelection = Boolean(selectedDeviceKey);
     const emptyMessage = hasSelection
         ? "No spectrum data available for the selected range."
         : "Select an AS7343 sensor node to view spectrum history.";
@@ -363,8 +365,8 @@ export default function As7343TrendsPanel({ rackId, selectedDeviceIds }) {
                         Sensor node
                         <select
                             className={styles.chartSelect}
-                            value={selectedCompositeId}
-                            onChange={(event) => setSelectedCompositeId(event.target.value)}
+                            value={selectedDeviceKey}
+                            onChange={(event) => setSelectedDeviceKey(event.target.value)}
                         >
                             {as7343DeviceOptions.map((option) => (
                                 <option key={option.id} value={option.id}>

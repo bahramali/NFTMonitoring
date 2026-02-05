@@ -28,6 +28,9 @@ const noop = () => {};
 
 const buildContext = (overrides = {}) => ({
   deviceMeta: { devices: [] },
+  deviceIdentityMap: new Map([
+    ['F01|rack|R01|L01|D01', { farmId: 'F01', unitType: 'rack', unitId: 'R01', layerId: 'L01', deviceId: 'D01' }],
+  ]),
   fromDate: '2024-01-01T00:00',
   toDate: '2024-01-01T06:00',
   setFromDate: vi.fn(),
@@ -65,9 +68,9 @@ const buildContext = (overrides = {}) => ({
   addSensors: vi.fn(),
   removeSensors: vi.fn(),
   clearSensors: vi.fn(),
-  selectedCIDs: ['SYS-LAYER-DEVICE'],
-  selectedCompositeIds: [],
-  handleCompositeSelectionChange: vi.fn(),
+  selectedDeviceFilters: ['F01|rack|R01|L01|D01'],
+  selectedDeviceKeys: [],
+  handleDeviceSelectionChange: vi.fn(),
   registerApplyHandler: vi.fn(),
   triggerApply: noop,
   ...overrides,

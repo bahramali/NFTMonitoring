@@ -6,13 +6,11 @@ import { normalizeDeviceCatalog } from "../Reports/utils/catalog.js";
 import { HYDROLEAF_TOPICS } from "../../utils/telemetryAdapter.js";
 import {
     getInventoryAttributes,
-    getLocationFromMessage,
-    getCompositeIdFromMessage,
+    getIdentityFromMessage,
     getTimestampFromMessage,
-    normalizeCompositeId,
-    parseCompositeId,
     resolvePayload,
 } from "./hallData.js";
+import { buildDeviceKey, describeIdentity, isIdentityComplete } from "../../utils/deviceIdentity.js";
 
 const API_BASE = getApiBaseUrl();
 const FALLBACK_DELAY_MS = 2500;
@@ -46,7 +44,7 @@ export function useHallInventory({ enableFallback = true, subscribeToTelemetry =
     const [inventoryVersion, setInventoryVersion] = useState(0);
     const [telemetryVersion, setTelemetryVersion] = useState(0);
     const [fallbackStatus, setFallbackStatus] = useState({ loading: false, error: "" });
-    const hasRealtimeCompositeRef = useRef(false);
+    const hasRealtimeIdentityRef = useRef(false);
     const providerLoggedRef = useRef(false);
 
     const updateInventoryForEntry = useCallback((prevEntry, nextEntry) => {
@@ -164,37 +162,30 @@ export function useHallInventory({ enableFallback = true, subscribeToTelemetry =
     );
 
     const handleMessage = useCallback((topic, message, meta = {}) => {
-        const compositeIdRaw = getCompositeIdFromMessage(message);
-        const compositeId = compositeIdRaw ? normalizeCompositeId(compositeIdRaw) : null;
-        const parsed = parseCompositeId(compositeIdRaw);
-        const location = getLocationFromMessage(message);
-        const site = location?.site ?? null;
-        const rack = location?.rack ?? null;
-        const layer = location?.layer ?? null;
-        const parsedOutput = {
-            site: parsed?.rackId ?? null,
-            layer: parsed?.layerId ?? null,
-            rackId: parsed?.rackId ?? null,
-            channel: parsed?.deviceCode ?? null,
-        };
+        const identity = getIdentityFromMessage(message);
+        const described = describeIdentity(identity);
+        const deviceKey = buildDeviceKey(identity);
+        const rackId = described.unitType === "rack" ? described.unitId : null;
+        const layerId = described.layerId ?? null;
 
         // eslint-disable-next-line no-console
         console.log(
-            `[WS][IN]\ntopic=${meta.destination ?? topic}\ncompositeId=${compositeId ?? "null"}\nsite=${site ?? "null"}\nrack=${rack ?? "null"}\nlayer=${layer ?? "null"}`,
+            `[WS][IN]\ntopic=${meta.destination ?? topic}\nfarmId=${described.farmId ?? "null"}\nunitType=${described.unitType ?? "null"}\nunitId=${described.unitId ?? "null"}\nlayerId=${layerId ?? "null"}`,
         );
         // eslint-disable-next-line no-console
         console.log(
-            `[PARSE]\ncompositeId=${compositeId ?? "null"}\nregexMatch=${Boolean(parsed)}\nparsed=${JSON.stringify(parsedOutput)}`,
+            `[IDENTITY]\nkey=${deviceKey ?? "null"}\nidentity=${JSON.stringify(described)}`,
         );
 
-        if (parsed) {
-            hasRealtimeCompositeRef.current = true;
+        if (isIdentityComplete(identity)) {
+            hasRealtimeIdentityRef.current = true;
         }
-        const cacheKey = compositeId || "UNMAPPED";
+        const cacheKey = deviceKey || "UNMAPPED";
         const timestamp = getTimestampFromMessage(message) ?? Date.now();
         const payload = resolvePayload(message);
         const entry = {
-            compositeId: compositeId || null,
+            deviceKey: deviceKey || null,
+            identity: described,
             message: payload ?? message,
             timestamp,
         };
@@ -225,14 +216,15 @@ export function useHallInventory({ enableFallback = true, subscribeToTelemetry =
 
             const fallbackEntries = devices
                 .map((device, index) => {
-                    const compositeId = getCompositeIdFromMessage(device);
-                    const normalized = normalizeCompositeId(compositeId);
-                    const cacheKey = normalized || `UNMAPPED-${index}`;
+                    const identity = getIdentityFromMessage(device);
+                    const deviceKey = buildDeviceKey(identity);
+                    const cacheKey = deviceKey || `UNMAPPED-${index}`;
                     if (cacheRef.current.has(cacheKey)) return null;
                     return {
                         cacheKey,
                         entry: {
-                            compositeId: normalized || null,
+                            deviceKey: deviceKey || null,
+                            identity: describeIdentity(identity),
                             message: resolvePayload(device) ?? device,
                             timestamp: getTimestampFromMessage(device) ?? timestamp,
                         },
@@ -249,7 +241,7 @@ export function useHallInventory({ enableFallback = true, subscribeToTelemetry =
     useEffect(() => {
         if (!enableFallback) return undefined;
         const timer = setTimeout(() => {
-            if (!hasRealtimeCompositeRef.current) {
+            if (!hasRealtimeIdentityRef.current) {
                 loadFallback();
             }
         }, FALLBACK_DELAY_MS);

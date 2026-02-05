@@ -68,6 +68,9 @@ const normalizeRackId = (value) => {
 };
 
 const resolveRackId = (device) => {
+    const unitType = normalizeRackId(device?.unitType);
+    const unitId = normalizeRackId(device?.unitId);
+    if (unitType === "rack" && unitId) return unitId;
     const candidates = [
         device?.rackId,
         device?.rack,
@@ -106,7 +109,7 @@ export default function Germination() {
     });
     const [customTo, setCustomTo] = useState(() => toLocalInputValue(new Date()));
     const [refreshIndex, setRefreshIndex] = useState(0);
-    const [selectedCompositeId, setSelectedCompositeId] = useState("");
+    const [selectedDeviceKey, setSelectedDeviceKey] = useState("");
     const [selectedMetricKey, setSelectedMetricKey] = useState("");
     const [chartData, setChartData] = useState([]);
     const [chartDomain, setChartDomain] = useState(null);
@@ -187,16 +190,16 @@ export default function Germination() {
 
     useEffect(() => {
         if (!deviceOptions.length) {
-            setSelectedCompositeId("");
+            setSelectedDeviceKey("");
             return;
         }
-        if (!selectedCompositeId || !germinationDevices[selectedCompositeId]) {
-            setSelectedCompositeId(deviceOptions[0].id);
+        if (!selectedDeviceKey || !germinationDevices[selectedDeviceKey]) {
+            setSelectedDeviceKey(deviceOptions[0].id);
         }
-    }, [deviceOptions, germinationDevices, selectedCompositeId]);
+    }, [deviceOptions, germinationDevices, selectedDeviceKey]);
 
     const availableMetrics = useMemo(() => {
-        const device = germinationDevices[selectedCompositeId];
+        const device = germinationDevices[selectedDeviceKey];
         if (!device) return [];
 
         const entries = new Map();
@@ -223,7 +226,7 @@ export default function Germination() {
         });
 
         return Array.from(entries.values());
-    }, [germinationDevices, selectedCompositeId]);
+    }, [germinationDevices, selectedDeviceKey]);
 
     useEffect(() => {
         if (!availableMetrics.length) {
@@ -330,7 +333,7 @@ export default function Germination() {
     }, [rangePreset, customFrom, customTo]);
 
     useEffect(() => {
-        if (!selectedCompositeId || !selectedMetricKeyValue) {
+        if (!selectedDeviceKey || !selectedMetricKeyValue) {
             setChartData([]);
             setChartDomain(null);
             return;
@@ -360,7 +363,7 @@ export default function Germination() {
             setChartError("");
             try {
                 const points = await fetchHistorical({
-                    compositeId: selectedCompositeId,
+                    identity: germinationDevices[selectedDeviceKey],
                     from: range.from,
                     to: range.to,
                     sensorType: selectedMetricSensorType,
@@ -394,7 +397,7 @@ export default function Germination() {
         customTo,
         rangePreset,
         refreshIndex,
-        selectedCompositeId,
+        selectedDeviceKey,
         selectedMetricKeyValue,
         selectedMetricHistoryKey,
         selectedMetricSensorType,
@@ -531,8 +534,8 @@ export default function Germination() {
 
             <HistoricalTrendsPanel
                 deviceOptions={deviceOptions}
-                selectedCompositeId={selectedCompositeId}
-                onCompositeChange={setSelectedCompositeId}
+                selectedDeviceKey={selectedDeviceKey}
+                onDeviceChange={setSelectedDeviceKey}
                 availableMetrics={availableMetrics}
                 selectedMetricKey={selectedMetricKey}
                 onMetricChange={setSelectedMetricKey}

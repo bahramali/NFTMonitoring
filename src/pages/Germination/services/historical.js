@@ -2,19 +2,24 @@ import { authFetch } from "../../../api/http.js";
 import { transformAggregatedData } from "../../../utils.js";
 import { getEntryValue } from "../germinationUtils.js";
 import { TELEMETRY_ENDPOINTS } from "../../../config/telemetryEndpoints.js";
+import { describeIdentity } from "../../../utils/deviceIdentity.js";
 
 export async function fetchHistorical({
-    compositeId,
+    identity,
     from,
     to,
     sensorType,
     metricKey,
     signal,
 }) {
+    const described = describeIdentity(identity || {});
     const params = new URLSearchParams({
-        compositeId,
         from: from.toISOString(),
         to: to.toISOString(),
+    });
+    Object.entries(described).forEach(([key, value]) => {
+        if (value === null || value === undefined || value === "") return;
+        params.set(key, String(value));
     });
     if (sensorType) {
         params.append("sensorType", sensorType);

@@ -13,6 +13,7 @@ import {makeMeasurementKey, sanitize} from "../common/measurementUtils.js";
 import {authFetch} from "../../api/http.js";
 import {useAuth} from "../../context/AuthContext.jsx";
 import { getApiBaseUrl } from '../../config/apiBase.js';
+import { buildDeviceKey, describeIdentity, resolveIdentity } from "../../utils/deviceIdentity.js";
 
 const MAX_POINTS = 480;
 
@@ -42,26 +43,27 @@ function formatTime(ts) {
     return date.toLocaleTimeString([], {hour: "2-digit", minute: "2-digit", second: "2-digit"});
 }
 
-function buildBufferKey(compositeId, metricKey) {
-    return `${compositeId || "global"}::${metricKey}`;
+function buildBufferKey(deviceKey, metricKey) {
+    return `${deviceKey || "global"}::${metricKey}`;
 }
 
 function normalizeMetricEvent(rawEvent) {
     if (!rawEvent || typeof rawEvent !== "object") return null;
 
-    const compositeId = rawEvent.compositeId || rawEvent.deviceId || rawEvent.device || rawEvent.topic || "";
+    const identity = resolveIdentity(rawEvent, rawEvent);
+    const deviceKey = buildDeviceKey(identity);
     const normalizedType = sanitize(rawEvent.metric || rawEvent.measurementType || rawEvent.type);
     const normalizedModel = sanitize(rawEvent.sensorModel || rawEvent.source || rawEvent.sensorName) || normalizedType;
     const metricKey = rawEvent.metricKey || rawEvent.measurementKey || (normalizedType ? makeMeasurementKey(normalizedType, normalizedModel) : null);
     const value = Number(rawEvent.value ?? rawEvent.metricValue ?? rawEvent.data ?? rawEvent.y);
     const timestamp = Number(rawEvent.timestamp ?? rawEvent.time ?? rawEvent.ts ?? Date.now());
 
-    if (!metricKey || !Number.isFinite(value) || !Number.isFinite(timestamp)) return null;
+    if (!metricKey || !Number.isFinite(value) || !Number.isFinite(timestamp) || !deviceKey) return null;
 
-    return {compositeId, metricKey, value, timestamp};
+    return {deviceKey, identity, metricKey, value, timestamp};
 }
 
-function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel, metricUnit}) {
+function MetricStreamPanel({selectedDeviceKey, selectedDeviceIdentity, selectedMetricKey, metricLabel, metricUnit}) {
     const {isAuthenticated, loadingProfile, token} = useAuth();
     const bufferRef = useRef(new Map());
     const rafRef = useRef(null);
@@ -77,9 +79,9 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
     const [streamError, setStreamError] = useState("");
 
     const targetBufferKey = useMemo(() => {
-        if (!selectedCompositeId || !selectedMetricKey) return "";
-        return buildBufferKey(selectedCompositeId, selectedMetricKey);
-    }, [selectedCompositeId, selectedMetricKey]);
+        if (!selectedDeviceKey || !selectedMetricKey) return "";
+        return buildBufferKey(selectedDeviceKey, selectedMetricKey);
+    }, [selectedDeviceKey, selectedMetricKey]);
 
     const scheduleRender = () => {
         if (!isVisibleRef.current) return;
@@ -147,10 +149,15 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
                 console.info("[MetricStreamPanel] history token present:", Boolean(token));
                 }
                 const params = new URLSearchParams({
-                    compositeId: selectedCompositeId || "",
                     metricKey: selectedMetricKey || "",
                     limit: String(MAX_POINTS),
-            });
+                });
+                const identity = resolveIdentity(selectedDeviceIdentity || {}, {});
+                const described = describeIdentity(identity);
+                Object.entries(described).forEach(([key, value]) => {
+                    if (value === null || value === undefined || value === "") return;
+                    params.set(key, String(value));
+                });
             const url = `${HISTORY_URL}?${params.toString()}`;
             const response = await authFetch(url, {signal});
             if (response.status === 401) {
@@ -171,7 +178,7 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
                 const points = items
                     .map(normalizeMetricEvent)
                     .filter(Boolean)
-                    .filter(event => !selectedCompositeId || event.compositeId === selectedCompositeId)
+                    .filter(event => !selectedDeviceKey || event.deviceKey === selectedDeviceKey)
                     .filter(event => event.metricKey === selectedMetricKey)
                     .sort((a, b) => a.timestamp - b.timestamp)
                     .map(event => ({timestamp: event.timestamp, value: event.value}));
@@ -189,7 +196,7 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
 
         fetchHistory();
         return () => abortController.abort();
-    }, [isAuthenticated, loadingProfile, selectedCompositeId, selectedMetricKey, targetBufferKey, token]);
+    }, [isAuthenticated, loadingProfile, selectedDeviceIdentity, selectedDeviceKey, selectedMetricKey, targetBufferKey, token]);
 
     useEffect(() => {
         let cancelled = false;
@@ -212,10 +219,10 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
         const handleMessage = (payload) => {
             const parsed = normalizeMetricEvent(payload);
             if (!parsed) return;
-            if (selectedCompositeId && parsed.compositeId && parsed.compositeId !== selectedCompositeId) return;
+            if (selectedDeviceKey && parsed.deviceKey && parsed.deviceKey !== selectedDeviceKey) return;
             if (selectedMetricKey && parsed.metricKey !== selectedMetricKey) return;
 
-            const bufferKey = buildBufferKey(parsed.compositeId, parsed.metricKey);
+            const bufferKey = buildBufferKey(parsed.deviceKey, parsed.metricKey);
             addPointToBuffer(bufferKey, {timestamp: parsed.timestamp, value: parsed.value});
             setLastUpdate(parsed.timestamp);
         };
@@ -332,7 +339,7 @@ function MetricStreamPanel({selectedCompositeId, selectedMetricKey, metricLabel,
                 cancelAnimationFrame(rafRef.current);
             }
         };
-    }, [isAuthenticated, loadingProfile, selectedCompositeId, selectedMetricKey, token]);
+    }, [isAuthenticated, loadingProfile, selectedDeviceKey, selectedMetricKey, token]);
 
     const statusLabel = useMemo(() => {
         switch (connectionState) {

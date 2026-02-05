@@ -7,8 +7,8 @@ test('shows empty state message in the chart area when no devices exist', () => 
   render(
     <HistoricalTrendsPanel
       deviceOptions={[]}
-      selectedCompositeId=""
-      onCompositeChange={() => {}}
+      selectedDeviceKey=""
+      onDeviceChange={() => {}}
       availableMetrics={[]}
       selectedMetricKey=""
       onMetricChange={() => {}}

@@ -125,7 +125,7 @@ const resolveDeviceLabel = (device, index) => {
     return `ID ${index + 1}`;
 };
 
-// English comment: Stable device identifier aligned with live telemetry (prefer compositeId).
+// English comment: Stable device identifier aligned with live telemetry identity.
 const resolveDeviceKey = (device) => resolveDeviceSelectionKey(device);
 
 const resolveDeviceRowKey = (device, index, targetKey) =>
