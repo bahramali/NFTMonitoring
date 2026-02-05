@@ -8,6 +8,7 @@ import { pickBucket, toISOSeconds } from "./utils/datetime";
 import { useReportsFilters } from "./context/ReportsFiltersContext.jsx";
 import { authFetch } from "../../api/http.js";
 import styles from "./ReportsPage.module.css";
+import { describeIdentity } from "../../utils/deviceIdentity.js";
 
 const AUTO_REFRESH_MS = { "5s": 5_000, "30s": 30_000, "1m": 60_000, "5m": 300_000 };
 
@@ -52,9 +53,16 @@ const buildChartSeries = (sensorsPayload = []) => {
     return { range, temperature, ph, ecTds, dissolvedOxygen, co2 };
 };
 
-const createHistoryUrl = (cid, params, selectedSensors) => {
+const createHistoryUrl = (identity, params, selectedSensors) => {
     const search = new URLSearchParams(params);
-    search.set("compositeId", cid);
+    const described = describeIdentity(identity || {});
+    Object.entries(described).forEach(([key, value]) => {
+        if (value === null || value === undefined || value === "") return;
+        search.set(key, String(value));
+    });
+    if (!search.has("kind")) {
+        search.set("kind", "telemetry");
+    }
     selectedSensors.forEach((sensor) => search.append("sensorType", sensor));
     return `${API_BASE}/api/records/history/aggregated?${search.toString()}`;
 };
@@ -93,9 +101,10 @@ export default function Reports() {
         addSensors,
         removeSensors,
         clearSensors,
-        selectedCIDs,
-        selectedCompositeIds,
-        handleCompositeSelectionChange,
+        selectedDeviceFilters,
+        selectedDeviceKeys,
+        handleDeviceSelectionChange,
+        deviceIdentityMap,
         registerApplyHandler,
         triggerApply,
     } = useReportsFilters();
@@ -158,7 +167,7 @@ export default function Reports() {
     }, []);
 
     const fetchReportData = useCallback(async () => {
-        if (!selectedCIDs.length) {
+        if (!selectedDeviceFilters.length) {
             if (abortRef.current) {
                 abortRef.current.abort();
             }
@@ -173,29 +182,33 @@ export default function Reports() {
             const autoBucket = pickBucket(fromDate, toDate);
             const baseParams = { from: toISOSeconds(fromDate), to: toISOSeconds(toDate), bucket: autoBucket };
 
-            const requests = selectedCIDs.map((cid) => {
+            const requests = selectedDeviceFilters.map((deviceKey) => {
                 return (async () => {
-                    const url = createHistoryUrl(cid, baseParams, selectedSensorTypes);
+                    const identity = deviceIdentityMap.get(deviceKey);
+                    if (!identity) {
+                        throw new Error(`Device not found for key ${deviceKey}`);
+                    }
+                    const url = createHistoryUrl(identity, baseParams, selectedSensorTypes);
                     const res = await authFetch(url, { signal });
                     if (!res.ok) {
                         const txt = await res.text().catch(() => "");
-                        throw new Error(`CID ${cid} -> ${res.status} ${txt}`);
+                        throw new Error(`Device ${deviceKey} -> ${res.status} ${txt}`);
                     }
                     const data = await res.json();
-                    return { cid, data };
+                    return { deviceKey, data };
                 })();
             });
 
             const results = await Promise.all(requests);
 
-            const chartState = results.reduce((state, { cid, data }) => {
+            const chartState = results.reduce((state, { deviceKey, data }) => {
                 const { range, temperature, ph, ecTds, dissolvedOxygen, co2 } = buildChartSeries(data.sensors);
-                state.rangeByCid[cid] = range;
-                state.tempByCid[cid] = temperature;
-                state.phByCid[cid] = ph;
-                state.ecTdsByCid[cid] = ecTds;
-                state.doByCid[cid] = dissolvedOxygen;
-                state.co2ByCid[cid] = co2;
+                state.rangeByCid[deviceKey] = range;
+                state.tempByCid[deviceKey] = temperature;
+                state.phByCid[deviceKey] = ph;
+                state.ecTdsByCid[deviceKey] = ecTds;
+                state.doByCid[deviceKey] = dissolvedOxygen;
+                state.co2ByCid[deviceKey] = co2;
                 return state;
             }, createEmptyChartState());
 
@@ -206,7 +219,7 @@ export default function Reports() {
                 setError(String(e.message || e));
             }
         }
-    }, [fromDate, toDate, selectedCIDs, selectedSensorTypes, resetAbortController]);
+    }, [fromDate, toDate, selectedDeviceFilters, selectedSensorTypes, resetAbortController, deviceIdentityMap]);
 
     const handleApply = useCallback(() => {
         setHasAppliedFilters(true);
@@ -245,8 +258,8 @@ export default function Reports() {
     }, [fromDate, toDate]);
 
     const selectedDeviceLabel = useMemo(
-        () => (selectedCIDs.length === 1 ? selectedCIDs[0] : ""),
-        [selectedCIDs],
+        () => (selectedDeviceFilters.length === 1 ? selectedDeviceFilters[0] : ""),
+        [selectedDeviceFilters],
     );
 
     const rangeLabel = useMemo(() => {
@@ -265,10 +278,10 @@ export default function Reports() {
     }, [fromDate, toDate]);
 
     const selectionBadgeLabel = useMemo(() => {
-        const count = selectedCIDs.length;
+        const count = selectedDeviceFilters.length;
         if (!count) return "No devices selected yet";
         return `${count} device${count === 1 ? "" : "s"} selected`;
-    }, [selectedCIDs]);
+    }, [selectedDeviceFilters]);
 
     const autoRefreshLabel = useMemo(() => {
         if (!autoRefreshValue || autoRefreshValue === "Off") return "Auto refresh off";
@@ -310,7 +323,7 @@ export default function Reports() {
                         onSystemChange={handleSystemChange}
                         onLayerChange={handleLayerChange}
                         onDeviceChange={handleDeviceChange}
-                        onCompositeSelectionChange={handleCompositeSelectionChange}
+                        onDeviceSelectionChange={handleDeviceSelectionChange}
                         onReset={onReset}
                         onAddCompare={onAddCompare}
                         rangeLabel={rangeLabel}
@@ -328,7 +341,7 @@ export default function Reports() {
                         onToggleTopicSensor={handleTopicSensorToggle}
                         onAllTopicSensors={handleAllTopicSensors}
                         onNoneTopicSensors={handleNoneTopicSensors}
-                        selectedCompositeIds={selectedCompositeIds}
+                        selectedDeviceKeys={selectedDeviceKeys}
                     />
                 </section>
 

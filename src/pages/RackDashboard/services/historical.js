@@ -2,6 +2,7 @@ import { authFetch } from "../../../api/http.js";
 import { transformAggregatedData } from "../../../utils.js";
 import { getEntryValue } from "../../Germination/germinationUtils.js";
 import { TELEMETRY_ENDPOINTS } from "../../../config/telemetryEndpoints.js";
+import { describeIdentity } from "../../../utils/deviceIdentity.js";
 
 function normalizeTimestamp(value) {
     if (typeof value === "number") {
@@ -35,21 +36,23 @@ function toPointsFromEntries(entries, metricKey) {
 }
 
 export async function fetchHistorical({
-    rackId,
-    nodeId,
+    identity,
     metricKey,
     sensorType,
     from,
     to,
     signal,
 }) {
-    const compositeId = nodeId || rackId;
     const resolvedSensorType = sensorType || metricKey;
+    const described = describeIdentity(identity || {});
     const params = new URLSearchParams({
-        compositeId,
         sensorType: resolvedSensorType,
         from: from.toISOString(),
         to: to.toISOString(),
+    });
+    Object.entries(described).forEach(([key, value]) => {
+        if (value === null || value === undefined || value === "") return;
+        params.set(key, String(value));
     });
 
     const response = await authFetch(

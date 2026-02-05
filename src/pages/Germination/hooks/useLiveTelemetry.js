@@ -13,8 +13,9 @@ export function useLiveTelemetry({
     topics = TELEMETRY_ENDPOINTS.ws.topics,
     filterDevice = defaultFilter,
     staleThresholdMs = DEFAULT_STALE_THRESHOLD_MS,
+    scope = null,
 } = {}) {
-    const { deviceData, mergedDevices } = useLiveDevices(topics);
+    const { deviceData, mergedDevices } = useLiveDevices(topics, { scope });
     const [now, setNow] = useState(() => Date.now());
 
     useEffect(() => {
@@ -61,7 +62,7 @@ export function useLiveTelemetry({
         if (!hasTopics) return [];
 
         const devices = filteredDevices || {};
-        const compositeIds = Object.keys(devices);
+        const deviceKeys = Object.keys(devices);
         const entries = new Map();
 
         function sanitize(value) {
@@ -69,8 +70,8 @@ export function useLiveTelemetry({
             return String(value).toLowerCase().replace(/[^a-z0-9]/g, "");
         }
 
-        compositeIds.forEach((compositeId) => {
-            const device = devices[compositeId] || {};
+        deviceKeys.forEach((deviceKey) => {
+            const device = devices[deviceKey] || {};
             const { sensors = [], health = {} } = device;
             const title = formatNodeTitle(device);
             const subtitle = formatNodeSubtitle(device);
@@ -97,7 +98,7 @@ export function useLiveTelemetry({
                 const okKey = sensor?.sensorName?.toLowerCase();
                 const rawHealth = okKey ? health[okKey] ?? health[sensor?.sensorName] : undefined;
                 entries.get(key).values.push({
-                    id: compositeId,
+                    id: deviceKey,
                     title,
                     subtitle,
                     debugId,

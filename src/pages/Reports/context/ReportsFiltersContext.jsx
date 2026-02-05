@@ -12,6 +12,7 @@ import { fetchDeviceCatalog } from "../utils/catalog";
 import { pickBucket, toISOSeconds, toLocalInputValue } from "../utils/datetime";
 import { fetchTopicSensors } from "../../../api/topics.js";
 import { ensureString } from "../utils/strings";
+import { buildDeviceKey } from "../../../utils/deviceIdentity.js";
 
 const ReportsFiltersContext = createContext(null);
 
@@ -23,8 +24,6 @@ const formatTopicLabel = (id) =>
         .replace(/[_-]/g, " ")
         .replace(/^\s+|\s+$/g, "")
         .replace(/^./, (ch) => ch.toUpperCase());
-
-const toCID = (d) => `${d.systemId}-${d.layerId}-${d.deviceId}`;
 
 const normalizeSensorKey = (value) =>
     ensureString(value).toLowerCase().replace(/[\s._-]/g, "");
@@ -124,7 +123,7 @@ const buildTopicSensorMap = (topics, apiTopicSensors, deviceRows) => {
             });
             if (!hasNormalized) {
                 console.warn("Reports: sensors empty after normalization", {
-                    deviceId: ensureString(device?.deviceId, device?.compositeId),
+                    deviceId: ensureString(device?.deviceId, device?.deviceKey),
                     sensors,
                 });
             }
@@ -162,14 +161,17 @@ const buildTopicDeviceMap = (topics, deviceRows) => {
                 devicesByTopic.set(topic, new Map());
             }
             const topicMap = devicesByTopic.get(topic);
-            const compositeId = ensureString(device?.compositeId, toCID(device));
-            if (!compositeId || topicMap.has(compositeId)) return;
-            topicMap.set(compositeId, {
-                id: compositeId,
-                compositeId,
-                deviceId: ensureString(device?.deviceId, compositeId),
-                label: ensureString(device?.deviceId || device?.compositeId, compositeId),
+            const deviceKey = ensureString(device?.deviceKey) || buildDeviceKey(device);
+            if (!deviceKey || topicMap.has(deviceKey)) return;
+            topicMap.set(deviceKey, {
+                id: deviceKey,
+                deviceKey,
+                deviceId: ensureString(device?.deviceId),
+                label: ensureString(device?.deviceName || device?.deviceId, deviceKey),
                 layerId: resolveLayerId(device),
+                farmId: ensureString(device?.farmId),
+                unitType: ensureString(device?.unitType),
+                unitId: ensureString(device?.unitId),
             });
         });
     });
@@ -177,7 +179,7 @@ const buildTopicDeviceMap = (topics, deviceRows) => {
     const result = {};
     devicesByTopic.forEach((topicMap, topic) => {
         result[topic] = Array.from(topicMap.values()).sort(
-            (a, b) => a.label.localeCompare(b.label) || a.compositeId.localeCompare(b.compositeId),
+            (a, b) => a.label.localeCompare(b.label) || a.deviceKey.localeCompare(b.deviceKey),
         );
     });
     return result;
@@ -212,7 +214,7 @@ export function ReportsFiltersProvider({ children }) {
         layers: [],
         devices: [],
     });
-    const [selectedCompositeIds, setSelectedCompositeIds] = useState([]);
+    const [selectedDeviceKeys, setSelectedDeviceKeys] = useState([]);
     const [compareItems, setCompareItems] = useState([]);
 
     useEffect(() => {
@@ -348,10 +350,21 @@ export function ReportsFiltersProvider({ children }) {
         [deviceMeta],
     );
 
+    const deviceIdentityMap = useMemo(() => {
+        const map = new Map();
+        deviceRows.forEach((row) => {
+            const key = row?.deviceKey || buildDeviceKey(row);
+            if (key) {
+                map.set(key, row);
+            }
+        });
+        return map;
+    }, [deviceRows]);
+
     const systems = useMemo(() => {
         const ids = new Set();
         deviceRows.forEach((row) => {
-            if (row?.systemId) ids.add(row.systemId);
+            if (row?.farmId) ids.add(row.farmId);
         });
         return Array.from(ids).sort();
     }, [deviceRows]);
@@ -359,7 +372,7 @@ export function ReportsFiltersProvider({ children }) {
     const layers = useMemo(() => {
         const ids = new Set();
         deviceRows.forEach((row) => {
-            if (locationFilters.systems.length && !locationFilters.systems.includes(row.systemId)) return;
+            if (locationFilters.systems.length && !locationFilters.systems.includes(row.farmId)) return;
             if (row?.layerId) ids.add(row.layerId);
         });
         return Array.from(ids).sort();
@@ -368,7 +381,7 @@ export function ReportsFiltersProvider({ children }) {
     const deviceIds = useMemo(() => {
         const ids = new Set();
         deviceRows.forEach((row) => {
-            if (locationFilters.systems.length && !locationFilters.systems.includes(row.systemId)) return;
+            if (locationFilters.systems.length && !locationFilters.systems.includes(row.farmId)) return;
             if (locationFilters.layers.length && !locationFilters.layers.includes(row.layerId)) return;
             if (row?.deviceId) ids.add(row.deviceId);
         });
@@ -395,7 +408,7 @@ export function ReportsFiltersProvider({ children }) {
         () =>
             deviceRows.filter((row) => {
                 const matchSystem =
-                    !locationFilters.systems.length || locationFilters.systems.includes(row.systemId);
+                    !locationFilters.systems.length || locationFilters.systems.includes(row.farmId);
                 const matchLayer =
                     !locationFilters.layers.length || locationFilters.layers.includes(row.layerId);
                 const matchDevice =
@@ -415,11 +428,11 @@ export function ReportsFiltersProvider({ children }) {
         [topicIds, apiTopicSensors, deviceRows],
     );
 
-    const knownCompositeIds = useMemo(() => {
+    const knownDeviceKeys = useMemo(() => {
         const set = new Set();
         Object.values(availableTopicDevices || {}).forEach((devices) => {
             (devices || []).forEach((device) => {
-                if (device?.compositeId) set.add(device.compositeId);
+                if (device?.deviceKey) set.add(device.deviceKey);
             });
         });
         return set;
@@ -429,12 +442,12 @@ export function ReportsFiltersProvider({ children }) {
     const selectedTopicsSet = useMemo(() => new Set(selectedTopicIds), [selectedTopicIds]);
 
     useEffect(() => {
-        setSelectedCompositeIds((prev) => {
+        setSelectedDeviceKeys((prev) => {
             if (!prev.length) return prev;
-            const filtered = prev.filter((cid) => knownCompositeIds.has(cid));
+            const filtered = prev.filter((key) => knownDeviceKeys.has(key));
             return filtered.length === prev.length ? prev : filtered;
         });
-    }, [knownCompositeIds]);
+    }, [knownDeviceKeys]);
 
     useEffect(() => {
         if (!selectedTopicIds.length) return;
@@ -453,31 +466,27 @@ export function ReportsFiltersProvider({ children }) {
 
     useEffect(() => {
         if (isReportsRoute) return;
-        setSelectedCompositeIds([]);
+        setSelectedDeviceKeys([]);
     }, [isReportsRoute]);
 
-    const selectedCIDs = useMemo(() => {
-        if (selectedCompositeIds.length) return selectedCompositeIds;
+    const selectedDeviceFilters = useMemo(() => {
+        if (selectedDeviceKeys.length) return selectedDeviceKeys;
         if (selectedTopicIds.length === 1) {
             const topicDevices = availableTopicDevices?.[selectedTopicIds[0]] || [];
             if (topicDevices.length) {
-                return Array.from(new Set(topicDevices.map((device) => device?.compositeId).filter(Boolean)));
+                return Array.from(new Set(topicDevices.map((device) => device?.deviceKey).filter(Boolean)));
             }
         }
-        const uniques = new Set();
-        filteredDeviceRows.forEach((row) => {
-            uniques.add(toCID(row));
-        });
-        return Array.from(uniques);
-    }, [selectedCompositeIds, selectedTopicIds, availableTopicDevices, filteredDeviceRows]);
+        return filteredDeviceRows.map((row) => row.deviceKey).filter(Boolean);
+    }, [selectedDeviceKeys, selectedTopicIds, availableTopicDevices, filteredDeviceRows]);
 
-    const handleCompositeSelectionChange = useCallback((compositeIds = []) => {
-        if (!Array.isArray(compositeIds) || compositeIds.length === 0) {
-            setSelectedCompositeIds([]);
+    const handleDeviceSelectionChange = useCallback((deviceKeys = []) => {
+        if (!Array.isArray(deviceKeys) || deviceKeys.length === 0) {
+            setSelectedDeviceKeys([]);
             return;
         }
-        const unique = Array.from(new Set(compositeIds.filter(Boolean)));
-        setSelectedCompositeIds(unique);
+        const unique = Array.from(new Set(deviceKeys.filter(Boolean)));
+        setSelectedDeviceKeys(unique);
     }, []);
 
     const updateTopicSensors = useCallback((topic, updater) => {
@@ -662,13 +671,13 @@ export function ReportsFiltersProvider({ children }) {
 
     const onReset = useCallback(() => {
         setLocationFilters({ systems: [], layers: [], devices: [] });
-        setSelectedCompositeIds([]);
+        setSelectedDeviceKeys([]);
         setSelectedTopics(topicIds.length ? [topicIds[0]] : []);
         setSensorSelections(createSensorSelectionState(topicIds));
     }, [topicIds]);
 
     const onAddCompare = useCallback(() => {
-        if (!selectedCIDs.length) return;
+        if (!selectedDeviceFilters.length) return;
         const autoBucket = pickBucket(fromDate, toDate);
         const sensorsSelected = selectedTopicIds.flatMap((topic) =>
             Array.from(sensorSelections[topic] || []),
@@ -677,13 +686,13 @@ export function ReportsFiltersProvider({ children }) {
             ...prev,
             {
                 id: String(Date.now()),
-                title: `${selectedCIDs[0]} (${autoBucket})`,
+                title: `${selectedDeviceFilters[0]} (${autoBucket})`,
                 from: toISOSeconds(fromDate),
                 to: toISOSeconds(toDate),
                 sensors: sensorsSelected,
             },
         ]);
-    }, [fromDate, toDate, sensorSelections, selectedTopicIds, selectedCIDs]);
+    }, [fromDate, toDate, sensorSelections, selectedTopicIds, selectedDeviceFilters]);
 
     const onRemoveCompare = useCallback((id) => {
         setCompareItems((prev) => prev.filter((item) => item.id !== id));
@@ -730,6 +739,8 @@ export function ReportsFiltersProvider({ children }) {
         () => ({
             isReportsRoute,
             deviceMeta,
+            deviceIdentityMap,
+            deviceIdentityMap,
             fromDate,
             setFromDate,
             toDate,
@@ -763,15 +774,16 @@ export function ReportsFiltersProvider({ children }) {
             addSensors,
             removeSensors,
             clearSensors,
-            selectedCIDs,
-            selectedCompositeIds,
-            handleCompositeSelectionChange,
+            selectedDeviceFilters,
+            selectedDeviceKeys,
+            handleDeviceSelectionChange,
             registerApplyHandler,
             triggerApply,
         }),
         [
             isReportsRoute,
             deviceMeta,
+            deviceIdentityMap,
             fromDate,
             toDate,
             autoRefreshValue,
@@ -802,9 +814,9 @@ export function ReportsFiltersProvider({ children }) {
             addSensors,
             removeSensors,
             clearSensors,
-            selectedCIDs,
-            selectedCompositeIds,
-            handleCompositeSelectionChange,
+            selectedDeviceFilters,
+            selectedDeviceKeys,
+            handleDeviceSelectionChange,
             registerApplyHandler,
             triggerApply,
         ],

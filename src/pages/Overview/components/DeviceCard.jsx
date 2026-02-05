@@ -206,7 +206,6 @@ export default function DeviceCard(props) {
 
     // legacy props (fallback mode)
     id,
-    compositeId,
     sensors = [],
     tempC,
     humidityPct,
@@ -335,8 +334,8 @@ export default function DeviceCard(props) {
 
   const legacyName = useMemo(() => {
     if (modern) return "";
-    return id || compositeId || "—";
-  }, [modern, id, compositeId]);
+    return id || "—";
+  }, [modern, id]);
 
   const legacyNormalizedStatus = useMemo(() => {
     if (modern) return "unknown";

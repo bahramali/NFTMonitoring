@@ -3,10 +3,11 @@ import {transformAggregatedData} from "../../utils.js";
 import {authFetch, parseApiResponse} from "../../api/http.js";
 
 import { getApiBaseUrl } from '../../config/apiBase.js';
+import { describeIdentity } from "../../utils/deviceIdentity.js";
 
 const API_BASE = getApiBaseUrl();
 
-export function useHistory(compositeId, from, to, autoRefresh, interval, sensorTypes = []) {
+export function useHistory(identity, from, to, autoRefresh, interval, sensorTypes = []) {
     const [rangeData, setRangeData] = useState([]);
     const [tempRangeData, setTempRangeData] = useState([]);
     const [phRangeData, setPhRangeData] = useState([]);
@@ -61,14 +62,23 @@ export function useHistory(compositeId, from, to, autoRefresh, interval, sensorT
     }, []);
 
     const fetchReportData = useCallback(async () => {
-        if (!from || !to || !compositeId) return;
+        const described = describeIdentity(identity || {});
+        if (!from || !to || !described.farmId || !described.unitType || !described.unitId || !described.deviceId) return;
         try {
             const fromIso = new Date(from).toISOString();
             const toIso = new Date(to).toISOString();
             const sensors = sensorTypes.length ? sensorTypes : [null];
             const requests = sensors.map(async (sensor) => {
-                const sensorParam = sensor ? `&sensorType=${sensor}` : '';
-                const url = `${API_BASE}/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}${sensorParam}`;
+                const params = new URLSearchParams({
+                    from: fromIso,
+                    to: toIso,
+                });
+                Object.entries(described).forEach(([key, value]) => {
+                    if (value === null || value === undefined || value === "") return;
+                    params.set(key, String(value));
+                });
+                if (sensor) params.append("sensorType", sensor);
+                const url = `${API_BASE}/api/records/history/aggregated?${params.toString()}`;
                 console.log('Request:', url);
                 return loadHistory(url);
             });
@@ -104,7 +114,7 @@ export function useHistory(compositeId, from, to, autoRefresh, interval, sensorT
             setError(mappedError);
             console.error("Failed to fetch history", mappedError);
         }
-    }, [compositeId, from, to, sensorTypes, loadHistory]);
+    }, [identity, from, to, sensorTypes, loadHistory]);
 
     const fetchNewData = useCallback(async () => {
         try {
@@ -112,9 +122,18 @@ export function useHistory(compositeId, from, to, autoRefresh, interval, sensorT
             const nowDate = new Date();
             const toIso = nowDate.toISOString();
             const sensors = sensorTypes.length ? sensorTypes : [null];
+            const described = describeIdentity(identity || {});
             const requests = sensors.map(async (sensor) => {
-                const sensorParam = sensor ? `&sensorType=${sensor}` : '';
-                const url = `${API_BASE}/api/records/history/aggregated?compositeId=${compositeId}&from=${fromIso}&to=${toIso}${sensorParam}`;
+                const params = new URLSearchParams({
+                    from: fromIso,
+                    to: toIso,
+                });
+                Object.entries(described).forEach(([key, value]) => {
+                    if (value === null || value === undefined || value === "") return;
+                    params.set(key, String(value));
+                });
+                if (sensor) params.append("sensorType", sensor);
+                const url = `${API_BASE}/api/records/history/aggregated?${params.toString()}`;
                 console.log('Request:', url);
                 return loadHistory(url);
             });
@@ -152,7 +171,7 @@ export function useHistory(compositeId, from, to, autoRefresh, interval, sensorT
             setError(mappedError);
             console.error("Failed to fetch history", mappedError);
         }
-    }, [compositeId, sensorTypes, loadHistory]);
+    }, [identity, sensorTypes, loadHistory]);
 
     useEffect(() => {
         fetchReportData();

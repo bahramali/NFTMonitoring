@@ -1,11 +1,12 @@
 import { authFetch } from "../../../api/http.js";
+import { buildDeviceKey } from "../../../utils/deviceIdentity.js";
 
 import { getApiBaseUrl } from '../../../config/apiBase.js';
 
 const API_BASE = getApiBaseUrl();
 
 const NAME_KEYS = ["name", "label", "title", "displayName"];
-const DEFAULT_OBJECT_KEYS = ["id", "value", "code", "key", "systemId", "layerId", "deviceId"];
+const DEFAULT_OBJECT_KEYS = ["id", "value", "code", "key", "farmId", "unitType", "unitId", "layerId", "deviceId"];
 
 const textFromValue = (value, preferredKeys = []) => {
     if (value === undefined || value === null) return "";
@@ -33,64 +34,52 @@ const pickText = (values, preferredKeys = []) => {
     return "";
 };
 
-const splitCompositeId = (cid) => {
-    const value = textFromValue(cid);
-    if (!value) return { systemId: "", layerId: "", deviceId: "" };
-    const parts = value.split("-");
-    if (parts.length >= 3) {
-        return {
-            systemId: parts[0] ?? "",
-            layerId: parts[1] ?? "",
-            deviceId: parts.slice(2).join("-") ?? "",
-        };
-    }
-    return {
-        systemId: parts[0] ?? "",
-        layerId: parts[1] ?? "",
-        deviceId: parts.slice(2).join("-") || "",
-    };
-};
-
 const normalizeDeviceEntry = (entry) => {
     if (entry === undefined || entry === null) return null;
 
     if (typeof entry !== "object" || Array.isArray(entry)) {
-        const compositeId = textFromValue(entry);
-        if (!compositeId) return null;
-        const { systemId, layerId, deviceId } = splitCompositeId(compositeId);
-        const resolvedDeviceId = deviceId || compositeId;
-        return {
-            compositeId,
-            systemId,
-            layerId,
-            deviceId: resolvedDeviceId,
-            deviceName: resolvedDeviceId,
-        };
+        return null;
     }
 
-    const systemId = pickText([
+    const farmId = pickText([
+        entry.farmId,
+        entry.farm_id,
+        entry.farm,
         entry.systemId,
         entry.systemID,
-        entry.systemCode,
-        entry.systemKey,
         entry.system,
+        entry.siteId,
+        entry.site,
+        entry.farm?.id,
         entry.system?.id,
-        entry.system?.systemId,
-        entry.system?.code,
-        entry.system?.key,
-        entry.systemInfo,
-        entry.systemInfo?.id,
+        entry.site?.id,
     ]);
-    const systemName = pickText([
+    const farmName = pickText([
+        entry.farmName,
+        entry.farmLabel,
+        entry.farm?.name,
         entry.systemName,
         entry.systemLabel,
-        entry.system,
         entry.system?.name,
-        entry.system?.label,
-        entry.systemInfo,
-        entry.systemInfo?.name,
-        entry.systemInfo?.label,
+        entry.siteName,
+        entry.site?.name,
     ], NAME_KEYS);
+
+    const unitType = pickText([
+        entry.unitType,
+        entry.unit_type,
+        entry.unit,
+        entry.type,
+        entry.unitTypeName,
+    ]);
+    const unitId = pickText([
+        entry.unitId,
+        entry.unit_id,
+        entry.unitKey,
+        entry.unit,
+        entry.rackId,
+        entry.rack,
+    ]);
 
     const layerId = pickText([
         entry.layerId,
@@ -133,36 +122,18 @@ const normalizeDeviceEntry = (entry) => {
         entry.device?.label,
     ], NAME_KEYS);
 
-    const compositeIdRaw = pickText([
-        entry.compositeId,
-        entry.compositeID,
-        entry.cid,
-        entry.deviceCompositeId,
-        entry.deviceCompositeID,
-        entry.id && systemId && layerId ? `${systemId}-${layerId}-${textFromValue(entry.id)}` : "",
-    ]);
-
-    const fallbackComposite = [systemId, layerId, deviceId].filter(Boolean).join("-");
-    const compositeId = compositeIdRaw || fallbackComposite;
-    if (!compositeId) return null;
-
-    const fromComposite = splitCompositeId(compositeId);
-    const resolvedSystemId = systemId || fromComposite.systemId;
-    const resolvedLayerId = layerId || fromComposite.layerId;
-    const resolvedDeviceId = deviceId || fromComposite.deviceId || compositeId;
-    const resolvedSystemName = systemName || fromComposite.systemId || resolvedSystemId;
-    const resolvedLayerName = layerName || fromComposite.layerId || resolvedLayerId;
-    const resolvedDeviceName = deviceName || resolvedDeviceId;
+    if (!farmId || !unitType || !unitId || !deviceId) return null;
 
     return {
         ...entry,
-        systemId: resolvedSystemId,
-        systemName: resolvedSystemName,
-        layerId: resolvedLayerId,
-        layerName: resolvedLayerName,
-        deviceId: resolvedDeviceId,
-        deviceName: resolvedDeviceName,
-        compositeId,
+        farmId,
+        farmName: farmName || farmId,
+        unitType,
+        unitId,
+        layerId,
+        layerName: layerName || layerId,
+        deviceId,
+        deviceName: deviceName || deviceId,
     };
 };
 
@@ -170,9 +141,11 @@ const ingestDeviceArray = (targetMap, values = []) => {
     if (!Array.isArray(values)) return;
     values.forEach((value) => {
         const normalized = normalizeDeviceEntry(value);
-        if (!normalized?.compositeId) return;
-        const existing = targetMap.get(normalized.compositeId) || {};
-        targetMap.set(normalized.compositeId, { ...existing, ...normalized });
+        if (!normalized) return;
+        const key = buildDeviceKey(normalized);
+        if (!key) return;
+        const existing = targetMap.get(key) || {};
+        targetMap.set(key, { ...existing, ...normalized, deviceKey: key });
     });
 };
 
@@ -208,8 +181,8 @@ const ingestSystemArray = (targetMap, systems = []) => {
             const devices = Array.isArray(layer.devices) ? layer.devices : [];
             devices.forEach((device) => {
                 ingestDeviceArray(targetMap, [{
-                    systemId: systemId || device.systemId,
-                    systemName: systemName || device.systemName,
+                    farmId: systemId || device.farmId,
+                    farmName: systemName || device.farmName,
                     layerId: layerId || device.layerId,
                     layerName: layerName || device.layerName,
                     ...device,

@@ -2,10 +2,12 @@
   "kind": "status",
   "mqttTopic": "hydroleaf/status",
   "payload": {
-    "system": "S01",
-    "layer": "L01",
+    "farmId": "F01",
+    "unitType": "rack",
+    "unitId": "R01",
+    "layerId": "L01",
     "deviceId": "G01",
-    "compositeId": "S01-L01-G01",
-    "status": "online"
+    "status": "online",
+    "timestamp": "2025-08-14T13:52:32Z"
   }
 }

@@ -3,7 +3,7 @@ import { isWaterDevice } from '../src/pages/Overview/utils/isWaterDevice.js';
 
 describe('isWaterDevice', () => {
   it('detects water device IDs', () => {
-    expect(isWaterDevice('S01-L01-T01')).toBe(true);
-    expect(isWaterDevice('S01-L01-D01')).toBe(false);
+    expect(isWaterDevice('T01')).toBe(true);
+    expect(isWaterDevice('D01')).toBe(false);
   });
 });

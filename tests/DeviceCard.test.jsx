@@ -6,9 +6,8 @@ import DeviceCard from "../src/pages/Overview/components/DeviceCard.jsx";
 
 test("renders device id and groups AS7343 readings inside the sensor list", () => {
   const props = {
-    // Make sure legacy title has a value even if component expects compositeId
+    // Make sure legacy title has a value even if component expects an ID
     id: "S01-L01-G03",
-    compositeId: "S01-L01-G03",
     sensors: [
       { sensorName: "SHT3x", sensorType: "temperature", value: 22.9, unit: "°C" },
       { sensorName: "SHT3x", sensorType: "humidity", value: 56, unit: "%" },

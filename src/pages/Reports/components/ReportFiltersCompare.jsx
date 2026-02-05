@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import styles from "./ReportFiltersCompare.module.css";
 import { normalizeDeviceCatalog } from "../utils/catalog";
 import { ensureString } from "../utils/strings";
+import { buildDeviceKey } from "../../../utils/deviceIdentity.js";
 
 function AllNone({name, onAll, onNone}) {
     return (
@@ -184,26 +185,6 @@ function Group({title, name, options = [], values = [], onAll, onNone, onToggle}
     );
 }
 
-const toFallbackComposite = (systemId, layerId, deviceId) =>
-    [systemId, layerId, deviceId].filter(Boolean).join('-');
-
-const parseCompositeId = (cid) => {
-    const value = ensureString(cid);
-    if (!value) return { systemId: '', layerId: '', deviceId: '' };
-    const parts = value.split('-');
-    if (parts.length < 3) {
-        return {
-            systemId: parts[0] || value,
-            layerId: parts[1] || '',
-            deviceId: parts[2] || '',
-        };
-    }
-    return {
-        systemId: parts[0],
-        layerId: parts[1],
-        deviceId: parts.slice(2).join('-'),
-    };
-};
 
 export default function ReportFiltersCompare(props) {
     const {
@@ -212,10 +193,8 @@ export default function ReportFiltersCompare(props) {
         autoRefreshValue = 'Off',
         onAutoRefreshValueChange = () => {},
 
-        devices: devicesProp = [],
-
         onSystemChange, onLayerChange, onDeviceChange,
-        onCompositeSelectionChange,
+        onDeviceSelectionChange,
 
         topics: topicsProp = [],
         selectedTopics: selectedTopicsProp = [],
@@ -225,7 +204,7 @@ export default function ReportFiltersCompare(props) {
         topicSensors: topicSensorsProp = {},
         topicDevices: topicDevicesProp = {},
         selectedTopicSensors: selectedTopicSensorsProp = {},
-        selectedCompositeIds: selectedCompositeIdsProp = [],
+        selectedDeviceKeys: selectedDeviceKeysProp = [],
         onToggleTopicSensor,
         onAllTopicSensors,
         onNoneTopicSensors,
@@ -290,163 +269,51 @@ export default function ReportFiltersCompare(props) {
     );
 
     const locationData = useMemo(() => {
-        const compositeMeta = new Map();
+        const deviceMeta = new Map();
+        const catalogDevices = Array.isArray(catalog?.devices) ? catalog.devices : [];
+        catalogDevices.forEach((device) => {
+            const deviceKey = ensureString(device.deviceKey) || buildDeviceKey(device);
+            const farmId = ensureString(device.farmId);
+            const unitType = ensureString(device.unitType);
+            const unitId = ensureString(device.unitId);
+            const layerId = ensureString(device.layerId);
+            const deviceId = ensureString(device.deviceId);
+            if (!deviceKey || !farmId || !unitType || !unitId || !deviceId) return;
 
-        const recordDevice = ({
-            systemId,
-            systemLabel,
-            layerId,
-            layerLabel,
-            deviceId,
-            deviceLabel,
-            compositeId,
-        }) => {
-            const cid = ensureString(compositeId);
-            if (!cid) return;
-
-            const parsed = parseCompositeId(cid);
-            const sysId = ensureString(systemId, parsed.systemId);
-            const layId = ensureString(layerId, parsed.layerId);
-            const devId = ensureString(deviceId, parsed.deviceId || cid);
-            if (!sysId || !layId || !devId) return;
-
-            if (!compositeMeta.has(cid)) {
-                compositeMeta.set(cid, {
-                    systemId: sysId,
-                    layerId: layId,
-                    deviceId: devId,
+            if (!deviceMeta.has(deviceKey)) {
+                deviceMeta.set(deviceKey, {
+                    deviceKey,
+                    farmId,
+                    unitType,
+                    unitId,
+                    layerId,
+                    deviceId,
                     labels: {
-                        system: ensureString(systemLabel, sysId),
-                        layer: ensureString(layerLabel, layId),
-                        device: ensureString(deviceLabel, devId),
+                        farm: ensureString(device.farmName, farmId),
+                        unit: ensureString(device.unitName, unitId),
+                        layer: ensureString(device.layerName, layerId),
+                        device: ensureString(device.deviceName, deviceId),
                     },
                 });
             }
-        };
-
-        const catalogDevices = Array.isArray(catalog?.devices) ? catalog.devices : [];
-        catalogDevices.forEach((device) => {
-            const systemId = ensureString(device.systemId ?? device.system?.id);
-            const layerId = ensureString(device.layerId ?? device.layer?.id);
-            const deviceId = ensureString(device.deviceId ?? device.id ?? device.device?.id);
-            const compositeId = ensureString(
-                device.compositeId ?? toFallbackComposite(systemId, layerId, deviceId),
-            );
-
-            recordDevice({
-                systemId,
-                systemLabel: ensureString(device.systemName ?? device.system?.name, systemId),
-                layerId,
-                layerLabel: ensureString(device.layerName ?? device.layer?.name, layerId),
-                deviceId,
-                deviceLabel: ensureString(device.deviceName ?? device.name ?? device.label, deviceId),
-                compositeId,
-            });
         });
 
-        if (!compositeMeta.size) {
-            const catalogSystems = Array.isArray(catalog?.systems) ? catalog.systems : [];
-            catalogSystems.forEach((system) => {
-                const systemId = ensureString(
-                    system.id ?? system.systemId ?? system.code ?? system.key,
-                );
-                if (!systemId) return;
-                const systemLabel = ensureString(
-                    system.name ?? system.systemName ?? system.label,
-                    systemId,
-                );
+        return { deviceKeys: Array.from(deviceMeta.keys()).sort(), deviceMeta };
+    }, [catalog]);
 
-                if (Array.isArray(system.layers)) {
-                    system.layers.forEach((layer) => {
-                        const layerId = ensureString(
-                            layer.id ?? layer.layerId ?? layer.code ?? layer.key,
-                        );
-                        const layerLabel = ensureString(
-                            layer.name ?? layer.layerName ?? layer.label,
-                            layerId,
-                        );
-                        const devices = Array.isArray(layer.devices) ? layer.devices : [];
-                        devices.forEach((device) => {
-                            const parsed = parseCompositeId(device.compositeId ?? device.id);
-                            const deviceId = ensureString(
-                                device.deviceId ?? device.id ?? parsed.deviceId,
-                            );
-                            const compositeId = ensureString(
-                                device.compositeId ??
-                                    device.id ??
-                                    toFallbackComposite(
-                                        systemId,
-                                        layerId || parsed.layerId,
-                                        deviceId,
-                                    ),
-                            );
-                            recordDevice({
-                                systemId,
-                                systemLabel,
-                                layerId: layerId || parsed.layerId,
-                                layerLabel: ensureString(layerLabel, layerId || parsed.layerId),
-                                deviceId,
-                                deviceLabel: ensureString(device.name ?? device.label, deviceId),
-                                compositeId,
-                            });
-                        });
-                    });
-                }
+    const { deviceKeys, deviceMeta } = locationData;
 
-                const compositeCandidates = [
-                    ...(Array.isArray(system.deviceCompositeIds)
-                        ? system.deviceCompositeIds
-                        : []),
-                    ...(Array.isArray(system.compositeIds) ? system.compositeIds : []),
-                ];
-                compositeCandidates.forEach((cid) => {
-                    const parsed = parseCompositeId(cid);
-                    recordDevice({
-                        systemId,
-                        systemLabel,
-                        layerId: parsed.layerId || "Layer",
-                        layerLabel: ensureString(parsed.layerId, parsed.layerId || "Layer"),
-                        deviceId: parsed.deviceId || cid,
-                        deviceLabel: parsed.deviceId || cid,
-                        compositeId: cid,
-                    });
-                });
-            });
-        }
-
-        if (!compositeMeta.size && Array.isArray(devicesProp) && devicesProp.length) {
-            devicesProp.forEach((raw) => {
-                const cid = ensureString(raw);
-                if (!cid || !cid.includes("-")) return;
-                const parsed = parseCompositeId(cid);
-                recordDevice({
-                    systemId: parsed.systemId || "System",
-                    systemLabel: parsed.systemId || "System",
-                    layerId: parsed.layerId || "Layer",
-                    layerLabel: parsed.layerId || "Layer",
-                    deviceId: parsed.deviceId || cid,
-                    deviceLabel: parsed.deviceId || cid,
-                    compositeId: cid,
-                });
-            });
-        }
-
-        return { compositeIds: Array.from(compositeMeta.keys()).sort(), compositeMeta };
-    }, [catalog, devicesProp]);
-
-    const { compositeIds, compositeMeta } = locationData;
-
-    const [selectedCompositeIds, setSelectedCompositeIds] = useState(
-        () => new Set(Array.isArray(selectedCompositeIdsProp) ? selectedCompositeIdsProp : [])
+    const [selectedDeviceKeys, setSelectedDeviceKeys] = useState(
+        () => new Set(Array.isArray(selectedDeviceKeysProp) ? selectedDeviceKeysProp : [])
     );
 
-    const syncCompositeSelection = useCallback((source = []) => {
-        setSelectedCompositeIds((prev) => {
+    const syncDeviceSelection = useCallback((source = []) => {
+        setSelectedDeviceKeys((prev) => {
             const next = new Set(source);
             if (prev.size === next.size) {
                 let identical = true;
-                prev.forEach((cid) => {
-                    if (!next.has(cid)) {
+                prev.forEach((key) => {
+                    if (!next.has(key)) {
                         identical = false;
                     }
                 });
@@ -458,28 +325,28 @@ export default function ReportFiltersCompare(props) {
 
     useEffect(() => {
         if (!selectedTopicId) {
-            syncCompositeSelection([]);
+            syncDeviceSelection([]);
             return;
         }
-        const allowed = new Set(devicesForSelectedTopic.map((device) => device?.compositeId).filter(Boolean));
-        const raw = Array.isArray(selectedCompositeIdsProp) ? selectedCompositeIdsProp : [];
+        const allowed = new Set(devicesForSelectedTopic.map((device) => device?.deviceKey).filter(Boolean));
+        const raw = Array.isArray(selectedDeviceKeysProp) ? selectedDeviceKeysProp : [];
         const filtered = raw.filter((cid) => allowed.has(cid));
-        syncCompositeSelection(filtered);
-    }, [selectedCompositeIdsProp, selectedTopicId, devicesForSelectedTopic, syncCompositeSelection]);
+        syncDeviceSelection(filtered);
+    }, [selectedDeviceKeysProp, selectedTopicId, devicesForSelectedTopic, syncDeviceSelection]);
 
     useEffect(() => {
-        if (typeof onCompositeSelectionChange === 'function') {
-            onCompositeSelectionChange(Array.from(selectedCompositeIds));
+        if (typeof onDeviceSelectionChange === 'function') {
+            onDeviceSelectionChange(Array.from(selectedDeviceKeys));
         }
-    }, [selectedCompositeIds, onCompositeSelectionChange]);
+    }, [selectedDeviceKeys, onDeviceSelectionChange]);
     const selectedSummary = useMemo(() => {
         const sysSet = new Set();
         const laySet = new Set();
         const devSet = new Set();
-        for (const cid of selectedCompositeIds) {
-            const meta = compositeMeta.get(cid);
+        for (const deviceKey of selectedDeviceKeys) {
+            const meta = deviceMeta.get(deviceKey);
             if (!meta) continue;
-            if (meta.systemId) sysSet.add(meta.systemId);
+            if (meta.farmId) sysSet.add(meta.farmId);
             if (meta.layerId) laySet.add(meta.layerId);
             if (meta.deviceId) devSet.add(meta.deviceId);
         }
@@ -488,7 +355,7 @@ export default function ReportFiltersCompare(props) {
             layers: Array.from(laySet),
             devices: Array.from(devSet),
         };
-    }, [selectedCompositeIds, compositeMeta]);
+    }, [selectedDeviceKeys, deviceMeta]);
 
     const selectedSystems = selectedSummary.systems;
     const selectedLayers  = selectedSummary.layers;
@@ -524,8 +391,8 @@ export default function ReportFiltersCompare(props) {
         prevDevicesRef.current = selectedDevices;
     }, [selectedDevices, onDeviceChange]);
 
-    const mutateCompositeSelection = (mutator) => {
-        setSelectedCompositeIds((prev) => {
+    const mutateDeviceSelection = (mutator) => {
+        setSelectedDeviceKeys((prev) => {
             const next = new Set(prev);
             mutator(next, prev);
             return next;
@@ -533,78 +400,78 @@ export default function ReportFiltersCompare(props) {
     };
 
     useEffect(() => {
-        setSelectedCompositeIds(prev => {
+        setSelectedDeviceKeys(prev => {
             const next = new Set();
             let changed = false;
-            for (const cid of prev) {
-                if (compositeMeta.has(cid)) next.add(cid);
+            for (const deviceKey of prev) {
+                if (deviceMeta.has(deviceKey)) next.add(deviceKey);
                 else changed = true;
             }
             if (!changed) return prev;
             return next;
         });
-    }, [compositeMeta]);
+    }, [deviceMeta]);
 
     const handleDeviceToggle = (device, checked) => {
         if (!device) return;
-        mutateCompositeSelection((next) => {
-            if (checked) next.add(device.compositeId);
-            else next.delete(device.compositeId);
+        mutateDeviceSelection((next) => {
+            if (checked) next.add(device.deviceKey);
+            else next.delete(device.deviceKey);
         });
     };
 
     const handleSelectAllLocations = () => {
         if (selectedTopicId) {
             const allForTopic = devicesForSelectedTopic
-                .map((device) => device?.compositeId)
+                .map((device) => device?.deviceKey)
                 .filter(Boolean);
-            syncCompositeSelection(allForTopic);
+            syncDeviceSelection(allForTopic);
             return;
         }
-        syncCompositeSelection(compositeIds);
+        syncDeviceSelection(deviceKeys);
     };
 
     const handleClearLocations = () => {
-        syncCompositeSelection([]);
+        syncDeviceSelection([]);
     };
 
-    // composite checkbox state derived from location selection
-    const isCompositeChecked = (cid) => selectedCompositeIds.has(cid);
+    // Device checkbox state derived from location selection
+    const isDeviceChecked = (deviceKey) => selectedDeviceKeys.has(deviceKey);
 
 
     // sensors: before any location selection, everything disabled (tests expect this)
 
-    const selectedCompositeCount = selectedCompositeIds.size;
-    const totalCompositeCount = selectedTopicId ? (topicDevices[selectedTopicId] || []).length : compositeIds.length;
+    const selectedDeviceCount = selectedDeviceKeys.size;
+    const totalDeviceCount = selectedTopicId ? (topicDevices[selectedTopicId] || []).length : deviceKeys.length;
 
     const deviceLabelMap = useMemo(() => {
         const map = new Map();
         Object.values(topicDevices).forEach((devices = []) => {
             devices.forEach((device) => {
-                const cid = ensureString(device?.compositeId);
+                const cid = ensureString(device?.deviceKey);
                 if (!cid || map.has(cid)) return;
                 const label = ensureString(device?.label) || ensureString(device?.deviceId) || cid;
                 map.set(cid, label);
             });
         });
-        compositeMeta.forEach((meta, cid) => {
+        deviceMeta.forEach((meta, cid) => {
             if (!map.has(cid)) {
                 const label = meta?.labels?.device || cid;
                 if (label) map.set(cid, label);
             }
         });
         return map;
-    }, [topicDevices, compositeMeta]);
+    }, [topicDevices, deviceMeta]);
 
     const selectedDeviceNames = useMemo(() => {
-        if (!selectedCompositeIds.size) return [];
+        if (!selectedDeviceKeys.size) return [];
         const names = new Set();
-        selectedCompositeIds.forEach((cid) => {
+        selectedDeviceKeys.forEach((cid) => {
             const label = deviceLabelMap.get(cid) || cid;
             if (label) names.add(label);
         });
         return Array.from(names);
-    }, [selectedCompositeIds, deviceLabelMap]);
+    }, [selectedDeviceKeys, deviceLabelMap]);
 
     const selectedTopicLabel = useMemo(() => {
         if (!selectedTopicId) return "No topic selected";
@@ -648,9 +515,9 @@ export default function ReportFiltersCompare(props) {
     }, [onApply]);
 
     const selectionCountText = useMemo(() => {
-        const total = totalCompositeCount || 0;
-        return `${selectedCompositeCount} of ${total}`;
-    }, [selectedCompositeCount, totalCompositeCount]);
+        const total = totalDeviceCount || 0;
+        return `${selectedDeviceCount} of ${total}`;
+    }, [selectedDeviceCount, totalDeviceCount]);
 
     const containerClassName = [styles.rf, styles.rfPage, className || ""]
         .filter(Boolean)
@@ -675,7 +542,7 @@ export default function ReportFiltersCompare(props) {
                         type="button"
                         className={styles.btn}
                         onClick={handleAddCompareClick}
-                        disabled={selectedCompositeCount === 0}
+                        disabled={selectedDeviceCount === 0}
                     >
                         Add to compare
                     </button>
@@ -782,20 +649,20 @@ export default function ReportFiltersCompare(props) {
                                 </div>
                                 <div className={styles.deviceChecklist}>
                                     {devicesForSelectedTopic.map((device) => {
-                                        const compositeId = ensureString(device?.compositeId);
-                                        if (!compositeId) return null;
+                                        const deviceKey = ensureString(device?.deviceKey);
+                                        if (!deviceKey) return null;
                                         return (
-                                            <label key={compositeId} className={styles.deviceOption}>
+                                            <label key={deviceKey} className={styles.deviceOption}>
                                                 <input
                                                     type="checkbox"
-                                                    checked={isCompositeChecked(compositeId)}
+                                                    checked={isDeviceChecked(deviceKey)}
                                                     onChange={(event) =>
-                                                        handleDeviceToggle({ ...device, compositeId }, event.target.checked)
+                                                        handleDeviceToggle({ ...device, deviceKey }, event.target.checked)
                                                     }
                                                 />
                                                 <span className={styles.deviceInfo}>
-                                                    <span className={styles.deviceLabel}>{device?.label || device?.deviceId || compositeId}</span>
-                                                    <span className={styles.deviceCid}>{compositeId}</span>
+                                                    <span className={styles.deviceLabel}>{device?.label || device?.deviceId || deviceKey}</span>
+                                                    <span className={styles.deviceCid}>{deviceKey}</span>
                                                 </span>
                                             </label>
                                         );
@@ -878,7 +745,7 @@ export default function ReportFiltersCompare(props) {
                     type="button"
                     className={`${styles.btn} ${styles.primary}`}
                     onClick={handleApplyClick}
-                    disabled={selectedCompositeCount === 0}
+                    disabled={selectedDeviceCount === 0}
                 >
                     Show charts
                 </button>

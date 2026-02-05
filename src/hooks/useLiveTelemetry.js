@@ -3,6 +3,7 @@ import { useStomp } from "./useStomp.js";
 import { normalizeTelemetryPayload, parseEnvelope } from "../utils/telemetryAdapter.js";
 import { canonKey, normalizeSensors } from "../pages/Overview/utils/index.js";
 import { deviceMatchesRack, normalizeRackId } from "../pages/RackDashboard/rackTelemetry.js";
+import { buildDeviceKey, resolveIdentity } from "../utils/deviceIdentity.js";
 
 const DEFAULT_TELEMETRY_TOPIC = "hydroleaf/telemetry";
 const BATCH_INTERVAL_MS = 300;
@@ -36,13 +37,8 @@ const resolveNodeId = (payload, envelope) => {
         payload?.nodeId ||
         payload?.node ||
         payload?.deviceId ||
-        payload?.device ||
-        payload?.devId ||
         envelope?.nodeId ||
         envelope?.deviceId ||
-        payload?.compositeId ||
-        payload?.composite_id ||
-        envelope?.compositeId ||
         null
     );
 };
@@ -139,7 +135,6 @@ export function useLiveTelemetry({ rackId, selectedNodes, metrics } = {}) {
                 keyResolvers: [
                     (entry) => entry?.nodeId,
                     (entry) => entry?.id,
-                    (entry) => entry?.compositeId,
                     (entry) => entry?.deviceId,
                     (entry) => entry?.value,
                 ],
@@ -213,6 +208,10 @@ export function useLiveTelemetry({ rackId, selectedNodes, metrics } = {}) {
             if (normalizedRackId && !deviceMatchesRack(payload, normalizedRackId)) {
                 return;
             }
+
+            const identity = resolveIdentity(payload, envelope);
+            const deviceKey = buildDeviceKey(identity);
+            if (!deviceKey) return;
 
             const nodeId = resolveNodeId(payload, envelope);
             if (!nodeId) return;
