@@ -31,6 +31,15 @@ export const getDeviceDetails = (deviceId, { signal } = {}) => {
   );
 };
 
+export const listDevices = async ({ signal } = {}) => {
+  try {
+    return await requestJson(DEVICES_URL, { signal }, "Failed to load devices");
+  } catch (error) {
+    if (error?.status !== 404) throw error;
+    return requestJson(`${DEVICES_URL}/all`, { signal }, "Failed to load devices");
+  }
+};
+
 export const getDeviceEvents = (deviceId, { signal, cursor } = {}) => {
   const encodedDeviceId = encodeURIComponent(deviceId);
   const query = new URLSearchParams();
