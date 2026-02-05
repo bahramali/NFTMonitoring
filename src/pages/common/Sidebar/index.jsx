@@ -40,7 +40,7 @@ const NAV_SECTIONS = [
         id: "monitoring",
         label: "Monitoring",
         items: [
-            { to: `${MONITORING_BASE}/overview`, icon: "🏠", label: "Overview", permissions: [PERMISSIONS.MONITORING_VIEW] },
+            { to: `${MONITORING_BASE}/overview`, icon: "🏠", label: "Device Monitor", permissions: [PERMISSIONS.MONITORING_VIEW] },
             { to: `${MONITORING_BASE}/control-panel`, icon: "💡", label: "Control Panel", permissions: [PERMISSIONS.MONITORING_VIEW] },
             { to: `${MONITORING_BASE}/shelly-control`, icon: "🔌", label: "Shelly Control", permissions: [PERMISSIONS.MONITORING_VIEW] },
             { to: `${MONITORING_BASE}/live`, icon: "📡", label: "NFT Channels", permissions: [PERMISSIONS.MONITORING_VIEW] },

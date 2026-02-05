@@ -6,6 +6,7 @@ import { getWsHttpUrl } from '../config/apiBase.js';
 let sharedClient = null;
 let isConnected = false;
 const reconnectListeners = new Set(); // called on every (re)connect
+const disconnectListeners = new Set();
 let lastConnectHeadersKey = "";
 
 const DEFAULT_SOCKJS_URL = getWsHttpUrl();
@@ -46,6 +47,13 @@ function attachReconnect(client) {
     const prevOnClose = client.onWebSocketClose;
     client.onWebSocketClose = (evt) => {
         isConnected = false;
+        disconnectListeners.forEach((fn) => {
+            try {
+                fn(evt);
+            } catch {
+                /* ignore */
+            }
+        });
         prevOnClose?.(evt);
     };
 }
@@ -179,6 +187,9 @@ export function useStomp(topics, onMessage, opts = {}) {
         };
 
         reconnectListeners.add(setup);
+        if (typeof opts.onDisconnect === "function") {
+            disconnectListeners.add(opts.onDisconnect);
+        }
         if (isConnected) setup();
 
         return () => {
@@ -191,7 +202,10 @@ export function useStomp(topics, onMessage, opts = {}) {
             });
             subsRef.current = {};
             reconnectListeners.delete(setup);
+            if (typeof opts.onDisconnect === "function") {
+                disconnectListeners.delete(opts.onDisconnect);
+            }
             // DO NOT disconnect the shared client here
         };
-    }, [client, topicsKey]);
+    }, [client, opts.onDisconnect, topicsKey]);
 }

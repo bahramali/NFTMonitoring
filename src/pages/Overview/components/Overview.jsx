@@ -1,392 +1,367 @@
-// src/pages/Overview/components/Overview.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import Header from "../../common/Header";
-import DeviceCard from "./DeviceCard.jsx";
+import { listDevices } from "../../../api/deviceMonitoring.js";
+import { useStomp } from "../../../hooks/useStomp.js";
+import { buildDeviceKey, isIdentityComplete, resolveIdentity } from "../../../utils/deviceIdentity.js";
+import { WS_TOPICS } from "../../common/dashboard.constants.js";
+import DeviceStatusBadge from "./DeviceStatusBadge.jsx";
+import DeviceFilters from "./DeviceFilters.jsx";
+import JsonStreamViewer from "./JsonStreamViewer.jsx";
 import styles from "./Overview.module.css";
-import { listFarms, listFarmDevices } from "../../../api/deviceMonitoring.js";
 
-const resolveFarmList = (payload) => {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.farms)) return payload.farms;
-  if (Array.isArray(payload?.systems)) return payload.systems;
-  if (Array.isArray(payload?.sites)) return payload.sites;
-  if (Array.isArray(payload?.items)) return payload.items;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.data?.farms)) return payload.data.farms;
-  if (Array.isArray(payload?.data?.systems)) return payload.data.systems;
-  if (Array.isArray(payload?.data?.sites)) return payload.data.sites;
-  if (Array.isArray(payload?.data?.items)) return payload.data.items;
-  return [];
-};
+const ONLINE_THRESHOLD_SEC = 30;
+const STALE_THRESHOLD_SEC = 120;
+const STREAM_BUFFER_LIMIT = 200;
 
-const resolveDeviceList = (payload) => {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.devices)) return payload.devices;
-  if (Array.isArray(payload?.telemetryTargets)) return payload.telemetryTargets;
-  if (Array.isArray(payload?.targets)) return payload.targets;
-  if (Array.isArray(payload?.items)) return payload.items;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.data?.devices)) return payload.data.devices;
-  if (Array.isArray(payload?.data?.telemetryTargets)) return payload.data.telemetryTargets;
-  if (Array.isArray(payload?.data?.targets)) return payload.data.targets;
-  if (Array.isArray(payload?.data?.items)) return payload.data.items;
-  return [];
-};
-
-const normalizeFarm = (farm) => {
-  if (farm == null) return null;
-  if (typeof farm === "string") {
-    return { id: farm, name: farm };
-  }
-  const id = farm.id || farm.farmId || farm.farm_id || farm.code || farm.slug;
-  const fallbackId = farm.systemId || farm.system_id || farm.siteId || farm.site_id;
-  const resolvedId = id || fallbackId;
-  const name =
-    farm.name || farm.label || farm.displayName || farm.title || resolvedId || "Farm";
-  return resolvedId ? { id: resolvedId, name } : null;
+const getTimestampMs = (value) => {
+  if (value == null) return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? null : parsed;
 };
 
 const normalizeDevice = (device) => {
-  const deviceId =
-    device?.deviceId ||
-    device?.device_id ||
-    device?.id ||
-    device?.targetId ||
-    device?.target_id ||
-    device?.serial ||
-    device?.unitId ||
-    device?.unit_id ||
-    "";
-  return {
-    deviceId,
-    deviceType:
-      device?.deviceType ||
-      device?.device_type ||
-      device?.type ||
-      device?.model ||
-      device?.category ||
-      device?.unitType ||
-      device?.unit_type ||
-      "",
-    status: device?.status || device?.state || device?.connectionStatus || "",
-    farm:
-      device?.farm ||
-      device?.farmId ||
-      device?.farm_id ||
-      device?.system ||
-      device?.systemId ||
-      device?.system_id ||
-      device?.site ||
-      device?.siteId ||
-      device?.site_id ||
-      "",
-    unitType: device?.unitType || device?.unit_type || "",
-    unitId: device?.unitId || device?.unit_id || "",
-    layerId: device?.layerId || device?.layer_id || "",
-    telemetry:
-      device?.telemetry ||
-      device?.latestTelemetry ||
-      device?.telemetrySnapshot ||
-      device?.metrics ||
-      {},
-    health: device?.health || device?.sensorHealth || device?.sensorsHealth || {},
-    uptime: device?.uptime || device?.uptime_human || "",
-    hasAlarms:
-      device?.hasAlarms ||
-      device?.hasAlarm ||
-      device?.alarm ||
-      device?.alarmActive ||
-      false,
-    alarmLevel:
-      device?.alarmLevel ||
-      device?.alarm_level ||
-      device?.alertLevel ||
-      device?.alert_level ||
-      "",
+  const normalized = {
+    farmId: device?.farmId ?? device?.farm_id ?? "",
+    unitType: device?.unitType ?? device?.unit_type ?? "",
+    unitId: device?.unitId ?? device?.unit_id ?? "",
+    layerId: device?.layerId ?? device?.layer_id ?? "",
+    deviceId: device?.deviceId ?? device?.device_id ?? "",
+    lastSeenMs: getTimestampMs(device?.lastSeen ?? device?.timestamp ?? device?.updatedAt),
+    lastKind: device?.kind ?? "",
+    errorFlag: Boolean(device?.errorFlag ?? device?.hasError ?? device?.error),
+    msgTimes: [],
+    msgRate: 0,
   };
+
+  normalized.key = buildDeviceKey(normalized);
+  return normalized;
 };
 
-const resolveHasAlarm = (device) => {
-  if (device.hasAlarms) return true;
-  const alarmLevel = String(device.alarmLevel || "").toUpperCase();
-  return ["WARN", "ERROR", "ALARM", "CRITICAL"].includes(alarmLevel);
+const resolveDeviceStatus = (entry) => {
+  if (!entry) return "offline";
+  if (entry.errorFlag) return "error";
+  if (!entry.lastSeenMs) return "offline";
+  const secondsAgo = (Date.now() - entry.lastSeenMs) / 1000;
+  if (secondsAgo <= ONLINE_THRESHOLD_SEC) return "online";
+  if (secondsAgo <= STALE_THRESHOLD_SEC) return "stale";
+  return "offline";
 };
 
-const buildHierarchy = (devices) => {
-  const unitTypeMap = new Map();
-  devices.forEach((device) => {
-    const unitType = device.unitType || "UNKNOWN";
-    const unitId = device.unitId || "UNKNOWN";
-    const deviceType = device.deviceType || "DEVICE";
-    if (!unitTypeMap.has(unitType)) {
-      unitTypeMap.set(unitType, new Map());
-    }
-    const unitMap = unitTypeMap.get(unitType);
-    if (!unitMap.has(unitId)) {
-      unitMap.set(unitId, new Map());
-    }
-    const deviceTypeMap = unitMap.get(unitId);
-    if (!deviceTypeMap.has(deviceType)) {
-      deviceTypeMap.set(deviceType, []);
-    }
-    deviceTypeMap.get(deviceType).push(device);
-  });
-
-  return Array.from(unitTypeMap.entries()).map(([unitType, unitMap]) => ({
-    unitType,
-    units: Array.from(unitMap.entries()).map(([unitId, deviceTypeMap]) => ({
-      unitId,
-      deviceTypes: Array.from(deviceTypeMap.entries()).map(([deviceType, list]) => ({
-        deviceType,
-        devices: list,
-      })),
-    })),
-  }));
+const formatLastSeen = (timestamp) => {
+  if (!timestamp) return "Never";
+  return new Date(timestamp).toLocaleString();
 };
 
-const sortDevices = (devices) =>
-  [...devices].sort((a, b) => {
-    const statusA = String(a.status || "").toLowerCase();
-    const statusB = String(b.status || "").toLowerCase();
-    if (statusA === "online" && statusB !== "online") return -1;
-    if (statusA !== "online" && statusB === "online") return 1;
-    return String(a.deviceId || "").localeCompare(String(b.deviceId || ""));
-  });
+const devicesReducer = (state, action) => {
+  switch (action.type) {
+    case "seed": {
+      return action.payload;
+    }
+    case "merge": {
+      if (action.payload.size === 0) return state;
+      const next = new Map(state);
+      action.payload.forEach((incoming, key) => {
+        const existing = next.get(key);
+        if (!existing) {
+          next.set(key, incoming);
+          return;
+        }
+        next.set(key, { ...existing, ...incoming });
+      });
+      return next;
+    }
+    default:
+      return state;
+  }
+};
 
 export default function Overview() {
-  const [farms, setFarms] = useState([]);
-  const [selectedFarmId, setSelectedFarmId] = useState("");
-  const [loadingFarms, setLoadingFarms] = useState(false);
-  const [farmError, setFarmError] = useState("");
+  const [devicesMap, dispatchDevices] = useReducer(devicesReducer, new Map());
+  const [search, setSearch] = useState("");
+  const [selectedDeviceKey, setSelectedDeviceKey] = useState("");
+  const [viewerPaused, setViewerPaused] = useState(false);
+  const [filters, setFilters] = useState({ farmId: "", unitType: "", unitId: "", kind: "", status: "" });
+  const [loading, setLoading] = useState(false);
+  const [errorBanner, setErrorBanner] = useState("");
+  const [wsBanner, setWsBanner] = useState("");
+  const [messageBuffers, setMessageBuffers] = useState({});
 
-  const [devices, setDevices] = useState([]);
-  const [loadingDevices, setLoadingDevices] = useState(false);
-  const [devicesError, setDevicesError] = useState("");
+  const pendingUpdatesRef = useRef(new Map());
+  const rafRef = useRef(0);
 
-  const [filters, setFilters] = useState({
-    deviceType: "",
-    unitId: "",
-    hasAlarms: "all",
-  });
+  const flushPending = useCallback(() => {
+    rafRef.current = 0;
+    const pending = pendingUpdatesRef.current;
+    pendingUpdatesRef.current = new Map();
+    dispatchDevices({ type: "merge", payload: pending });
+  }, []);
+
+  const queueUpdate = useCallback(
+    (key, nextValue) => {
+      const existing = pendingUpdatesRef.current.get(key) || {};
+      pendingUpdatesRef.current.set(key, { ...existing, ...nextValue });
+      if (!rafRef.current) {
+        rafRef.current = window.requestAnimationFrame(flushPending);
+      }
+    },
+    [flushPending],
+  );
 
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
-    const loadFarms = async () => {
-      setLoadingFarms(true);
-      setFarmError("");
+
+    const loadDevices = async () => {
+      setLoading(true);
+      setErrorBanner("");
       try {
-        const payload = await listFarms({ signal: controller.signal });
+        const payload = await listDevices({ signal: controller.signal });
         if (cancelled) return;
-        const resolved = resolveFarmList(payload)
-          .map(normalizeFarm)
-          .filter(Boolean);
-        setFarms(resolved);
-        if (!selectedFarmId && resolved.length > 0) {
-          setSelectedFarmId(resolved[0].id);
+        const list = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.devices)
+            ? payload.devices
+            : Array.isArray(payload?.data)
+              ? payload.data
+              : [];
+
+        const seeded = new Map();
+        let hasMissingRequiredFields = false;
+
+        list.forEach((item) => {
+          const normalized = normalizeDevice(item);
+          if (!normalized.key) {
+            hasMissingRequiredFields = true;
+            return;
+          }
+          seeded.set(normalized.key, normalized);
+        });
+
+        dispatchDevices({ type: "seed", payload: seeded });
+        if (hasMissingRequiredFields) {
+          setErrorBanner("Some devices are missing required identity fields from API data.");
         }
       } catch (error) {
         if (cancelled || controller.signal.aborted) return;
-        console.error("Failed to load farms", error);
-        setFarmError("Unable to load farms.");
-        setFarms([]);
-      } finally {
-        if (!cancelled) setLoadingFarms(false);
-      }
-    };
-    loadFarms();
-    return () => {
-      cancelled = true;
-      controller.abort();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!selectedFarmId) {
-      setDevices([]);
-      setDevicesError("");
-      setLoadingDevices(false);
-      return;
-    }
-    let cancelled = false;
-    const controller = new AbortController();
-    const loadDevices = async () => {
-      setLoadingDevices(true);
-      setDevicesError("");
-      try {
-        const payload = await listFarmDevices(selectedFarmId, { signal: controller.signal });
-        if (cancelled) return;
-        const list = resolveDeviceList(payload).map(normalizeDevice);
-        setDevices(list);
-      } catch (error) {
-        if (cancelled || controller.signal.aborted) return;
         console.error("Failed to load devices", error);
-        setDevicesError("Unable to load devices.");
-        setDevices([]);
+        setErrorBanner("Unable to load device inventory.");
+        dispatchDevices({ type: "seed", payload: new Map() });
       } finally {
-        if (!cancelled) setLoadingDevices(false);
+        if (!cancelled) setLoading(false);
       }
     };
+
     loadDevices();
+
     return () => {
       cancelled = true;
       controller.abort();
+      if (rafRef.current) window.cancelAnimationFrame(rafRef.current);
     };
-  }, [selectedFarmId]);
+  }, [flushPending]);
 
-  const deviceTypeOptions = useMemo(() => {
-    const types = new Set();
-    devices.forEach((device) => {
-      if (device.deviceType) types.add(device.deviceType);
-    });
-    return Array.from(types).sort((a, b) => a.localeCompare(b));
-  }, [devices]);
+  const onMessage = useCallback(
+    (topic, message) => {
+      setWsBanner("");
+      const envelope = message && typeof message === "object" ? message : {};
+      let payload = envelope.payload ?? message;
+      if (typeof payload === "string") {
+        try {
+          payload = JSON.parse(payload);
+        } catch {
+          payload = { raw: payload };
+        }
+      }
+      if (!payload || typeof payload !== "object") return;
 
+      const identity = resolveIdentity(payload, envelope);
+      if (!isIdentityComplete(identity)) {
+        console.warn("Ignoring live message missing required identity fields", { topic, identity, envelope });
+        return;
+      }
+
+      const key = buildDeviceKey(identity);
+      if (!key) {
+        console.warn("Ignoring live message missing required identity fields", { topic, identity, envelope });
+        return;
+      }
+
+      const timestampMs = getTimestampMs(payload.timestamp ?? envelope.timestamp) || Date.now();
+      const kind = String(payload.kind ?? envelope.kind ?? topic.split("/").pop() ?? "").toLowerCase();
+      const existing = devicesMap.get(key);
+      const msgTimes = [...(existing?.msgTimes || []), timestampMs].filter((value) => timestampMs - value <= 60_000).slice(-400);
+      const msgRate = msgTimes.length;
+
+      queueUpdate(key, {
+        farmId: identity.farmId,
+        unitType: identity.unitType,
+        unitId: identity.unitId,
+        layerId: identity.layerId ?? "",
+        deviceId: identity.deviceId,
+        key,
+        lastSeenMs: timestampMs,
+        msgTimes,
+        msgRate,
+        lastKind: kind,
+        errorFlag: Boolean(payload.errorFlag ?? envelope.errorFlag ?? existing?.errorFlag),
+      });
+
+      if (selectedDeviceKey === key && !viewerPaused) {
+        setMessageBuffers((prev) => {
+          const current = Array.isArray(prev[key]) ? prev[key] : [];
+          const nextEntry = {
+            id: `${timestampMs}-${current.length}-${Math.random().toString(36).slice(2)}`,
+            kind,
+            timestamp: timestampMs,
+            receivedAt: Date.now(),
+            raw: {
+              ...identity,
+              kind,
+              timestamp: payload.timestamp ?? envelope.timestamp ?? new Date(timestampMs).toISOString(),
+              payload,
+            },
+          };
+          return {
+            ...prev,
+            [key]: [...current, nextEntry].slice(-STREAM_BUFFER_LIMIT),
+          };
+        });
+      }
+    },
+    [devicesMap, queueUpdate, selectedDeviceKey, viewerPaused],
+  );
+
+  useStomp(WS_TOPICS, onMessage, {
+    onDisconnect: () => setWsBanner("Live stream disconnected. Attempting to reconnect..."),
+  });
+
+  const devices = useMemo(() => Array.from(devicesMap.values()), [devicesMap]);
+
+  const farmOptions = useMemo(() => Array.from(new Set(devices.map((entry) => entry.farmId).filter(Boolean))).sort(), [devices]);
+  const unitTypeOptions = useMemo(() => {
+    const filteredByFarm = filters.farmId ? devices.filter((entry) => entry.farmId === filters.farmId) : devices;
+    return Array.from(new Set(filteredByFarm.map((entry) => entry.unitType).filter(Boolean))).sort();
+  }, [devices, filters.farmId]);
   const unitIdOptions = useMemo(() => {
-    const ids = new Set();
-    devices.forEach((device) => {
-      if (device.unitId) ids.add(device.unitId);
-    });
-    return Array.from(ids).sort((a, b) => a.localeCompare(b));
-  }, [devices]);
-
-  const filteredDevices = useMemo(() => {
-    return devices.filter((device) => {
-      if (filters.deviceType && device.deviceType !== filters.deviceType) return false;
-      if (filters.unitId && device.unitId !== filters.unitId) return false;
-      if (filters.hasAlarms === "alarms" && !resolveHasAlarm(device)) return false;
+    const filtered = devices.filter((entry) => {
+      if (filters.farmId && entry.farmId !== filters.farmId) return false;
+      if (filters.unitType && entry.unitType !== filters.unitType) return false;
       return true;
     });
-  }, [devices, filters]);
+    return Array.from(new Set(filtered.map((entry) => entry.unitId).filter(Boolean))).sort();
+  }, [devices, filters.farmId, filters.unitType]);
 
-  const hierarchy = useMemo(() => buildHierarchy(sortDevices(filteredDevices)), [filteredDevices]);
+  const filteredDevices = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return devices
+      .filter((entry) => {
+        if (filters.farmId && entry.farmId !== filters.farmId) return false;
+        if (filters.unitType && entry.unitType !== filters.unitType) return false;
+        if (filters.unitId && entry.unitId !== filters.unitId) return false;
+        if (filters.kind && entry.lastKind !== filters.kind) return false;
+        const status = resolveDeviceStatus(entry);
+        if (filters.status && status !== filters.status) return false;
+        if (!query) return true;
+        const haystack = `${entry.farmId} ${entry.unitType} ${entry.unitId} ${entry.layerId || ""} ${entry.deviceId}`.toLowerCase();
+        return haystack.includes(query);
+      })
+      .sort((a, b) => {
+        if (a.lastSeenMs && b.lastSeenMs) return b.lastSeenMs - a.lastSeenMs;
+        if (a.lastSeenMs) return -1;
+        if (b.lastSeenMs) return 1;
+        return String(a.deviceId).localeCompare(String(b.deviceId));
+      });
+  }, [devices, filters, search]);
 
-  const selectedFarm = farms.find((farm) => farm.id === selectedFarmId);
+  const selectedDevice = selectedDeviceKey ? devicesMap.get(selectedDeviceKey) : null;
+  const selectedMessages = selectedDeviceKey ? messageBuffers[selectedDeviceKey] || [] : [];
 
   return (
     <div className={styles.page}>
-      <Header title="Overview" />
+      <Header title="Device Monitor" />
+
+      {errorBanner ? <div className={styles.bannerError}>{errorBanner}</div> : null}
+      {wsBanner ? <div className={styles.bannerWarn}>{wsBanner}</div> : null}
+
       <section className={styles.card}>
-        <div className={styles.headerRow}>
-          <div>
-            <h2 className={styles.title}>Device Inventory</h2>
-            <p className={styles.subtitle}>Backend-driven view of device state.</p>
-          </div>
-          <div className={styles.farmPicker}>
-            <label htmlFor="farm-select">Farm</label>
-            <select
-              id="farm-select"
-              value={selectedFarmId}
-              onChange={(event) => setSelectedFarmId(event.target.value)}
-              disabled={loadingFarms || farms.length === 0}
-            >
-              {farms.map((farm) => (
-                <option key={farm.id} value={farm.id}>
-                  {farm.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        {loadingFarms ? <p className={styles.statusMessage}>Loading farms…</p> : null}
-        {farmError ? <p className={styles.statusMessage}>{farmError}</p> : null}
-        {!loadingFarms && !farmError && farms.length === 0 ? (
-          <p className={styles.statusMessage}>No farms available.</p>
-        ) : null}
+        <DeviceFilters
+          search={search}
+          onSearch={setSearch}
+          filterState={filters}
+          onFilterChange={(field, value) => setFilters((prev) => ({ ...prev, [field]: value }))}
+          farmOptions={farmOptions}
+          unitTypeOptions={unitTypeOptions}
+          unitIdOptions={unitIdOptions}
+        />
       </section>
 
       <section className={styles.card}>
-        <div className={styles.filtersRow}>
-          <div className={styles.filterGroup}>
-            <label htmlFor="device-type-filter">Device type</label>
-            <select
-              id="device-type-filter"
-              value={filters.deviceType}
-              onChange={(event) =>
-                setFilters((prev) => ({ ...prev, deviceType: event.target.value }))
-              }
-            >
-              <option value="">All</option>
-              {deviceTypeOptions.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>farmId</th>
+                <th>unitType</th>
+                <th>unitId</th>
+                <th>layerId</th>
+                <th>deviceId</th>
+                <th>lastSeen</th>
+                <th>status</th>
+                <th>msgRate</th>
+                <th>lastKind</th>
+                <th>actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={10}>Loading devices...</td>
+                </tr>
+              ) : null}
+              {!loading && filteredDevices.length === 0 ? (
+                <tr>
+                  <td colSpan={10}>No devices found.</td>
+                </tr>
+              ) : null}
+              {filteredDevices.map((entry) => (
+                <tr key={entry.key}>
+                  <td>{entry.farmId}</td>
+                  <td>{entry.unitType}</td>
+                  <td>{entry.unitId}</td>
+                  <td>{entry.layerId || "-"}</td>
+                  <td>{entry.deviceId}</td>
+                  <td>{formatLastSeen(entry.lastSeenMs)}</td>
+                  <td>
+                    <DeviceStatusBadge status={resolveDeviceStatus(entry)} />
+                  </td>
+                  <td>{entry.msgRate}/min</td>
+                  <td>{entry.lastKind || "-"}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className={styles.primaryButton}
+                      onClick={() => setSelectedDeviceKey(entry.key)}
+                    >
+                      Open live JSON
+                    </button>
+                  </td>
+                </tr>
               ))}
-            </select>
-          </div>
-          <div className={styles.filterGroup}>
-            <label htmlFor="unit-id-filter">Unit ID</label>
-            <select
-              id="unit-id-filter"
-              value={filters.unitId}
-              onChange={(event) =>
-                setFilters((prev) => ({ ...prev, unitId: event.target.value }))
-              }
-            >
-              <option value="">All</option>
-              {unitIdOptions.map((id) => (
-                <option key={id} value={id}>
-                  {id}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className={styles.filterGroup}>
-            <label htmlFor="alarm-filter">Alarms</label>
-            <select
-              id="alarm-filter"
-              value={filters.hasAlarms}
-              onChange={(event) =>
-                setFilters((prev) => ({ ...prev, hasAlarms: event.target.value }))
-              }
-            >
-              <option value="all">All</option>
-              <option value="alarms">Has alarms</option>
-            </select>
-          </div>
-          <div className={styles.filterMeta}>
-            <span>{filteredDevices.length} devices</span>
-            {selectedFarm ? <span>Farm: {selectedFarm.name}</span> : null}
-          </div>
+            </tbody>
+          </table>
         </div>
-        {loadingDevices ? <p className={styles.statusMessage}>Loading devices…</p> : null}
-        {devicesError ? <p className={styles.statusMessage}>{devicesError}</p> : null}
-        {!loadingDevices && !devicesError && filteredDevices.length === 0 ? (
-          <p className={styles.statusMessage}>No devices found.</p>
-        ) : null}
-
-        {!loadingDevices && !devicesError && filteredDevices.length > 0 ? (
-          <div className={styles.hierarchy}>
-            {hierarchy.map((unitTypeGroup) => (
-              <div key={unitTypeGroup.unitType} className={styles.unitTypeGroup}>
-                <div className={styles.unitTypeHeader}>
-                  UnitType: {unitTypeGroup.unitType}
-                </div>
-                {unitTypeGroup.units.map((unit) => (
-                  <div key={unit.unitId} className={styles.unitGroup}>
-                    <div className={styles.unitHeader}>Unit: {unit.unitId}</div>
-                    {unit.deviceTypes.map((deviceTypeGroup) => (
-                      <div key={deviceTypeGroup.deviceType} className={styles.deviceTypeGroup}>
-                        <div className={styles.deviceTypeHeader}>
-                          DeviceType: {deviceTypeGroup.deviceType}
-                        </div>
-                        <div className={styles.deviceGrid}>
-                          {deviceTypeGroup.devices.map((device, index) => (
-                            <DeviceCard
-                              key={device.deviceId || `${device.deviceType}-${index}`}
-                              device={device}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        ) : null}
       </section>
+
+      <JsonStreamViewer
+        device={selectedDevice}
+        isOpen={Boolean(selectedDevice)}
+        messages={selectedMessages}
+        paused={viewerPaused}
+        onPauseToggle={() => setViewerPaused((prev) => !prev)}
+        onClear={() => selectedDeviceKey && setMessageBuffers((prev) => ({ ...prev, [selectedDeviceKey]: [] }))}
+        onClose={() => setSelectedDeviceKey("")}
+      />
     </div>
   );
 }
