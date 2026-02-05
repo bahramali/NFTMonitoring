@@ -11,7 +11,7 @@ import styles from "./LiveDashboard.module.css";
 import {getNftStageContext} from "./nftStages.js";
 import MetricStreamPanel from "./MetricStreamPanel.jsx";
 
-const META_FIELDS = new Set(["timestamp", "deviceId", "compositeId", "layer"]);
+const META_FIELDS = new Set(["timestamp", "deviceId", "deviceKey", "layerId", "unitId", "unitType", "farmId"]);
 
 function resolveStageRange(normalizedType, topic, rangeLookup) {
     if (!normalizedType || !rangeLookup) return null;
@@ -73,11 +73,11 @@ function getCellColor(value, range) {
 
 export function DeviceTable({devices = {}, topic, rangeLookup, sensorExtrema = {}}) {
     const {findRange} = useSensorConfig();
-    const compositeIds = useMemo(() => Object.keys(devices), [devices]);
+    const deviceKeys = useMemo(() => Object.keys(devices), [devices]);
 
     const measurementEntries = useMemo(() => {
         const entries = new Map();
-        const allSensors = compositeIds.flatMap(id => devices[id].sensors || []);
+        const allSensors = deviceKeys.flatMap(id => devices[id].sensors || []);
         allSensors.forEach(sensor => {
             const measurementType = sensor?.sensorType || sensor?.valueType;
             if (!measurementType) return;
@@ -98,7 +98,7 @@ export function DeviceTable({devices = {}, topic, rangeLookup, sensorExtrema = {
             }
         });
         return entries;
-    }, [compositeIds, devices]);
+    }, [deviceKeys, devices]);
 
     if (measurementEntries.size === 0) {
         return (
@@ -115,7 +115,7 @@ export function DeviceTable({devices = {}, topic, rangeLookup, sensorExtrema = {
         const rowColor = entry.bandKey ? `${spectralColors[entry.bandKey]}22` : undefined;
         const measurementKey = makeMeasurementKey(entry.normalizedType, entry.normalizedModel);
 
-        const cells = compositeIds.map((id, index) => {
+        const cells = deviceKeys.map((id, index) => {
             const sensors = devices[id].sensors || [];
             const matchedSensor = sensors.find(sensor => {
                 const sensorType = sensor?.sensorType || sensor?.valueType;
@@ -132,7 +132,7 @@ export function DeviceTable({devices = {}, topic, rangeLookup, sensorExtrema = {
             let finalDisplay = display;
 
             if (entry.normalizedModel === AS7343_MODEL_KEY) {
-                const extrema = sensorExtrema?.[compositeIds[index]]?.[measurementKey];
+                const extrema = sensorExtrema?.[deviceKeys[index]]?.[measurementKey];
                 if (extrema && typeof extrema.min === "number" && typeof extrema.max === "number" && extrema.min !== undefined && extrema.max !== undefined && display !== "-") {
                     const minDisplay = Number.isFinite(extrema.min) ? extrema.min.toFixed(1) : "-";
                     const maxDisplay = Number.isFinite(extrema.max) ? extrema.max.toFixed(1) : "-";
@@ -166,11 +166,11 @@ export function DeviceTable({devices = {}, topic, rangeLookup, sensorExtrema = {
                     <th className={styles.sensorCell}>M_Type</th>
                     <th className={styles.modelCell}>Min</th>
                     <th className={styles.modelCell}>Max</th>
-                    {compositeIds.map(id => {
-                        const device = devices[id];
-                        const label = device?.compositeId || id;
-                        return <th key={id}>{label}</th>;
-                    })}
+        {deviceKeys.map(id => {
+            const device = devices[id];
+            const label = device?.deviceId || id;
+            return <th key={id}>{label}</th>;
+        })}
                 </tr>
                 </thead>
                 <tbody>
@@ -183,7 +183,7 @@ export function DeviceTable({devices = {}, topic, rangeLookup, sensorExtrema = {
                         <td style={{backgroundColor: row.rowColor}}>{row.range?.min ?? "-"}</td>
                         <td style={{backgroundColor: row.rowColor}}>{row.range?.max ?? "-"}</td>
                         {row.cells.map((cell, index) => (
-                            <td key={compositeIds[index]} style={{backgroundColor: cell.color}}>
+                            <td key={deviceKeys[index]} style={{backgroundColor: cell.color}}>
                                 <div className={styles.cellWrapper}>
                                     <span
                                         className={`${styles.indicator} ${cell.ok ? styles.indicatorOn : styles.indicatorOff}`}
@@ -239,8 +239,8 @@ function DeviceMetricCard({topic, device, rangeLookup}) {
             <div className={styles.deviceCardHeader}>
                 <div>
                     <div className={styles.deviceTopic}>{topic}</div>
-                    <div className={styles.deviceId}>{device?.compositeId || device?.deviceId || "Unknown"}</div>
-                    {device?.layer && <div className={styles.deviceLayer}>Layer {device.layer}</div>}
+                    <div className={styles.deviceId}>{device?.deviceId || "Unknown"}</div>
+                    {device?.layerId && <div className={styles.deviceLayer}>Layer {device.layerId}</div>}
                 </div>
                 <div className={styles.deviceMetaBlock}>
                     {device?.receivedAt && (
@@ -281,7 +281,7 @@ function DeviceMetricCard({topic, device, rangeLookup}) {
 
 function LiveDashboard() {
     const {deviceData, mergedDevices, sensorData} = useLiveDevices(WS_TOPICS);
-    const [selectedCompositeId, setSelectedCompositeId] = useState("");
+    const [selectedDeviceKey, setSelectedDeviceKey] = useState("");
     const [selectedMetricKey, setSelectedMetricKey] = useState("");
     const stageContext = useMemo(() => getNftStageContext(21), []);
 
@@ -300,20 +300,20 @@ function LiveDashboard() {
     }, [topicDevices]);
 
     useEffect(() => {
-        if (!selectedCompositeId && allDeviceEntries.length > 0) {
-            setSelectedCompositeId(allDeviceEntries[0].id);
+        if (!selectedDeviceKey && allDeviceEntries.length > 0) {
+            setSelectedDeviceKey(allDeviceEntries[0].id);
         }
-    }, [allDeviceEntries, selectedCompositeId]);
+    }, [allDeviceEntries, selectedDeviceKey]);
 
-    const selectedSensorData = selectedCompositeId ? sensorData[selectedCompositeId] : null;
-    const selectedDeviceInfo = allDeviceEntries.find(entry => entry.id === selectedCompositeId);
+    const selectedSensorData = selectedDeviceKey ? sensorData[selectedDeviceKey] : null;
+    const selectedDeviceInfo = allDeviceEntries.find(entry => entry.id === selectedDeviceKey);
 
     const selectedSensors = useMemo(() => {
-        const merged = selectedCompositeId ? mergedDevices[selectedCompositeId] : null;
+        const merged = selectedDeviceKey ? mergedDevices[selectedDeviceKey] : null;
         if (Array.isArray(merged?.sensors)) return merged.sensors;
         const fallback = selectedDeviceInfo?.device?.sensors;
         return Array.isArray(fallback) ? fallback : [];
-    }, [mergedDevices, selectedCompositeId, selectedDeviceInfo]);
+    }, [mergedDevices, selectedDeviceKey, selectedDeviceInfo]);
 
     const metricOptions = useMemo(() => {
         const seen = new Set();
@@ -346,7 +346,7 @@ function LiveDashboard() {
     }, [selectedSensors]);
 
     useEffect(() => {
-        if (!selectedCompositeId) {
+        if (!selectedDeviceKey) {
             setSelectedMetricKey("");
             return;
         }
@@ -359,7 +359,7 @@ function LiveDashboard() {
         if (!metricOptions.some(option => option.key === selectedMetricKey)) {
             setSelectedMetricKey(metricOptions[0].key);
         }
-    }, [metricOptions, selectedCompositeId, selectedMetricKey]);
+    }, [metricOptions, selectedDeviceKey, selectedMetricKey]);
 
     const selectedMetric = useMemo(
         () => metricOptions.find(option => option.key === selectedMetricKey),
@@ -376,14 +376,14 @@ function LiveDashboard() {
                         <label className={styles.selectorLabel}>
                             Device
                             <select
-                                value={selectedCompositeId}
-                                onChange={(event) => setSelectedCompositeId(event.target.value)}
+                                value={selectedDeviceKey}
+                                onChange={(event) => setSelectedDeviceKey(event.target.value)}
                                 className={styles.deviceSelect}
                             >
                                 <option value="" disabled>Select a device</option>
                                 {allDeviceEntries.map((entry) => (
                                     <option key={entry.id} value={entry.id}>
-                                        {entry.topic} · {entry.device?.compositeId || entry.id}
+                                        {entry.topic} · {entry.device?.deviceId || entry.id}
                                     </option>
                                 ))}
                             </select>
@@ -429,7 +429,8 @@ function LiveDashboard() {
                             </div>
                             <div className={styles.chartWrapper}>
                                 <MetricStreamPanel
-                                    selectedCompositeId={selectedCompositeId}
+                                    selectedDeviceKey={selectedDeviceKey}
+                                    selectedDeviceIdentity={selectedDeviceInfo?.device || mergedDevices[selectedDeviceKey]}
                                     selectedMetricKey={selectedMetricKey}
                                     metricLabel={selectedMetric?.label}
                                     metricUnit={selectedMetric?.unit}

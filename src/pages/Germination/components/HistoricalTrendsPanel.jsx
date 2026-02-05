@@ -4,8 +4,8 @@ import styles from "../Germination.module.css";
 
 export default function HistoricalTrendsPanel({
     deviceOptions,
-    selectedCompositeId,
-    onCompositeChange,
+    selectedDeviceKey,
+    onDeviceChange,
     availableMetrics,
     selectedMetricKey,
     onMetricChange,
@@ -31,7 +31,7 @@ export default function HistoricalTrendsPanel({
             ? `No sensor nodes available for ${emptyStateLabel} rack.`
             : "No sensor nodes available for this rack.");
     const hasDevices = deviceOptions.length > 0;
-    const hasSelection = Boolean(selectedCompositeId && selectedMetricKey);
+    const hasSelection = Boolean(selectedDeviceKey && selectedMetricKey);
     const emptyChartMessage = hasSelection
         ? "No data available for the selected range."
         : "Select a sensor and metric to view historical trends.";
@@ -48,8 +48,8 @@ export default function HistoricalTrendsPanel({
                             Sensor node
                             <select
                                 className={styles.chartSelect}
-                                value={selectedCompositeId}
-                                onChange={(event) => onCompositeChange(event.target.value)}
+                                value={selectedDeviceKey}
+                                onChange={(event) => onDeviceChange(event.target.value)}
                             >
                                 {deviceOptions.map((option) => (
                                     <option key={option.id} value={option.id}>

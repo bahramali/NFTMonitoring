@@ -7,7 +7,7 @@ import { aggregateFromCards, isWaterDevice, buildAggregatedEntries } from "../ut
 import styles from "./LayerCard.module.css";
 
 function LayerCard({layer, systemId}) {
-  const deviceCards = useLayerCompositeCards(systemId, layer.id).filter(card => !isWaterDevice(card.compId));
+  const deviceCards = useLayerCompositeCards(systemId, layer.id).filter(card => !isWaterDevice(card.deviceId));
   const agg = useMemo(() => aggregateFromCards(deviceCards), [deviceCards]);
   const { findRange } = useSensorConfig();
   const stats = useMemo(
@@ -39,8 +39,8 @@ function LayerCard({layer, systemId}) {
           {deviceCards.length ? (
             deviceCards.map((card) => (
               <DeviceCard
-                key={card.compId}
-                compositeId={card.compId}
+                key={card.deviceKey}
+                id={card.deviceId}
                 sensors={(card.rawSensors || []).map((reading) => ({
                   sensorType:
                     reading?.sensorType ??

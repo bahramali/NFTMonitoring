@@ -7,6 +7,7 @@ import oxyPayload from './data/oxygenPump.json';
 import telemetryEnvelope from './data/wsTelemetryEnvelope.json';
 import statusEnvelope from './data/wsStatusEnvelope.json';
 import eventEnvelope from './data/wsEventEnvelope.json';
+import { buildDeviceKey } from '../src/utils/deviceIdentity.js';
 
 // Mock useStomp to capture the message handler
 vi.mock('../src/hooks/useStomp', () => ({
@@ -21,14 +22,16 @@ const TELEMETRY_TOPIC =
 const makeTelemetryEnvelope = (payload, overrides = {}) => ({
   ...telemetryEnvelope,
   payload,
-  compositeId: payload?.compositeId ?? telemetryEnvelope.compositeId,
   ...overrides,
 });
 
-test('stores sensor data and actuator controllers per composite device', () => {
+test('stores sensor data and actuator controllers per device key', () => {
   const { result } = renderHook(() =>
     useLiveDevices([TELEMETRY_TOPIC, 'actuator/oxygenPump'])
   );
+  const telemetryKey = buildDeviceKey(telemetryEnvelope.payload);
+  const tankKey = buildDeviceKey(tankPayload);
+  const oxyKey = buildDeviceKey(oxyPayload);
 
   act(() => {
     global.__stompHandler(TELEMETRY_TOPIC, telemetryEnvelope);
@@ -43,25 +46,27 @@ test('stores sensor data and actuator controllers per composite device', () => {
   });
 
   expect(
-    result.current.sensorData[telemetryEnvelope.payload.compositeId].temperature.value
+    result.current.sensorData[telemetryKey].temperature.value
   ).toBeCloseTo(27.75);
-  expect(result.current.sensorData[telemetryEnvelope.payload.compositeId]).toBeDefined();
-  expect(result.current.sensorData[tankPayload.compositeId]).toBeUndefined();
+  expect(result.current.sensorData[telemetryKey]).toBeDefined();
+  expect(result.current.sensorData[tankKey]).toBeUndefined();
   expect(
-    result.current.mergedDevices[oxyPayload.compositeId].controllers[0]
+    result.current.mergedDevices[oxyKey].controllers[0]
   ).toEqual(oxyPayload.controllers[0]);
 });
 
-test('aggregates devices across multiple systems', () => {
+test('aggregates devices across multiple farms', () => {
   const { result } = renderHook(() => useLiveDevices([TELEMETRY_TOPIC]));
 
   act(() => {
     global.__stompHandler(
       TELEMETRY_TOPIC,
       makeTelemetryEnvelope({
+        farmId: 'F01',
+        unitType: 'rack',
+        unitId: 'R01',
+        layerId: 'L01',
         deviceId: 'G01',
-        layer: 'L01',
-        system: 'S01',
         sensors: [{ sensorType: 'temperature', value: 20 }]
       })
     );
@@ -71,9 +76,11 @@ test('aggregates devices across multiple systems', () => {
     global.__stompHandler(
       TELEMETRY_TOPIC,
       makeTelemetryEnvelope({
+        farmId: 'F02',
+        unitType: 'rack',
+        unitId: 'R02',
+        layerId: 'L02',
         deviceId: 'G02',
-        layer: 'L02',
-        system: 'S02',
         sensors: [
           { sensorType: 'temperature', value: 25 },
           { sensorType: 'humidity', value: 50 }
@@ -82,10 +89,12 @@ test('aggregates devices across multiple systems', () => {
     );
   });
 
-  expect(result.current.availableCompositeIds).toEqual(
-    expect.arrayContaining(['S01-L01-G01', 'S02-L02-G02'])
+  const keyOne = 'F01|rack|R01|L01|G01';
+  const keyTwo = 'F02|rack|R02|L02|G02';
+  expect(result.current.availableDeviceKeys).toEqual(
+    expect.arrayContaining([keyOne, keyTwo])
   );
-  expect(result.current.sensorData['S02-L02-G02'].temperature.value).toBe(25);
+  expect(result.current.sensorData[keyTwo].temperature.value).toBe(25);
 });
 
 test('merges controllers from multiple topics', () => {
@@ -95,9 +104,11 @@ test('merges controllers from multiple topics', () => {
     global.__stompHandler(
       TELEMETRY_TOPIC,
       makeTelemetryEnvelope({
+        farmId: 'F01',
+        unitType: 'rack',
+        unitId: 'R01',
+        layerId: 'L01',
         deviceId: 'G01',
-        layer: 'L01',
-        system: 'S01',
         controllers: [{ name: 'Valve1', type: 'valve', state: 'open' }]
       })
     );
@@ -105,23 +116,28 @@ test('merges controllers from multiple topics', () => {
 
   act(() => {
     global.__stompHandler('waterOutput', {
+      farmId: 'F01',
+      unitType: 'rack',
+      unitId: 'R01',
+      layerId: 'L01',
       deviceId: 'G01',
-      layer: 'L01',
-      system: 'S01',
       controllers: [{ name: 'Pump1', type: 'pump', state: 'off' }]
     });
   });
 
   act(() => {
     global.__stompHandler('waterOutput', {
+      farmId: 'F01',
+      unitType: 'rack',
+      unitId: 'R01',
+      layerId: 'L01',
       deviceId: 'G01',
-      layer: 'L01',
-      system: 'S01',
       controllers: [{ name: 'Pump1', type: 'pump', state: 'on' }]
     });
   });
 
-  const ctrls = result.current.mergedDevices['S01-L01-G01'].controllers;
+  const deviceKey = 'F01|rack|R01|L01|G01';
+  const ctrls = result.current.mergedDevices[deviceKey].controllers;
   expect(ctrls).toHaveLength(2);
   const valve = ctrls.find(c => c.name === 'Valve1');
   const pump = ctrls.find(c => c.name === 'Pump1');
@@ -138,9 +154,11 @@ test('handles actuator payloads with JSON payload and merges controllers', () =>
     global.__stompHandler(
       TELEMETRY_TOPIC,
       makeTelemetryEnvelope({
+        farmId: 'F01',
+        unitType: 'rack',
+        unitId: 'R01',
+        layerId: 'L01',
         deviceId: 'G01',
-        layer: 'L01',
-        system: 'S01',
         controllers: [{ name: 'Valve1', type: 'valve', state: 'open' }],
       })
     );
@@ -148,9 +166,11 @@ test('handles actuator payloads with JSON payload and merges controllers', () =>
 
   act(() => {
     const payload = {
+      farmId: 'F01',
+      unitType: 'rack',
+      unitId: 'R01',
+      layerId: 'L01',
       deviceId: 'G01',
-      layer: 'L01',
-      system: 'S01',
       controllers: [{ name: 'OxyPump', type: 'pump', state: 'off' }],
     };
     global.__stompHandler('actuator/oxygenPump', {
@@ -160,15 +180,18 @@ test('handles actuator payloads with JSON payload and merges controllers', () =>
 
   act(() => {
     const payload = {
+      farmId: 'F01',
+      unitType: 'rack',
+      unitId: 'R01',
+      layerId: 'L01',
       deviceId: 'G01',
-      layer: 'L01',
-      system: 'S01',
       controllers: [{ name: 'OxyPump', type: 'pump', state: 'on' }],
     };
     global.__stompHandler('actuator/oxygenPump', { payload });
   });
 
-  const ctrls = result.current.mergedDevices['S01-L01-G01'].controllers;
+  const deviceKey = 'F01|rack|R01|L01|G01';
+  const ctrls = result.current.mergedDevices[deviceKey].controllers;
   expect(ctrls).toHaveLength(2);
   const valve = ctrls.find((c) => c.name === 'Valve1');
   const pump = ctrls.find((c) => c.name === 'OxyPump');
@@ -176,30 +199,7 @@ test('handles actuator payloads with JSON payload and merges controllers', () =>
   expect(pump.state).toBe('on');
 });
 
-test('uses provided compositeId when present', () => {
-  const { result } = renderHook(() => useLiveDevices([TELEMETRY_TOPIC]));
-
-  act(() => {
-    global.__stompHandler(
-      TELEMETRY_TOPIC,
-      makeTelemetryEnvelope({
-        compositeId: 'C123',
-        deviceId: 'ignored',
-        layer: 'L99',
-        system: 'S01',
-        sensors: [
-          { sensorType: 'temperature', value: '22' },
-          { sensorType: 'humidity', value: '55' }
-        ]
-      })
-    );
-  });
-
-  expect(result.current.sensorData['C123'].temperature.value).toBe(22);
-  expect(result.current.sensorData['C123'].humidity.value).toBe(55);
-});
-
-test('constructs compositeId from object layer field', () => {
+test('ignores payloads missing identity fields', () => {
   const { result } = renderHook(() => useLiveDevices([TELEMETRY_TOPIC]));
 
   act(() => {
@@ -207,17 +207,14 @@ test('constructs compositeId from object layer field', () => {
       TELEMETRY_TOPIC,
       makeTelemetryEnvelope({
         deviceId: 'T01',
-        layer: { layer: 'L01' },
-        system: 'S01',
         sensors: [
           { sensorType: 'temperature', value: 20 },
-          { sensorType: 'humidity', value: 50 }
         ]
       })
     );
   });
 
-  expect(result.current.sensorData['S01-L01-T01'].temperature.value).toBe(20);
+  expect(Object.keys(result.current.sensorData)).toHaveLength(0);
 });
 
 test('captures auxiliary payload fields for non-sensor topics', () => {
@@ -229,27 +226,31 @@ test('captures auxiliary payload fields for non-sensor topics', () => {
 
   act(() => {
     global.__stompHandler('water_flow', {
+      farmId: 'F01',
+      unitType: 'rack',
+      unitId: 'R03',
+      layerId: 'L03',
       deviceId: 'WF01',
-      layer: 'L03',
-      system: 'SYS01',
       status: 'on',
     });
   });
 
-  const topicEntry = result.current.deviceData['SYS01']['water_flow']['SYS01-L03-WF01'];
+  const deviceKey = 'F01|rack|R03|L03|WF01';
+  const topicEntry = result.current.deviceData['F01']['water_flow'][deviceKey];
   expect(topicEntry.extra).toEqual({ status: 'on' });
   expect(topicEntry.receivedAt).toBe(fixedDate.getTime());
 
   vi.useRealTimers();
 });
 
-test('adapts flat telemetry payloads into sensors and stores by compositeId', () => {
+test('adapts flat telemetry payloads into sensors and stores by device key', () => {
   const { result } = renderHook(() => useLiveDevices([TELEMETRY_TOPIC]));
   const flatPayload = {
+    farmId: 'F77',
+    unitType: 'rack',
+    unitId: 'R07',
+    layerId: 'L07',
     deviceId: 'G99',
-    layer: 'L07',
-    system: 'S77',
-    compositeId: 'S77-L07-G99',
     temperature: '22.5',
     humidity: 48
   };
@@ -258,8 +259,9 @@ test('adapts flat telemetry payloads into sensors and stores by compositeId', ()
     global.__stompHandler(TELEMETRY_TOPIC, makeTelemetryEnvelope(flatPayload));
   });
 
-  expect(result.current.sensorData['S77-L07-G99'].temperature.value).toBeCloseTo(22.5);
-  expect(result.current.sensorData['S77-L07-G99'].humidity.value).toBe(48);
+  const deviceKey = 'F77|rack|R07|L07|G99';
+  expect(result.current.sensorData[deviceKey].temperature.value).toBeCloseTo(22.5);
+  expect(result.current.sensorData[deviceKey].humidity.value).toBe(48);
 });
 
 test('stores device events from event envelopes', () => {
@@ -269,8 +271,9 @@ test('stores device events from event envelopes', () => {
     global.__stompHandler('hydroleaf/event', eventEnvelope);
   });
 
-  expect(result.current.deviceEvents['S01-L01-G01']).toHaveLength(1);
-  expect(result.current.deviceEvents['S01-L01-G01'][0].event).toBe('watering');
+  const deviceKey = 'F01|rack|R01|L01|G01';
+  expect(result.current.deviceEvents[deviceKey]).toHaveLength(1);
+  expect(result.current.deviceEvents[deviceKey][0].event).toBe('watering');
 });
 
 test('resolves online state from status envelopes', () => {
@@ -280,5 +283,47 @@ test('resolves online state from status envelopes', () => {
     global.__stompHandler('hydroleaf/status', statusEnvelope);
   });
 
-  expect(result.current.mergedDevices['S01-L01-G01'].online).toBe(true);
+  const deviceKey = 'F01|rack|R01|L01|G01';
+  expect(result.current.mergedDevices[deviceKey].online).toBe(true);
+});
+
+test('filters messages by page scope', () => {
+  const scope = { farmId: 'F01', unitType: 'rack', unitId: 'R01', layerId: 'L01' };
+  const { result } = renderHook(() => useLiveDevices([TELEMETRY_TOPIC], { scope }));
+
+  act(() => {
+    global.__stompHandler(
+      TELEMETRY_TOPIC,
+      makeTelemetryEnvelope({
+        farmId: 'F01',
+        unitType: 'rack',
+        unitId: 'R01',
+        layerId: 'L01',
+        deviceId: 'G10',
+        sensors: [
+          { sensorType: 'temperature', value: 20 },
+          { sensorType: 'humidity', value: 50 }
+        ]
+      })
+    );
+  });
+
+  act(() => {
+    global.__stompHandler(
+      TELEMETRY_TOPIC,
+      makeTelemetryEnvelope({
+        farmId: 'F01',
+        unitType: 'rack',
+        unitId: 'R01',
+        layerId: 'L02',
+        deviceId: 'G11',
+        sensors: [{ sensorType: 'temperature', value: 21 }],
+      })
+    );
+  });
+
+  const includedKey = 'F01|rack|R01|L01|G10';
+  expect(result.current.sensorData[includedKey]).toBeDefined();
+  const excludedKey = 'F01|rack|R01|L02|G11';
+  expect(result.current.sensorData[excludedKey]).toBeUndefined();
 });

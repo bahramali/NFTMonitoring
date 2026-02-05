@@ -10,13 +10,13 @@ const RESERVED_TELEMETRY_KEYS = new Set([
   "deviceId",
   "device",
   "devId",
-  "system",
-  "systemId",
-  "layer",
   "layerId",
-  "compositeId",
-  "composite_id",
-  "cid",
+  "farmId",
+  "farm_id",
+  "unitType",
+  "unit_type",
+  "unitId",
+  "unit_id",
   "meta",
   "health",
   "controllers",
@@ -30,7 +30,10 @@ const FLAT_TELEMETRY_IGNORED_KEYS = new Set([
   "rack",
   "layer",
   "deviceId",
-  "compositeId",
+  "farmId",
+  "unitType",
+  "unitId",
+  "layerId",
   "receivedAt",
   "meta",
 ]);
@@ -66,19 +69,12 @@ export function parseEnvelope(message) {
   }
 
   return {
-    compositeId: message.compositeId ?? payload?.compositeId ?? payload?.composite_id ?? null,
     kind: message.kind,
     deviceId: message.deviceId ?? message.device_id ?? payload?.deviceId ?? payload?.device_id ?? null,
-    siteId: message.siteId ?? message.site_id ?? payload?.siteId ?? payload?.site_id ?? null,
-    rackId: message.rackId ?? message.rack_id ?? payload?.rackId ?? payload?.rack_id ?? null,
-    nodeType: message.nodeType ?? message.node_type ?? payload?.nodeType ?? payload?.node_type ?? null,
-    nodeId: message.nodeId ?? message.node_id ?? payload?.nodeId ?? payload?.node_id ?? null,
-    nodeInstance:
-      message.nodeInstance ??
-      message.node_instance ??
-      payload?.nodeInstance ??
-      payload?.node_instance ??
-      null,
+    farmId: message.farmId ?? message.farm_id ?? payload?.farmId ?? payload?.farm_id ?? null,
+    unitType: message.unitType ?? message.unit_type ?? payload?.unitType ?? payload?.unit_type ?? null,
+    unitId: message.unitId ?? message.unit_id ?? payload?.unitId ?? payload?.unit_id ?? null,
+    layerId: message.layerId ?? message.layer_id ?? payload?.layerId ?? payload?.layer_id ?? null,
     timestamp: message.timestamp ?? payload?.timestamp ?? payload?.ts ?? payload?.time ?? null,
     payload,
   };
@@ -123,36 +119,22 @@ export function normalizeTelemetryPayload(envelope) {
   if (!envelope || envelope.kind !== "telemetry") return null;
   const payload = envelope.payload && typeof envelope.payload === "object" ? envelope.payload : {};
   const sensors = Array.isArray(payload.sensors) ? payload.sensors : buildSensorsFromTelemetry(payload);
-  const compositeId = payload.compositeId ?? envelope.compositeId;
   const deviceId = payload.deviceId ?? payload.device_id ?? envelope.deviceId;
-  const siteId = payload.siteId ?? payload.site_id ?? payload.site ?? envelope.siteId ?? envelope.site;
-  const rackId = payload.rackId ?? payload.rack_id ?? payload.rack ?? envelope.rackId ?? envelope.rack;
-  const nodeType = payload.nodeType ?? payload.node_type ?? envelope.nodeType;
-  const nodeId = payload.nodeId ?? payload.node_id ?? envelope.nodeId;
-  const nodeInstance =
-    payload.nodeInstance ?? payload.node_instance ?? envelope.nodeInstance ?? envelope.node_instance;
+  const farmId = payload.farmId ?? payload.farm_id ?? envelope.farmId;
+  const unitType = payload.unitType ?? payload.unit_type ?? envelope.unitType;
+  const unitId = payload.unitId ?? payload.unit_id ?? envelope.unitId;
+  const layerId = payload.layerId ?? payload.layer_id ?? envelope.layerId ?? null;
   const timestamp =
     payload.timestamp ?? payload.ts ?? payload.time ?? payload.receivedAt ?? envelope.timestamp ?? null;
-  const systemId = payload.systemId ?? payload.system ?? siteId;
-  const layerId = payload.layerId ?? payload.layer ?? (nodeType === "LAYER" ? nodeId : undefined);
-  const resolvedCompositeId =
-    compositeId ??
-    (siteId && nodeId && deviceId
-      ? `${siteId}${rackId ? `-${rackId}` : ""}-${nodeId}-${deviceId}`
-      : null);
 
   return {
     ...payload,
     sensors,
-    ...(resolvedCompositeId ? { compositeId: resolvedCompositeId } : {}),
     ...(deviceId ? { deviceId } : {}),
-    ...(siteId ? { siteId } : {}),
-    ...(rackId ? { rackId } : {}),
-    ...(nodeType ? { nodeType } : {}),
-    ...(nodeId ? { nodeId } : {}),
-    ...(nodeInstance !== null && nodeInstance !== undefined ? { nodeInstance } : {}),
-    ...(systemId ? { systemId } : {}),
-    ...(layerId ? { layerId } : {}),
+    ...(farmId ? { farmId } : {}),
+    ...(unitType ? { unitType } : {}),
+    ...(unitId ? { unitId } : {}),
+    ...(layerId !== null && layerId !== undefined ? { layerId } : {}),
     ...(timestamp ? { timestamp } : {}),
   };
 }

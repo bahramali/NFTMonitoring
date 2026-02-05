@@ -59,5 +59,5 @@ export const formatNodeOptionLabel = (device) => {
 };
 
 export const getDeviceDebugId = (device) => {
-    return normalizeText(device?.deviceId || device?.compositeId || "");
+    return normalizeText(device?.deviceId || device?.deviceKey || "");
 };

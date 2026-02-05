@@ -8,7 +8,7 @@ import styles from './CustomerDeviceDetails.module.css';
 
 const normalizeDevice = (payload = {}) => {
     const device = payload?.device ?? payload;
-    const id = device.id ?? device.deviceId ?? device.serialNumber ?? device.compositeId;
+    const id = device.id ?? device.deviceId ?? device.serialNumber;
     const lastSeen =
         device.lastSeen ??
         device.lastTelemetry ??

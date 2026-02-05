@@ -7,18 +7,26 @@ import Germination from '../src/pages/Germination/index.jsx';
 vi.mock('../src/pages/common/useLiveDevices', () => ({
   useLiveDevices: () => ({
     deviceData: {
-      S01: {
+      F01: {
         'hydroleaf/telemetry': {
-          'S01-GERM-01': {
-            compositeId: 'S01-GERM-01',
-            rack: 'germination',
+          'F01|rack|germination|L01|G01': {
+            deviceKey: 'F01|rack|germination|L01|G01',
+            farmId: 'F01',
+            unitType: 'rack',
+            unitId: 'germination',
+            layerId: 'L01',
+            deviceId: 'G01',
             deviceName: 'Germination Rack A',
             sensors: [{ sensorType: 'temperature', value: 22 }],
             mqttTopic: 'hydroleaf/telemetry',
           },
-          'S01-GROW-01': {
-            compositeId: 'S01-GROW-01',
-            rack: 'grow',
+          'F01|rack|grow|L01|G02': {
+            deviceKey: 'F01|rack|grow|L01|G02',
+            farmId: 'F01',
+            unitType: 'rack',
+            unitId: 'grow',
+            layerId: 'L01',
+            deviceId: 'G02',
             deviceName: 'Grow Rack A',
             sensors: [{ sensorType: 'temperature', value: 24 }],
             mqttTopic: 'hydroleaf/telemetry',

@@ -5,6 +5,13 @@ import { isAs7343Sensor, makeMeasurementKey, sanitize } from "./measurementUtils
 import { adaptFlatTelemetryToSensors } from "../../utils/telemetryAdapter.js";
 import { logTelemetryDebug } from "./liveTelemetry.js";
 import { useAuth } from "../../context/AuthContext.jsx";
+import {
+    buildDeviceKey,
+    describeIdentity,
+    isIdentityComplete,
+    matchesScope,
+    resolveIdentity,
+} from "../../utils/deviceIdentity.js";
 
 const EXTREMA_WINDOW_MS = 5 * 60 * 1000;
 const TELEMETRY_TOPIC = "hydroleaf/telemetry";
@@ -23,11 +30,10 @@ const RESERVED_EXTRA_KEYS = new Set([
     "siteId",
     "rack",
     "rackId",
-    "system",
-    "compositeId",
-    "nodeType",
-    "nodeId",
-    "nodeInstance",
+    "farmId",
+    "unitType",
+    "unitId",
+    "layerId",
     "kind",
     "online",
     "schemaVersion",
@@ -48,7 +54,7 @@ function mergeControllers(a = [], b = []) {
     return Array.from(map.values());
 }
 
-export function useLiveDevices(topics) {
+export function useLiveDevices(topics, { scope } = {}) {
     const { token } = useAuth();
     const [deviceData, setDeviceData] = useState({});
     const [sensorData, setSensorData] = useState({});
@@ -61,8 +67,8 @@ export function useLiveDevices(topics) {
         if (pending.sensorData.size > 0) {
             setSensorData((prev) => {
                 const next = {...prev};
-                pending.sensorData.forEach((data, compositeId) => {
-                    next[compositeId] = data;
+                pending.sensorData.forEach((data, deviceKey) => {
+                    next[deviceKey] = data;
                 });
                 return next;
             });
@@ -80,8 +86,8 @@ export function useLiveDevices(topics) {
                         const prevTopic = prevSite[topicKey] || {};
                         let topicChanged = false;
                         const nextTopic = {...prevTopic};
-                        topicUpdates.forEach((data, compositeId) => {
-                            nextTopic[compositeId] = data;
+                        topicUpdates.forEach((data, deviceKey) => {
+                            nextTopic[deviceKey] = data;
                             topicChanged = true;
                         });
                         if (topicChanged) {
@@ -118,12 +124,12 @@ export function useLiveDevices(topics) {
         }, BATCH_INTERVAL_MS);
     }, [flushPending]);
 
-    const updateDeviceEvents = useCallback((compositeId, payload) => {
-        if (!compositeId) return;
+    const updateDeviceEvents = useCallback((deviceKey, payload) => {
+        if (!deviceKey) return;
         setDeviceEvents((prev) => {
-            const existing = Array.isArray(prev[compositeId]) ? prev[compositeId] : [];
+            const existing = Array.isArray(prev[deviceKey]) ? prev[deviceKey] : [];
             const nextList = [...existing, payload].slice(-200);
-            return {...prev, [compositeId]: nextList};
+            return {...prev, [deviceKey]: nextList};
         });
     }, []);
 
@@ -152,7 +158,7 @@ export function useLiveDevices(topics) {
         return Number.isNaN(parsed) ? null : parsed;
     }, []);
 
-    const updateSensorExtrema = useCallback((compositeId, sensors = []) => {
+    const updateSensorExtrema = useCallback((deviceKey, sensors = []) => {
         if (!Array.isArray(sensors) || sensors.length === 0) return;
 
         const now = Date.now();
@@ -173,7 +179,7 @@ export function useLiveDevices(topics) {
                 const normalizedModel = sanitize(sensor?.sensorName || sensor?.source) || normalizedType;
                 const measurementKey = makeMeasurementKey(normalizedType, normalizedModel);
 
-                const previousDevice = pendingUpdates.get(compositeId) ?? prev[compositeId] ?? {};
+                const previousDevice = pendingUpdates.get(deviceKey) ?? prev[deviceKey] ?? {};
                 const previousEntry = previousDevice[measurementKey];
 
                 let entry;
@@ -188,17 +194,17 @@ export function useLiveDevices(topics) {
                     entry = { min, max, windowStart: previousEntry.windowStart };
                 }
 
-                const deviceUpdates = { ...(pendingUpdates.get(compositeId) ?? prev[compositeId] ?? {}) };
+                const deviceUpdates = { ...(pendingUpdates.get(deviceKey) ?? prev[deviceKey] ?? {}) };
                 deviceUpdates[measurementKey] = entry;
-                pendingUpdates.set(compositeId, deviceUpdates);
+                pendingUpdates.set(deviceKey, deviceUpdates);
                 changed = true;
             }
 
             if (!changed) return prev;
 
             const next = { ...prev };
-            for (const [cid, data] of pendingUpdates.entries()) {
-                next[cid] = data;
+            for (const [key, data] of pendingUpdates.entries()) {
+                next[key] = data;
             }
             return next;
         });
@@ -240,91 +246,37 @@ export function useLiveDevices(topics) {
 
         if (!payload || typeof payload !== "object") return;
 
-        if (envelope && typeof envelope === "object") {
-            if (payload.deviceId == null && envelope.deviceId != null) {
-                payload.deviceId = envelope.deviceId;
-            }
-            if (payload.siteId == null && envelope.siteId != null) {
-                payload.siteId = envelope.siteId;
-            }
-            if (payload.rackId == null && envelope.rackId != null) {
-                payload.rackId = envelope.rackId;
-            }
-            if (payload.nodeType == null && envelope.nodeType != null) {
-                payload.nodeType = envelope.nodeType;
-            }
-            if (payload.nodeId == null && envelope.nodeId != null) {
-                payload.nodeId = envelope.nodeId;
-            }
-            if (payload.nodeInstance == null && envelope.nodeInstance != null) {
-                payload.nodeInstance = envelope.nodeInstance;
-            }
+        if (envelope && typeof envelope === "object" && payload && typeof payload === "object") {
             if (payload.timestamp == null && envelope.timestamp != null) {
                 payload.timestamp = envelope.timestamp;
             }
         }
 
-        let baseId = envelope?.deviceId || payload.deviceId || payload.device || payload.devId;
-        let systemId =
-            payload.system || payload.systemId || payload.site || envelope?.site || envelope?.siteId;
-        let siteId =
-            payload.siteId || payload.site_id || payload.site || envelope?.site || envelope?.siteId;
-        let rackId =
-            payload.rackId || payload.rack_id || payload.rack || envelope?.rack || envelope?.rackId;
-        // Some payloads send `layer` as an object `{ layer: "L01" }` while others
-        // use a plain string. Normalise to a string so the composite ID is built
-        // correctly regardless of format.
-        let loc =
-            envelope?.layer?.layer ||
-            envelope?.layer ||
-            envelope?.layerId ||
-            envelope?.layer_id ||
-            payload.layer?.layer ||
-            payload.layer ||
-            payload.layerId ||
-            payload.layer_id ||
-            payload.meta?.layerId ||
-            payload.meta?.layer_id ||
-            payload.meta?.layer ||
-            "";
-        const nodeType =
-            payload.nodeType ||
-            payload.node_type ||
-            payload.meta?.nodeType ||
-            payload.meta?.node_type ||
-            envelope?.nodeType ||
-            null;
-        const nodeId =
-            payload.nodeId || payload.node_id || payload.meta?.nodeId || payload.meta?.node_id || envelope?.nodeId || null;
-        const nodeInstance =
-            payload.nodeInstance ||
-            payload.node_instance ||
-            payload.meta?.nodeInstance ||
-            payload.meta?.node_instance ||
-            envelope?.nodeInstance ||
-            null;
+        const identity = resolveIdentity(payload, envelope);
+        if (!isIdentityComplete(identity)) {
+            console.warn("Live telemetry message missing identity fields", {
+                topic,
+                identity: describeIdentity(identity),
+            });
+            return;
+        }
 
-        let compositeId =
-            envelope?.compositeId ||
-            payload.compositeId ||
-            payload.composite_id ||
-            payload.cid ||
-            null;
+        if (!matchesScope(identity, scope)) return;
 
-        baseId = baseId || "unknown";
-        systemId = systemId || "unknown";
-        siteId = siteId || systemId;
-        rackId = rackId || null;
-
-        if (!compositeId) {
-            const segments = [siteId, rackId, loc || nodeId, baseId].filter(Boolean);
-            compositeId = segments.length > 0 ? segments.join("-") : baseId;
+        const deviceKey = buildDeviceKey(identity);
+        if (!deviceKey) {
+            console.warn("Live telemetry message missing identity fields", {
+                topic,
+                identity: describeIdentity(identity),
+            });
+            return;
         }
 
         if (kind === "event") {
-            updateDeviceEvents(compositeId, {
+            updateDeviceEvents(deviceKey, {
                 ...payload,
-                compositeId,
+                ...identity,
+                deviceKey,
                 receivedAt: Date.now(),
             });
         }
@@ -345,29 +297,21 @@ export function useLiveDevices(topics) {
             const normalized = normalizeSensorData(payload);
             const cleaned = isTelemetryTopic ? filterNoise(normalized) : normalized;
             if (cleaned && isTelemetryTopic) {
-                pendingUpdatesRef.current.sensorData.set(compositeId, cleaned);
+                pendingUpdatesRef.current.sensorData.set(deviceKey, cleaned);
                 scheduleFlush();
             }
 
-            updateSensorExtrema(compositeId, payload.sensors);
+            updateSensorExtrema(deviceKey, payload.sensors);
         }
 
         const tableData = {
             sensors: Array.isArray(payload.sensors) ? payload.sensors : [],
             controllers: Array.isArray(payload.controllers) ? payload.controllers : [],
             health: payload.health || {},
-            ...(loc ? {layer: loc} : {}),
-            deviceId: baseId,
-            compositeId,
+            ...identity,
+            deviceKey,
             kind,
             mqttTopic,
-            ...(siteId ? {site: siteId} : {}),
-            ...(rackId ? {rack: rackId} : {}),
-            ...(siteId ? {siteId} : {}),
-            ...(rackId ? {rackId} : {}),
-            ...(nodeType ? {nodeType} : {}),
-            ...(nodeId ? {nodeId} : {}),
-            ...(nodeInstance !== null && nodeInstance !== undefined ? {nodeInstance} : {}),
             timestamp: resolveTimestamp(payload),
             receivedAt: Date.now(),
         };
@@ -379,7 +323,6 @@ export function useLiveDevices(topics) {
         if (payload && typeof payload === "object" && !Array.isArray(payload)) {
             const extras = Object.entries(payload).reduce((acc, [key, value]) => {
                 if (RESERVED_EXTRA_KEYS.has(key)) return acc;
-                if (key === "system") return acc;
                 acc[key] = value;
                 return acc;
             }, {});
@@ -392,16 +335,17 @@ export function useLiveDevices(topics) {
         if (!topicKey) return;
 
         const pendingDeviceData = pendingUpdatesRef.current.deviceData;
-        if (!pendingDeviceData.has(siteId)) {
-            pendingDeviceData.set(siteId, new Map());
+        const farmKey = identity.farmId || "unknown";
+        if (!pendingDeviceData.has(farmKey)) {
+            pendingDeviceData.set(farmKey, new Map());
         }
-        const siteMap = pendingDeviceData.get(siteId);
+        const siteMap = pendingDeviceData.get(farmKey);
         if (!siteMap.has(topicKey)) {
             siteMap.set(topicKey, new Map());
         }
-        siteMap.get(topicKey).set(compositeId, tableData);
+        siteMap.get(topicKey).set(deviceKey, tableData);
         scheduleFlush();
-    }, [resolveOnline, resolveTimestamp, scheduleFlush, updateDeviceEvents, updateSensorExtrema]);
+    }, [resolveOnline, resolveTimestamp, scheduleFlush, scope, updateDeviceEvents, updateSensorExtrema]);
 
     useEffect(() => {
         if (subscribedTopics.length > 0) {
@@ -422,12 +366,12 @@ export function useLiveDevices(topics) {
         reconnectOnHeaderChange: true,
     });
 
-    const availableCompositeIds = useMemo(() => {
+    const availableDeviceKeys = useMemo(() => {
         const ids = new Set();
         for (const sysData of Object.values(deviceData)) {
             for (const topicDevices of Object.values(sysData)) {
-                for (const cid of Object.keys(topicDevices)) {
-                    ids.add(cid);
+                for (const key of Object.keys(topicDevices)) {
+                    ids.add(key);
                 }
             }
         }
@@ -438,8 +382,8 @@ export function useLiveDevices(topics) {
         const combined = {};
         for (const sysData of Object.values(deviceData)) {
             for (const topicKey of Object.keys(sysData)) {
-                for (const [cid, data] of Object.entries(sysData[topicKey])) {
-                    const existing = combined[cid] || {};
+                for (const [deviceKey, data] of Object.entries(sysData[topicKey])) {
+                    const existing = combined[deviceKey] || {};
                     const extra = {
                         ...(existing?.extra || {}),
                         ...(data?.extra || {})
@@ -463,12 +407,12 @@ export function useLiveDevices(topics) {
                         merged.receivedAt = receivedAt;
                     }
 
-                    combined[cid] = merged;
+                    combined[deviceKey] = merged;
                 }
             }
         }
         return combined;
     }, [deviceData]);
 
-    return {deviceData, sensorData, availableCompositeIds, mergedDevices, sensorExtrema, deviceEvents};
+    return {deviceData, sensorData, availableDeviceKeys, mergedDevices, sensorExtrema, deviceEvents};
 }

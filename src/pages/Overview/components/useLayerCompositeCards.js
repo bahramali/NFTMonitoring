@@ -2,30 +2,26 @@ import React from "react";
 import { useStomp } from "../../../hooks/useStomp";
 import { normalizeSensors } from "../utils";
 import { HYDROLEAF_TOPICS, normalizeTelemetryPayload, parseEnvelope } from "../../../utils/telemetryAdapter.js";
+import { buildDeviceKey, resolveIdentity } from "../../../utils/deviceIdentity.js";
 
 export default function useLayerCompositeCards(systemKeyInput, layerId) {
   const [cards, setCards] = React.useState({});
   const layerKey = String(layerId || "").toUpperCase();
-  const sysKey = String(systemKeyInput || "").toUpperCase();
+  const farmKey = String(systemKeyInput || "").toUpperCase();
 
-  const isMine = React.useCallback((compId, data) => {
-    const cid = String(compId || "").trim().toUpperCase();
-    if (cid) {
-      if (!cid.startsWith(`${sysKey}-`)) return false;
-      if (!cid.includes(`-${layerKey}-`)) return false;
-      return true;
-    }
-    const sys = String(data?.system || data?.systemId || "").trim().toUpperCase();
-    const lay = String(data?.layer || data?.layerId || "").trim().toUpperCase();
-    if (sysKey && sys && sys !== sysKey) return false;
-    if (layerKey && lay && lay !== layerKey) return false;
-    return !!sys && !!lay;
-  }, [sysKey, layerKey]);
+  const isMine = React.useCallback((identity) => {
+    const farm = String(identity?.farmId || "").trim().toUpperCase();
+    const layer = String(identity?.layerId || "").trim().toUpperCase();
+    if (farmKey && farm && farm !== farmKey) return false;
+    if (layerKey && layer && layer !== layerKey) return false;
+    return Boolean(farm) && Boolean(layer);
+  }, [farmKey, layerKey]);
 
-  const upsert = React.useCallback((compId, sensors, ts) => {
+  const upsert = React.useCallback((deviceKey, identity, sensors, ts) => {
     setCards(prev => {
       const next = {...prev};
-      const cur = next[compId] || {sensors: {}, rawSensors: [], ts: 0};
+      const cur = next[deviceKey] || {sensors: {}, rawSensors: [], ts: 0};
+      cur.identity = identity;
       const normalized = normalizeSensors(sensors);
       for (const [k, obj] of Object.entries(normalized)) {
         if (obj && typeof obj === "object") {
@@ -52,7 +48,7 @@ export default function useLayerCompositeCards(systemKeyInput, layerId) {
           })
         : [];
       cur.ts = Math.max(cur.ts || 0, ts || Date.now());
-      next[compId] = cur;
+      next[deviceKey] = cur;
       return next;
     });
   }, []);
@@ -65,22 +61,31 @@ export default function useLayerCompositeCards(systemKeyInput, layerId) {
     if (envelope && envelope.kind !== "telemetry") return;
     const message = telemetry || data;
 
-    let compId = message.compositeId || message.composite_id || message.cid;
-    if (!compId) {
-      const sys = message.system || message.systemId;
-      const lay = message.layer || message.layerId;
-      const dev = message.deviceId || message.device || message.devId;
-      if (sys && lay && dev) compId = `${sys}-${lay}-${dev}`;
-    }
-    if (!compId) return;
-    if (!isMine(compId, message)) return;
+    const identity = resolveIdentity(message, envelope);
+    const deviceKey = buildDeviceKey(identity);
+    if (!deviceKey) return;
+    if (!isMine(identity)) return;
     const sensors = message.sensors || message.values || message.env || message.water || message.payload || message.readings || [];
-    upsert(compId, sensors, message.timestamp || message.ts);
+    upsert(deviceKey, identity, sensors, message.timestamp || message.ts);
   });
 
   React.useEffect(() => {
     setCards({});
-  }, [sysKey, layerKey]);
+  }, [farmKey, layerKey]);
 
-  return React.useMemo(() => Object.entries(cards).map(([compId, payload]) => ({compId, ...payload})).sort((a, b) => String(a.compId).localeCompare(String(b.compId))), [cards]);
+  return React.useMemo(
+    () =>
+      Object.entries(cards)
+        .map(([deviceKey, payload]) => ({
+          deviceKey,
+          ...payload,
+          deviceId: payload.identity?.deviceId,
+          layerId: payload.identity?.layerId,
+          unitId: payload.identity?.unitId,
+          unitType: payload.identity?.unitType,
+          farmId: payload.identity?.farmId,
+        }))
+        .sort((a, b) => String(a.deviceKey).localeCompare(String(b.deviceKey))),
+    [cards]
+  );
 }

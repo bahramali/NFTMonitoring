@@ -2,10 +2,11 @@
   "kind": "telemetry",
   "mqttTopic": "hydroleaf/telemetry",
   "payload": {
-    "system": "S01",
-    "layer": "L02",
+    "farmId": "F01",
+    "unitType": "rack",
+    "unitId": "R01",
+    "layerId": "L02",
     "deviceId": "G01",
-    "compositeId": "S01-L02-G01",
     "timestamp": "2025-08-14T13:52:32Z",
     "sensors": [
       { "sensorName": "SHT3x", "sensorType": "A_Temp_C", "value": 27.75, "unit": "°C" },

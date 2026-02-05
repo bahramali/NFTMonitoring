@@ -30,8 +30,11 @@ export default function HistoricalTrendsPanel({ rackId, selectedDeviceIds }) {
         };
     }, [normalizedRackId, selectedSet]);
 
-    const { devices, deviceOptions } = useLiveTelemetry({ filterDevice });
-    const [selectedCompositeId, setSelectedCompositeId] = useState("");
+    const { devices, deviceOptions } = useLiveTelemetry({
+        filterDevice,
+        scope: { unitType: "rack", unitId: normalizedRackId },
+    });
+    const [selectedDeviceKey, setSelectedDeviceKey] = useState("");
     const [selectedMetricKey, setSelectedMetricKey] = useState("");
     const [rangePreset, setRangePreset] = useState("1h");
     const [customFrom, setCustomFrom] = useState(() => {
@@ -47,7 +50,7 @@ export default function HistoricalTrendsPanel({ rackId, selectedDeviceIds }) {
     const [chartLoading, setChartLoading] = useState(false);
 
     useEffect(() => {
-        setSelectedCompositeId("");
+        setSelectedDeviceKey("");
         setSelectedMetricKey("");
         setChartData([]);
         setChartDomain(null);
@@ -55,16 +58,16 @@ export default function HistoricalTrendsPanel({ rackId, selectedDeviceIds }) {
 
     useEffect(() => {
         if (!deviceOptions.length) {
-            setSelectedCompositeId("");
+            setSelectedDeviceKey("");
             return;
         }
-        if (!selectedCompositeId || !devices[selectedCompositeId]) {
-            setSelectedCompositeId(deviceOptions[0].id);
+        if (!selectedDeviceKey || !devices[selectedDeviceKey]) {
+            setSelectedDeviceKey(deviceOptions[0].id);
         }
-    }, [deviceOptions, devices, selectedCompositeId]);
+    }, [deviceOptions, devices, selectedDeviceKey]);
 
     const availableMetrics = useMemo(() => {
-        const device = devices[selectedCompositeId];
+        const device = devices[selectedDeviceKey];
         if (!device) return [];
 
         const entries = new Map();
@@ -91,7 +94,7 @@ export default function HistoricalTrendsPanel({ rackId, selectedDeviceIds }) {
         });
 
         return Array.from(entries.values());
-    }, [devices, selectedCompositeId]);
+    }, [devices, selectedDeviceKey]);
 
     useEffect(() => {
         if (!availableMetrics.length) {
@@ -137,7 +140,7 @@ export default function HistoricalTrendsPanel({ rackId, selectedDeviceIds }) {
     }, [rangePreset, customFrom, customTo]);
 
     useEffect(() => {
-        if (!normalizedRackId || !selectedCompositeId || !selectedMetricKeyValue) {
+        if (!normalizedRackId || !selectedDeviceKey || !selectedMetricKeyValue) {
             setChartData([]);
             setChartDomain(null);
             return;
@@ -167,8 +170,7 @@ export default function HistoricalTrendsPanel({ rackId, selectedDeviceIds }) {
             setChartError("");
             try {
                 const points = await fetchHistorical({
-                    rackId: normalizedRackId,
-                    nodeId: selectedCompositeId,
+                    identity: devices[selectedDeviceKey],
                     metricKey: selectedMetricHistoryKey,
                     sensorType: selectedMetricSensorType,
                     from: range.from,
@@ -203,7 +205,7 @@ export default function HistoricalTrendsPanel({ rackId, selectedDeviceIds }) {
         normalizedRackId,
         rangePreset,
         refreshIndex,
-        selectedCompositeId,
+        selectedDeviceKey,
         selectedMetricHistoryKey,
         selectedMetricKeyValue,
         selectedMetricSensorType,
@@ -235,8 +237,8 @@ export default function HistoricalTrendsPanel({ rackId, selectedDeviceIds }) {
     return (
         <GerminationHistoricalTrendsPanel
             deviceOptions={deviceOptions}
-            selectedCompositeId={selectedCompositeId}
-            onCompositeChange={setSelectedCompositeId}
+            selectedDeviceKey={selectedDeviceKey}
+            onDeviceChange={setSelectedDeviceKey}
             availableMetrics={availableMetrics}
             selectedMetricKey={selectedMetricKey}
             onMetricChange={setSelectedMetricKey}

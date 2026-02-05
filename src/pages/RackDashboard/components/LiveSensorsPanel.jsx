@@ -207,7 +207,10 @@ export default function LiveSensorsPanel({ rackId, aggregateAs7343 = true, selec
         };
     }, [normalizedRackId, selectedSet]);
 
-    const { metricReports } = useLiveTelemetry({ filterDevice });
+    const { metricReports } = useLiveTelemetry({
+        filterDevice,
+        scope: { unitType: "rack", unitId: normalizedRackId },
+    });
     const as7343Reports = useMemo(
         () =>
             metricReports.filter((report) =>

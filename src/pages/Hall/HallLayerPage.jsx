@@ -2,7 +2,6 @@ import React, { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Header from "../common/Header";
 import { normalizeSensors } from "../Overview/utils/index.js";
-import { parseCompositeId } from "./hallData.js";
 import { useHallInventory } from "./useHallInventory.js";
 import styles from "./Hall.module.css";
 
@@ -36,32 +35,43 @@ export default function HallLayerPage() {
     const { rackId, layerId } = useParams();
     const normalizedRackId = String(rackId ?? "").trim().toUpperCase();
     const normalizedLayerId = String(layerId ?? "").trim().toUpperCase();
+    const isNoLayerRoute = normalizedLayerId === "NO-LAYER";
 
     const { cacheEntries } = useHallInventory();
 
     const groupedDevices = useMemo(() => {
         const groups = { C: [], T: [], R: [] };
         cacheEntries.forEach((entry) => {
-            const parsed = parseCompositeId(entry?.compositeId);
-            if (!parsed) return;
-            if (parsed.rackId !== normalizedRackId || parsed.layerId !== normalizedLayerId) return;
+            const identity = entry?.identity;
+            if (!identity) return;
+            const unitType = String(identity.unitType || "").trim().toUpperCase();
+            const unitId = String(identity.unitId || "").trim().toUpperCase();
+            const layerValue = String(identity.layerId || "").trim().toUpperCase();
+            if (unitType !== "RACK" || unitId !== normalizedRackId) return;
+            if (isNoLayerRoute) {
+                if (layerValue) return;
+            } else if (layerValue !== normalizedLayerId) {
+                return;
+            }
 
             const metrics = normalizeSensors(resolveSensors(entry.message));
-            groups[parsed.deviceKind] = groups[parsed.deviceKind] || [];
-            groups[parsed.deviceKind].push({
-                ...parsed,
+            const deviceKind = identity.deviceId ? identity.deviceId.charAt(0).toUpperCase() : "D";
+            groups[deviceKind] = groups[deviceKind] || [];
+            groups[deviceKind].push({
+                deviceId: identity.deviceId,
+                deviceKind,
                 lastUpdate: entry.timestamp,
                 metrics,
             });
         });
         return groups;
-    }, [cacheEntries, normalizedRackId, normalizedLayerId]);
+    }, [cacheEntries, isNoLayerRoute, normalizedRackId, normalizedLayerId]);
 
     const groupEntries = Object.entries(groupedDevices).filter(([, list]) => list.length > 0);
 
     return (
         <div className={styles.page}>
-            <Header title={`Hall Rack ${normalizedRackId} ${normalizedLayerId}`.trim()} />
+            <Header title={`Hall Rack ${normalizedRackId} ${isNoLayerRoute ? "No layer" : normalizedLayerId}`.trim()} />
 
             <section className={styles.section}>
                 <div className={styles.breadcrumbs}>
@@ -81,7 +91,7 @@ export default function HallLayerPage() {
                         Rack {normalizedRackId || "—"}
                     </button>
                     <span>/</span>
-                    <span>Layer {normalizedLayerId || "—"}</span>
+                    <span>Layer {isNoLayerRoute ? "No layer" : normalizedLayerId || "—"}</span>
                 </div>
             </section>
 
@@ -101,9 +111,9 @@ export default function HallLayerPage() {
                                 </div>
                                 <div className={styles.cardGrid}>
                                     {devices.map((device) => (
-                                        <article key={device.deviceCode} className={styles.deviceCard}>
+                                        <article key={device.deviceId} className={styles.deviceCard}>
                                             <div className={styles.cardHeader}>
-                                                <div className={styles.cardTitle}>{device.deviceCode}</div>
+                                                <div className={styles.cardTitle}>{device.deviceId}</div>
                                                 <div className={styles.subtleText}>
                                                     {formatTimestamp(device.lastUpdate)}
                                                 </div>
