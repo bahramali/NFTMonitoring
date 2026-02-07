@@ -172,6 +172,7 @@ export default function Overview() {
   const rafRef = useRef(0);
   const isRefreshingRef = useRef(false);
   const tableWrapRef = useRef(null);
+  const hasLoadedRef = useRef(false);
 
   const flushPending = useCallback(() => {
     rafRef.current = 0;
@@ -194,7 +195,9 @@ export default function Overview() {
   const loadDevices = useCallback(async (signal) => {
     if (isRefreshingRef.current) return;
     isRefreshingRef.current = true;
-    setLoading(true);
+    if (!hasLoadedRef.current) {
+      setLoading(true);
+    }
     setErrorBanner("");
     try {
       const payload = await listDevices({ signal });
@@ -218,8 +221,9 @@ export default function Overview() {
         seeded.set(normalized.key, normalized);
       });
 
-      dispatchDevices({ type: "seed", payload: seeded });
+      dispatchDevices({ type: hasLoadedRef.current ? "merge" : "seed", payload: seeded });
       setLastRefresh(Date.now());
+      hasLoadedRef.current = true;
       if (hasMissingRequiredFields) {
         setErrorBanner("Some devices are missing required identity fields from API data.");
       }
@@ -227,7 +231,9 @@ export default function Overview() {
       if (signal?.aborted) return;
       console.error("Failed to load devices", error);
       setErrorBanner("Unable to load device inventory.");
-      dispatchDevices({ type: "seed", payload: new Map() });
+      if (!hasLoadedRef.current) {
+        dispatchDevices({ type: "seed", payload: new Map() });
+      }
     } finally {
       isRefreshingRef.current = false;
       if (!signal?.aborted) setLoading(false);
