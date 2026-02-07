@@ -50,9 +50,9 @@ export default function JsonStreamViewer({
       <aside className={styles.modalPanel} role="dialog" onClick={(event) => event.stopPropagation()}>
         <header className={styles.modalHeader}>
           <div>
-            <h3>Live JSON Stream</h3>
+            <h3>Debug JSON Stream</h3>
             <p>
-              {device.farmId} / {device.unitType} / {device.unitId} / {device.layerId || "-"} / {device.deviceId}
+              {device.farmId} / {device.unitType} / {device.unitId} / {device.layerId || "NA"} / {device.deviceId}
             </p>
           </div>
           <button type="button" onClick={onClose} className={styles.secondaryButton}>

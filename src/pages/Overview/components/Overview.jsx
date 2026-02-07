@@ -1,17 +1,42 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Header from "../../common/Header";
 import { listDevices } from "../../../api/deviceMonitoring.js";
 import { useStomp } from "../../../hooks/useStomp.js";
+import { useAuth } from "../../../context/AuthContext.jsx";
 import { buildDeviceKey, isIdentityComplete, resolveIdentity } from "../../../utils/deviceIdentity.js";
 import { WS_TOPICS } from "../../common/dashboard.constants.js";
+import {
+  DEVICE_KIND_OPTIONS,
+  HEALTH_STATUS_ORDER,
+  MESSAGE_KIND_OPTIONS,
+} from "../../../config/deviceMonitoring.js";
 import DeviceStatusBadge from "./DeviceStatusBadge.jsx";
 import DeviceFilters from "./DeviceFilters.jsx";
+import DeviceDetailsDrawer from "./DeviceDetailsDrawer.jsx";
 import JsonStreamViewer from "./JsonStreamViewer.jsx";
+import {
+  computeDataQuality,
+  computeExpectedRatePerMinute,
+  evaluateDeviceHealth,
+  extractMetricsFromPayload,
+  normalizeDeviceKind,
+  resolveExpectedConfig,
+} from "../utils/deviceHealth.js";
 import styles from "./Overview.module.css";
 
-const ONLINE_THRESHOLD_SEC = 30;
-const STALE_THRESHOLD_SEC = 120;
-const STREAM_BUFFER_LIMIT = 200;
+const REFRESH_INTERVAL_MS = 5000;
+const STREAM_BUFFER_LIMIT = 20;
+const ROW_HEIGHT = 64;
+
+const DEFAULT_FILTERS = {
+  farmId: [],
+  unitType: [],
+  unitId: [],
+  layerId: [],
+  kind: [],
+  status: [],
+};
 
 const getTimestampMs = (value) => {
   if (value == null) return null;
@@ -20,37 +45,59 @@ const getTimestampMs = (value) => {
   return Number.isNaN(parsed) ? null : parsed;
 };
 
+const normalizeLayerId = (value) => {
+  if (value === null || value === undefined || value === "") return "NA";
+  return String(value).trim() || "NA";
+};
+
+const formatAbsoluteTime = (timestamp) => {
+  if (!timestamp) return "Never";
+  return new Date(timestamp).toLocaleString();
+};
+
+const formatRelativeTime = (timestamp, nowMs) => {
+  if (!timestamp) return "Never";
+  const diff = Math.max(0, nowMs - timestamp);
+  if (diff < 1000) return "Just now";
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+};
+
+const formatLocation = ({ farmId, unitType, unitId, layerId }) =>
+  `${farmId || "—"} • ${String(unitType || "").toUpperCase()} ${unitId || "—"} • ${normalizeLayerId(layerId)}`;
+
+const resolveMessageKind = (topic, payloadKind) => {
+  const fromTopic = String(topic || "").split("/").pop().toLowerCase();
+  if (MESSAGE_KIND_OPTIONS.includes(fromTopic)) return fromTopic;
+  const normalized = String(payloadKind || "").toLowerCase();
+  if (MESSAGE_KIND_OPTIONS.includes(normalized)) return normalized;
+  return "telemetry";
+};
+
 const normalizeDevice = (device) => {
   const normalized = {
     farmId: device?.farmId ?? device?.farm_id ?? "",
     unitType: device?.unitType ?? device?.unit_type ?? "",
     unitId: device?.unitId ?? device?.unit_id ?? "",
-    layerId: device?.layerId ?? device?.layer_id ?? "",
+    layerId: normalizeLayerId(device?.layerId ?? device?.layer_id ?? ""),
     deviceId: device?.deviceId ?? device?.device_id ?? "",
+    deviceKind: normalizeDeviceKind(device?.deviceKind ?? device?.device_kind ?? device?.kind ?? device?.type),
     lastSeenMs: getTimestampMs(device?.lastSeen ?? device?.timestamp ?? device?.updatedAt),
-    lastKind: device?.kind ?? "",
-    errorFlag: Boolean(device?.errorFlag ?? device?.hasError ?? device?.error),
     msgTimes: [],
-    msgRate: 0,
+    msgRate: Number.isFinite(device?.msgRate) ? device.msgRate : 0,
+    lastMessageKind: "telemetry",
+    payloadError: Boolean(device?.payloadError),
+    latestMetrics: extractMetricsFromPayload(device?.metrics ?? device?.sensors ?? device?.data ?? {}),
   };
 
   normalized.key = buildDeviceKey(normalized);
   return normalized;
-};
-
-const resolveDeviceStatus = (entry) => {
-  if (!entry) return "offline";
-  if (entry.errorFlag) return "error";
-  if (!entry.lastSeenMs) return "offline";
-  const secondsAgo = (Date.now() - entry.lastSeenMs) / 1000;
-  if (secondsAgo <= ONLINE_THRESHOLD_SEC) return "online";
-  if (secondsAgo <= STALE_THRESHOLD_SEC) return "stale";
-  return "offline";
-};
-
-const formatLastSeen = (timestamp) => {
-  if (!timestamp) return "Never";
-  return new Date(timestamp).toLocaleString();
 };
 
 const devicesReducer = (state, action) => {
@@ -76,19 +123,55 @@ const devicesReducer = (state, action) => {
   }
 };
 
+const parseList = (value) =>
+  value
+    ? value
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+    : [];
+
+const buildHealthCounts = (devices) =>
+  devices.reduce(
+    (acc, device) => {
+      acc.total += 1;
+      acc[device.health.status] = (acc[device.health.status] || 0) + 1;
+      return acc;
+    },
+    { total: 0, ok: 0, degraded: 0, critical: 0, offline: 0 },
+  );
+
 export default function Overview() {
+  const { role, roles } = useAuth();
   const [devicesMap, dispatchDevices] = useReducer(devicesReducer, new Map());
-  const [search, setSearch] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
+  const [filters, setFilters] = useState(() => ({
+    farmId: parseList(searchParams.get("farm")),
+    unitType: parseList(searchParams.get("unitType")),
+    unitId: parseList(searchParams.get("unitId")),
+    layerId: parseList(searchParams.get("layerId")),
+    kind: parseList(searchParams.get("kind")),
+    status: parseList(searchParams.get("health")),
+  }));
+  const [viewMode, setViewMode] = useState(() => searchParams.get("view") ?? "flat");
   const [selectedDeviceKey, setSelectedDeviceKey] = useState("");
   const [viewerPaused, setViewerPaused] = useState(false);
-  const [filters, setFilters] = useState({ farmId: "", unitType: "", unitId: "", kind: "", status: "" });
+  const [debugOpen, setDebugOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorBanner, setErrorBanner] = useState("");
   const [wsBanner, setWsBanner] = useState("");
   const [messageBuffers, setMessageBuffers] = useState({});
+  const [lastRefresh, setLastRefresh] = useState(null);
+  const [nowMs, setNowMs] = useState(Date.now());
+  const [scrollTop, setScrollTop] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(520);
 
   const pendingUpdatesRef = useRef(new Map());
   const rafRef = useRef(0);
+  const isRefreshingRef = useRef(false);
+  const tableWrapRef = useRef(null);
 
   const flushPending = useCallback(() => {
     rafRef.current = 0;
@@ -108,68 +191,118 @@ export default function Overview() {
     [flushPending],
   );
 
-  useEffect(() => {
-    let cancelled = false;
-    const controller = new AbortController();
+  const loadDevices = useCallback(async (signal) => {
+    if (isRefreshingRef.current) return;
+    isRefreshingRef.current = true;
+    setLoading(true);
+    setErrorBanner("");
+    try {
+      const payload = await listDevices({ signal });
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.devices)
+          ? payload.devices
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : [];
 
-    const loadDevices = async () => {
-      setLoading(true);
-      setErrorBanner("");
-      try {
-        const payload = await listDevices({ signal: controller.signal });
-        if (cancelled) return;
-        const list = Array.isArray(payload)
-          ? payload
-          : Array.isArray(payload?.devices)
-            ? payload.devices
-            : Array.isArray(payload?.data)
-              ? payload.data
-              : [];
+      const seeded = new Map();
+      let hasMissingRequiredFields = false;
 
-        const seeded = new Map();
-        let hasMissingRequiredFields = false;
-
-        list.forEach((item) => {
-          const normalized = normalizeDevice(item);
-          if (!normalized.key) {
-            hasMissingRequiredFields = true;
-            return;
-          }
-          seeded.set(normalized.key, normalized);
-        });
-
-        dispatchDevices({ type: "seed", payload: seeded });
-        if (hasMissingRequiredFields) {
-          setErrorBanner("Some devices are missing required identity fields from API data.");
+      list.forEach((item) => {
+        const normalized = normalizeDevice(item);
+        if (!normalized.key) {
+          hasMissingRequiredFields = true;
+          return;
         }
-      } catch (error) {
-        if (cancelled || controller.signal.aborted) return;
-        console.error("Failed to load devices", error);
-        setErrorBanner("Unable to load device inventory.");
-        dispatchDevices({ type: "seed", payload: new Map() });
-      } finally {
-        if (!cancelled) setLoading(false);
+        seeded.set(normalized.key, normalized);
+      });
+
+      dispatchDevices({ type: "seed", payload: seeded });
+      setLastRefresh(Date.now());
+      if (hasMissingRequiredFields) {
+        setErrorBanner("Some devices are missing required identity fields from API data.");
       }
-    };
+    } catch (error) {
+      if (signal?.aborted) return;
+      console.error("Failed to load devices", error);
+      setErrorBanner("Unable to load device inventory.");
+      dispatchDevices({ type: "seed", payload: new Map() });
+    } finally {
+      isRefreshingRef.current = false;
+      if (!signal?.aborted) setLoading(false);
+    }
+  }, []);
 
-    loadDevices();
+  useEffect(() => {
+    const controller = new AbortController();
+    loadDevices(controller.signal);
 
+    const interval = window.setInterval(() => loadDevices(controller.signal), REFRESH_INTERVAL_MS);
     return () => {
-      cancelled = true;
       controller.abort();
+      window.clearInterval(interval);
       if (rafRef.current) window.cancelAnimationFrame(rafRef.current);
     };
-  }, [flushPending]);
+  }, [loadDevices]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNowMs(Date.now()), REFRESH_INTERVAL_MS);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!tableWrapRef.current) return;
+    const handleResize = () => {
+      if (tableWrapRef.current) setViewportHeight(tableWrapRef.current.clientHeight || 520);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    const nextFilters = {
+      farmId: parseList(searchParams.get("farm")),
+      unitType: parseList(searchParams.get("unitType")),
+      unitId: parseList(searchParams.get("unitId")),
+      layerId: parseList(searchParams.get("layerId")),
+      kind: parseList(searchParams.get("kind")),
+      status: parseList(searchParams.get("health")),
+    };
+    const nextSearch = searchParams.get("q") ?? "";
+    const nextView = searchParams.get("view") ?? "flat";
+    setFilters((prev) => (JSON.stringify(prev) === JSON.stringify(nextFilters) ? prev : nextFilters));
+    setSearch((prev) => (prev === nextSearch ? prev : nextSearch));
+    setViewMode((prev) => (prev === nextView ? prev : nextView));
+  }, [searchParams]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set("q", search);
+    if (filters.farmId.length) params.set("farm", filters.farmId.join(","));
+    if (filters.unitType.length) params.set("unitType", filters.unitType.join(","));
+    if (filters.unitId.length) params.set("unitId", filters.unitId.join(","));
+    if (filters.layerId.length) params.set("layerId", filters.layerId.join(","));
+    if (filters.kind.length) params.set("kind", filters.kind.join(","));
+    if (filters.status.length) params.set("health", filters.status.join(","));
+    if (viewMode !== "flat") params.set("view", viewMode);
+    if (params.toString() !== searchParams.toString()) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [filters, search, viewMode, searchParams, setSearchParams]);
 
   const onMessage = useCallback(
     (topic, message) => {
       setWsBanner("");
       const envelope = message && typeof message === "object" ? message : {};
       let payload = envelope.payload ?? message;
+      let payloadError = false;
       if (typeof payload === "string") {
         try {
           payload = JSON.parse(payload);
         } catch {
+          payloadError = true;
           payload = { raw: payload };
         }
       }
@@ -188,43 +321,67 @@ export default function Overview() {
       }
 
       const timestampMs = getTimestampMs(payload.timestamp ?? envelope.timestamp) || Date.now();
-      const kind = String(payload.kind ?? envelope.kind ?? topic.split("/").pop() ?? "").toLowerCase();
+      const messageKind = resolveMessageKind(topic, payload.kind ?? envelope.kind);
+      const deviceKind = normalizeDeviceKind(payload.deviceKind ?? payload.device_kind ?? payload.kind ?? envelope.deviceKind);
       const existing = devicesMap.get(key);
-      const msgTimes = [...(existing?.msgTimes || []), timestampMs].filter((value) => timestampMs - value <= 60_000).slice(-400);
-      const msgRate = msgTimes.length;
+      const msgTimes = [...(existing?.msgTimes || []), timestampMs]
+        .filter((value) => timestampMs - value <= 60_000)
+        .slice(-400);
+      const msgRate = Number.isFinite(payload.msgRate) ? payload.msgRate : msgTimes.length;
+      const metrics = extractMetricsFromPayload(payload);
 
       queueUpdate(key, {
         farmId: identity.farmId,
         unitType: identity.unitType,
         unitId: identity.unitId,
-        layerId: identity.layerId ?? "",
+        layerId: normalizeLayerId(identity.layerId),
         deviceId: identity.deviceId,
+        deviceKind: deviceKind || existing?.deviceKind || "UNKNOWN",
         key,
         lastSeenMs: timestampMs,
         msgTimes,
         msgRate,
-        lastKind: kind,
-        errorFlag: Boolean(payload.errorFlag ?? envelope.errorFlag ?? existing?.errorFlag),
+        lastMessageKind: messageKind,
+        payloadError: payloadError || existing?.payloadError,
+        latestMetrics: Object.keys(metrics).length ? metrics : existing?.latestMetrics,
       });
 
-      if (selectedDeviceKey === key && !viewerPaused) {
+      const shouldBuffer = !(viewerPaused && selectedDeviceKey === key);
+      if (shouldBuffer) {
         setMessageBuffers((prev) => {
           const current = Array.isArray(prev[key]) ? prev[key] : [];
+          const metricsCount = Object.keys(metrics || {}).length;
+          const summary =
+            messageKind === "telemetry"
+              ? metricsCount
+                ? `Telemetry update (${metricsCount} metrics)`
+                : "Telemetry update"
+              : messageKind === "status"
+                ? payload.status ?? payload.state ?? "Status update"
+                : payload.eventType ?? payload.type ?? "Event";
           const nextEntry = {
             id: `${timestampMs}-${current.length}-${Math.random().toString(36).slice(2)}`,
-            kind,
+            kind: messageKind,
             timestamp: timestampMs,
             receivedAt: Date.now(),
+            summary,
+            location: formatLocation({
+              farmId: identity.farmId,
+              unitType: identity.unitType,
+              unitId: identity.unitId,
+              layerId: identity.layerId,
+            }),
             raw: {
               ...identity,
-              kind,
+              messageKind,
+              deviceKind,
               timestamp: payload.timestamp ?? envelope.timestamp ?? new Date(timestampMs).toISOString(),
               payload,
             },
           };
           return {
             ...prev,
-            [key]: [...current, nextEntry].slice(-STREAM_BUFFER_LIMIT),
+            [key]: [nextEntry, ...current].slice(0, STREAM_BUFFER_LIMIT),
           };
         });
       }
@@ -238,44 +395,132 @@ export default function Overview() {
 
   const devices = useMemo(() => Array.from(devicesMap.values()), [devicesMap]);
 
-  const farmOptions = useMemo(() => Array.from(new Set(devices.map((entry) => entry.farmId).filter(Boolean))).sort(), [devices]);
-  const unitTypeOptions = useMemo(() => {
-    const filteredByFarm = filters.farmId ? devices.filter((entry) => entry.farmId === filters.farmId) : devices;
-    return Array.from(new Set(filteredByFarm.map((entry) => entry.unitType).filter(Boolean))).sort();
-  }, [devices, filters.farmId]);
-  const unitIdOptions = useMemo(() => {
-    const filtered = devices.filter((entry) => {
-      if (filters.farmId && entry.farmId !== filters.farmId) return false;
-      if (filters.unitType && entry.unitType !== filters.unitType) return false;
-      return true;
+  const farmOptions = useMemo(
+    () => Array.from(new Set(devices.map((entry) => entry.farmId).filter(Boolean))).sort(),
+    [devices],
+  );
+  const unitTypeOptions = useMemo(
+    () => Array.from(new Set(devices.map((entry) => entry.unitType).filter(Boolean))).sort(),
+    [devices],
+  );
+  const unitIdOptions = useMemo(
+    () => Array.from(new Set(devices.map((entry) => entry.unitId).filter(Boolean))).sort(),
+    [devices],
+  );
+  const layerIdOptions = useMemo(
+    () => Array.from(new Set(devices.map((entry) => normalizeLayerId(entry.layerId)))).sort(),
+    [devices],
+  );
+
+  const derivedDevices = useMemo(() => {
+    return devices.map((entry) => {
+      const expected = resolveExpectedConfig(entry.deviceKind);
+      const health = evaluateDeviceHealth({
+        nowMs,
+        lastSeenMs: entry.lastSeenMs,
+        msgRate: entry.msgRate,
+        expectedIntervalSec: expected.expectedIntervalSec,
+        expectedMetrics: expected.expectedMetrics,
+        metrics: entry.latestMetrics,
+        payloadError: entry.payloadError,
+      });
+      const expectedRate = computeExpectedRatePerMinute(expected.expectedIntervalSec);
+      const dataQuality = computeDataQuality(entry.latestMetrics, expected.expectedMetrics);
+      const locationLabel = formatLocation(entry);
+      return {
+        ...entry,
+        health,
+        expectedRate,
+        dataQuality,
+        locationLabel,
+        lastSeenAbsolute: formatAbsoluteTime(entry.lastSeenMs),
+        lastSeenRelative: formatRelativeTime(entry.lastSeenMs, nowMs),
+        metricsList: [...expected.expectedMetrics.critical, ...expected.expectedMetrics.optional].map((key) => ({
+          key,
+          value: entry.latestMetrics?.[key] ?? null,
+        })),
+      };
     });
-    return Array.from(new Set(filtered.map((entry) => entry.unitId).filter(Boolean))).sort();
-  }, [devices, filters.farmId, filters.unitType]);
+  }, [devices, nowMs]);
 
   const filteredDevices = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return devices
+    return derivedDevices
       .filter((entry) => {
-        if (filters.farmId && entry.farmId !== filters.farmId) return false;
-        if (filters.unitType && entry.unitType !== filters.unitType) return false;
-        if (filters.unitId && entry.unitId !== filters.unitId) return false;
-        if (filters.kind && entry.lastKind !== filters.kind) return false;
-        const status = resolveDeviceStatus(entry);
-        if (filters.status && status !== filters.status) return false;
+        if (filters.farmId.length && !filters.farmId.includes(entry.farmId)) return false;
+        if (filters.unitType.length && !filters.unitType.includes(entry.unitType)) return false;
+        if (filters.unitId.length && !filters.unitId.includes(entry.unitId)) return false;
+        if (filters.layerId.length && !filters.layerId.includes(normalizeLayerId(entry.layerId))) return false;
+        if (filters.kind.length && !filters.kind.includes(entry.deviceKind)) return false;
+        if (filters.status.length && !filters.status.includes(entry.health.status)) return false;
         if (!query) return true;
-        const haystack = `${entry.farmId} ${entry.unitType} ${entry.unitId} ${entry.layerId || ""} ${entry.deviceId}`.toLowerCase();
+        const haystack = `${entry.deviceId} ${entry.locationLabel}`.toLowerCase();
         return haystack.includes(query);
       })
       .sort((a, b) => {
+        const statusOrder = HEALTH_STATUS_ORDER;
+        const diff = statusOrder.indexOf(a.health.status) - statusOrder.indexOf(b.health.status);
+        if (diff !== 0) return diff;
         if (a.lastSeenMs && b.lastSeenMs) return b.lastSeenMs - a.lastSeenMs;
         if (a.lastSeenMs) return -1;
         if (b.lastSeenMs) return 1;
         return String(a.deviceId).localeCompare(String(b.deviceId));
       });
-  }, [devices, filters, search]);
+  }, [derivedDevices, filters, search]);
 
-  const selectedDevice = selectedDeviceKey ? devicesMap.get(selectedDeviceKey) : null;
+  const groupedDevices = useMemo(() => {
+    if (viewMode === "flat") {
+      return [
+        {
+          id: "all",
+          label: "All devices",
+          devices: filteredDevices,
+          counts: buildHealthCounts(filteredDevices),
+        },
+      ];
+    }
+
+    const groups = new Map();
+    filteredDevices.forEach((device) => {
+      let key = device.farmId;
+      if (viewMode === "unit") {
+        key = `${String(device.unitType || "").toUpperCase()} ${device.unitId || "—"}`;
+      }
+      if (viewMode === "kind") {
+        key = device.deviceKind || "Unknown";
+      }
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key).push(device);
+    });
+
+    return Array.from(groups.entries()).map(([key, list]) => ({
+      id: key,
+      label: key,
+      devices: list,
+      counts: buildHealthCounts(list),
+    }));
+  }, [filteredDevices, viewMode]);
+
+  const selectedDevice = selectedDeviceKey ? derivedDevices.find((entry) => entry.key === selectedDeviceKey) : null;
   const selectedMessages = selectedDeviceKey ? messageBuffers[selectedDeviceKey] || [] : [];
+
+  const statusCounts = useMemo(() => buildHealthCounts(derivedDevices), [derivedDevices]);
+  const lastRefreshLabel = lastRefresh ? formatRelativeTime(lastRefresh, nowMs) : "Never";
+
+  const isDebugAllowed = useMemo(() => {
+    const roleList = [role, ...(roles || [])].filter(Boolean).map((entry) => String(entry).toUpperCase());
+    return roleList.some((entry) => ["ADMIN", "DEV", "ADMIN_STANDARD", "ADMIN_MONITORING_ONLY"].includes(entry));
+  }, [role, roles]);
+
+  const isVirtualized = viewMode === "flat" && filteredDevices.length > 100;
+  const totalHeight = filteredDevices.length * ROW_HEIGHT;
+  const startIndex = isVirtualized ? Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - 5) : 0;
+  const visibleCount = isVirtualized ? Math.ceil(viewportHeight / ROW_HEIGHT) + 10 : filteredDevices.length;
+  const endIndex = isVirtualized ? Math.min(filteredDevices.length, startIndex + visibleCount) : filteredDevices.length;
+  const topSpacer = isVirtualized ? startIndex * ROW_HEIGHT : 0;
+  const bottomSpacer = isVirtualized ? Math.max(0, totalHeight - endIndex * ROW_HEIGHT) : 0;
 
   return (
     <div className={styles.page}>
@@ -284,7 +529,40 @@ export default function Overview() {
       {errorBanner ? <div className={styles.bannerError}>{errorBanner}</div> : null}
       {wsBanner ? <div className={styles.bannerWarn}>{wsBanner}</div> : null}
 
-      <section className={styles.card}>
+      <section className={styles.summaryBar}>
+        <div className={styles.summaryCards}>
+          {[
+            { key: "total", label: "Total devices", value: statusCounts.total },
+            { key: "ok", label: "OK", value: statusCounts.ok, filter: "ok" },
+            { key: "degraded", label: "Degraded", value: statusCounts.degraded, filter: "degraded" },
+            { key: "critical", label: "Critical", value: statusCounts.critical, filter: "critical" },
+            { key: "offline", label: "Offline", value: statusCounts.offline, filter: "offline" },
+          ].map((card) => (
+            <button
+              key={card.key}
+              type="button"
+              className={`${styles.summaryCard} ${card.filter ? styles[`summary${card.filter}`] : ""}`}
+              onClick={() =>
+                setFilters((prev) => ({
+                  ...prev,
+                  status: card.filter ? [card.filter] : [],
+                }))
+              }
+            >
+              <p className={styles.summaryLabel}>{card.label}</p>
+              <p className={styles.summaryValue}>{card.value}</p>
+            </button>
+          ))}
+        </div>
+        <div className={styles.refreshBlock}>
+          <p>Last refresh: {lastRefreshLabel}</p>
+          <button type="button" className={styles.secondaryButton} onClick={() => loadDevices()}>
+            Refresh
+          </button>
+        </div>
+      </section>
+
+      <section className={styles.cardSticky}>
         <DeviceFilters
           search={search}
           onSearch={setSearch}
@@ -293,74 +571,240 @@ export default function Overview() {
           farmOptions={farmOptions}
           unitTypeOptions={unitTypeOptions}
           unitIdOptions={unitIdOptions}
+          layerIdOptions={layerIdOptions}
+          kindOptions={DEVICE_KIND_OPTIONS}
+          healthOptions={HEALTH_STATUS_ORDER}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
         />
       </section>
 
       <section className={styles.card}>
-        <div className={styles.tableWrap}>
+        <div
+          className={styles.tableWrap}
+          ref={tableWrapRef}
+          onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
+        >
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>farmId</th>
-                <th>unitType</th>
-                <th>unitId</th>
-                <th>layerId</th>
-                <th>deviceId</th>
-                <th>lastSeen</th>
-                <th>status</th>
-                <th>msgRate</th>
-                <th>lastKind</th>
-                <th>actions</th>
+                <th>Health</th>
+                <th>Device</th>
+                <th>Location</th>
+                <th>Last seen</th>
+                <th>Msg rate</th>
+                <th>Data quality</th>
+                <th>Details</th>
+                <th>Actions</th>
               </tr>
             </thead>
-            <tbody>
-              {loading ? (
+            {loading ? (
+              <tbody>
                 <tr>
-                  <td colSpan={10}>Loading devices...</td>
+                  <td colSpan={8}>Loading devices...</td>
                 </tr>
-              ) : null}
-              {!loading && filteredDevices.length === 0 ? (
+              </tbody>
+            ) : null}
+            {!loading && filteredDevices.length === 0 ? (
+              <tbody>
                 <tr>
-                  <td colSpan={10}>No devices found.</td>
+                  <td colSpan={8}>No devices found.</td>
                 </tr>
-              ) : null}
-              {filteredDevices.map((entry) => (
-                <tr key={entry.key}>
-                  <td>{entry.farmId}</td>
-                  <td>{entry.unitType}</td>
-                  <td>{entry.unitId}</td>
-                  <td>{entry.layerId || "-"}</td>
-                  <td>{entry.deviceId}</td>
-                  <td>{formatLastSeen(entry.lastSeenMs)}</td>
-                  <td>
-                    <DeviceStatusBadge status={resolveDeviceStatus(entry)} />
-                  </td>
-                  <td>{entry.msgRate}/min</td>
-                  <td>{entry.lastKind || "-"}</td>
-                  <td>
-                    <button
-                      type="button"
-                      className={styles.primaryButton}
-                      onClick={() => setSelectedDeviceKey(entry.key)}
-                    >
-                      Open live JSON
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+              </tbody>
+            ) : null}
+            {!loading && filteredDevices.length > 0 && viewMode === "flat" ? (
+              <tbody>
+                {topSpacer ? (
+                  <tr className={styles.spacerRow} aria-hidden="true">
+                    <td colSpan={8} style={{ height: `${topSpacer}px` }} />
+                  </tr>
+                ) : null}
+                {filteredDevices.slice(startIndex, endIndex).map((entry) => (
+                  <tr key={entry.key}>
+                    <td>
+                      <DeviceStatusBadge status={entry.health.status} />
+                    </td>
+                    <td>
+                      <p className={styles.deviceId}>{entry.deviceId}</p>
+                      <p className={styles.deviceSubtext}>{entry.deviceKind}</p>
+                    </td>
+                    <td>
+                      <p className={styles.locationLine}>{entry.locationLabel}</p>
+                    </td>
+                    <td title={entry.lastSeenAbsolute}>{entry.lastSeenRelative}</td>
+                    <td>
+                      <span
+                        className={`${styles.rateChip} ${
+                          entry.expectedRate && entry.msgRate < entry.expectedRate * 0.7
+                            ? styles.rateLow
+                            : entry.expectedRate && entry.msgRate < entry.expectedRate
+                              ? styles.rateWarn
+                              : styles.rateOk
+                        }`}
+                      >
+                        {entry.msgRate}/min
+                      </span>
+                    </td>
+                    <td>
+                      <p className={styles.qualityPercent}>{entry.dataQuality.percent}%</p>
+                      {entry.dataQuality.missingCritical.length > 0 || entry.dataQuality.missingOptional.length > 0 ? (
+                        <p className={styles.qualityMissing}>
+                          Missing: {[...entry.dataQuality.missingCritical, ...entry.dataQuality.missingOptional]
+                            .slice(0, 3)
+                            .join(", ")}
+                        </p>
+                      ) : (
+                        <p className={styles.qualityMissing}>All expected metrics</p>
+                      )}
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className={styles.primaryButton}
+                        onClick={() => setSelectedDeviceKey(entry.key)}
+                      >
+                        Details
+                      </button>
+                    </td>
+                    <td>
+                      {isDebugAllowed ? (
+                        <button
+                          type="button"
+                          className={styles.secondaryButton}
+                          onClick={() => {
+                            setSelectedDeviceKey(entry.key);
+                            setDebugOpen(true);
+                          }}
+                        >
+                          Debug
+                        </button>
+                      ) : (
+                        <span className={styles.mutedText}>—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {bottomSpacer ? (
+                  <tr className={styles.spacerRow} aria-hidden="true">
+                    <td colSpan={8} style={{ height: `${bottomSpacer}px` }} />
+                  </tr>
+                ) : null}
+              </tbody>
+            ) : null}
+            {!loading && filteredDevices.length > 0 && viewMode !== "flat" ? (
+              <tbody>
+                {groupedDevices.map((group) => (
+                  <React.Fragment key={group.id}>
+                    <tr className={styles.groupRow}>
+                      <td colSpan={8}>
+                        <div className={styles.groupHeader}>
+                          <h4>{group.label}</h4>
+                          <div className={styles.groupCounts}>
+                            <span>OK {group.counts.ok}</span>
+                            <span>Degraded {group.counts.degraded}</span>
+                            <span>Critical {group.counts.critical}</span>
+                            <span>Offline {group.counts.offline}</span>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                    {group.devices.map((entry) => (
+                      <tr key={entry.key}>
+                        <td>
+                          <DeviceStatusBadge status={entry.health.status} />
+                        </td>
+                        <td>
+                          <p className={styles.deviceId}>{entry.deviceId}</p>
+                          <p className={styles.deviceSubtext}>{entry.deviceKind}</p>
+                        </td>
+                        <td>
+                          <p className={styles.locationLine}>{entry.locationLabel}</p>
+                        </td>
+                        <td title={entry.lastSeenAbsolute}>{entry.lastSeenRelative}</td>
+                        <td>
+                          <span
+                            className={`${styles.rateChip} ${
+                              entry.expectedRate && entry.msgRate < entry.expectedRate * 0.7
+                                ? styles.rateLow
+                                : entry.expectedRate && entry.msgRate < entry.expectedRate
+                                  ? styles.rateWarn
+                                  : styles.rateOk
+                            }`}
+                          >
+                            {entry.msgRate}/min
+                          </span>
+                        </td>
+                        <td>
+                          <p className={styles.qualityPercent}>{entry.dataQuality.percent}%</p>
+                          {entry.dataQuality.missingCritical.length > 0 || entry.dataQuality.missingOptional.length > 0 ? (
+                            <p className={styles.qualityMissing}>
+                              Missing: {[...entry.dataQuality.missingCritical, ...entry.dataQuality.missingOptional]
+                                .slice(0, 3)
+                                .join(", ")}
+                            </p>
+                          ) : (
+                            <p className={styles.qualityMissing}>All expected metrics</p>
+                          )}
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className={styles.primaryButton}
+                            onClick={() => setSelectedDeviceKey(entry.key)}
+                          >
+                            Details
+                          </button>
+                        </td>
+                        <td>
+                          {isDebugAllowed ? (
+                            <button
+                              type="button"
+                              className={styles.secondaryButton}
+                              onClick={() => {
+                                setSelectedDeviceKey(entry.key);
+                                setDebugOpen(true);
+                              }}
+                            >
+                              Debug
+                            </button>
+                          ) : (
+                            <span className={styles.mutedText}>—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            ) : null}
           </table>
         </div>
       </section>
 
+      <DeviceDetailsDrawer
+        device={selectedDevice}
+        health={selectedDevice?.health ?? { status: "offline" }}
+        expectedRate={selectedDevice?.expectedRate}
+        dataQuality={selectedDevice?.dataQuality ?? { expected: 0, received: 0, percent: 100, missingCritical: [], missingOptional: [] }}
+        isOpen={Boolean(selectedDevice)}
+        onClose={() => {
+          setSelectedDeviceKey("");
+          setDebugOpen(false);
+        }}
+        onDebug={() => setDebugOpen(true)}
+        allowDebug={isDebugAllowed}
+        messages={selectedMessages}
+        metrics={selectedDevice?.metricsList ?? []}
+      />
+
       <JsonStreamViewer
         device={selectedDevice}
-        isOpen={Boolean(selectedDevice)}
+        isOpen={debugOpen && Boolean(selectedDevice)}
         messages={selectedMessages}
         paused={viewerPaused}
         onPauseToggle={() => setViewerPaused((prev) => !prev)}
         onClear={() => selectedDeviceKey && setMessageBuffers((prev) => ({ ...prev, [selectedDeviceKey]: [] }))}
-        onClose={() => setSelectedDeviceKey("")}
+        onClose={() => setDebugOpen(false)}
       />
     </div>
   );

@@ -9,6 +9,11 @@ export default function DeviceFilters({
   farmOptions,
   unitTypeOptions,
   unitIdOptions,
+  layerIdOptions,
+  kindOptions,
+  healthOptions,
+  viewMode,
+  onViewModeChange,
 }) {
   return (
     <div className={styles.filtersGrid}>
@@ -18,7 +23,7 @@ export default function DeviceFilters({
           id="device-monitor-search"
           className={styles.input}
           type="search"
-          placeholder="Search by farm, unit, layer, device"
+          placeholder="Search by deviceId or location"
           value={search}
           onChange={(event) => onSearch(event.target.value)}
         />
@@ -28,10 +33,10 @@ export default function DeviceFilters({
         <label htmlFor="farm-filter">Farm</label>
         <select
           id="farm-filter"
+          multiple
           value={filterState.farmId}
-          onChange={(event) => onFilterChange("farmId", event.target.value)}
+          onChange={(event) => onFilterChange("farmId", Array.from(event.target.selectedOptions).map((opt) => opt.value))}
         >
-          <option value="">All</option>
           {farmOptions.map((value) => (
             <option key={value} value={value}>
               {value}
@@ -44,10 +49,10 @@ export default function DeviceFilters({
         <label htmlFor="unit-type-filter">Unit Type</label>
         <select
           id="unit-type-filter"
+          multiple
           value={filterState.unitType}
-          onChange={(event) => onFilterChange("unitType", event.target.value)}
+          onChange={(event) => onFilterChange("unitType", Array.from(event.target.selectedOptions).map((opt) => opt.value))}
         >
-          <option value="">All</option>
           {unitTypeOptions.map((value) => (
             <option key={value} value={value}>
               {value}
@@ -60,11 +65,27 @@ export default function DeviceFilters({
         <label htmlFor="unit-id-filter">Unit ID</label>
         <select
           id="unit-id-filter"
+          multiple
           value={filterState.unitId}
-          onChange={(event) => onFilterChange("unitId", event.target.value)}
+          onChange={(event) => onFilterChange("unitId", Array.from(event.target.selectedOptions).map((opt) => opt.value))}
         >
-          <option value="">All</option>
           {unitIdOptions.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className={styles.filterItem}>
+        <label htmlFor="layer-id-filter">Layer ID</label>
+        <select
+          id="layer-id-filter"
+          multiple
+          value={filterState.layerId}
+          onChange={(event) => onFilterChange("layerId", Array.from(event.target.selectedOptions).map((opt) => opt.value))}
+        >
+          {layerIdOptions.map((value) => (
             <option key={value} value={value}>
               {value}
             </option>
@@ -76,28 +97,45 @@ export default function DeviceFilters({
         <label htmlFor="kind-filter">Kind</label>
         <select
           id="kind-filter"
+          multiple
           value={filterState.kind}
-          onChange={(event) => onFilterChange("kind", event.target.value)}
+          onChange={(event) => onFilterChange("kind", Array.from(event.target.selectedOptions).map((opt) => opt.value))}
         >
-          <option value="">All</option>
-          <option value="telemetry">Telemetry</option>
-          <option value="status">Status</option>
-          <option value="event">Event</option>
+          {kindOptions.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
         </select>
       </div>
 
       <div className={styles.filterItem}>
-        <label htmlFor="status-filter">Status</label>
+        <label htmlFor="health-filter">Health</label>
         <select
-          id="status-filter"
+          id="health-filter"
+          multiple
           value={filterState.status}
-          onChange={(event) => onFilterChange("status", event.target.value)}
+          onChange={(event) => onFilterChange("status", Array.from(event.target.selectedOptions).map((opt) => opt.value))}
         >
-          <option value="">All</option>
-          <option value="online">Online</option>
-          <option value="stale">Stale</option>
-          <option value="offline">Offline</option>
-          <option value="error">Error</option>
+          {healthOptions.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className={styles.filterItem}>
+        <label htmlFor="view-mode-filter">View</label>
+        <select
+          id="view-mode-filter"
+          value={viewMode}
+          onChange={(event) => onViewModeChange(event.target.value)}
+        >
+          <option value="flat">Flat List</option>
+          <option value="farm">Grouped by Farm</option>
+          <option value="unit">Grouped by Unit/Rack</option>
+          <option value="kind">Grouped by Kind</option>
         </select>
       </div>
     </div>
