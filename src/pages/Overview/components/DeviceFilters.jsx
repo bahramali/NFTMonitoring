@@ -12,9 +12,21 @@ export default function DeviceFilters({
   layerIdOptions,
   kindOptions,
   healthOptions,
+  messageKindOptions,
   viewMode,
   onViewModeChange,
 }) {
+  const renderOptions = (options) =>
+    options.map((option) => {
+      const value = typeof option === "string" ? option : option.value;
+      const label = typeof option === "string" ? option : option.label;
+      return (
+        <option key={value} value={value}>
+          {label}
+        </option>
+      );
+    });
+
   return (
     <div className={styles.filtersGrid}>
       <div className={styles.filterItemWide}>
@@ -37,11 +49,7 @@ export default function DeviceFilters({
           value={filterState.farmId}
           onChange={(event) => onFilterChange("farmId", Array.from(event.target.selectedOptions).map((opt) => opt.value))}
         >
-          {farmOptions.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
+          {renderOptions(farmOptions)}
         </select>
       </div>
 
@@ -53,11 +61,7 @@ export default function DeviceFilters({
           value={filterState.unitType}
           onChange={(event) => onFilterChange("unitType", Array.from(event.target.selectedOptions).map((opt) => opt.value))}
         >
-          {unitTypeOptions.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
+          {renderOptions(unitTypeOptions)}
         </select>
       </div>
 
@@ -69,11 +73,7 @@ export default function DeviceFilters({
           value={filterState.unitId}
           onChange={(event) => onFilterChange("unitId", Array.from(event.target.selectedOptions).map((opt) => opt.value))}
         >
-          {unitIdOptions.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
+          {renderOptions(unitIdOptions)}
         </select>
       </div>
 
@@ -85,27 +85,19 @@ export default function DeviceFilters({
           value={filterState.layerId}
           onChange={(event) => onFilterChange("layerId", Array.from(event.target.selectedOptions).map((opt) => opt.value))}
         >
-          {layerIdOptions.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
+          {renderOptions(layerIdOptions)}
         </select>
       </div>
 
       <div className={styles.filterItem}>
-        <label htmlFor="kind-filter">Kind</label>
+        <label htmlFor="kind-filter">Device Kind</label>
         <select
           id="kind-filter"
           multiple
           value={filterState.kind}
           onChange={(event) => onFilterChange("kind", Array.from(event.target.selectedOptions).map((opt) => opt.value))}
         >
-          {kindOptions.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
+          {renderOptions(kindOptions)}
         </select>
       </div>
 
@@ -117,11 +109,21 @@ export default function DeviceFilters({
           value={filterState.status}
           onChange={(event) => onFilterChange("status", Array.from(event.target.selectedOptions).map((opt) => opt.value))}
         >
-          {healthOptions.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
+          {renderOptions(healthOptions)}
+        </select>
+      </div>
+
+      <div className={styles.filterItem}>
+        <label htmlFor="message-kind-filter">Message Kind</label>
+        <select
+          id="message-kind-filter"
+          multiple
+          value={filterState.messageKind}
+          onChange={(event) =>
+            onFilterChange("messageKind", Array.from(event.target.selectedOptions).map((opt) => opt.value))
+          }
+        >
+          {renderOptions(messageKindOptions)}
         </select>
       </div>
 

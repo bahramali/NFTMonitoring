@@ -37,7 +37,14 @@ const sanitizeKey = (value) =>
 export const normalizeDeviceKind = (value) => {
   if (!value) return "UNKNOWN";
   const upper = String(value).trim().toUpperCase();
-  return DEVICE_HEALTH_CONFIG.kinds[upper] ? upper : upper;
+  const mapped = {
+    TNK: "TANK",
+    LYR: "LAYER",
+    GRM: "GERMINATION",
+    ENV: "ENV",
+  }[upper];
+  const normalized = mapped || upper;
+  return DEVICE_HEALTH_CONFIG.kinds[normalized] ? normalized : normalized;
 };
 
 export const resolveExpectedConfig = (deviceKind) => {
