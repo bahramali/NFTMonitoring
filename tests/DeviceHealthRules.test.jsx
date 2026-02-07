@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { evaluateDeviceHealth } from '../src/pages/Overview/utils/deviceHealth.js';
+import { computeMetricTrend, evaluateDeviceHealth, getTrendDirection, getWorstHealthStatus } from '../src/pages/Overview/utils/deviceHealth.js';
 
 const nowMs = 1_700_000_000_000;
 
@@ -54,5 +54,41 @@ describe('evaluateDeviceHealth', () => {
       ...baseInput
     });
     expect(result.status).toBe('ok');
+  });
+});
+
+describe('getWorstHealthStatus', () => {
+  test('returns worst status by priority', () => {
+    const result = getWorstHealthStatus(['ok', 'degraded', 'critical', 'offline']);
+    expect(result).toBe('offline');
+  });
+
+  test('returns ok when all ok', () => {
+    const result = getWorstHealthStatus(['ok', 'ok']);
+    expect(result).toBe('ok');
+  });
+});
+
+describe('trend helpers', () => {
+  test('getTrendDirection respects thresholds', () => {
+    expect(getTrendDirection(0.6, 0.5)).toBe('up');
+    expect(getTrendDirection(-0.6, 0.5)).toBe('down');
+    expect(getTrendDirection(0.2, 0.5)).toBe('flat');
+  });
+
+  test('computeMetricTrend returns delta from window baseline', () => {
+    const samples = [
+      { timestamp: nowMs - 20 * 60 * 1000, metrics: { ph: 6.1 } },
+      { timestamp: nowMs - 10 * 60 * 1000, metrics: { ph: 6.3 } },
+    ];
+    const result = computeMetricTrend({
+      samples,
+      metricKey: 'ph',
+      currentValue: 6.5,
+      nowMs,
+      windowMs: 15 * 60 * 1000,
+    });
+    expect(result.delta).toBeCloseTo(0.4);
+    expect(result.direction).toBe('up');
   });
 });

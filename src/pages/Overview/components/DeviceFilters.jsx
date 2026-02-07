@@ -133,9 +133,7 @@ export default function DeviceFilters({
           onChange={(event) => onViewModeChange(event.target.value)}
         >
           <option value="flat">Flat List</option>
-          <option value="farm">Grouped by Farm</option>
-          <option value="unit">Grouped by Unit/Rack</option>
-          <option value="kind">Grouped by Kind</option>
+          <option value="hierarchical">Hierarchical</option>
         </select>
       </div>
     </div>

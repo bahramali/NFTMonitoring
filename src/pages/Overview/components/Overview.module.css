@@ -20,6 +20,13 @@
   z-index: 5;
 }
 
+.viewActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
 .bannerError,
 .bannerWarn {
   border-radius: 0.75rem;
@@ -297,6 +304,51 @@
   background: rgba(12, 24, 46, 0.85);
 }
 
+.treeRow {
+  background: rgba(12, 24, 46, 0.8);
+}
+
+.treeDeviceRow {
+  background: rgba(9, 18, 36, 0.6);
+}
+
+.treeToggle {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: transparent;
+  border: none;
+  color: inherit;
+  padding: 0.35rem 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.treeChevron {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid rgba(168, 190, 233, 0.8);
+  transform: rotate(-90deg);
+  transition: transform 0.15s ease;
+}
+
+.treeChevronOpen {
+  transform: rotate(0deg);
+}
+
+.treeLabel {
+  font-weight: 600;
+}
+
+.treeCounts {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: #b6caef;
+}
+
 .groupHeader {
   display: flex;
   justify-content: space-between;
@@ -401,6 +453,32 @@
   margin: 0 0 0.5rem;
 }
 
+.reasonsPanel {
+  background: rgba(15, 28, 52, 0.4);
+  border: 1px solid rgba(110, 150, 210, 0.35);
+  border-radius: 0.6rem;
+  padding: 0.6rem;
+  font-size: 0.8rem;
+}
+
+.reasonsPanel ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.sectionHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.windowSelector {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
 .metricsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
@@ -414,6 +492,13 @@
   padding: 0.5rem;
 }
 
+.metricHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .metricLabel {
   margin: 0;
   font-size: 0.7rem;
@@ -424,6 +509,48 @@
   margin: 0.2rem 0 0;
   font-size: 0.9rem;
   font-weight: 600;
+}
+
+.metricDelta {
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  color: #a8bee9;
+}
+
+.metricEmpty {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #9bb0da;
+}
+
+.trendBadge {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.trendup {
+  color: #9ef0bc;
+}
+
+.trenddown {
+  color: #ffb3b3;
+}
+
+.trendflat {
+  color: #b6caef;
+}
+
+.sparkline {
+  width: 100%;
+  height: 2rem;
+  color: #7db2ff;
+  margin-top: 0.4rem;
+}
+
+.sparklineEmpty {
+  font-size: 0.75rem;
+  color: #7f92ba;
+  margin-top: 0.4rem;
 }
 
 .qualityPanel {
@@ -471,6 +598,18 @@
   background: rgba(15, 28, 52, 0.45);
 }
 
+.timelineDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.timelineChange {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #dbe7ff;
+}
+
 .timelineTitle {
   margin: 0;
   font-size: 0.85rem;
@@ -479,6 +618,16 @@
 .timelineMeta {
   margin: 0.2rem 0 0;
   font-size: 0.7rem;
+  color: #9bb0da;
+}
+
+.rawDetails {
+  margin-top: 0.4rem;
+  font-size: 0.7rem;
+}
+
+.rawDetails summary {
+  cursor: pointer;
   color: #9bb0da;
 }
 

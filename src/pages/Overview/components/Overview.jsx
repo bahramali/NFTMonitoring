@@ -20,6 +20,10 @@ import {
   computeExpectedRatePerMinute,
   evaluateDeviceHealth,
   extractMetricsFromPayload,
+  buildHealthReasons,
+  computeMetricTrend,
+  getWorstHealthStatus,
+  KEY_METRICS_BY_KIND,
   normalizeDeviceKind,
   resolveExpectedConfig,
 } from "../utils/deviceHealth.js";
@@ -27,6 +31,13 @@ import styles from "./Overview.module.css";
 
 const REFRESH_INTERVAL_MS = 5000;
 const STREAM_BUFFER_LIMIT = 20;
+const METRIC_HISTORY_LIMIT = 200;
+const TIME_WINDOW_OPTIONS = [
+  { label: "15m", value: 15 * 60 * 1000 },
+  { label: "1h", value: 60 * 60 * 1000 },
+  { label: "6h", value: 6 * 60 * 60 * 1000 },
+  { label: "24h", value: 24 * 60 * 60 * 1000 },
+];
 const ROW_HEIGHT = 64;
 
 const DEFAULT_FILTERS = {
@@ -141,6 +152,88 @@ const buildHealthCounts = (devices) =>
     { total: 0, ok: 0, degraded: 0, critical: 0, offline: 0 },
   );
 
+const HEALTH_PRIORITY = ["offline", "critical", "degraded", "ok"];
+
+const buildHierarchyTree = (devices) => {
+  const root = {
+    id: "root",
+    label: "All",
+    level: "root",
+    children: new Map(),
+    devices: [],
+  };
+
+  devices.forEach((device) => {
+    const farm = device.farmId || "—";
+    const unitType = String(device.unitType || "—").toUpperCase();
+    const unitId = device.unitId || "—";
+    const kind = device.deviceKind || "UNKNOWN";
+    const chain = [
+      { level: "farm", label: farm },
+      { level: "unitType", label: unitType },
+      { level: "unitId", label: unitId },
+      { level: "kind", label: kind },
+    ];
+
+    let cursor = root;
+    chain.forEach((entry) => {
+      const key = `${entry.level}-${entry.label}`;
+      if (!cursor.children.has(key)) {
+        cursor.children.set(key, {
+          id: key,
+          label: entry.label,
+          level: entry.level,
+          children: new Map(),
+          devices: [],
+        });
+      }
+      cursor = cursor.children.get(key);
+    });
+
+    cursor.devices.push(device);
+  });
+
+  const toNodeList = (node, depth = 0) => {
+    const children = Array.from(node.children.values()).map((child) => toNodeList(child, depth + 1));
+    return {
+      ...node,
+      depth,
+      children,
+    };
+  };
+
+  return toNodeList(root, 0);
+};
+
+const aggregateTreeCounts = (node) => {
+  if (!node) return { counts: buildHealthCounts([]), worst: "ok" };
+  if (node.children.length === 0) {
+    const counts = buildHealthCounts(node.devices || []);
+    const statuses = (node.devices || []).map((device) => device.health.status);
+    return { counts, worst: getWorstHealthStatus(statuses) };
+  }
+  const counts = { total: 0, ok: 0, degraded: 0, critical: 0, offline: 0 };
+  const statuses = [];
+  node.children.forEach((child) => {
+    const result = aggregateTreeCounts(child);
+    HEALTH_PRIORITY.forEach((status) => {
+      counts[status] += result.counts[status];
+    });
+    counts.total += result.counts.total;
+    statuses.push(result.worst);
+  });
+  return { counts, worst: getWorstHealthStatus(statuses) };
+};
+
+const flattenTree = (node) => {
+  const list = [];
+  node.children.forEach((child) => {
+    list.push(child);
+    list.push(...flattenTree(child));
+  });
+  return list;
+};
+
 export default function Overview() {
   const { role, roles } = useAuth();
   const [devicesMap, dispatchDevices] = useReducer(devicesReducer, new Map());
@@ -164,10 +257,20 @@ export default function Overview() {
   const [errorBanner, setErrorBanner] = useState("");
   const [wsBanner, setWsBanner] = useState("");
   const [messageBuffers, setMessageBuffers] = useState({});
+  const [metricBuffers, setMetricBuffers] = useState({});
   const [lastRefresh, setLastRefresh] = useState(null);
   const [nowMs, setNowMs] = useState(Date.now());
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(520);
+  const [treeExpanded, setTreeExpanded] = useState(() => {
+    try {
+      const stored = window.localStorage.getItem("deviceMonitorTreeExpanded");
+      return stored ? JSON.parse(stored) : {};
+    } catch (error) {
+      return {};
+    }
+  });
+  const [timeWindowMs, setTimeWindowMs] = useState(TIME_WINDOW_OPTIONS[0].value);
 
   const pendingUpdatesRef = useRef(new Map());
   const rafRef = useRef(0);
@@ -223,6 +326,16 @@ export default function Overview() {
       });
 
       dispatchDevices({ type: hasLoadedRef.current ? "merge" : "seed", payload: seeded });
+      setMetricBuffers((prev) => {
+        const next = { ...prev };
+        seeded.forEach((device, key) => {
+          if (!device.latestMetrics || Object.keys(device.latestMetrics).length === 0) return;
+          const timestamp = device.lastSeenMs ?? Date.now();
+          const current = Array.isArray(next[key]) ? next[key] : [];
+          next[key] = [{ timestamp, metrics: device.latestMetrics }, ...current].slice(0, METRIC_HISTORY_LIMIT);
+        });
+        return next;
+      });
       setLastRefresh(Date.now());
       hasLoadedRef.current = true;
       if (hasMissingRequiredFields) {
@@ -279,9 +392,11 @@ export default function Overview() {
     };
     const nextSearch = searchParams.get("q") ?? "";
     const nextView = searchParams.get("view") ?? "flat";
+    const nextWindow = Number(searchParams.get("window")) || TIME_WINDOW_OPTIONS[0].value;
     setFilters((prev) => (JSON.stringify(prev) === JSON.stringify(nextFilters) ? prev : nextFilters));
     setSearch((prev) => (prev === nextSearch ? prev : nextSearch));
     setViewMode((prev) => (prev === nextView ? prev : nextView));
+    setTimeWindowMs((prev) => (prev === nextWindow ? prev : nextWindow));
   }, [searchParams]);
 
   useEffect(() => {
@@ -294,10 +409,11 @@ export default function Overview() {
     if (filters.kind.length) params.set("kind", filters.kind.join(","));
     if (filters.status.length) params.set("health", filters.status.join(","));
     if (viewMode !== "flat") params.set("view", viewMode);
+    if (timeWindowMs !== TIME_WINDOW_OPTIONS[0].value) params.set("window", String(timeWindowMs));
     if (params.toString() !== searchParams.toString()) {
       setSearchParams(params, { replace: true });
     }
-  }, [filters, search, viewMode, searchParams, setSearchParams]);
+  }, [filters, search, viewMode, timeWindowMs, searchParams, setSearchParams]);
 
   const onMessage = useCallback(
     (topic, message) => {
@@ -353,6 +469,17 @@ export default function Overview() {
         latestMetrics: Object.keys(metrics).length ? metrics : existing?.latestMetrics,
       });
 
+      if (Object.keys(metrics || {}).length) {
+        setMetricBuffers((prev) => {
+          const current = Array.isArray(prev[key]) ? prev[key] : [];
+          const nextEntry = { timestamp: timestampMs, metrics };
+          return {
+            ...prev,
+            [key]: [nextEntry, ...current].slice(0, METRIC_HISTORY_LIMIT),
+          };
+        });
+      }
+
       const shouldBuffer = !(viewerPaused && selectedDeviceKey === key);
       if (shouldBuffer) {
         setMessageBuffers((prev) => {
@@ -378,6 +505,7 @@ export default function Overview() {
               unitId: identity.unitId,
               layerId: identity.layerId,
             }),
+            metricsSnapshot: metrics,
             raw: {
               ...identity,
               messageKind,
@@ -450,6 +578,14 @@ export default function Overview() {
     });
   }, [devices, nowMs]);
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("deviceMonitorTreeExpanded", JSON.stringify(treeExpanded));
+    } catch (error) {
+      console.warn("Unable to persist tree expansion state", error);
+    }
+  }, [treeExpanded]);
+
   const resolveSortValue = (entry, key) => {
     switch (key) {
       case "health":
@@ -513,43 +649,57 @@ export default function Overview() {
       });
   }, [derivedDevices, filters, search, sortConfig]);
 
-  const groupedDevices = useMemo(() => {
-    if (viewMode === "flat") {
-      return [
-        {
-          id: "all",
-          label: "All devices",
-          devices: filteredDevices,
-          counts: buildHealthCounts(filteredDevices),
-        },
-      ];
-    }
-
-    const groups = new Map();
-    filteredDevices.forEach((device) => {
-      let key = device.farmId;
-      if (viewMode === "unit") {
-        key = `${String(device.unitType || "").toUpperCase()} ${device.unitId || "—"}`;
-      }
-      if (viewMode === "kind") {
-        key = device.deviceKind || "Unknown";
-      }
-      if (!groups.has(key)) {
-        groups.set(key, []);
-      }
-      groups.get(key).push(device);
-    });
-
-    return Array.from(groups.entries()).map(([key, list]) => ({
-      id: key,
-      label: key,
-      devices: list,
-      counts: buildHealthCounts(list),
-    }));
-  }, [filteredDevices, viewMode]);
-
   const selectedDevice = selectedDeviceKey ? derivedDevices.find((entry) => entry.key === selectedDeviceKey) : null;
   const selectedMessages = selectedDeviceKey ? messageBuffers[selectedDeviceKey] || [] : [];
+  const selectedMetricHistory = selectedDeviceKey ? metricBuffers[selectedDeviceKey] || [] : [];
+  const keyMetrics = useMemo(() => {
+    if (!selectedDevice) return [];
+    const byKind = KEY_METRICS_BY_KIND[selectedDevice.deviceKind];
+    if (byKind && byKind.length) return byKind;
+    const expected = selectedDevice.metricsList?.map((metric) => metric.key).filter(Boolean) || [];
+    if (expected.length) return expected;
+    const latestKeys = Object.keys(selectedDevice.latestMetrics || {});
+    return latestKeys.slice(0, 6);
+  }, [selectedDevice]);
+  const selectedHealthReasons = useMemo(() => {
+    if (!selectedDevice) return [];
+    return buildHealthReasons({
+      health: selectedDevice.health,
+      lastSeenMs: selectedDevice.lastSeenMs,
+      nowMs,
+      msgRate: selectedDevice.msgRate,
+      expectedRate: selectedDevice.expectedRate,
+      dataQuality: selectedDevice.dataQuality,
+      payloadError: selectedDevice.payloadError,
+    });
+  }, [selectedDevice, nowMs]);
+  const selectedTrendData = useMemo(() => {
+    if (!selectedDevice) return [];
+    return keyMetrics.map((metricKey) => {
+      const currentValue = selectedDevice.latestMetrics?.[metricKey] ?? null;
+      const trend = computeMetricTrend({
+        samples: selectedMetricHistory,
+        metricKey,
+        currentValue,
+        nowMs,
+        windowMs: timeWindowMs,
+      });
+      const sparkline = [...selectedMetricHistory]
+        .reverse()
+        .filter((sample) => sample.timestamp >= nowMs - timeWindowMs)
+        .map((sample) => ({
+          timestamp: sample.timestamp,
+          value: sample.metrics?.[metricKey] ?? null,
+        }))
+        .filter((sample) => Number.isFinite(sample.value));
+      return {
+        key: metricKey,
+        value: currentValue,
+        trend,
+        sparkline,
+      };
+    });
+  }, [keyMetrics, selectedDevice, selectedMetricHistory, nowMs, timeWindowMs]);
 
   const statusCounts = useMemo(() => buildHealthCounts(derivedDevices), [derivedDevices]);
   const lastRefreshLabel = lastRefresh ? formatRelativeTime(lastRefresh, nowMs) : "Never";
@@ -586,6 +736,127 @@ export default function Overview() {
       return { key, dir: column.defaultDir };
     });
   };
+
+  const hierarchyTree = useMemo(() => buildHierarchyTree(filteredDevices), [filteredDevices]);
+  const allTreeNodes = useMemo(() => flattenTree(hierarchyTree), [hierarchyTree]);
+
+  const handleToggleNode = (nodeId) => {
+    setTreeExpanded((prev) => ({ ...prev, [nodeId]: !prev[nodeId] }));
+  };
+
+  const handleExpandAll = () => {
+    const expanded = {};
+    allTreeNodes.forEach((node) => {
+      expanded[node.id] = true;
+    });
+    setTreeExpanded(expanded);
+  };
+
+  const handleCollapseAll = () => {
+    const collapsed = {};
+    allTreeNodes.forEach((node) => {
+      collapsed[node.id] = false;
+    });
+    setTreeExpanded(collapsed);
+  };
+
+  const renderTreeRows = (node) =>
+    node.children.flatMap((child) => {
+      const { counts, worst } = aggregateTreeCounts(child);
+      const isExpanded = treeExpanded[child.id] ?? child.level === "farm";
+      const rows = [
+        <tr key={child.id} className={styles.treeRow}>
+          <td colSpan={8}>
+            <button type="button" className={styles.treeToggle} onClick={() => handleToggleNode(child.id)}>
+              <span className={`${styles.treeChevron} ${isExpanded ? styles.treeChevronOpen : ""}`} />
+              <span className={styles.treeLabel} style={{ paddingLeft: `${child.depth * 18}px` }}>
+                {child.label}
+              </span>
+              <DeviceStatusBadge status={worst} />
+              <span className={styles.treeCounts}>
+                OK {counts.ok} • Degraded {counts.degraded} • Critical {counts.critical} • Offline {counts.offline}
+              </span>
+            </button>
+          </td>
+        </tr>,
+      ];
+
+      if (isExpanded) {
+        if (child.children.length > 0) {
+          rows.push(...renderTreeRows(child));
+        } else {
+          rows.push(
+            ...child.devices.map((entry) => (
+              <tr key={entry.key} className={styles.treeDeviceRow}>
+                <td>
+                  <DeviceStatusBadge status={entry.health.status} />
+                </td>
+                <td>
+                  <p className={styles.deviceId}>{entry.deviceId}</p>
+                  <p className={styles.deviceSubtext}>{entry.deviceKind}</p>
+                </td>
+                <td>
+                  <p className={styles.locationLine}>{entry.locationLabel}</p>
+                </td>
+                <td title={entry.lastSeenAbsolute}>{entry.lastSeenRelative}</td>
+                <td>
+                  <span
+                    className={`${styles.rateChip} ${
+                      entry.expectedRate && entry.msgRate < entry.expectedRate * 0.7
+                        ? styles.rateLow
+                        : entry.expectedRate && entry.msgRate < entry.expectedRate
+                          ? styles.rateWarn
+                          : styles.rateOk
+                    }`}
+                  >
+                    {entry.msgRate}/min
+                  </span>
+                </td>
+                <td>
+                  <p className={styles.qualityPercent}>{entry.dataQuality.percent}%</p>
+                  {entry.dataQuality.missingCritical.length > 0 || entry.dataQuality.missingOptional.length > 0 ? (
+                    <p className={styles.qualityMissing}>
+                      Missing: {[...entry.dataQuality.missingCritical, ...entry.dataQuality.missingOptional]
+                        .slice(0, 3)
+                        .join(", ")}
+                    </p>
+                  ) : (
+                    <p className={styles.qualityMissing}>All expected metrics</p>
+                  )}
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => setSelectedDeviceKey(entry.key)}
+                  >
+                    Details
+                  </button>
+                </td>
+                <td>
+                  {isDebugAllowed ? (
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={() => {
+                        setSelectedDeviceKey(entry.key);
+                        setDebugOpen(true);
+                      }}
+                    >
+                      Debug
+                    </button>
+                  ) : (
+                    <span className={styles.mutedText}>—</span>
+                  )}
+                </td>
+              </tr>
+            )),
+          );
+        }
+      }
+
+      return rows;
+    });
 
   return (
     <div className={styles.page}>
@@ -645,6 +916,18 @@ export default function Overview() {
       </section>
 
       <section className={styles.card}>
+        <div className={styles.viewActions}>
+          {viewMode === "hierarchical" ? (
+            <>
+              <button type="button" className={styles.secondaryButton} onClick={handleExpandAll}>
+                Expand all
+              </button>
+              <button type="button" className={styles.secondaryButton} onClick={handleCollapseAll}>
+                Collapse all
+              </button>
+            </>
+          ) : null}
+        </div>
         <div
           className={styles.tableWrap}
           ref={tableWrapRef}
@@ -768,91 +1051,8 @@ export default function Overview() {
                 ) : null}
               </tbody>
             ) : null}
-            {!loading && filteredDevices.length > 0 && viewMode !== "flat" ? (
-              <tbody>
-                {groupedDevices.map((group) => (
-                  <React.Fragment key={group.id}>
-                    <tr className={styles.groupRow}>
-                      <td colSpan={8}>
-                        <div className={styles.groupHeader}>
-                          <h4>{group.label}</h4>
-                          <div className={styles.groupCounts}>
-                            <span>OK {group.counts.ok}</span>
-                            <span>Degraded {group.counts.degraded}</span>
-                            <span>Critical {group.counts.critical}</span>
-                            <span>Offline {group.counts.offline}</span>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    {group.devices.map((entry) => (
-                      <tr key={entry.key}>
-                        <td>
-                          <DeviceStatusBadge status={entry.health.status} />
-                        </td>
-                        <td>
-                          <p className={styles.deviceId}>{entry.deviceId}</p>
-                          <p className={styles.deviceSubtext}>{entry.deviceKind}</p>
-                        </td>
-                        <td>
-                          <p className={styles.locationLine}>{entry.locationLabel}</p>
-                        </td>
-                        <td title={entry.lastSeenAbsolute}>{entry.lastSeenRelative}</td>
-                        <td>
-                          <span
-                            className={`${styles.rateChip} ${
-                              entry.expectedRate && entry.msgRate < entry.expectedRate * 0.7
-                                ? styles.rateLow
-                                : entry.expectedRate && entry.msgRate < entry.expectedRate
-                                  ? styles.rateWarn
-                                  : styles.rateOk
-                            }`}
-                          >
-                            {entry.msgRate}/min
-                          </span>
-                        </td>
-                        <td>
-                          <p className={styles.qualityPercent}>{entry.dataQuality.percent}%</p>
-                          {entry.dataQuality.missingCritical.length > 0 || entry.dataQuality.missingOptional.length > 0 ? (
-                            <p className={styles.qualityMissing}>
-                              Missing: {[...entry.dataQuality.missingCritical, ...entry.dataQuality.missingOptional]
-                                .slice(0, 3)
-                                .join(", ")}
-                            </p>
-                          ) : (
-                            <p className={styles.qualityMissing}>All expected metrics</p>
-                          )}
-                        </td>
-                        <td>
-                          <button
-                            type="button"
-                            className={styles.primaryButton}
-                            onClick={() => setSelectedDeviceKey(entry.key)}
-                          >
-                            Details
-                          </button>
-                        </td>
-                        <td>
-                          {isDebugAllowed ? (
-                            <button
-                              type="button"
-                              className={styles.secondaryButton}
-                              onClick={() => {
-                                setSelectedDeviceKey(entry.key);
-                                setDebugOpen(true);
-                              }}
-                            >
-                              Debug
-                            </button>
-                          ) : (
-                            <span className={styles.mutedText}>—</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </React.Fragment>
-                ))}
-              </tbody>
+            {!loading && filteredDevices.length > 0 && viewMode === "hierarchical" ? (
+              <tbody>{renderTreeRows(hierarchyTree)}</tbody>
             ) : null}
           </table>
         </div>
@@ -871,7 +1071,12 @@ export default function Overview() {
         onDebug={() => setDebugOpen(true)}
         allowDebug={isDebugAllowed}
         messages={selectedMessages}
-        metrics={selectedDevice?.metricsList ?? []}
+        metrics={selectedTrendData}
+        healthReasons={selectedHealthReasons}
+        timeWindowMs={timeWindowMs}
+        onTimeWindowChange={setTimeWindowMs}
+        timeWindowOptions={TIME_WINDOW_OPTIONS}
+        nowMs={nowMs}
       />
 
       <JsonStreamViewer
