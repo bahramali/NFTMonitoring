@@ -109,16 +109,16 @@ export const getWorstHealthStatus = (statuses = []) => {
 
 export const KEY_METRICS_BY_KIND = {
   TANK: ["ph", "ec", "solutionTemp"],
-  ENV: ["airTemp", "rh", "co2"],
-  GERMINATION: ["airTemp", "rh", "waterTemp", "light"],
-  LAYER: ["airTemp", "rh", "light", "co2"],
+  ENV: ["airTempC", "rhPct", "co2Ppm"],
+  GERMINATION: ["airTempC", "rhPct", "waterTemp", "lux"],
+  LAYER: ["airTempC", "rhPct", "lux", "co2Ppm"],
 };
 
 export const METRIC_TREND_THRESHOLDS = {
-  airTemp: 0.3,
-  rh: 2,
-  co2: 50,
-  light: 10,
+  airTempC: 0.3,
+  rhPct: 2,
+  co2Ppm: 50,
+  lux: 10,
   ph: 0.05,
   ec: 0.05,
   solutionTemp: 0.3,
