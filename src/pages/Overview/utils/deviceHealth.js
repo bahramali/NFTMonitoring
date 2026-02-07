@@ -1,23 +1,27 @@
 import { DEVICE_HEALTH_CONFIG, METRIC_DEFINITIONS } from "../../../config/deviceMonitoring.js";
 
 const METRIC_ALIASES = {
-  airtemp: "airTemp",
-  airtemperature: "airTemp",
-  atemp: "airTemp",
-  airtempc: "airTemp",
-  airtemp_c: "airTemp",
-  temperature: "airTemp",
-  humidity: "rh",
-  rh: "rh",
-  rhpct: "rh",
-  rh_pct: "rh",
-  relativehumidity: "rh",
-  light: "light",
-  lux: "light",
-  illumination: "light",
-  co2: "co2",
-  co2ppm: "co2",
-  co2_ppm: "co2",
+  airtemp: "airTempC",
+  airtemperature: "airTempC",
+  atemp: "airTempC",
+  airtempc: "airTempC",
+  airtemp_c: "airTempC",
+  temperature: "airTempC",
+  humidity: "rhPct",
+  rh: "rhPct",
+  rhpct: "rhPct",
+  rh_pct: "rhPct",
+  relativehumidity: "rhPct",
+  light: "lux",
+  lux: "lux",
+  illumination: "lux",
+  co2: "co2Ppm",
+  co2ppm: "co2Ppm",
+  co2_ppm: "co2Ppm",
+  spectra: "spectraCounts",
+  spectral: "spectraCounts",
+  as7343counts: "spectraCounts",
+  as7343_counts: "spectraCounts",
   ph: "ph",
   ec: "ec",
   dissolvedec: "ec",
@@ -104,16 +108,16 @@ export const getWorstHealthStatus = (statuses = []) => {
 
 export const KEY_METRICS_BY_KIND = {
   TANK: ["ph", "ec", "solutionTemp"],
-  ENV: ["airTemp", "rh", "co2"],
-  GERMINATION: ["airTemp", "rh", "waterTemp", "light"],
-  LAYER: ["airTemp", "rh", "light", "co2"],
+  ENV: ["airTempC", "rhPct", "co2Ppm"],
+  GERMINATION: ["airTempC", "rhPct", "waterTemp", "lux"],
+  LAYER: ["airTempC", "rhPct", "lux", "co2Ppm"],
 };
 
 export const METRIC_TREND_THRESHOLDS = {
-  airTemp: 0.3,
-  rh: 2,
-  co2: 50,
-  light: 10,
+  airTempC: 0.3,
+  rhPct: 2,
+  co2Ppm: 50,
+  lux: 10,
   ph: 0.05,
   ec: 0.05,
   solutionTemp: 0.3,
@@ -296,6 +300,18 @@ const extractValue = (input) => {
   return null;
 };
 
+const extractSpectraValue = (input) => {
+  if (input == null) return null;
+  if (typeof input === "number") return Number.isFinite(input) ? input : null;
+  if (Array.isArray(input)) return input.length;
+  if (typeof input === "object") return Object.keys(input).length;
+  if (typeof input === "string") {
+    const parsed = Number(input);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
 const addMetric = (metrics, key, value) => {
   if (!key) return;
   if (value == null) return;
@@ -314,7 +330,11 @@ export const extractMetricsFromPayload = (payload = {}) => {
         const rawValue = entry?.value ?? entry?.avg ?? entry?.average ?? entry?.reading;
         const sanitized = sanitizeKey(rawKey);
         const normalized = METRIC_ALIASES[sanitized] ?? METRIC_ALIASES[sanitizeKey(entry?.sensorName)] ?? null;
-        if (normalized) addMetric(metrics, normalized, extractValue(rawValue));
+        if (normalized === "spectraCounts") {
+          addMetric(metrics, normalized, extractSpectraValue(rawValue));
+        } else if (normalized) {
+          addMetric(metrics, normalized, extractValue(rawValue));
+        }
         if (SPECTRAL_MATCHERS.some((matcher) => matcher(rawKey || ""))) spectraCount += 1;
       });
       return;
@@ -324,7 +344,11 @@ export const extractMetricsFromPayload = (payload = {}) => {
       Object.entries(entries).forEach(([rawKey, rawValue]) => {
         const sanitized = sanitizeKey(rawKey);
         const normalized = METRIC_ALIASES[sanitized] ?? null;
-        if (normalized) addMetric(metrics, normalized, extractValue(rawValue));
+        if (normalized === "spectraCounts") {
+          addMetric(metrics, normalized, extractSpectraValue(rawValue));
+        } else if (normalized) {
+          addMetric(metrics, normalized, extractValue(rawValue));
+        }
         if (SPECTRAL_MATCHERS.some((matcher) => matcher(rawKey || ""))) spectraCount += 1;
       });
     }
@@ -336,9 +360,10 @@ export const extractMetricsFromPayload = (payload = {}) => {
   ingestEntries(payload.environment);
   ingestEntries(payload.telemetry);
   ingestEntries(payload.data);
+  ingestEntries(payload);
 
-  if (spectraCount > 0) {
-    metrics.spectra = spectraCount;
+  if (metrics.spectraCounts == null && spectraCount > 0) {
+    metrics.spectraCounts = spectraCount;
   }
 
   return metrics;
