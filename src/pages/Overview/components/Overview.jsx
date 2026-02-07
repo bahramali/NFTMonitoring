@@ -140,6 +140,10 @@ const normalizeDevice = (device) => {
         device?.type,
     ),
     lastSeenMs: getTimestampMs(device?.lastSeen ?? device?.timestamp ?? device?.updatedAt),
+    lastTelemetryMs: getTimestampMs(
+      device?.lastTelemetryTimestamp ?? device?.lastTelemetry ?? device?.last_telemetry ?? device?.lastTelemetryMs,
+    ),
+    lastTelemetryHealth: device?.lastTelemetryHealth ?? device?.telemetryHealth ?? null,
     msgTimes: [],
     msgRate: Number.isFinite(device?.msgRate) ? device.msgRate : 0,
     lastMessageKind: normalizeMessageKind(
@@ -531,14 +535,18 @@ export default function Overview() {
         deviceKind: deviceKind || existing?.deviceKind || "UNKNOWN",
         key,
         lastSeenMs: timestampMs,
+        lastTelemetryMs: messageKind === "telemetry" ? timestampMs : existing?.lastTelemetryMs,
+        lastTelemetryHealth:
+          messageKind === "telemetry" ? payload.health ?? existing?.lastTelemetryHealth : existing?.lastTelemetryHealth,
         msgTimes,
         msgRate,
         lastMessageKind: messageKind,
         payloadError: payloadError || existing?.payloadError,
-        latestMetrics: Object.keys(metrics).length ? metrics : existing?.latestMetrics,
+        latestMetrics:
+          messageKind === "telemetry" && Object.keys(metrics).length ? metrics : existing?.latestMetrics,
       });
 
-      if (Object.keys(metrics || {}).length) {
+      if (messageKind === "telemetry" && Object.keys(metrics || {}).length) {
         setMetricBuffers((prev) => {
           const current = Array.isArray(prev[key]) ? prev[key] : [];
           const nextEntry = { timestamp: timestampMs, metrics };
@@ -668,14 +676,26 @@ export default function Overview() {
       const expectedRate = computeExpectedRatePerMinute(expected.expectedIntervalSec);
       const dataQuality = computeDataQuality(entry.latestMetrics, expected.expectedMetrics);
       const locationLabel = formatLocation(entry);
+      const expectedIntervalMs = (expected.expectedIntervalSec ?? 0) * 1000;
+      const lastTelemetryAgeMs = entry.lastTelemetryMs ? Math.max(0, nowMs - entry.lastTelemetryMs) : null;
+      const telemetryStatus = !entry.lastTelemetryMs
+        ? "missing"
+        : expectedIntervalMs && lastTelemetryAgeMs > expectedIntervalMs * 2
+          ? "stale"
+          : "fresh";
       return {
         ...entry,
         health,
         expectedRate,
+        expectedIntervalSec: expected.expectedIntervalSec,
         dataQuality,
         locationLabel,
         lastSeenAbsolute: formatAbsoluteTime(entry.lastSeenMs),
         lastSeenRelative: formatRelativeTime(entry.lastSeenMs, nowMs),
+        lastTelemetryAbsolute: formatAbsoluteTime(entry.lastTelemetryMs),
+        lastTelemetryRelative: formatRelativeTime(entry.lastTelemetryMs, nowMs),
+        lastTelemetryAgeMs,
+        telemetryStatus,
         metricsList: [...expected.expectedMetrics.critical, ...expected.expectedMetrics.optional].map((key) => ({
           key,
           value: entry.latestMetrics?.[key] ?? null,
@@ -796,6 +816,9 @@ export default function Overview() {
     if (!selectedDevice) return [];
     return keyMetrics.map((metricKey) => {
       const currentValue = selectedDevice.latestMetrics?.[metricKey] ?? null;
+      const latestSample = selectedMetricHistory.find((sample) =>
+        Number.isFinite(sample.metrics?.[metricKey]),
+      );
       const trend = computeMetricTrend({
         samples: selectedMetricHistory,
         metricKey,
@@ -816,6 +839,7 @@ export default function Overview() {
         value: currentValue,
         trend,
         sparkline,
+        lastUpdatedMs: latestSample?.timestamp ?? null,
       };
     });
   }, [keyMetrics, selectedDevice, selectedMetricHistory, nowMs, timeWindowMs]);
@@ -1195,7 +1219,6 @@ export default function Overview() {
         device={selectedDevice}
         health={selectedDevice?.health ?? { status: "offline" }}
         expectedRate={selectedDevice?.expectedRate}
-        dataQuality={selectedDevice?.dataQuality ?? { expected: 0, received: 0, percent: 100, missingCritical: [], missingOptional: [] }}
         isOpen={Boolean(selectedDevice)}
         onClose={() => {
           setSelectedDeviceKey("");
