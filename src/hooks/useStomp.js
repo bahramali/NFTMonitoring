@@ -6,7 +6,9 @@ import { getWsHttpUrl } from '../config/apiBase.js';
 let sharedClient = null;
 let isConnected = false;
 const reconnectListeners = new Set(); // called on every (re)connect
+const connectListeners = new Set();
 const disconnectListeners = new Set();
+const errorListeners = new Set();
 let lastConnectHeadersKey = "";
 
 const DEFAULT_SOCKJS_URL = getWsHttpUrl();
@@ -42,6 +44,13 @@ function attachReconnect(client) {
                 /* ignore */
             }
         });
+        connectListeners.forEach((fn) => {
+            try {
+                fn(frame);
+            } catch {
+                /* ignore */
+            }
+        });
         prevOnConnect?.(frame);
     };
     const prevOnClose = client.onWebSocketClose;
@@ -55,6 +64,33 @@ function attachReconnect(client) {
             }
         });
         prevOnClose?.(evt);
+    };
+    const prevOnError = client.onWebSocketError;
+    client.onWebSocketError = (evt) => {
+        errorListeners.forEach((fn) => {
+            try {
+                fn(evt);
+            } catch {
+                /* ignore */
+            }
+        });
+        prevOnError?.(evt);
+    };
+    const prevOnStompError = client.onStompError;
+    client.onStompError = (frame) => {
+        errorListeners.forEach((fn) => {
+            try {
+                fn(frame);
+            } catch {
+                /* ignore */
+            }
+        });
+        if (prevOnStompError) {
+            prevOnStompError(frame);
+        } else {
+            // eslint-disable-next-line no-console
+            console.error("STOMP error:", frame.headers?.message, frame.body);
+        }
     };
 }
 
@@ -77,13 +113,22 @@ function ensureClient(opts = {}) {
         // if already connected, trigger listeners shortly after
         if (sharedClient.connected) {
             isConnected = true;
-            setTimeout(() => reconnectListeners.forEach((fn) => {
-                try {
-                    fn();
-                } catch {
-                    /* ignore */
-                }
-            }), 0);
+            setTimeout(() => {
+                reconnectListeners.forEach((fn) => {
+                    try {
+                        fn();
+                    } catch {
+                        /* ignore */
+                    }
+                });
+                connectListeners.forEach((fn) => {
+                    try {
+                        fn();
+                    } catch {
+                        /* ignore */
+                    }
+                });
+            }, 0);
         }
         return sharedClient;
     }
@@ -114,10 +159,6 @@ function ensureClient(opts = {}) {
         },
     });
     attachReconnect(sharedClient);
-    sharedClient.onStompError = (frame) => {
-        // eslint-disable-next-line no-console
-        console.error("STOMP error:", frame.headers?.message, frame.body);
-    };
     sharedClient.activate();
     return sharedClient;
 }
@@ -190,6 +231,12 @@ export function useStomp(topics, onMessage, opts = {}) {
         if (typeof opts.onDisconnect === "function") {
             disconnectListeners.add(opts.onDisconnect);
         }
+        if (typeof opts.onConnect === "function") {
+            connectListeners.add(opts.onConnect);
+        }
+        if (typeof opts.onError === "function") {
+            errorListeners.add(opts.onError);
+        }
         if (isConnected) setup();
 
         return () => {
@@ -205,7 +252,13 @@ export function useStomp(topics, onMessage, opts = {}) {
             if (typeof opts.onDisconnect === "function") {
                 disconnectListeners.delete(opts.onDisconnect);
             }
+            if (typeof opts.onConnect === "function") {
+                connectListeners.delete(opts.onConnect);
+            }
+            if (typeof opts.onError === "function") {
+                errorListeners.delete(opts.onError);
+            }
             // DO NOT disconnect the shared client here
         };
-    }, [client, opts.onDisconnect, topicsKey]);
+    }, [client, opts.onConnect, opts.onDisconnect, opts.onError, topicsKey]);
 }

@@ -30,6 +30,8 @@ import {
 import styles from "./Overview.module.css";
 
 const REFRESH_INTERVAL_MS = 5000;
+const FAST_REFRESH_INTERVAL_MS = 8000;
+const SLOW_RECONCILE_INTERVAL_MS = 120000;
 const STREAM_BUFFER_LIMIT = 20;
 const METRIC_HISTORY_LIMIT = 200;
 const TIME_WINDOW_OPTIONS = [
@@ -256,6 +258,7 @@ export default function Overview() {
   const [loading, setLoading] = useState(false);
   const [errorBanner, setErrorBanner] = useState("");
   const [wsBanner, setWsBanner] = useState("");
+  const [wsConnected, setWsConnected] = useState(false);
   const [messageBuffers, setMessageBuffers] = useState({});
   const [metricBuffers, setMetricBuffers] = useState({});
   const [lastRefresh, setLastRefresh] = useState(null);
@@ -358,13 +361,24 @@ export default function Overview() {
     const controller = new AbortController();
     loadDevices(controller.signal);
 
-    const interval = window.setInterval(() => loadDevices(controller.signal), REFRESH_INTERVAL_MS);
     return () => {
       controller.abort();
-      window.clearInterval(interval);
       if (rafRef.current) window.cancelAnimationFrame(rafRef.current);
     };
   }, [loadDevices]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const intervalMs = wsConnected ? SLOW_RECONCILE_INTERVAL_MS : FAST_REFRESH_INTERVAL_MS;
+    if (!wsConnected) {
+      loadDevices(controller.signal);
+    }
+    const interval = window.setInterval(() => loadDevices(controller.signal), intervalMs);
+    return () => {
+      controller.abort();
+      window.clearInterval(interval);
+    };
+  }, [loadDevices, wsConnected]);
 
   useEffect(() => {
     const interval = window.setInterval(() => setNowMs(Date.now()), REFRESH_INTERVAL_MS);
@@ -525,7 +539,18 @@ export default function Overview() {
   );
 
   useStomp(WS_TOPICS, onMessage, {
-    onDisconnect: () => setWsBanner("Live stream disconnected. Attempting to reconnect..."),
+    onConnect: () => {
+      setWsConnected(true);
+      setWsBanner("");
+    },
+    onDisconnect: () => {
+      setWsConnected(false);
+      setWsBanner("Live stream disconnected. Attempting to reconnect...");
+    },
+    onError: () => {
+      setWsConnected(false);
+      setWsBanner("Live stream disconnected. Attempting to reconnect...");
+    },
   });
 
   const devices = useMemo(() => Array.from(devicesMap.values()), [devicesMap]);
