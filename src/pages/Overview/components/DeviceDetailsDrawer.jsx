@@ -34,6 +34,28 @@ const formatDelta = (key, value) => {
   return `${sign}${value.toFixed(precision)}${unit}`;
 };
 
+const formatAge = (ageMs) => {
+  if (!Number.isFinite(ageMs)) return "—";
+  if (ageMs < 1000) return "Just now";
+  const seconds = Math.floor(ageMs / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ${minutes % 60}m`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ${hours % 24}h`;
+};
+
+const getFreshnessStatus = (ageMs, expectedIntervalSec) => {
+  if (!Number.isFinite(ageMs)) return "missing";
+  const expectedMs = (expectedIntervalSec ?? 0) * 1000;
+  if (!expectedMs) return "fresh";
+  if (ageMs <= expectedMs * 2) return "fresh";
+  if (ageMs <= expectedMs * 4) return "stale";
+  return "missing";
+};
+
 const Sparkline = ({ points }) => {
   if (!points || points.length < 2) {
     return <div className={styles.sparklineEmpty}>—</div>;
@@ -58,7 +80,6 @@ export default function DeviceDetailsDrawer({
   device,
   health,
   expectedRate,
-  dataQuality,
   isOpen,
   onClose,
   onDebug,
@@ -73,6 +94,23 @@ export default function DeviceDetailsDrawer({
 }) {
   const [tab, setTab] = useState("telemetry");
   const [expandedMessage, setExpandedMessage] = useState(null);
+
+  const dataQuality = device?.dataQuality ?? {
+    expected: 0,
+    received: 0,
+    percent: 100,
+    missingCritical: [],
+    missingOptional: [],
+  };
+  const expectedMetrics = useMemo(() => metrics.map((metric) => metric.key), [metrics]);
+  const receivedMetricKeys = useMemo(
+    () => metrics.filter((metric) => metric.value != null).map((metric) => metric.key),
+    [metrics],
+  );
+  const missingMetricKeys = useMemo(
+    () => metrics.filter((metric) => metric.value == null).map((metric) => metric.key),
+    [metrics],
+  );
 
   const filteredMessages = useMemo(
     () => messages.filter((message) => message.kind === tab).slice(0, 20),
@@ -109,7 +147,16 @@ export default function DeviceDetailsDrawer({
             </p>
           </div>
           <div className={styles.drawerHeaderActions}>
-            <DeviceStatusBadge status={health.status} />
+            <div className={styles.badgeStack}>
+              <DeviceStatusBadge status={health.status} />
+              <span className={`${styles.telemetryBadge} ${styles[`telemetry${device.telemetryStatus}`] || ""}`}>
+                {device.telemetryStatus === "fresh"
+                  ? "Telemetry: Fresh"
+                  : device.telemetryStatus === "stale"
+                    ? "Telemetry: Stale"
+                    : "Telemetry: Missing"}
+              </span>
+            </div>
             <button type="button" className={styles.secondaryButton} onClick={onClose}>
               Close
             </button>
@@ -121,6 +168,11 @@ export default function DeviceDetailsDrawer({
             <p className={styles.drawerLabel}>Last seen</p>
             <p className={styles.drawerValue}>{device.lastSeenAbsolute}</p>
             <p className={styles.drawerMeta}>{device.lastSeenRelative}</p>
+          </div>
+          <div>
+            <p className={styles.drawerLabel}>Last telemetry age</p>
+            <p className={styles.drawerValue}>{formatAge(device.lastTelemetryAgeMs)}</p>
+            <p className={styles.drawerMeta}>{device.lastTelemetryAbsolute}</p>
           </div>
           <div>
             <p className={styles.drawerLabel}>Msg rate</p>
@@ -142,23 +194,8 @@ export default function DeviceDetailsDrawer({
         </section>
 
         <section className={styles.drawerSection}>
-          <h4>Health reasons</h4>
-          <div className={styles.reasonsPanel}>
-            {healthReasons.length > 0 ? (
-              <ul>
-                {healthReasons.map((reason) => (
-                  <li key={reason}>{reason}</li>
-                ))}
-              </ul>
-            ) : (
-              <p>No health issues detected.</p>
-            )}
-          </div>
-        </section>
-
-        <section className={styles.drawerSection}>
           <div className={styles.sectionHeaderRow}>
-            <h4>Key metrics</h4>
+            <h4>Sensor Overview</h4>
             <div className={styles.windowSelector}>
               {timeWindowOptions.map((option) => (
                 <button
@@ -178,12 +215,23 @@ export default function DeviceDetailsDrawer({
                 <div key={metric.key} className={styles.metricCard}>
                   <div className={styles.metricHeader}>
                     <p className={styles.metricLabel}>{getMetricLabel(metric.key)}</p>
-                    <span className={`${styles.trendBadge} ${styles[`trend${metric.trend.direction}`] || ""}`}>
-                      {metric.trend.direction === "up" ? "↑" : metric.trend.direction === "down" ? "↓" : "→"}
-                    </span>
+                    <div className={styles.metricIndicators}>
+                      <span
+                        className={`${styles.freshnessDot} ${styles[`freshness${getFreshnessStatus(
+                          metric.lastUpdatedMs ? nowMs - metric.lastUpdatedMs : null,
+                          device.expectedIntervalSec,
+                        )}`] || ""}`}
+                      />
+                      <span className={`${styles.trendBadge} ${styles[`trend${metric.trend.direction}`] || ""}`}>
+                        {metric.trend.direction === "up" ? "↑" : metric.trend.direction === "down" ? "↓" : "→"}
+                      </span>
+                    </div>
                   </div>
                   <p className={styles.metricValue}>{formatMetricValue(metric.key, metric.value)}</p>
-                  <p className={styles.metricDelta}>Δ {formatDelta(metric.key, metric.trend.delta)}</p>
+                  <p className={styles.metricDelta}>
+                    Δ {formatDelta(metric.key, metric.trend.delta)}
+                    {metric.value == null ? " • Missing" : ""}
+                  </p>
                   <Sparkline points={metric.sparkline} />
                 </div>
               ))
@@ -194,26 +242,64 @@ export default function DeviceDetailsDrawer({
         </section>
 
         <section className={styles.drawerSection}>
-          <h4>Data quality</h4>
-          <div className={styles.qualityPanel}>
-            <p>
-              Expected: <strong>{dataQuality.expected}</strong> • Received:{" "}
-              <strong>{dataQuality.received}</strong>
-            </p>
-            {dataQuality.missingCritical.length > 0 ? (
-              <p className={styles.qualityAlert}>
-                Missing critical: {dataQuality.missingCritical.map(getMetricLabel).join(", ")}
-              </p>
-            ) : null}
-            {dataQuality.missingOptional.length > 0 ? (
-              <p className={styles.qualityMuted}>
-                Missing: {dataQuality.missingOptional.map(getMetricLabel).join(", ")}
-              </p>
-            ) : null}
+          <h4>Sensor Health</h4>
+          <div className={styles.healthPanel}>
+            <div className={styles.healthRow}>
+              <p className={styles.healthLabel}>Sensor health</p>
+              {device.lastTelemetryHealth ? (
+                <div className={styles.healthChips}>
+                  {Object.entries(device.lastTelemetryHealth).map(([key, value]) => (
+                    <span
+                      key={key}
+                      className={`${styles.healthChip} ${
+                        value ? styles.healthChipOk : styles.healthChipFail
+                      }`}
+                    >
+                      {key}
+                      {!value ? <span className={styles.healthChipMeta}>No response</span> : null}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className={styles.healthMuted}>— (not reported)</p>
+              )}
+            </div>
+            <div className={styles.healthRow}>
+              <p className={styles.healthLabel}>Data quality</p>
+              <div>
+                <p className={styles.healthMeta}>
+                  Expected metrics: <strong>{expectedMetrics.length}</strong> • Received metrics:{" "}
+                  <strong>{receivedMetricKeys.length}</strong>
+                </p>
+                {missingMetricKeys.length > 0 ? (
+                  <p className={styles.healthAlert}>
+                    Missing: {missingMetricKeys.map(getMetricLabel).join(", ")}
+                  </p>
+                ) : (
+                  <p className={styles.healthMuted}>All expected metrics reported.</p>
+                )}
+              </div>
+            </div>
           </div>
         </section>
 
         <section className={styles.drawerSection}>
+          <h4>Health reasons</h4>
+          <div className={styles.reasonsPanel}>
+            {healthReasons.length > 0 ? (
+              <ul>
+                {healthReasons.map((reason) => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>No health issues detected.</p>
+            )}
+          </div>
+        </section>
+
+        <section className={styles.drawerSection}>
+          <h4>Latest Messages</h4>
           <div className={styles.tabRow}>
             {MESSAGE_TABS.map((option) => (
               <button
