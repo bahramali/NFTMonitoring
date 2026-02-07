@@ -156,6 +156,7 @@ export default function Overview() {
     status: parseList(searchParams.get("health")),
   }));
   const [viewMode, setViewMode] = useState(() => searchParams.get("view") ?? "flat");
+  const [sortConfig, setSortConfig] = useState({ key: "health", dir: "asc" });
   const [selectedDeviceKey, setSelectedDeviceKey] = useState("");
   const [viewerPaused, setViewerPaused] = useState(false);
   const [debugOpen, setDebugOpen] = useState(false);
@@ -449,6 +450,45 @@ export default function Overview() {
     });
   }, [devices, nowMs]);
 
+  const resolveSortValue = (entry, key) => {
+    switch (key) {
+      case "health":
+        return HEALTH_STATUS_ORDER.indexOf(entry.health.status);
+      case "device":
+        return entry.deviceId;
+      case "location":
+        return entry.locationLabel;
+      case "lastSeen":
+        return entry.lastSeenMs ?? null;
+      case "msgRate":
+        return entry.msgRate ?? null;
+      case "dataQuality":
+        return entry.dataQuality?.percent ?? null;
+      default:
+        return null;
+    }
+  };
+
+  const compareDefaultOrder = (a, b) => {
+    const statusOrder = HEALTH_STATUS_ORDER;
+    const diff = statusOrder.indexOf(a.health.status) - statusOrder.indexOf(b.health.status);
+    if (diff !== 0) return diff;
+    if (a.lastSeenMs && b.lastSeenMs) return b.lastSeenMs - a.lastSeenMs;
+    if (a.lastSeenMs) return -1;
+    if (b.lastSeenMs) return 1;
+    return String(a.deviceId).localeCompare(String(b.deviceId));
+  };
+
+  const compareValues = (valueA, valueB) => {
+    if (valueA === valueB) return 0;
+    if (valueA === null || valueA === undefined) return 1;
+    if (valueB === null || valueB === undefined) return -1;
+    if (typeof valueA === "number" && typeof valueB === "number") {
+      return valueA - valueB;
+    }
+    return String(valueA).localeCompare(String(valueB));
+  };
+
   const filteredDevices = useMemo(() => {
     const query = search.trim().toLowerCase();
     return derivedDevices
@@ -464,15 +504,14 @@ export default function Overview() {
         return haystack.includes(query);
       })
       .sort((a, b) => {
-        const statusOrder = HEALTH_STATUS_ORDER;
-        const diff = statusOrder.indexOf(a.health.status) - statusOrder.indexOf(b.health.status);
-        if (diff !== 0) return diff;
-        if (a.lastSeenMs && b.lastSeenMs) return b.lastSeenMs - a.lastSeenMs;
-        if (a.lastSeenMs) return -1;
-        if (b.lastSeenMs) return 1;
-        return String(a.deviceId).localeCompare(String(b.deviceId));
+        const valueA = resolveSortValue(a, sortConfig.key);
+        const valueB = resolveSortValue(b, sortConfig.key);
+        const direction = sortConfig.dir === "asc" ? 1 : -1;
+        const primary = compareValues(valueA, valueB);
+        if (primary !== 0) return primary * direction;
+        return compareDefaultOrder(a, b);
       });
-  }, [derivedDevices, filters, search]);
+  }, [derivedDevices, filters, search, sortConfig]);
 
   const groupedDevices = useMemo(() => {
     if (viewMode === "flat") {
@@ -527,6 +566,26 @@ export default function Overview() {
   const endIndex = isVirtualized ? Math.min(filteredDevices.length, startIndex + visibleCount) : filteredDevices.length;
   const topSpacer = isVirtualized ? startIndex * ROW_HEIGHT : 0;
   const bottomSpacer = isVirtualized ? Math.max(0, totalHeight - endIndex * ROW_HEIGHT) : 0;
+
+  const sortColumns = [
+    { key: "health", label: "Health", defaultDir: "asc" },
+    { key: "device", label: "Device", defaultDir: "asc" },
+    { key: "location", label: "Location", defaultDir: "asc" },
+    { key: "lastSeen", label: "Last seen", defaultDir: "desc" },
+    { key: "msgRate", label: "Msg rate", defaultDir: "desc" },
+    { key: "dataQuality", label: "Data quality", defaultDir: "desc" },
+  ];
+
+  const handleSortChange = (key) => {
+    const column = sortColumns.find((item) => item.key === key);
+    if (!column) return;
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return { key, dir: prev.dir === "asc" ? "desc" : "asc" };
+      }
+      return { key, dir: column.defaultDir };
+    });
+  };
 
   return (
     <div className={styles.page}>
@@ -594,12 +653,24 @@ export default function Overview() {
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Health</th>
-                <th>Device</th>
-                <th>Location</th>
-                <th>Last seen</th>
-                <th>Msg rate</th>
-                <th>Data quality</th>
+                {sortColumns.map((column) => (
+                  <th key={column.key}>
+                    <button
+                      type="button"
+                      className={`${styles.sortButton} ${sortConfig.key === column.key ? styles.sortActive : ""}`}
+                      onClick={() => handleSortChange(column.key)}
+                    >
+                      <span>{column.label}</span>
+                      <span
+                        className={`${styles.sortArrow} ${
+                          sortConfig.key === column.key ? styles.sortArrowActive : ""
+                        } ${
+                          sortConfig.key === column.key && sortConfig.dir === "desc" ? styles.sortArrowDesc : ""
+                        }`}
+                      />
+                    </button>
+                  </th>
+                ))}
                 <th>Details</th>
                 <th>Actions</th>
               </tr>
