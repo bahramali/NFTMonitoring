@@ -162,6 +162,41 @@
   vertical-align: top;
 }
 
+.sortButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+
+.sortActive {
+  color: #dbe7ff;
+}
+
+.sortArrow {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid rgba(168, 190, 233, 0.6);
+  opacity: 0.6;
+  transition: transform 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
+}
+
+.sortArrowActive {
+  opacity: 1;
+  border-top-color: #7db2ff;
+}
+
+.sortArrowDesc {
+  transform: rotate(180deg);
+}
+
 .statusBadge {
   display: inline-flex;
   align-items: center;
