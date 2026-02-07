@@ -39,14 +39,17 @@ const TIME_WINDOW_OPTIONS = [
   { label: "24h", value: 24 * 60 * 60 * 1000 },
 ];
 const ROW_HEIGHT = 64;
+const ALL_OPTION = "ALL";
+const HEALTH_FILTER_ORDER = ["ok", "degraded", "critical", "offline"];
 
 const DEFAULT_FILTERS = {
-  farmId: [],
-  unitType: [],
-  unitId: [],
-  layerId: [],
-  kind: [],
-  status: [],
+  farmId: [ALL_OPTION],
+  unitType: [ALL_OPTION],
+  unitId: [ALL_OPTION],
+  layerId: [ALL_OPTION],
+  kind: [ALL_OPTION],
+  status: [ALL_OPTION],
+  messageKind: [ALL_OPTION],
 };
 
 const getTimestampMs = (value) => {
@@ -60,6 +63,34 @@ const normalizeLayerId = (value) => {
   if (value === null || value === undefined || value === "") return "NA";
   return String(value).trim() || "NA";
 };
+
+const normalizeMessageKind = (value) => {
+  const normalized = String(value || "").trim().toLowerCase();
+  return MESSAGE_KIND_OPTIONS.includes(normalized) ? normalized : "telemetry";
+};
+
+const normalizeHealthStatus = (value) => {
+  if (!value) return "offline";
+  const normalized = String(value).trim().toLowerCase();
+  return HEALTH_STATUS_ORDER.includes(normalized) ? normalized : normalized;
+};
+
+const normalizeFilterSelection = (values, normalizer) => {
+  const normalizedValues = Array.from(
+    new Set(
+      values
+        .map((value) => (value === ALL_OPTION || !normalizer ? value : normalizer(value)))
+        .filter(Boolean),
+    ),
+  );
+  if (normalizedValues.length === 0) return [ALL_OPTION];
+  if (normalizedValues.includes(ALL_OPTION) && normalizedValues.length > 1) {
+    return normalizedValues.filter((value) => value !== ALL_OPTION);
+  }
+  return normalizedValues;
+};
+
+const isAllSelected = (values) => !values || values.length === 0 || values.includes(ALL_OPTION);
 
 const formatAbsoluteTime = (timestamp) => {
   if (!timestamp) return "Never";
@@ -98,11 +129,24 @@ const normalizeDevice = (device) => {
     unitId: device?.unitId ?? device?.unit_id ?? "",
     layerId: normalizeLayerId(device?.layerId ?? device?.layer_id ?? ""),
     deviceId: device?.deviceId ?? device?.device_id ?? "",
-    deviceKind: normalizeDeviceKind(device?.deviceKind ?? device?.device_kind ?? device?.kind ?? device?.type),
+    deviceKind: normalizeDeviceKind(
+      device?.deviceType ??
+        device?.device_type ??
+        device?.deviceKind ??
+        device?.device_kind ??
+        device?.kind ??
+        device?.type,
+    ),
     lastSeenMs: getTimestampMs(device?.lastSeen ?? device?.timestamp ?? device?.updatedAt),
     msgTimes: [],
     msgRate: Number.isFinite(device?.msgRate) ? device.msgRate : 0,
-    lastMessageKind: "telemetry",
+    lastMessageKind: normalizeMessageKind(
+      device?.lastSeenKind ??
+        device?.lastMessageKind ??
+        device?.last_message_kind ??
+        device?.messageKind ??
+        device?.message_kind,
+    ),
     payloadError: Boolean(device?.payloadError),
     latestMetrics: extractMetricsFromPayload(device?.metrics ?? device?.sensors ?? device?.data ?? {}),
   };
@@ -241,12 +285,13 @@ export default function Overview() {
 
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
   const [filters, setFilters] = useState(() => ({
-    farmId: parseList(searchParams.get("farm")),
-    unitType: parseList(searchParams.get("unitType")),
-    unitId: parseList(searchParams.get("unitId")),
-    layerId: parseList(searchParams.get("layerId")),
-    kind: parseList(searchParams.get("kind")),
-    status: parseList(searchParams.get("health")),
+    farmId: normalizeFilterSelection(parseList(searchParams.get("farm"))),
+    unitType: normalizeFilterSelection(parseList(searchParams.get("unitType"))),
+    unitId: normalizeFilterSelection(parseList(searchParams.get("unitId"))),
+    layerId: normalizeFilterSelection(parseList(searchParams.get("layerId")).map(normalizeLayerId)),
+    kind: normalizeFilterSelection(parseList(searchParams.get("kind")).map(normalizeDeviceKind)),
+    status: normalizeFilterSelection(parseList(searchParams.get("health")).map(normalizeHealthStatus)),
+    messageKind: normalizeFilterSelection(parseList(searchParams.get("messageKind")).map(normalizeMessageKind)),
   }));
   const [viewMode, setViewMode] = useState(() => searchParams.get("view") ?? "flat");
   const [sortConfig, setSortConfig] = useState({ key: "health", dir: "asc" });
@@ -383,12 +428,13 @@ export default function Overview() {
 
   useEffect(() => {
     const nextFilters = {
-      farmId: parseList(searchParams.get("farm")),
-      unitType: parseList(searchParams.get("unitType")),
-      unitId: parseList(searchParams.get("unitId")),
-      layerId: parseList(searchParams.get("layerId")),
-      kind: parseList(searchParams.get("kind")),
-      status: parseList(searchParams.get("health")),
+      farmId: normalizeFilterSelection(parseList(searchParams.get("farm"))),
+      unitType: normalizeFilterSelection(parseList(searchParams.get("unitType"))),
+      unitId: normalizeFilterSelection(parseList(searchParams.get("unitId"))),
+      layerId: normalizeFilterSelection(parseList(searchParams.get("layerId")).map(normalizeLayerId)),
+      kind: normalizeFilterSelection(parseList(searchParams.get("kind")).map(normalizeDeviceKind)),
+      status: normalizeFilterSelection(parseList(searchParams.get("health")).map(normalizeHealthStatus)),
+      messageKind: normalizeFilterSelection(parseList(searchParams.get("messageKind")).map(normalizeMessageKind)),
     };
     const nextSearch = searchParams.get("q") ?? "";
     const nextView = searchParams.get("view") ?? "flat";
@@ -402,12 +448,13 @@ export default function Overview() {
   useEffect(() => {
     const params = new URLSearchParams();
     if (search) params.set("q", search);
-    if (filters.farmId.length) params.set("farm", filters.farmId.join(","));
-    if (filters.unitType.length) params.set("unitType", filters.unitType.join(","));
-    if (filters.unitId.length) params.set("unitId", filters.unitId.join(","));
-    if (filters.layerId.length) params.set("layerId", filters.layerId.join(","));
-    if (filters.kind.length) params.set("kind", filters.kind.join(","));
-    if (filters.status.length) params.set("health", filters.status.join(","));
+    if (!isAllSelected(filters.farmId)) params.set("farm", filters.farmId.join(","));
+    if (!isAllSelected(filters.unitType)) params.set("unitType", filters.unitType.join(","));
+    if (!isAllSelected(filters.unitId)) params.set("unitId", filters.unitId.join(","));
+    if (!isAllSelected(filters.layerId)) params.set("layerId", filters.layerId.join(","));
+    if (!isAllSelected(filters.kind)) params.set("kind", filters.kind.join(","));
+    if (!isAllSelected(filters.status)) params.set("health", filters.status.join(","));
+    if (!isAllSelected(filters.messageKind)) params.set("messageKind", filters.messageKind.join(","));
     if (viewMode !== "flat") params.set("view", viewMode);
     if (timeWindowMs !== TIME_WINDOW_OPTIONS[0].value) params.set("window", String(timeWindowMs));
     if (params.toString() !== searchParams.toString()) {
@@ -445,7 +492,15 @@ export default function Overview() {
 
       const timestampMs = getTimestampMs(payload.timestamp ?? envelope.timestamp) || Date.now();
       const messageKind = resolveMessageKind(topic, payload.kind ?? envelope.kind);
-      const deviceKind = normalizeDeviceKind(payload.deviceKind ?? payload.device_kind ?? payload.kind ?? envelope.deviceKind);
+      const deviceKind = normalizeDeviceKind(
+        payload.deviceType ??
+          payload.device_type ??
+          payload.deviceKind ??
+          payload.device_kind ??
+          envelope.deviceType ??
+          envelope.device_type ??
+          envelope.deviceKind,
+      );
       const existing = devicesMap.get(key);
       const msgTimes = [...(existing?.msgTimes || []), timestampMs]
         .filter((value) => timestampMs - value <= 60_000)
@@ -531,20 +586,46 @@ export default function Overview() {
   const devices = useMemo(() => Array.from(devicesMap.values()), [devicesMap]);
 
   const farmOptions = useMemo(
-    () => Array.from(new Set(devices.map((entry) => entry.farmId).filter(Boolean))).sort(),
+    () => {
+      const values = Array.from(new Set(devices.map((entry) => entry.farmId).filter(Boolean))).sort();
+      return [ALL_OPTION, ...values];
+    },
     [devices],
   );
   const unitTypeOptions = useMemo(
-    () => Array.from(new Set(devices.map((entry) => entry.unitType).filter(Boolean))).sort(),
+    () => {
+      const values = Array.from(new Set(devices.map((entry) => entry.unitType).filter(Boolean))).sort();
+      return [ALL_OPTION, ...values];
+    },
     [devices],
   );
   const unitIdOptions = useMemo(
-    () => Array.from(new Set(devices.map((entry) => entry.unitId).filter(Boolean))).sort(),
+    () => {
+      const values = Array.from(new Set(devices.map((entry) => entry.unitId).filter(Boolean))).sort();
+      return [ALL_OPTION, ...values];
+    },
     [devices],
   );
   const layerIdOptions = useMemo(
-    () => Array.from(new Set(devices.map((entry) => normalizeLayerId(entry.layerId)))).sort(),
+    () => {
+      const values = new Set(devices.map((entry) => normalizeLayerId(entry.layerId)));
+      values.add("NA");
+      return [ALL_OPTION, ...Array.from(values).sort()];
+    },
     [devices],
+  );
+  const kindOptions = useMemo(() => {
+    const values = new Set(devices.map((entry) => entry.deviceKind).filter(Boolean));
+    DEVICE_KIND_OPTIONS.forEach((value) => values.add(value));
+    return [ALL_OPTION, ...Array.from(values).sort((a, b) => a.localeCompare(b))];
+  }, [devices]);
+  const healthFilterOptions = useMemo(
+    () => [{ value: ALL_OPTION, label: ALL_OPTION }, ...HEALTH_FILTER_ORDER.map((value) => ({ value, label: value.toUpperCase() }))],
+    [],
+  );
+  const messageKindOptions = useMemo(
+    () => [{ value: ALL_OPTION, label: ALL_OPTION }, ...MESSAGE_KIND_OPTIONS.map((value) => ({ value, label: value }))],
+    [],
   );
 
   const derivedDevices = useMemo(() => {
@@ -629,12 +710,25 @@ export default function Overview() {
     const query = search.trim().toLowerCase();
     return derivedDevices
       .filter((entry) => {
-        if (filters.farmId.length && !filters.farmId.includes(entry.farmId)) return false;
-        if (filters.unitType.length && !filters.unitType.includes(entry.unitType)) return false;
-        if (filters.unitId.length && !filters.unitId.includes(entry.unitId)) return false;
-        if (filters.layerId.length && !filters.layerId.includes(normalizeLayerId(entry.layerId))) return false;
-        if (filters.kind.length && !filters.kind.includes(entry.deviceKind)) return false;
-        if (filters.status.length && !filters.status.includes(entry.health.status)) return false;
+        if (!isAllSelected(filters.farmId) && !filters.farmId.includes(entry.farmId)) return false;
+        if (!isAllSelected(filters.unitType) && !filters.unitType.includes(entry.unitType)) return false;
+        if (!isAllSelected(filters.unitId) && !filters.unitId.includes(entry.unitId)) return false;
+        if (
+          !isAllSelected(filters.layerId) &&
+          !filters.layerId.includes(normalizeLayerId(entry.layerId))
+        )
+          return false;
+        if (!isAllSelected(filters.kind) && !filters.kind.includes(entry.deviceKind)) return false;
+        if (
+          !isAllSelected(filters.status) &&
+          !filters.status.includes(normalizeHealthStatus(entry.health.status))
+        )
+          return false;
+        if (
+          !isAllSelected(filters.messageKind) &&
+          !filters.messageKind.includes(normalizeMessageKind(entry.lastMessageKind))
+        )
+          return false;
         if (!query) return true;
         const haystack = `${entry.deviceId} ${entry.locationLabel}`.toLowerCase();
         return haystack.includes(query);
@@ -881,7 +975,7 @@ export default function Overview() {
               onClick={() =>
                 setFilters((prev) => ({
                   ...prev,
-                  status: card.filter ? [card.filter] : [],
+                  status: card.filter ? [card.filter] : [ALL_OPTION],
                 }))
               }
             >
@@ -903,13 +997,27 @@ export default function Overview() {
           search={search}
           onSearch={setSearch}
           filterState={filters}
-          onFilterChange={(field, value) => setFilters((prev) => ({ ...prev, [field]: value }))}
+          onFilterChange={(field, value) =>
+            setFilters((prev) => ({
+              ...prev,
+              [field]: normalizeFilterSelection(
+                value,
+                {
+                  layerId: normalizeLayerId,
+                  kind: normalizeDeviceKind,
+                  status: normalizeHealthStatus,
+                  messageKind: normalizeMessageKind,
+                }[field],
+              ),
+            }))
+          }
           farmOptions={farmOptions}
           unitTypeOptions={unitTypeOptions}
           unitIdOptions={unitIdOptions}
           layerIdOptions={layerIdOptions}
-          kindOptions={DEVICE_KIND_OPTIONS}
-          healthOptions={HEALTH_STATUS_ORDER}
+          kindOptions={kindOptions}
+          healthOptions={healthFilterOptions}
+          messageKindOptions={messageKindOptions}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
         />
