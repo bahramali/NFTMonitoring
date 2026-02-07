@@ -73,6 +73,146 @@ export const computeDataQuality = (metrics, expectedMetrics) => {
   };
 };
 
+export const HEALTH_PRIORITY = ["offline", "critical", "degraded", "ok"];
+
+export const getWorstHealthStatus = (statuses = []) => {
+  if (!Array.isArray(statuses) || statuses.length === 0) return "ok";
+  return statuses.reduce((worst, status) => {
+    const currentIndex = HEALTH_PRIORITY.indexOf(status);
+    const worstIndex = HEALTH_PRIORITY.indexOf(worst);
+    if (currentIndex === -1) return worst;
+    if (worstIndex === -1) return status;
+    return currentIndex < worstIndex ? status : worst;
+  }, "ok");
+};
+
+export const KEY_METRICS_BY_KIND = {
+  TANK: ["ph", "ec", "solutionTemp"],
+  ENV: ["airTemp", "rh", "co2"],
+  GERMINATION: ["airTemp", "rh", "waterTemp", "light"],
+  LAYER: ["airTemp", "rh", "light", "co2"],
+};
+
+export const METRIC_TREND_THRESHOLDS = {
+  airTemp: 0.5,
+  rh: 2,
+  co2: 25,
+  light: 50,
+  ph: 0.1,
+  ec: 0.05,
+  solutionTemp: 0.4,
+  waterTemp: 0.4,
+};
+
+export const getTrendDirection = (delta, threshold) => {
+  if (delta == null || !Number.isFinite(delta)) return "flat";
+  if (delta > threshold) return "up";
+  if (delta < -threshold) return "down";
+  return "flat";
+};
+
+export const computeMetricTrend = ({
+  samples,
+  metricKey,
+  currentValue,
+  nowMs,
+  windowMs,
+  fallbackSamples = 10,
+}) => {
+  const threshold = METRIC_TREND_THRESHOLDS[metricKey] ?? 0.1;
+  if (currentValue == null || !Number.isFinite(currentValue)) {
+    return { delta: null, direction: "flat", threshold, baseline: null };
+  }
+
+  const validSamples = Array.isArray(samples)
+    ? samples.filter((sample) => sample && Number.isFinite(sample.timestamp))
+    : [];
+  const windowStart = nowMs - windowMs;
+
+  const windowBaseline = [...validSamples]
+    .reverse()
+    .find((sample) => sample.timestamp <= windowStart && Number.isFinite(sample.metrics?.[metricKey]));
+
+  let baseline = windowBaseline?.metrics?.[metricKey] ?? null;
+
+  if (baseline == null) {
+    let seen = 0;
+    for (let index = validSamples.length - 1; index >= 0; index -= 1) {
+      const value = validSamples[index]?.metrics?.[metricKey];
+      if (!Number.isFinite(value)) continue;
+      seen += 1;
+      if (seen >= fallbackSamples + 1) {
+        baseline = value;
+        break;
+      }
+    }
+  }
+
+  if (baseline == null) {
+    for (let index = 0; index < validSamples.length; index += 1) {
+      const value = validSamples[index]?.metrics?.[metricKey];
+      if (Number.isFinite(value)) {
+        baseline = value;
+        break;
+      }
+    }
+  }
+
+  if (baseline == null || !Number.isFinite(baseline)) {
+    return { delta: null, direction: "flat", threshold, baseline: null };
+  }
+
+  const delta = currentValue - baseline;
+  return { delta, direction: getTrendDirection(delta, threshold), threshold, baseline };
+};
+
+export const buildHealthReasons = ({
+  health,
+  lastSeenMs,
+  nowMs,
+  msgRate,
+  expectedRate,
+  dataQuality,
+  payloadError,
+}) => {
+  const reasons = [];
+  const secondsAgo = lastSeenMs ? Math.max(0, Math.round((nowMs - lastSeenMs) / 1000)) : null;
+
+  if (!lastSeenMs) {
+    reasons.push("lastSeen: never");
+  } else if (["offline", "critical"].includes(health.status) && health.reason !== "nominal") {
+    if (health.reason === "offline_threshold" || health.reason === "approaching_offline") {
+      reasons.push(`lastSeen stale: ${secondsAgo}s ago`);
+    }
+  }
+
+  if (expectedRate && Number.isFinite(msgRate) && msgRate < expectedRate) {
+    reasons.push(`msgRate low (${msgRate}/min, expected ${expectedRate}/min)`);
+  }
+
+  if (health.reason === "zero_rate") {
+    reasons.push("msgRate stalled at 0/min");
+  }
+
+  const missingMetrics = [
+    ...(dataQuality?.missingCritical ?? []),
+    ...(dataQuality?.missingOptional ?? []),
+  ];
+  if (missingMetrics.length > 0) {
+    reasons.push(`missing metrics: ${missingMetrics.join(", ")}`);
+  }
+
+  if (payloadError) {
+    reasons.push("parse errors detected in recent telemetry");
+  }
+
+  if (reasons.length === 0) {
+    reasons.push("nominal - no health issues detected");
+  }
+
+  return reasons;
+};
+
 export const evaluateDeviceHealth = ({
   nowMs,
   lastSeenMs,
