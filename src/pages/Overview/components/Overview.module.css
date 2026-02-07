@@ -517,6 +517,12 @@
   color: #a8bee9;
 }
 
+.metricEmpty {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #9bb0da;
+}
+
 .trendBadge {
   font-size: 0.85rem;
   font-weight: 700;

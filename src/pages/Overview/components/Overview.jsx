@@ -654,7 +654,12 @@ export default function Overview() {
   const selectedMetricHistory = selectedDeviceKey ? metricBuffers[selectedDeviceKey] || [] : [];
   const keyMetrics = useMemo(() => {
     if (!selectedDevice) return [];
-    return KEY_METRICS_BY_KIND[selectedDevice.deviceKind] || [];
+    const byKind = KEY_METRICS_BY_KIND[selectedDevice.deviceKind];
+    if (byKind && byKind.length) return byKind;
+    const expected = selectedDevice.metricsList?.map((metric) => metric.key).filter(Boolean) || [];
+    if (expected.length) return expected;
+    const latestKeys = Object.keys(selectedDevice.latestMetrics || {});
+    return latestKeys.slice(0, 6);
   }, [selectedDevice]);
   const selectedHealthReasons = useMemo(() => {
     if (!selectedDevice) return [];

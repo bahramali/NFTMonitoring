@@ -173,19 +173,23 @@ export default function DeviceDetailsDrawer({
             </div>
           </div>
           <div className={styles.metricsGrid}>
-            {metrics.map((metric) => (
-              <div key={metric.key} className={styles.metricCard}>
-                <div className={styles.metricHeader}>
-                  <p className={styles.metricLabel}>{getMetricLabel(metric.key)}</p>
-                  <span className={`${styles.trendBadge} ${styles[`trend${metric.trend.direction}`] || ""}`}>
-                    {metric.trend.direction === "up" ? "↑" : metric.trend.direction === "down" ? "↓" : "→"}
-                  </span>
+            {metrics.length ? (
+              metrics.map((metric) => (
+                <div key={metric.key} className={styles.metricCard}>
+                  <div className={styles.metricHeader}>
+                    <p className={styles.metricLabel}>{getMetricLabel(metric.key)}</p>
+                    <span className={`${styles.trendBadge} ${styles[`trend${metric.trend.direction}`] || ""}`}>
+                      {metric.trend.direction === "up" ? "↑" : metric.trend.direction === "down" ? "↓" : "→"}
+                    </span>
+                  </div>
+                  <p className={styles.metricValue}>{formatMetricValue(metric.key, metric.value)}</p>
+                  <p className={styles.metricDelta}>Δ {formatDelta(metric.key, metric.trend.delta)}</p>
+                  <Sparkline points={metric.sparkline} />
                 </div>
-                <p className={styles.metricValue}>{formatMetricValue(metric.key, metric.value)}</p>
-                <p className={styles.metricDelta}>Δ {formatDelta(metric.key, metric.trend.delta)}</p>
-                <Sparkline points={metric.sparkline} />
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className={styles.metricEmpty}>No sensor data available yet.</p>
+            )}
           </div>
         </section>
 
