@@ -193,14 +193,9 @@ export function useStomp(topics, onMessage, opts = {}) {
                     subsRef.current[dest] = client.subscribe(dest, (frame) => {
                         let payload = frame?.body;
                         if (typeof payload === "string") {
-                            const cleaned = payload.replace(/\u0000+$/, "");
-                            const headerSplit = cleaned.indexOf("\n\n");
-                            const candidate =
-                                headerSplit >= 0 && cleaned.startsWith("MESSAGE\n")
-                                    ? cleaned.slice(headerSplit + 2)
-                                    : cleaned;
+                            const cleaned = payload.replace(/\u0000/g, "").trim();
                             try {
-                                payload = JSON.parse(candidate);
+                                payload = JSON.parse(cleaned);
                             } catch {
                                 payload = cleaned;
                             }
