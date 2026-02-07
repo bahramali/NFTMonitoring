@@ -424,6 +424,38 @@
   align-items: flex-end;
 }
 
+.badgeStack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.telemetryBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(110, 150, 210, 0.35);
+  background: rgba(15, 28, 52, 0.5);
+  color: #b6caef;
+}
+
+.telemetryfresh {
+  color: #9ef0bc;
+  border-color: rgba(83, 199, 140, 0.6);
+}
+
+.telemetrystale {
+  color: #ffd699;
+  border-color: rgba(255, 214, 153, 0.6);
+}
+
+.telemetrymissing {
+  color: #ffb3b3;
+  border-color: rgba(255, 179, 179, 0.6);
+}
+
 .drawerSummary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
@@ -499,6 +531,31 @@
   gap: 0.4rem;
 }
 
+.metricIndicators {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.freshnessDot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #7f92ba;
+}
+
+.freshnessfresh {
+  background: #9ef0bc;
+}
+
+.freshnessstale {
+  background: #ffd699;
+}
+
+.freshnessmissing {
+  background: #ffb3b3;
+}
+
 .metricLabel {
   margin: 0;
   font-size: 0.7rem;
@@ -559,6 +616,77 @@
   border-radius: 0.6rem;
   padding: 0.6rem;
   font-size: 0.8rem;
+}
+
+.healthPanel {
+  background: rgba(15, 28, 52, 0.4);
+  border: 1px solid rgba(110, 150, 210, 0.35);
+  border-radius: 0.6rem;
+  padding: 0.6rem;
+  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.healthRow {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1fr) 2fr;
+  gap: 0.6rem;
+  align-items: start;
+}
+
+.healthLabel {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #9bb0da;
+}
+
+.healthChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.healthChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  border: 1px solid rgba(110, 150, 210, 0.35);
+}
+
+.healthChipOk {
+  color: #9ef0bc;
+  border-color: rgba(83, 199, 140, 0.6);
+}
+
+.healthChipFail {
+  color: #ffb3b3;
+  border-color: rgba(255, 179, 179, 0.6);
+}
+
+.healthChipMeta {
+  font-size: 0.65rem;
+  color: #ffb3b3;
+}
+
+.healthMeta {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #b6caef;
+}
+
+.healthAlert {
+  margin: 0.35rem 0 0;
+  color: #ffb3b3;
+}
+
+.healthMuted {
+  margin: 0.35rem 0 0;
+  color: #9bb0da;
 }
 
 .qualityAlert {
