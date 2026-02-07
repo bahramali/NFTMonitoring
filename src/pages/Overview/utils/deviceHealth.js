@@ -1,27 +1,28 @@
 import { DEVICE_HEALTH_CONFIG, METRIC_DEFINITIONS } from "../../../config/deviceMonitoring.js";
 
 const METRIC_ALIASES = {
-  airtemp: "airTempC",
-  airtemperature: "airTempC",
-  atemp: "airTempC",
-  airtempc: "airTempC",
-  airtemp_c: "airTempC",
-  temperature: "airTempC",
-  humidity: "rhPct",
-  rh: "rhPct",
-  rhpct: "rhPct",
-  rh_pct: "rhPct",
-  relativehumidity: "rhPct",
-  light: "lux",
-  lux: "lux",
-  illumination: "lux",
-  co2: "co2Ppm",
-  co2ppm: "co2Ppm",
-  co2_ppm: "co2Ppm",
-  spectra: "spectraCounts",
-  spectral: "spectraCounts",
-  as7343counts: "spectraCounts",
-  as7343_counts: "spectraCounts",
+  airtemp: "airTemp",
+  airtemperature: "airTemp",
+  atemp: "airTemp",
+  airtempc: "airTemp",
+  airtemp_c: "airTemp",
+  air_temp_c: "airTemp",
+  temperature: "airTemp",
+  humidity: "rh",
+  rh: "rh",
+  rhpct: "rh",
+  rh_pct: "rh",
+  relativehumidity: "rh",
+  light: "light",
+  lux: "light",
+  illumination: "light",
+  co2: "co2",
+  co2ppm: "co2",
+  co2_ppm: "co2",
+  spectra: "spectra",
+  spectral: "spectra",
+  as7343counts: "spectra",
+  as7343_counts: "spectra",
   ph: "ph",
   ec: "ec",
   dissolvedec: "ec",
@@ -330,7 +331,7 @@ export const extractMetricsFromPayload = (payload = {}) => {
         const rawValue = entry?.value ?? entry?.avg ?? entry?.average ?? entry?.reading;
         const sanitized = sanitizeKey(rawKey);
         const normalized = METRIC_ALIASES[sanitized] ?? METRIC_ALIASES[sanitizeKey(entry?.sensorName)] ?? null;
-        if (normalized === "spectraCounts") {
+        if (normalized === "spectra") {
           addMetric(metrics, normalized, extractSpectraValue(rawValue));
         } else if (normalized) {
           addMetric(metrics, normalized, extractValue(rawValue));
@@ -344,7 +345,7 @@ export const extractMetricsFromPayload = (payload = {}) => {
       Object.entries(entries).forEach(([rawKey, rawValue]) => {
         const sanitized = sanitizeKey(rawKey);
         const normalized = METRIC_ALIASES[sanitized] ?? null;
-        if (normalized === "spectraCounts") {
+        if (normalized === "spectra") {
           addMetric(metrics, normalized, extractSpectraValue(rawValue));
         } else if (normalized) {
           addMetric(metrics, normalized, extractValue(rawValue));
@@ -362,8 +363,8 @@ export const extractMetricsFromPayload = (payload = {}) => {
   ingestEntries(payload.data);
   ingestEntries(payload);
 
-  if (metrics.spectraCounts == null && spectraCount > 0) {
-    metrics.spectraCounts = spectraCount;
+  if (metrics.spectra == null && spectraCount > 0) {
+    metrics.spectra = spectraCount;
   }
 
   return metrics;
