@@ -6,6 +6,7 @@ const METRIC_ALIASES = {
   atemp: "airTemp",
   airtempc: "airTemp",
   airtemp_c: "airTemp",
+  air_temp_c: "airTemp",
   temperature: "airTemp",
   humidity: "rh",
   rh: "rh",
@@ -18,6 +19,10 @@ const METRIC_ALIASES = {
   co2: "co2",
   co2ppm: "co2",
   co2_ppm: "co2",
+  spectra: "spectra",
+  spectral: "spectra",
+  as7343counts: "spectra",
+  as7343_counts: "spectra",
   ph: "ph",
   ec: "ec",
   dissolvedec: "ec",
@@ -296,6 +301,18 @@ const extractValue = (input) => {
   return null;
 };
 
+const extractSpectraValue = (input) => {
+  if (input == null) return null;
+  if (typeof input === "number") return Number.isFinite(input) ? input : null;
+  if (Array.isArray(input)) return input.length;
+  if (typeof input === "object") return Object.keys(input).length;
+  if (typeof input === "string") {
+    const parsed = Number(input);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
 const addMetric = (metrics, key, value) => {
   if (!key) return;
   if (value == null) return;
@@ -314,7 +331,11 @@ export const extractMetricsFromPayload = (payload = {}) => {
         const rawValue = entry?.value ?? entry?.avg ?? entry?.average ?? entry?.reading;
         const sanitized = sanitizeKey(rawKey);
         const normalized = METRIC_ALIASES[sanitized] ?? METRIC_ALIASES[sanitizeKey(entry?.sensorName)] ?? null;
-        if (normalized) addMetric(metrics, normalized, extractValue(rawValue));
+        if (normalized === "spectra") {
+          addMetric(metrics, normalized, extractSpectraValue(rawValue));
+        } else if (normalized) {
+          addMetric(metrics, normalized, extractValue(rawValue));
+        }
         if (SPECTRAL_MATCHERS.some((matcher) => matcher(rawKey || ""))) spectraCount += 1;
       });
       return;
@@ -324,7 +345,11 @@ export const extractMetricsFromPayload = (payload = {}) => {
       Object.entries(entries).forEach(([rawKey, rawValue]) => {
         const sanitized = sanitizeKey(rawKey);
         const normalized = METRIC_ALIASES[sanitized] ?? null;
-        if (normalized) addMetric(metrics, normalized, extractValue(rawValue));
+        if (normalized === "spectra") {
+          addMetric(metrics, normalized, extractSpectraValue(rawValue));
+        } else if (normalized) {
+          addMetric(metrics, normalized, extractValue(rawValue));
+        }
         if (SPECTRAL_MATCHERS.some((matcher) => matcher(rawKey || ""))) spectraCount += 1;
       });
     }
@@ -336,8 +361,9 @@ export const extractMetricsFromPayload = (payload = {}) => {
   ingestEntries(payload.environment);
   ingestEntries(payload.telemetry);
   ingestEntries(payload.data);
+  ingestEntries(payload);
 
-  if (spectraCount > 0) {
+  if (metrics.spectra == null && spectraCount > 0) {
     metrics.spectra = spectraCount;
   }
 
