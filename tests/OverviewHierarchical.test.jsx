@@ -49,7 +49,7 @@ describe('Overview hierarchical view', () => {
     fireEvent.click(await screen.findByRole('button', { name: /details/i }));
 
     expect(await screen.findByText(/Health reasons/i)).toBeInTheDocument();
-    expect(await screen.findByText(/Key metrics/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Sensor Overview/i)).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: '15m' })).toBeInTheDocument();
     expect((await screen.findAllByText(/Δ/i)).length).toBeGreaterThan(0);
   });
