@@ -216,35 +216,36 @@
 }
 
 .statusOk {
-  color: #9ef0bc;
-  background: rgba(47, 138, 83, 0.3);
+  color: #b7e9c9;
+  background: rgba(47, 138, 83, 0.18);
 }
 
 .statusDegraded {
-  color: #ffd88a;
-  background: rgba(171, 127, 24, 0.35);
+  color: #ffe1a3;
+  background: rgba(171, 127, 24, 0.2);
 }
 
 .statusCritical {
-  color: #ffb3b3;
-  background: rgba(150, 32, 32, 0.35);
+  color: #ffc4c4;
+  background: rgba(150, 32, 32, 0.2);
 }
 
 .statusOffline {
-  color: #d5def3;
-  background: rgba(75, 90, 125, 0.4);
+  color: #d7e0f5;
+  background: rgba(75, 90, 125, 0.25);
 }
 
 .deviceId {
   margin: 0;
   font-weight: 700;
+  color: #f2f6ff;
 }
 
 .deviceSubtext,
 .locationLine {
   margin: 0.2rem 0 0;
-  color: #a8bee9;
-  font-size: 0.75rem;
+  color: #9fb2d7;
+  font-size: 0.7rem;
 }
 
 .rateChip {
@@ -305,9 +306,15 @@
 }
 
 .treeWrap {
+  --tree-indent: 14px;
+  --tree-guide: rgba(106, 135, 188, 0.22);
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  padding: 0.25rem 0 0.5rem;
+  background-image: linear-gradient(to right, var(--tree-guide) 1px, transparent 1px);
+  background-size: var(--tree-indent) 100%;
+  background-position: 0.75rem 0;
 }
 
 .treeEmpty {
@@ -319,10 +326,11 @@
 .treeGroup {
   background: rgba(12, 24, 46, 0.82);
   border-radius: 0.6rem;
-  border-left: 2px solid rgba(120, 156, 210, 0.5);
-  padding: 0.45rem 0.9rem;
-  margin-left: calc(var(--tree-depth) * 18px);
+  border-left: 2px solid rgba(123, 155, 209, 0.65);
+  padding: 0.6rem 1rem;
+  margin-left: calc(var(--tree-depth) * var(--tree-indent));
   position: relative;
+  border-bottom: 1px solid rgba(110, 150, 210, 0.22);
 }
 
 .treeGroupFlash {
@@ -334,11 +342,11 @@
 .treeGroup::before {
   content: "";
   position: absolute;
-  left: 0.4rem;
+  left: 0.55rem;
   top: 0.4rem;
   bottom: 0.4rem;
   width: 1px;
-  background: rgba(120, 156, 210, 0.35);
+  background: rgba(123, 155, 209, 0.35);
 }
 
 .treeDeviceRow {
@@ -351,9 +359,9 @@
 }
 
 .treeLeafBlock {
-  margin-left: calc(var(--tree-depth) * 18px);
-  padding-left: 0.6rem;
-  border-left: 1px dashed rgba(120, 156, 210, 0.4);
+  margin-left: calc(var(--tree-depth) * var(--tree-indent));
+  padding: 0.35rem 0 0.5rem 0.85rem;
+  border-left: 1px dashed rgba(123, 155, 209, 0.35);
 }
 
 .treeLeafScroller {
@@ -366,7 +374,7 @@
 }
 
 .treeDeviceTable {
-  margin: 0.35rem 0 0.75rem;
+  margin: 0.35rem 0 0.9rem;
 }
 
 .treeToggle {
@@ -387,7 +395,7 @@
   height: 0;
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
-  border-top: 7px solid rgba(168, 190, 233, 0.8);
+  border-top: 7px solid rgba(123, 155, 209, 0.85);
   transform: rotate(-90deg);
   transition: transform 0.15s ease;
 }
@@ -398,12 +406,13 @@
 
 .treeLabel {
   font-weight: 600;
+  font-size: 0.9rem;
 }
 
 .treeCounts {
   margin-left: auto;
-  font-size: 0.75rem;
-  color: #b6caef;
+  font-size: 0.72rem;
+  color: #a8bddc;
 }
 
 .groupHeader {
