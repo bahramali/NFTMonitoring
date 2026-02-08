@@ -347,6 +347,117 @@ const flattenTree = (node) => {
   return list;
 };
 
+function VirtualizedDeviceTable({ devices, sortColumns, isDebugAllowed, onSelect, onDebug }) {
+  const [scrollTop, setScrollTop] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(520);
+  const tableScrollRef = useRef(null);
+  const isVirtualized = devices.length > 100;
+  const totalHeight = devices.length * ROW_HEIGHT;
+  const startIndex = isVirtualized ? Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - 5) : 0;
+  const visibleCount = isVirtualized ? Math.ceil(viewportHeight / ROW_HEIGHT) + 10 : devices.length;
+  const endIndex = isVirtualized ? Math.min(devices.length, startIndex + visibleCount) : devices.length;
+  const topSpacer = isVirtualized ? startIndex * ROW_HEIGHT : 0;
+  const bottomSpacer = isVirtualized ? Math.max(0, totalHeight - endIndex * ROW_HEIGHT) : 0;
+
+  useEffect(() => {
+    if (!tableScrollRef.current) return;
+    const handleResize = () => {
+      if (tableScrollRef.current) setViewportHeight(tableScrollRef.current.clientHeight || 520);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const visibleDevices = devices.slice(startIndex, endIndex);
+
+  return (
+    <div
+      className={`${styles.treeLeafScroller} ${isVirtualized ? styles.treeLeafScrollerVirtual : ""}`}
+      ref={tableScrollRef}
+      onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
+    >
+      <table className={`${styles.table} ${styles.treeDeviceTable}`}>
+        <thead>
+          <tr>
+            {sortColumns.map((column) => (
+              <th key={column.key}>{column.label}</th>
+            ))}
+            <th>Details</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {topSpacer ? (
+            <tr className={styles.spacerRow} aria-hidden="true">
+              <td colSpan={8} style={{ height: `${topSpacer}px` }} />
+            </tr>
+          ) : null}
+          {visibleDevices.map((entry) => (
+            <tr key={entry.key} className={styles.treeDeviceRow}>
+              <td>
+                <DeviceStatusBadge status={entry.health.status} />
+              </td>
+              <td>
+                <p className={styles.deviceId}>{entry.deviceId}</p>
+                <p className={styles.deviceSubtext}>{entry.deviceKind}</p>
+              </td>
+              <td>
+                <p className={styles.locationLine}>{entry.locationLabel}</p>
+              </td>
+              <td title={entry.lastSeenAbsolute}>{entry.lastSeenRelative}</td>
+              <td>
+                <span
+                  className={`${styles.rateChip} ${
+                    entry.expectedRate && entry.msgRate < entry.expectedRate * 0.7
+                      ? styles.rateLow
+                      : entry.expectedRate && entry.msgRate < entry.expectedRate
+                        ? styles.rateWarn
+                        : styles.rateOk
+                  }`}
+                >
+                  {entry.msgRate}/min
+                </span>
+              </td>
+              <td>
+                <p className={styles.qualityPercent}>{entry.dataQuality.percent}%</p>
+                {entry.dataQuality.missingCritical.length > 0 || entry.dataQuality.missingOptional.length > 0 ? (
+                  <p className={styles.qualityMissing}>
+                    Missing: {[...entry.dataQuality.missingCritical, ...entry.dataQuality.missingOptional]
+                      .slice(0, 3)
+                      .join(", ")}
+                  </p>
+                ) : (
+                  <p className={styles.qualityMissing}>All expected metrics</p>
+                )}
+              </td>
+              <td>
+                <button type="button" className={styles.primaryButton} onClick={() => onSelect(entry.key)}>
+                  Details
+                </button>
+              </td>
+              <td>
+                {isDebugAllowed ? (
+                  <button type="button" className={styles.secondaryButton} onClick={() => onDebug(entry.key)}>
+                    Debug
+                  </button>
+                ) : (
+                  <span className={styles.mutedText}>—</span>
+                )}
+              </td>
+            </tr>
+          ))}
+          {bottomSpacer ? (
+            <tr className={styles.spacerRow} aria-hidden="true">
+              <td colSpan={8} style={{ height: `${bottomSpacer}px` }} />
+            </tr>
+          ) : null}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function Overview() {
   const { role, roles } = useAuth();
   const [devicesMap, dispatchDevices] = useReducer(devicesReducer, new Map());
@@ -947,6 +1058,23 @@ export default function Overview() {
   const allTreeNodes = useMemo(() => flattenTree(hierarchyTree), [hierarchyTree]);
   const autoExpandedRef = useRef(false);
 
+  useEffect(() => {
+    if (allTreeNodes.length === 0) return;
+    const nodeIds = new Set(allTreeNodes.map((node) => node.id));
+    setTreeExpanded((prev) => {
+      let changed = false;
+      const next = {};
+      Object.entries(prev).forEach(([key, value]) => {
+        if (nodeIds.has(key)) {
+          next[key] = value;
+        } else {
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [allTreeNodes]);
+
   const handleToggleNode = (nodeId) => {
     setTreeExpanded((prev) => ({ ...prev, [nodeId]: !prev[nodeId] }));
   };
@@ -999,80 +1127,16 @@ export default function Overview() {
   }, [buildProblemExpansion, hierarchyTree, treeExpanded, viewMode]);
 
   const renderDeviceTable = (devices) => (
-    <table className={`${styles.table} ${styles.treeDeviceTable}`}>
-      <thead>
-        <tr>
-          {sortColumns.map((column) => (
-            <th key={column.key}>{column.label}</th>
-          ))}
-          <th>Details</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {devices.map((entry) => (
-          <tr key={entry.key} className={styles.treeDeviceRow}>
-            <td>
-              <DeviceStatusBadge status={entry.health.status} />
-            </td>
-            <td>
-              <p className={styles.deviceId}>{entry.deviceId}</p>
-              <p className={styles.deviceSubtext}>{entry.deviceKind}</p>
-            </td>
-            <td>
-              <p className={styles.locationLine}>{entry.locationLabel}</p>
-            </td>
-            <td title={entry.lastSeenAbsolute}>{entry.lastSeenRelative}</td>
-            <td>
-              <span
-                className={`${styles.rateChip} ${
-                  entry.expectedRate && entry.msgRate < entry.expectedRate * 0.7
-                    ? styles.rateLow
-                    : entry.expectedRate && entry.msgRate < entry.expectedRate
-                      ? styles.rateWarn
-                      : styles.rateOk
-                }`}
-              >
-                {entry.msgRate}/min
-              </span>
-            </td>
-            <td>
-              <p className={styles.qualityPercent}>{entry.dataQuality.percent}%</p>
-              {entry.dataQuality.missingCritical.length > 0 || entry.dataQuality.missingOptional.length > 0 ? (
-                <p className={styles.qualityMissing}>
-                  Missing: {[...entry.dataQuality.missingCritical, ...entry.dataQuality.missingOptional]
-                    .slice(0, 3)
-                    .join(", ")}
-                </p>
-              ) : (
-                <p className={styles.qualityMissing}>All expected metrics</p>
-              )}
-            </td>
-            <td>
-              <button type="button" className={styles.primaryButton} onClick={() => setSelectedDeviceKey(entry.key)}>
-                Details
-              </button>
-            </td>
-            <td>
-              {isDebugAllowed ? (
-                <button
-                  type="button"
-                  className={styles.secondaryButton}
-                  onClick={() => {
-                    setSelectedDeviceKey(entry.key);
-                    setDebugOpen(true);
-                  }}
-                >
-                  Debug
-                </button>
-              ) : (
-                <span className={styles.mutedText}>—</span>
-              )}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <VirtualizedDeviceTable
+      devices={devices}
+      sortColumns={sortColumns}
+      isDebugAllowed={isDebugAllowed}
+      onSelect={setSelectedDeviceKey}
+      onDebug={(deviceKey) => {
+        setSelectedDeviceKey(deviceKey);
+        setDebugOpen(true);
+      }}
+    />
   );
 
   const renderTreeRows = (node) =>
