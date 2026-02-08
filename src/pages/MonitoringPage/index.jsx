@@ -4,11 +4,14 @@ import { authFetch, parseApiResponse } from "../../api/http.js";
 import { getMonitoringPageBySlug } from "../../api/monitoringPages.js";
 import { getApiBaseUrl } from "../../config/apiBase.js";
 import Header from "../common/Header";
+import { WS_TOPICS } from "../common/dashboard.constants.js";
+import { useLiveDevices } from "../common/useLiveDevices.js";
 import RackDashboardView from "../RackDashboard/RackDashboardView.jsx";
 import { resolveDeviceSelectionKey } from "../RackDashboard/rackTelemetry.js";
 import styles from "./MonitoringPage.module.css";
 
 const API_BASE = getApiBaseUrl();
+// TODO: confirm telemetry device list endpoint + DTO name for monitoring pages.
 const TELEMETRY_DEVICES_URL = `${API_BASE}/api/telemetry-targets/devices`;
 
 /**
@@ -131,6 +134,32 @@ const resolveDeviceKey = (device) => resolveDeviceSelectionKey(device);
 const resolveDeviceRowKey = (device, index, targetKey) =>
     resolveDeviceSelectionKey(device) || `${targetKey || "target"}-${index}`;
 
+const formatUptime = (uptimeSeconds) => {
+    if (!Number.isFinite(uptimeSeconds)) return null;
+    if (uptimeSeconds < 60) return `${Math.floor(uptimeSeconds)}s`;
+    const minutes = Math.floor(uptimeSeconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(uptimeSeconds / 3600);
+    if (hours < 24) {
+        const remainingMinutes = Math.floor((uptimeSeconds % 3600) / 60);
+        return `${hours}h ${remainingMinutes}m`;
+    }
+    const days = Math.floor(uptimeSeconds / 86400);
+    const remainingHours = Math.floor((uptimeSeconds % 86400) / 3600);
+    return `${days}d ${remainingHours}h`;
+};
+
+const resolveBootSignature = (device) => ({
+    // TODO: confirm boot signature field names from telemetry/device DTOs (bootId/bootTime).
+    bootId: device?.bootId ?? device?.boot_id ?? null,
+    bootTime: device?.bootTime ?? device?.boot_time ?? null,
+});
+
+const resolveLiveUptimeSeconds = (device) => {
+    // TODO: confirm live telemetry uptimeSeconds field location (payload vs extra).
+    return device?.uptimeSeconds ?? device?.extra?.uptimeSeconds ?? null;
+};
+
 export default function MonitoringPage() {
     const { slug } = useParams();
     const normalizedSlug = useMemo(() => String(slug ?? "").trim(), [slug]);
@@ -149,12 +178,49 @@ export default function MonitoringPage() {
     const [devices, setDevices] = useState([]);
     const [devicesLoading, setDevicesLoading] = useState(false);
     const [devicesError, setDevicesError] = useState("");
+    const [commandToken, setCommandToken] = useState(() => {
+        try {
+            return window.localStorage.getItem("monitoringCommandToken") || "";
+        } catch {
+            return "";
+        }
+    });
+    const [resetStateByDevice, setResetStateByDevice] = useState({});
+    const [resettingDevices, setResettingDevices] = useState(() => new Set());
+    const [toastMessage, setToastMessage] = useState("");
     // English comment: Local-only selection (no persistence).
     const [selectedDeviceIds, setSelectedDeviceIds] = useState(() => new Set());
     const missingTarget = Boolean(
         (!target.farm || !target.unitType || !target.unitId) && !pageLoading && !pageNotFound && !pageError,
     );
     const targetKey = useMemo(() => buildTargetKey(target), [target]);
+    const liveScope = useMemo(
+        () => ({
+            farmId: target.farm,
+            unitType: target.unitType,
+            unitId: target.unitId,
+            // TODO: confirm if subUnitId maps to layerId for live telemetry scoping.
+            layerId: target.subUnitId,
+        }),
+        [target],
+    );
+    const { mergedDevices } = useLiveDevices(WS_TOPICS, { scope: liveScope });
+
+    useEffect(() => {
+        if (!toastMessage) return undefined;
+        const timeout = window.setTimeout(() => {
+            setToastMessage("");
+        }, 3500);
+        return () => window.clearTimeout(timeout);
+    }, [toastMessage]);
+
+    useEffect(() => {
+        try {
+            window.localStorage.setItem("monitoringCommandToken", commandToken);
+        } catch {
+            // Ignore storage write failures.
+        }
+    }, [commandToken]);
 
     useEffect(() => {
         if (!normalizedSlug) {
@@ -293,6 +359,160 @@ export default function MonitoringPage() {
     };
     const clearAllDevices = () => setSelectedDeviceIds(new Set());
 
+    useEffect(() => {
+        if (!mergedDevices || devices.length === 0) return;
+        setDevices((prev) => {
+            let changed = false;
+            const next = prev.map((device) => {
+                const key = resolveDeviceKey(device);
+                if (!key) return device;
+                const live = mergedDevices[key];
+                if (!live) return device;
+                const liveUptimeSeconds = resolveLiveUptimeSeconds(live);
+                const liveBoot = resolveBootSignature(live?.extra || live);
+                let updated = device;
+                if (liveUptimeSeconds !== null && liveUptimeSeconds !== device?.uptimeSeconds) {
+                    updated = { ...updated, uptimeSeconds: liveUptimeSeconds };
+                    changed = true;
+                }
+                if (liveBoot.bootId !== null && liveBoot.bootId !== device?.bootId) {
+                    updated = { ...updated, bootId: liveBoot.bootId };
+                    changed = true;
+                }
+                if (liveBoot.bootTime !== null && liveBoot.bootTime !== device?.bootTime) {
+                    updated = { ...updated, bootTime: liveBoot.bootTime };
+                    changed = true;
+                }
+                return updated;
+            });
+            return changed ? next : prev;
+        });
+    }, [devices, mergedDevices]);
+
+    useEffect(() => {
+        if (!mergedDevices) return;
+        setResetStateByDevice((prev) => {
+            let changed = false;
+            const next = { ...prev };
+            Object.entries(prev).forEach(([deviceKey, state]) => {
+                if (state?.status !== "requested") return;
+                const live = mergedDevices[deviceKey];
+                if (!live) return;
+                const liveBoot = resolveBootSignature(live?.extra || live);
+                const hasLiveBoot = liveBoot.bootId !== null || liveBoot.bootTime !== null;
+                if (!hasLiveBoot) return;
+                const bootIdChanged =
+                    liveBoot.bootId !== null && liveBoot.bootId !== state?.bootId;
+                const bootTimeChanged =
+                    liveBoot.bootTime !== null && liveBoot.bootTime !== state?.bootTime;
+                if (bootIdChanged || bootTimeChanged) {
+                    next[deviceKey] = { ...state, status: "" };
+                    changed = true;
+                }
+            });
+            return changed ? next : prev;
+        });
+    }, [mergedDevices]);
+
+    useEffect(() => {
+        if (!commandToken.trim()) return;
+        setResetStateByDevice((prev) => {
+            let changed = false;
+            const next = { ...prev };
+            Object.entries(prev).forEach(([deviceKey, state]) => {
+                if (state?.error !== "Token required") return;
+                next[deviceKey] = { ...state, error: "" };
+                changed = true;
+            });
+            return changed ? next : prev;
+        });
+    }, [commandToken]);
+
+    const handleResetClick = async (device, index) => {
+        const deviceKey = resolveDeviceKey(device);
+        if (!deviceKey) return;
+        const trimmedToken = commandToken.trim();
+        if (!trimmedToken) {
+            setResetStateByDevice((prev) => ({
+                ...prev,
+                [deviceKey]: { ...prev[deviceKey], error: "Token required" },
+            }));
+            return;
+        }
+        const deviceLabel = resolveDeviceLabel(device, index);
+        const shouldProceed = window.confirm(`Reset device ${deviceLabel}?`);
+        if (!shouldProceed) return;
+
+        // TODO: confirm device reset endpoint and device id field from monitoring device DTO.
+        // TODO: confirm command transport (MQTT topic/QoS/client) if reset should route elsewhere.
+        const deviceId = device?.deviceId ?? device?.id ?? null;
+        if (!deviceId) {
+            setResetStateByDevice((prev) => ({
+                ...prev,
+                [deviceKey]: { ...prev[deviceKey], error: "Device ID missing" },
+            }));
+            return;
+        }
+
+        const currentBoot = resolveBootSignature(mergedDevices?.[deviceKey]?.extra || device);
+
+        setResettingDevices((prev) => new Set(prev).add(deviceKey));
+        setResetStateByDevice((prev) => ({
+            ...prev,
+            [deviceKey]: { ...prev[deviceKey], error: "" },
+        }));
+
+        try {
+            const response = await fetch(
+                `${API_BASE}/api/devices/${encodeURIComponent(deviceId)}/reset`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${trimmedToken}`,
+                    },
+                },
+            );
+
+            if (response.status === 401) {
+                setResetStateByDevice((prev) => ({
+                    ...prev,
+                    [deviceKey]: { ...prev[deviceKey], error: "Unauthorized (invalid token)" },
+                }));
+                return;
+            }
+
+            if (!response.ok) {
+                setResetStateByDevice((prev) => ({
+                    ...prev,
+                    [deviceKey]: { ...prev[deviceKey], error: "Unable to request reset" },
+                }));
+                return;
+            }
+
+            setToastMessage("Reset requested");
+            setResetStateByDevice((prev) => ({
+                ...prev,
+                [deviceKey]: {
+                    status: "requested",
+                    error: "",
+                    bootId: currentBoot.bootId,
+                    bootTime: currentBoot.bootTime,
+                },
+            }));
+        } catch {
+            setResetStateByDevice((prev) => ({
+                ...prev,
+                [deviceKey]: { ...prev[deviceKey], error: "Unable to request reset" },
+            }));
+        } finally {
+            setResettingDevices((prev) => {
+                const next = new Set(prev);
+                next.delete(deviceKey);
+                return next;
+            });
+        }
+    };
+
     const title = resolvePageTitle(pageData);
 
     return (
@@ -338,6 +558,17 @@ export default function MonitoringPage() {
                 <div className={styles.sectionHeader}>
                     <h2 className={styles.sectionTitle}>Devices</h2>
                     <div className={styles.sectionActions}>
+                        <label className={styles.tokenField}>
+                            <span className={styles.tokenLabel}>Command token</span>
+                            <input
+                                type="password"
+                                className={styles.tokenInput}
+                                placeholder="PASTE_TOKEN_HERE"
+                                value={commandToken}
+                                onChange={(event) => setCommandToken(event.target.value)}
+                                autoComplete="off"
+                            />
+                        </label>
                         <span className={styles.sectionMeta}>{devices.length} total</span>
                         <button
                             type="button"
@@ -372,31 +603,73 @@ export default function MonitoringPage() {
                     <p className={styles.statusMessage}>No devices found for this target.</p>
                 )}
                 {!devicesLoading && !devicesError && devices.length > 0 && (
-                    <ul className={styles.deviceList}>
-                        {devices.map((device, index) => {
-                            const selectionId = resolveDeviceKey(device);
-                            const id = resolveDeviceRowKey(device, index, targetKey);
-                            const checked = selectionId ? selectedDeviceIds.has(selectionId) : false;
+                    <>
+                        {toastMessage ? (
+                            <div className={styles.toast} role="status" aria-live="polite">
+                                {toastMessage}
+                            </div>
+                        ) : null}
+                        <div className={styles.deviceHeader}>
+                            <span className={styles.deviceHeaderLabel}>Device</span>
+                            <span className={styles.deviceHeaderLabel}>Type</span>
+                            <span className={styles.deviceHeaderLabel}>Uptime</span>
+                            <span className={styles.deviceHeaderLabel}>Reset</span>
+                        </div>
+                        <ul className={styles.deviceList}>
+                            {devices.map((device, index) => {
+                                const selectionId = resolveDeviceKey(device);
+                                const id = resolveDeviceRowKey(device, index, targetKey);
+                                const checked = selectionId ? selectedDeviceIds.has(selectionId) : false;
+                                const uptimeLabel = formatUptime(device?.uptimeSeconds);
+                                const resetState = selectionId ? resetStateByDevice[selectionId] : null;
+                                const isResetting = selectionId ? resettingDevices.has(selectionId) : false;
 
-                            return (
-                                <li key={id} className={styles.deviceItem}>
-                                    <label className={styles.deviceRow}>
-                                        <input
-                                            type="checkbox"
-                                            className={styles.deviceCheckbox}
-                                            checked={checked}
-                                            onChange={() => toggleDeviceSelection(selectionId)}
-                                            disabled={!selectionId}
-                                        />
-                                        <span className={styles.deviceName}>{resolveDeviceLabel(device, index)}</span>
-                                        <span className={styles.deviceMeta}>
-                                            {device?.type || device?.model || device?.category || "Device"}
-                                        </span>
-                                    </label>
-                                </li>
-                            );
-                        })}
-                    </ul>
+                                return (
+                                    <li key={id} className={styles.deviceItem}>
+                                        <div className={styles.deviceRow}>
+                                            <label className={styles.deviceIdentity}>
+                                                <input
+                                                    type="checkbox"
+                                                    className={styles.deviceCheckbox}
+                                                    checked={checked}
+                                                    onChange={() => toggleDeviceSelection(selectionId)}
+                                                    disabled={!selectionId}
+                                                />
+                                                <span className={styles.deviceName}>
+                                                    {resolveDeviceLabel(device, index)}
+                                                </span>
+                                            </label>
+                                            <span className={styles.deviceMeta}>
+                                                {device?.type || device?.model || device?.category || "Device"}
+                                            </span>
+                                            <span
+                                                className={styles.deviceUptime}
+                                                title={uptimeLabel ? undefined : "Uptime unknown"}
+                                            >
+                                                {uptimeLabel || "—"}
+                                            </span>
+                                            <div className={styles.resetColumn}>
+                                                <button
+                                                    type="button"
+                                                    className={styles.resetButton}
+                                                    onClick={() => handleResetClick(device, index)}
+                                                    disabled={isResetting}
+                                                >
+                                                    {isResetting ? "Resetting..." : "Reset"}
+                                                </button>
+                                                {resetState?.status === "requested" ? (
+                                                    <span className={styles.resetRequested}>Reset requested</span>
+                                                ) : null}
+                                            </div>
+                                        </div>
+                                        {resetState?.error ? (
+                                            <div className={styles.resetError}>{resetState.error}</div>
+                                        ) : null}
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </>
                 )}
             </section>
 
