@@ -1,4 +1,10 @@
 const REQUIRED_FIELDS = ["farmId", "unitType", "unitId", "deviceId"];
+const DEVICE_KIND_MAP = {
+  TNK: "TANK",
+  LYR: "LAYER",
+  GRM: "GERMINATION",
+  ENV: "ENV",
+};
 
 export const normalizeUnitType = (value) => {
   if (!value && value !== 0) return "";
@@ -10,7 +16,18 @@ export const normalizeIdValue = (value) => {
   return String(value).trim();
 };
 
-export const buildDeviceKey = ({ farmId, unitType, unitId, layerId, deviceId } = {}) => {
+export const normalizeLayerId = (value) => {
+  if (value === null || value === undefined || value === "") return "NA";
+  return String(value).trim() || "NA";
+};
+
+export const normalizeDeviceType = (value) => {
+  if (!value) return "UNKNOWN";
+  const upper = String(value).trim().toUpperCase();
+  return DEVICE_KIND_MAP[upper] || upper || "UNKNOWN";
+};
+
+export const buildDeviceKey = ({ farmId, unitType, unitId, layerId, deviceId, deviceType, deviceKind, kind } = {}) => {
   const normalizedFarm = normalizeIdValue(farmId);
   const normalizedType = normalizeUnitType(unitType);
   const normalizedUnit = normalizeIdValue(unitId);
@@ -18,8 +35,9 @@ export const buildDeviceKey = ({ farmId, unitType, unitId, layerId, deviceId } =
   if (!normalizedFarm || !normalizedType || !normalizedUnit || !normalizedDevice) {
     return null;
   }
-  const normalizedLayer = layerId === null || layerId === undefined ? "" : normalizeIdValue(layerId);
-  return `${normalizedFarm}|${normalizedType}|${normalizedUnit}|${normalizedLayer}|${normalizedDevice}`;
+  const normalizedLayer = normalizeLayerId(layerId);
+  const normalizedDeviceType = normalizeDeviceType(deviceType ?? deviceKind ?? kind);
+  return `${normalizedFarm}|${normalizedType}|${normalizedUnit}|${normalizedLayer}|${normalizedDeviceType}|${normalizedDevice}`;
 };
 
 export const resolveIdentity = (payload = {}, envelope = {}) => {
@@ -47,6 +65,18 @@ export const resolveIdentity = (payload = {}, envelope = {}) => {
     envelope.layerId ??
     envelope.layer_id ??
     null;
+  const deviceType =
+    payload.deviceType ??
+    payload.device_type ??
+    envelope.deviceType ??
+    envelope.device_type ??
+    null;
+  const deviceKind =
+    payload.deviceKind ??
+    payload.device_kind ??
+    envelope.deviceKind ??
+    envelope.device_kind ??
+    null;
   const deviceId =
     payload.deviceId ??
     payload.device_id ??
@@ -59,6 +89,8 @@ export const resolveIdentity = (payload = {}, envelope = {}) => {
     unitType,
     unitId,
     layerId,
+    deviceType,
+    deviceKind,
     deviceId,
     kind: payload.kind ?? envelope.kind ?? null,
   };
@@ -83,6 +115,7 @@ export const describeIdentity = (identity = {}) => ({
   unitType: normalizeUnitType(identity.unitType) || null,
   unitId: normalizeIdValue(identity.unitId) || null,
   layerId: identity.layerId === null || identity.layerId === undefined ? null : normalizeIdValue(identity.layerId),
+  deviceType: normalizeDeviceType(identity.deviceType || identity.deviceKind || identity.kind) || null,
   deviceId: normalizeIdValue(identity.deviceId) || null,
   kind: identity.kind ?? null,
 });
