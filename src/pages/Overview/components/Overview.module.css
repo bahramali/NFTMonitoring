@@ -345,6 +345,15 @@
   border-left: 1px dashed rgba(120, 156, 210, 0.4);
 }
 
+.treeLeafScroller {
+  width: 100%;
+}
+
+.treeLeafScrollerVirtual {
+  max-height: 520px;
+  overflow: auto;
+}
+
 .treeDeviceTable {
   margin: 0.35rem 0 0.75rem;
 }
