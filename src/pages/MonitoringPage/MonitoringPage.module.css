@@ -110,10 +110,11 @@
 }
 
 .deviceRow {
-    display: flex;
+    display: grid;
     align-items: center;
     gap: 0.75rem;
     width: 100%;
+    grid-template-columns: minmax(180px, 1.4fr) minmax(120px, 0.7fr) minmax(90px, 0.5fr) minmax(130px, 0.8fr);
 }
 
 .deviceCheckbox {
@@ -130,12 +131,113 @@
 .deviceName {
     font-weight: 600;
     color: #f6f8ff;
-    flex: 1;
 }
 
 .deviceMeta {
     font-size: 0.85rem;
     color: #9fb7ff;
+}
+
+.deviceHeader {
+    display: grid;
+    grid-template-columns: minmax(180px, 1.4fr) minmax(120px, 0.7fr) minmax(90px, 0.5fr) minmax(130px, 0.8fr);
+    gap: 0.75rem;
+    padding: 0 0.25rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #8faeff;
+}
+
+.deviceHeaderLabel {
+    font-weight: 700;
+}
+
+.deviceIdentity {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.deviceUptime {
+    font-variant-numeric: tabular-nums;
+    color: #f0f4ff;
+}
+
+.resetColumn {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.resetButton {
+    align-self: flex-start;
+    background: rgba(41, 62, 110, 0.85);
+    border: 1px solid rgba(138, 176, 255, 0.6);
+    color: #e6edff;
+    border-radius: 999px;
+    padding: 0.3rem 0.9rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.resetButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.resetButton:not(:disabled):hover {
+    background: rgba(60, 88, 150, 0.9);
+}
+
+.resetRequested {
+    font-size: 0.75rem;
+    color: #9fb7ff;
+}
+
+.resetError {
+    margin-top: 0.45rem;
+    color: #ffb1b1;
+    font-size: 0.8rem;
+}
+
+.tokenField {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.tokenLabel {
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #8faeff;
+    font-weight: 700;
+}
+
+.tokenInput {
+    min-width: 220px;
+    padding: 0.4rem 0.65rem;
+    border-radius: 0.6rem;
+    border: 1px solid rgba(92, 130, 204, 0.55);
+    background: rgba(12, 22, 42, 0.9);
+    color: #f6f8ff;
+    font-size: 0.85rem;
+}
+
+.tokenInput::placeholder {
+    color: rgba(159, 183, 255, 0.7);
+}
+
+.toast {
+    border-radius: 0.75rem;
+    background: rgba(20, 48, 90, 0.9);
+    border: 1px solid rgba(130, 180, 255, 0.55);
+    padding: 0.6rem 0.85rem;
+    color: #d7e6ff;
+    font-size: 0.85rem;
 }
 
 .warningBox {
