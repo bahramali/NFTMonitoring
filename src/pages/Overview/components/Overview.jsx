@@ -903,25 +903,102 @@ export default function Overview() {
     setTreeExpanded(collapsed);
   };
 
+  const renderDeviceTable = (devices) => (
+    <table className={`${styles.table} ${styles.treeDeviceTable}`}>
+      <thead>
+        <tr>
+          {sortColumns.map((column) => (
+            <th key={column.key}>{column.label}</th>
+          ))}
+          <th>Details</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {devices.map((entry) => (
+          <tr key={entry.key} className={styles.treeDeviceRow}>
+            <td>
+              <DeviceStatusBadge status={entry.health.status} />
+            </td>
+            <td>
+              <p className={styles.deviceId}>{entry.deviceId}</p>
+              <p className={styles.deviceSubtext}>{entry.deviceKind}</p>
+            </td>
+            <td>
+              <p className={styles.locationLine}>{entry.locationLabel}</p>
+            </td>
+            <td title={entry.lastSeenAbsolute}>{entry.lastSeenRelative}</td>
+            <td>
+              <span
+                className={`${styles.rateChip} ${
+                  entry.expectedRate && entry.msgRate < entry.expectedRate * 0.7
+                    ? styles.rateLow
+                    : entry.expectedRate && entry.msgRate < entry.expectedRate
+                      ? styles.rateWarn
+                      : styles.rateOk
+                }`}
+              >
+                {entry.msgRate}/min
+              </span>
+            </td>
+            <td>
+              <p className={styles.qualityPercent}>{entry.dataQuality.percent}%</p>
+              {entry.dataQuality.missingCritical.length > 0 || entry.dataQuality.missingOptional.length > 0 ? (
+                <p className={styles.qualityMissing}>
+                  Missing: {[...entry.dataQuality.missingCritical, ...entry.dataQuality.missingOptional]
+                    .slice(0, 3)
+                    .join(", ")}
+                </p>
+              ) : (
+                <p className={styles.qualityMissing}>All expected metrics</p>
+              )}
+            </td>
+            <td>
+              <button type="button" className={styles.primaryButton} onClick={() => setSelectedDeviceKey(entry.key)}>
+                Details
+              </button>
+            </td>
+            <td>
+              {isDebugAllowed ? (
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => {
+                    setSelectedDeviceKey(entry.key);
+                    setDebugOpen(true);
+                  }}
+                >
+                  Debug
+                </button>
+              ) : (
+                <span className={styles.mutedText}>—</span>
+              )}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
   const renderTreeRows = (node) =>
     node.children.flatMap((child) => {
       const { counts, worst } = aggregateTreeCounts(child);
       const isExpanded = treeExpanded[child.id] ?? child.level === "farm";
       const rows = [
-        <tr key={child.id} className={styles.treeRow}>
-          <td colSpan={8}>
-            <button type="button" className={styles.treeToggle} onClick={() => handleToggleNode(child.id)}>
-              <span className={`${styles.treeChevron} ${isExpanded ? styles.treeChevronOpen : ""}`} />
-              <span className={styles.treeLabel} style={{ paddingLeft: `${child.depth * 18}px` }}>
-                {child.label}
-              </span>
-              <DeviceStatusBadge status={worst} />
-              <span className={styles.treeCounts}>
-                OK {counts.ok} • Degraded {counts.degraded} • Critical {counts.critical} • Offline {counts.offline}
-              </span>
-            </button>
-          </td>
-        </tr>,
+        <div
+          key={`${child.id}-group`}
+          className={styles.treeGroup}
+          style={{ "--tree-depth": child.depth }}
+        >
+          <button type="button" className={styles.treeToggle} onClick={() => handleToggleNode(child.id)}>
+            <span className={`${styles.treeChevron} ${isExpanded ? styles.treeChevronOpen : ""}`} />
+            <span className={styles.treeLabel}>{child.label}</span>
+            <DeviceStatusBadge status={worst} />
+            <span className={styles.treeCounts}>
+              OK {counts.ok} • Degraded {counts.degraded} • Critical {counts.critical} • Offline {counts.offline}
+            </span>
+          </button>
+        </div>,
       ];
 
       if (isExpanded) {
@@ -929,71 +1006,13 @@ export default function Overview() {
           rows.push(...renderTreeRows(child));
         } else {
           rows.push(
-            ...child.devices.map((entry) => (
-              <tr key={entry.key} className={styles.treeDeviceRow}>
-                <td>
-                  <DeviceStatusBadge status={entry.health.status} />
-                </td>
-                <td>
-                  <p className={styles.deviceId}>{entry.deviceId}</p>
-                  <p className={styles.deviceSubtext}>{entry.deviceKind}</p>
-                </td>
-                <td>
-                  <p className={styles.locationLine}>{entry.locationLabel}</p>
-                </td>
-                <td title={entry.lastSeenAbsolute}>{entry.lastSeenRelative}</td>
-                <td>
-                  <span
-                    className={`${styles.rateChip} ${
-                      entry.expectedRate && entry.msgRate < entry.expectedRate * 0.7
-                        ? styles.rateLow
-                        : entry.expectedRate && entry.msgRate < entry.expectedRate
-                          ? styles.rateWarn
-                          : styles.rateOk
-                    }`}
-                  >
-                    {entry.msgRate}/min
-                  </span>
-                </td>
-                <td>
-                  <p className={styles.qualityPercent}>{entry.dataQuality.percent}%</p>
-                  {entry.dataQuality.missingCritical.length > 0 || entry.dataQuality.missingOptional.length > 0 ? (
-                    <p className={styles.qualityMissing}>
-                      Missing: {[...entry.dataQuality.missingCritical, ...entry.dataQuality.missingOptional]
-                        .slice(0, 3)
-                        .join(", ")}
-                    </p>
-                  ) : (
-                    <p className={styles.qualityMissing}>All expected metrics</p>
-                  )}
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    className={styles.primaryButton}
-                    onClick={() => setSelectedDeviceKey(entry.key)}
-                  >
-                    Details
-                  </button>
-                </td>
-                <td>
-                  {isDebugAllowed ? (
-                    <button
-                      type="button"
-                      className={styles.secondaryButton}
-                      onClick={() => {
-                        setSelectedDeviceKey(entry.key);
-                        setDebugOpen(true);
-                      }}
-                    >
-                      Debug
-                    </button>
-                  ) : (
-                    <span className={styles.mutedText}>—</span>
-                  )}
-                </td>
-              </tr>
-            )),
+            <div
+              key={`${child.id}-devices`}
+              className={styles.treeLeafBlock}
+              style={{ "--tree-depth": child.depth + 1 }}
+            >
+              {renderDeviceTable(child.devices)}
+            </div>,
           );
         }
       }
@@ -1090,128 +1109,137 @@ export default function Overview() {
           ref={tableWrapRef}
           onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
         >
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                {sortColumns.map((column) => (
-                  <th key={column.key}>
-                    <button
-                      type="button"
-                      className={`${styles.sortButton} ${sortConfig.key === column.key ? styles.sortActive : ""}`}
-                      onClick={() => handleSortChange(column.key)}
-                    >
-                      <span>{column.label}</span>
-                      <span
-                        className={`${styles.sortArrow} ${
-                          sortConfig.key === column.key ? styles.sortArrowActive : ""
-                        } ${
-                          sortConfig.key === column.key && sortConfig.dir === "desc" ? styles.sortArrowDesc : ""
-                        }`}
-                      />
-                    </button>
-                  </th>
-                ))}
-                <th>Details</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            {loading ? (
-              <tbody>
+          {viewMode === "flat" ? (
+            <table className={styles.table}>
+              <thead>
                 <tr>
-                  <td colSpan={8}>Loading devices...</td>
-                </tr>
-              </tbody>
-            ) : null}
-            {!loading && filteredDevices.length === 0 ? (
-              <tbody>
-                <tr>
-                  <td colSpan={8}>No devices found.</td>
-                </tr>
-              </tbody>
-            ) : null}
-            {!loading && filteredDevices.length > 0 && viewMode === "flat" ? (
-              <tbody>
-                {topSpacer ? (
-                  <tr className={styles.spacerRow} aria-hidden="true">
-                    <td colSpan={8} style={{ height: `${topSpacer}px` }} />
-                  </tr>
-                ) : null}
-                {filteredDevices.slice(startIndex, endIndex).map((entry) => (
-                  <tr key={entry.key}>
-                    <td>
-                      <DeviceStatusBadge status={entry.health.status} />
-                    </td>
-                    <td>
-                      <p className={styles.deviceId}>{entry.deviceId}</p>
-                      <p className={styles.deviceSubtext}>{entry.deviceKind}</p>
-                    </td>
-                    <td>
-                      <p className={styles.locationLine}>{entry.locationLabel}</p>
-                    </td>
-                    <td title={entry.lastSeenAbsolute}>{entry.lastSeenRelative}</td>
-                    <td>
-                      <span
-                        className={`${styles.rateChip} ${
-                          entry.expectedRate && entry.msgRate < entry.expectedRate * 0.7
-                            ? styles.rateLow
-                            : entry.expectedRate && entry.msgRate < entry.expectedRate
-                              ? styles.rateWarn
-                              : styles.rateOk
-                        }`}
-                      >
-                        {entry.msgRate}/min
-                      </span>
-                    </td>
-                    <td>
-                      <p className={styles.qualityPercent}>{entry.dataQuality.percent}%</p>
-                      {entry.dataQuality.missingCritical.length > 0 || entry.dataQuality.missingOptional.length > 0 ? (
-                        <p className={styles.qualityMissing}>
-                          Missing: {[...entry.dataQuality.missingCritical, ...entry.dataQuality.missingOptional]
-                            .slice(0, 3)
-                            .join(", ")}
-                        </p>
-                      ) : (
-                        <p className={styles.qualityMissing}>All expected metrics</p>
-                      )}
-                    </td>
-                    <td>
+                  {sortColumns.map((column) => (
+                    <th key={column.key}>
                       <button
                         type="button"
-                        className={styles.primaryButton}
-                        onClick={() => setSelectedDeviceKey(entry.key)}
+                        className={`${styles.sortButton} ${sortConfig.key === column.key ? styles.sortActive : ""}`}
+                        onClick={() => handleSortChange(column.key)}
                       >
-                        Details
+                        <span>{column.label}</span>
+                        <span
+                          className={`${styles.sortArrow} ${
+                            sortConfig.key === column.key ? styles.sortArrowActive : ""
+                          } ${
+                            sortConfig.key === column.key && sortConfig.dir === "desc" ? styles.sortArrowDesc : ""
+                          }`}
+                        />
                       </button>
-                    </td>
-                    <td>
-                      {isDebugAllowed ? (
+                    </th>
+                  ))}
+                  <th>Details</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              {loading ? (
+                <tbody>
+                  <tr>
+                    <td colSpan={8}>Loading devices...</td>
+                  </tr>
+                </tbody>
+              ) : null}
+              {!loading && filteredDevices.length === 0 ? (
+                <tbody>
+                  <tr>
+                    <td colSpan={8}>No devices found.</td>
+                  </tr>
+                </tbody>
+              ) : null}
+              {!loading && filteredDevices.length > 0 ? (
+                <tbody>
+                  {topSpacer ? (
+                    <tr className={styles.spacerRow} aria-hidden="true">
+                      <td colSpan={8} style={{ height: `${topSpacer}px` }} />
+                    </tr>
+                  ) : null}
+                  {filteredDevices.slice(startIndex, endIndex).map((entry) => (
+                    <tr key={entry.key}>
+                      <td>
+                        <DeviceStatusBadge status={entry.health.status} />
+                      </td>
+                      <td>
+                        <p className={styles.deviceId}>{entry.deviceId}</p>
+                        <p className={styles.deviceSubtext}>{entry.deviceKind}</p>
+                      </td>
+                      <td>
+                        <p className={styles.locationLine}>{entry.locationLabel}</p>
+                      </td>
+                      <td title={entry.lastSeenAbsolute}>{entry.lastSeenRelative}</td>
+                      <td>
+                        <span
+                          className={`${styles.rateChip} ${
+                            entry.expectedRate && entry.msgRate < entry.expectedRate * 0.7
+                              ? styles.rateLow
+                              : entry.expectedRate && entry.msgRate < entry.expectedRate
+                                ? styles.rateWarn
+                                : styles.rateOk
+                          }`}
+                        >
+                          {entry.msgRate}/min
+                        </span>
+                      </td>
+                      <td>
+                        <p className={styles.qualityPercent}>{entry.dataQuality.percent}%</p>
+                        {entry.dataQuality.missingCritical.length > 0 ||
+                        entry.dataQuality.missingOptional.length > 0 ? (
+                          <p className={styles.qualityMissing}>
+                            Missing: {[...entry.dataQuality.missingCritical, ...entry.dataQuality.missingOptional]
+                              .slice(0, 3)
+                              .join(", ")}
+                          </p>
+                        ) : (
+                          <p className={styles.qualityMissing}>All expected metrics</p>
+                        )}
+                      </td>
+                      <td>
                         <button
                           type="button"
-                          className={styles.secondaryButton}
-                          onClick={() => {
-                            setSelectedDeviceKey(entry.key);
-                            setDebugOpen(true);
-                          }}
+                          className={styles.primaryButton}
+                          onClick={() => setSelectedDeviceKey(entry.key)}
                         >
-                          Debug
+                          Details
                         </button>
-                      ) : (
-                        <span className={styles.mutedText}>—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {bottomSpacer ? (
-                  <tr className={styles.spacerRow} aria-hidden="true">
-                    <td colSpan={8} style={{ height: `${bottomSpacer}px` }} />
-                  </tr>
-                ) : null}
-              </tbody>
-            ) : null}
-            {!loading && filteredDevices.length > 0 && viewMode === "hierarchical" ? (
-              <tbody>{renderTreeRows(hierarchyTree)}</tbody>
-            ) : null}
-          </table>
+                      </td>
+                      <td>
+                        {isDebugAllowed ? (
+                          <button
+                            type="button"
+                            className={styles.secondaryButton}
+                            onClick={() => {
+                              setSelectedDeviceKey(entry.key);
+                              setDebugOpen(true);
+                            }}
+                          >
+                            Debug
+                          </button>
+                        ) : (
+                          <span className={styles.mutedText}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {bottomSpacer ? (
+                    <tr className={styles.spacerRow} aria-hidden="true">
+                      <td colSpan={8} style={{ height: `${bottomSpacer}px` }} />
+                    </tr>
+                  ) : null}
+                </tbody>
+              ) : null}
+            </table>
+          ) : null}
+          {viewMode === "hierarchical" ? (
+            <div className={styles.treeWrap}>
+              {loading ? <div className={styles.treeEmpty}>Loading devices...</div> : null}
+              {!loading && filteredDevices.length === 0 ? (
+                <div className={styles.treeEmpty}>No devices found.</div>
+              ) : null}
+              {!loading && filteredDevices.length > 0 ? renderTreeRows(hierarchyTree) : null}
+            </div>
+          ) : null}
         </div>
       </section>
 
