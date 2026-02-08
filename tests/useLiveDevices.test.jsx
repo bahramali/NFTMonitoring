@@ -89,8 +89,8 @@ test('aggregates devices across multiple farms', () => {
     );
   });
 
-  const keyOne = 'F01|rack|R01|L01|G01';
-  const keyTwo = 'F02|rack|R02|L02|G02';
+  const keyOne = 'F01|rack|R01|L01|UNKNOWN|G01';
+  const keyTwo = 'F02|rack|R02|L02|UNKNOWN|G02';
   expect(result.current.availableDeviceKeys).toEqual(
     expect.arrayContaining([keyOne, keyTwo])
   );
@@ -136,7 +136,7 @@ test('merges controllers from multiple topics', () => {
     });
   });
 
-  const deviceKey = 'F01|rack|R01|L01|G01';
+  const deviceKey = 'F01|rack|R01|L01|UNKNOWN|G01';
   const ctrls = result.current.mergedDevices[deviceKey].controllers;
   expect(ctrls).toHaveLength(2);
   const valve = ctrls.find(c => c.name === 'Valve1');
@@ -190,7 +190,7 @@ test('handles actuator payloads with JSON payload and merges controllers', () =>
     global.__stompHandler('actuator/oxygenPump', { payload });
   });
 
-  const deviceKey = 'F01|rack|R01|L01|G01';
+  const deviceKey = 'F01|rack|R01|L01|UNKNOWN|G01';
   const ctrls = result.current.mergedDevices[deviceKey].controllers;
   expect(ctrls).toHaveLength(2);
   const valve = ctrls.find((c) => c.name === 'Valve1');
@@ -235,7 +235,7 @@ test('captures auxiliary payload fields for non-sensor topics', () => {
     });
   });
 
-  const deviceKey = 'F01|rack|R03|L03|WF01';
+  const deviceKey = 'F01|rack|R03|L03|UNKNOWN|WF01';
   const topicEntry = result.current.deviceData['F01']['water_flow'][deviceKey];
   expect(topicEntry.extra).toEqual({ status: 'on' });
   expect(topicEntry.receivedAt).toBe(fixedDate.getTime());
@@ -259,7 +259,7 @@ test('adapts flat telemetry payloads into sensors and stores by device key', () 
     global.__stompHandler(TELEMETRY_TOPIC, makeTelemetryEnvelope(flatPayload));
   });
 
-  const deviceKey = 'F77|rack|R07|L07|G99';
+  const deviceKey = 'F77|rack|R07|L07|UNKNOWN|G99';
   expect(result.current.sensorData[deviceKey].temperature.value).toBeCloseTo(22.5);
   expect(result.current.sensorData[deviceKey].humidity.value).toBe(48);
 });
@@ -271,7 +271,7 @@ test('stores device events from event envelopes', () => {
     global.__stompHandler('hydroleaf/event', eventEnvelope);
   });
 
-  const deviceKey = 'F01|rack|R01|L01|G01';
+  const deviceKey = 'F01|rack|R01|L01|UNKNOWN|G01';
   expect(result.current.deviceEvents[deviceKey]).toHaveLength(1);
   expect(result.current.deviceEvents[deviceKey][0].event).toBe('watering');
 });
@@ -283,7 +283,7 @@ test('resolves online state from status envelopes', () => {
     global.__stompHandler('hydroleaf/status', statusEnvelope);
   });
 
-  const deviceKey = 'F01|rack|R01|L01|G01';
+  const deviceKey = 'F01|rack|R01|L01|UNKNOWN|G01';
   expect(result.current.mergedDevices[deviceKey].online).toBe(true);
 });
 
@@ -322,8 +322,8 @@ test('filters messages by page scope', () => {
     );
   });
 
-  const includedKey = 'F01|rack|R01|L01|G10';
+  const includedKey = 'F01|rack|R01|L01|UNKNOWN|G10';
   expect(result.current.sensorData[includedKey]).toBeDefined();
-  const excludedKey = 'F01|rack|R01|L02|G11';
+  const excludedKey = 'F01|rack|R01|L02|UNKNOWN|G11';
   expect(result.current.sensorData[excludedKey]).toBeUndefined();
 });
