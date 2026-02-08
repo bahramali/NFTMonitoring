@@ -4,7 +4,13 @@ import Header from "../../common/Header";
 import { listDevices } from "../../../api/deviceMonitoring.js";
 import { useStomp } from "../../../hooks/useStomp.js";
 import { useAuth } from "../../../context/AuthContext.jsx";
-import { buildDeviceKey, isIdentityComplete, resolveIdentity } from "../../../utils/deviceIdentity.js";
+import {
+  buildDeviceKey,
+  isIdentityComplete,
+  normalizeIdValue,
+  normalizeUnitType,
+  resolveIdentity,
+} from "../../../utils/deviceIdentity.js";
 import { WS_TOPICS } from "../../common/dashboard.constants.js";
 import {
   DEVICE_KIND_OPTIONS,
@@ -131,6 +137,14 @@ const normalizeDevice = (device) => {
     unitId: device?.unitId ?? device?.unit_id ?? "",
     layerId: normalizeLayerId(device?.layerId ?? device?.layer_id ?? ""),
     deviceId: device?.deviceId ?? device?.device_id ?? "",
+    deviceType:
+      device?.deviceType ??
+      device?.device_type ??
+      device?.deviceKind ??
+      device?.device_kind ??
+      device?.kind ??
+      device?.type ??
+      "",
     deviceKind: normalizeDeviceKind(
       device?.deviceType ??
         device?.device_type ??
@@ -252,34 +266,54 @@ const buildHierarchyTree = (devices) => {
     children: new Map(),
     devices: [],
   };
+  const seenDeviceKeys = new Set();
 
   devices.forEach((device) => {
-    const farm = device.farmId || "—";
-    const unitType = String(device.unitType || "—").toUpperCase();
-    const unitId = device.unitId || "—";
+    const deviceKey = device.key || buildDeviceKey(device);
+    if (deviceKey) {
+      if (seenDeviceKeys.has(deviceKey)) {
+        console.error("Duplicate device key detected while building hierarchy tree", { key: deviceKey });
+        return;
+      }
+      seenDeviceKeys.add(deviceKey);
+    }
+    const farmId = normalizeIdValue(device.farmId);
+    const unitTypeRaw = normalizeUnitType(device.unitType);
+    const unitId = normalizeIdValue(device.unitId);
     const layerId = normalizeLayerId(device.layerId);
-    const kind = String(device.deviceKind || "UNKNOWN").toUpperCase();
+    const deviceKind = normalizeDeviceKind(device.deviceKind || device.deviceType);
+
+    const farm = farmId || "—";
+    const unitType = unitTypeRaw ? unitTypeRaw.toUpperCase() : "—";
+    const unitLabel = unitId || "—";
+    const kindLabel = String(deviceKind || "UNKNOWN").toUpperCase();
+
+    const farmKey = farmId || "unknown";
+    const unitTypeKey = `${farmKey}|${unitTypeRaw || "unknown"}`;
+    const unitIdKey = `${unitTypeKey}|${unitId || "unknown"}`;
+    const layerKey = `${unitIdKey}|${layerId}`;
+    const kindKey = `${layerKey}|${deviceKind || "UNKNOWN"}`;
+
     const chain = [
-      { level: "farm", label: farm },
-      { level: "unitType", label: unitType },
-      { level: "unitId", label: unitId },
-      { level: "layerId", label: layerId },
-      { level: "kind", label: kind },
+      { level: "farm", label: farm, key: farmKey },
+      { level: "unitType", label: unitType, key: unitTypeKey },
+      { level: "unitId", label: unitLabel, key: unitIdKey },
+      { level: "layerId", label: layerId, key: layerKey },
+      { level: "kind", label: kindLabel, key: kindKey },
     ];
 
     let cursor = root;
     chain.forEach((entry) => {
-      const key = `${entry.level}-${entry.label}`;
-      if (!cursor.children.has(key)) {
-        cursor.children.set(key, {
-          id: key,
+      if (!cursor.children.has(entry.key)) {
+        cursor.children.set(entry.key, {
+          id: entry.key,
           label: entry.label,
           level: entry.level,
           children: new Map(),
           devices: [],
         });
       }
-      cursor = cursor.children.get(key);
+      cursor = cursor.children.get(entry.key);
     });
 
     cursor.devices.push(device);
@@ -546,6 +580,13 @@ export default function Overview() {
         const normalized = normalizeDevice(item);
         if (!normalized.key) {
           hasMissingRequiredFields = true;
+          return;
+        }
+        if (seeded.has(normalized.key)) {
+          console.error("Duplicate device key detected in inventory payload", {
+            key: normalized.key,
+            device: normalized,
+          });
           return;
         }
         seeded.set(normalized.key, normalized);
