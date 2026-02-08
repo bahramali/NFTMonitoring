@@ -27,7 +27,7 @@ export const normalizeDeviceType = (value) => {
   return DEVICE_KIND_MAP[upper] || upper || "UNKNOWN";
 };
 
-export const buildDeviceKey = ({ farmId, unitType, unitId, layerId, deviceId, deviceType, deviceKind, kind } = {}) => {
+export const buildDeviceKey = ({ farmId, unitType, unitId, layerId, deviceId, deviceType, deviceKind } = {}) => {
   const normalizedFarm = normalizeIdValue(farmId);
   const normalizedType = normalizeUnitType(unitType);
   const normalizedUnit = normalizeIdValue(unitId);
@@ -36,7 +36,7 @@ export const buildDeviceKey = ({ farmId, unitType, unitId, layerId, deviceId, de
     return null;
   }
   const normalizedLayer = normalizeLayerId(layerId);
-  const normalizedDeviceType = normalizeDeviceType(deviceType ?? deviceKind ?? kind);
+  const normalizedDeviceType = normalizeDeviceType(deviceType ?? deviceKind);
   return `${normalizedFarm}|${normalizedType}|${normalizedUnit}|${normalizedLayer}|${normalizedDeviceType}|${normalizedDevice}`;
 };
 
