@@ -44,6 +44,7 @@ describe('Overview hierarchical view', () => {
     fireEvent.click(await screen.findByRole('button', { name: /F01/i }));
     fireEvent.click(await screen.findByRole('button', { name: /GARDEN/i }));
     fireEvent.click(await screen.findByRole('button', { name: /R01/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /L01/i }));
     fireEvent.click(await screen.findByRole('button', { name: /TANK/i }));
 
     fireEvent.click(await screen.findByRole('button', { name: /details/i }));

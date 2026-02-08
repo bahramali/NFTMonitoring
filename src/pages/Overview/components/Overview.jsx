@@ -203,6 +203,46 @@ const buildHealthCounts = (devices) =>
   );
 
 const HEALTH_PRIORITY = ["offline", "critical", "degraded", "ok"];
+const DEVICE_KIND_PRIORITY = ["TANK", "LAYER", "ENV", "GERMINATION", "UNKNOWN"];
+
+const getHealthRank = (status) => {
+  const index = HEALTH_PRIORITY.indexOf(status);
+  return index === -1 ? HEALTH_PRIORITY.length : index;
+};
+
+const getOldestSeenMs = (devices) => {
+  const timestamps = devices
+    .map((device) => device.lastSeenMs)
+    .filter((timestamp) => Number.isFinite(timestamp));
+  if (timestamps.length === 0) return null;
+  return Math.min(...timestamps);
+};
+
+const compareTreeNodes = (a, b) => {
+  const healthDiff = getHealthRank(a.worst) - getHealthRank(b.worst);
+  if (healthDiff !== 0) return healthDiff;
+  const oldestA = a.oldestSeenMs ?? Number.POSITIVE_INFINITY;
+  const oldestB = b.oldestSeenMs ?? Number.POSITIVE_INFINITY;
+  if (oldestA !== oldestB) return oldestA - oldestB;
+  if (a.level === "kind" && b.level === "kind") {
+    const kindA = DEVICE_KIND_PRIORITY.indexOf(String(a.label).toUpperCase());
+    const kindB = DEVICE_KIND_PRIORITY.indexOf(String(b.label).toUpperCase());
+    const kindDiff = (kindA === -1 ? DEVICE_KIND_PRIORITY.length : kindA) -
+      (kindB === -1 ? DEVICE_KIND_PRIORITY.length : kindB);
+    if (kindDiff !== 0) return kindDiff;
+  }
+  return String(a.label).localeCompare(String(b.label));
+};
+
+const sortDevicesForTree = (devices) =>
+  [...devices].sort((a, b) => {
+    const statusDiff = getHealthRank(a.health.status) - getHealthRank(b.health.status);
+    if (statusDiff !== 0) return statusDiff;
+    const lastSeenA = a.lastSeenMs ?? Number.POSITIVE_INFINITY;
+    const lastSeenB = b.lastSeenMs ?? Number.POSITIVE_INFINITY;
+    if (lastSeenA !== lastSeenB) return lastSeenA - lastSeenB;
+    return String(a.deviceId).localeCompare(String(b.deviceId));
+  });
 
 const buildHierarchyTree = (devices) => {
   const root = {
@@ -217,11 +257,13 @@ const buildHierarchyTree = (devices) => {
     const farm = device.farmId || "—";
     const unitType = String(device.unitType || "—").toUpperCase();
     const unitId = device.unitId || "—";
-    const kind = device.deviceKind || "UNKNOWN";
+    const layerId = normalizeLayerId(device.layerId);
+    const kind = String(device.deviceKind || "UNKNOWN").toUpperCase();
     const chain = [
       { level: "farm", label: farm },
       { level: "unitType", label: unitType },
       { level: "unitId", label: unitId },
+      { level: "layerId", label: layerId },
       { level: "kind", label: kind },
     ];
 
@@ -245,10 +287,31 @@ const buildHierarchyTree = (devices) => {
 
   const toNodeList = (node, depth = 0) => {
     const children = Array.from(node.children.values()).map((child) => toNodeList(child, depth + 1));
+    const sortedChildren = children.sort(compareTreeNodes);
+    let worst = "ok";
+    let oldestSeenMs = null;
+    let devicesForNode = node.devices;
+
+    if (sortedChildren.length > 0) {
+      worst = getWorstHealthStatus(sortedChildren.map((child) => child.worst));
+      oldestSeenMs = Math.min(
+        ...sortedChildren
+          .map((child) => child.oldestSeenMs)
+          .filter((timestamp) => Number.isFinite(timestamp)),
+      );
+      if (!Number.isFinite(oldestSeenMs)) oldestSeenMs = null;
+    } else {
+      devicesForNode = sortDevicesForTree(node.devices);
+      worst = getWorstHealthStatus(devicesForNode.map((device) => device.health.status));
+      oldestSeenMs = getOldestSeenMs(devicesForNode);
+    }
     return {
       ...node,
       depth,
-      children,
+      children: sortedChildren,
+      devices: devicesForNode,
+      worst,
+      oldestSeenMs,
     };
   };
 
@@ -882,10 +945,27 @@ export default function Overview() {
 
   const hierarchyTree = useMemo(() => buildHierarchyTree(filteredDevices), [filteredDevices]);
   const allTreeNodes = useMemo(() => flattenTree(hierarchyTree), [hierarchyTree]);
+  const autoExpandedRef = useRef(false);
 
   const handleToggleNode = (nodeId) => {
     setTreeExpanded((prev) => ({ ...prev, [nodeId]: !prev[nodeId] }));
   };
+
+  const buildProblemExpansion = useCallback((node) => {
+    const expanded = {};
+    const walk = (current) => {
+      current.children.forEach((child) => {
+        const { counts } = aggregateTreeCounts(child);
+        const hasProblems = counts.critical > 0 || counts.offline > 0;
+        expanded[child.id] = hasProblems;
+        if (hasProblems && child.children.length > 0) {
+          walk(child);
+        }
+      });
+    };
+    walk(node);
+    return expanded;
+  }, []);
 
   const handleExpandAll = () => {
     const expanded = {};
@@ -895,6 +975,10 @@ export default function Overview() {
     setTreeExpanded(expanded);
   };
 
+  const handleExpandProblems = () => {
+    setTreeExpanded(buildProblemExpansion(hierarchyTree));
+  };
+
   const handleCollapseAll = () => {
     const collapsed = {};
     allTreeNodes.forEach((node) => {
@@ -902,6 +986,17 @@ export default function Overview() {
     });
     setTreeExpanded(collapsed);
   };
+
+  useEffect(() => {
+    if (viewMode !== "hierarchical") return;
+    if (autoExpandedRef.current) return;
+    if (Object.keys(treeExpanded).length > 0) return;
+    const expanded = buildProblemExpansion(hierarchyTree);
+    if (Object.values(expanded).some(Boolean)) {
+      setTreeExpanded(expanded);
+      autoExpandedRef.current = true;
+    }
+  }, [buildProblemExpansion, hierarchyTree, treeExpanded, viewMode]);
 
   const renderDeviceTable = (devices) => (
     <table className={`${styles.table} ${styles.treeDeviceTable}`}>
@@ -1095,6 +1190,9 @@ export default function Overview() {
         <div className={styles.viewActions}>
           {viewMode === "hierarchical" ? (
             <>
+              <button type="button" className={styles.secondaryButton} onClick={handleExpandProblems}>
+                Expand problems
+              </button>
               <button type="button" className={styles.secondaryButton} onClick={handleExpandAll}>
                 Expand all
               </button>
