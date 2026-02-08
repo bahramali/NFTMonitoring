@@ -40,6 +40,7 @@ const FAST_REFRESH_INTERVAL_MS = 8000;
 const SLOW_RECONCILE_INTERVAL_MS = 120000;
 const STREAM_BUFFER_LIMIT = 20;
 const METRIC_HISTORY_LIMIT = 200;
+const FLASH_DURATION_MS = 600;
 const TIME_WINDOW_OPTIONS = [
   { label: "15m", value: 15 * 60 * 1000 },
   { label: "1h", value: 60 * 60 * 1000 },
@@ -248,6 +249,12 @@ const compareTreeNodes = (a, b) => {
   return String(a.label).localeCompare(String(b.label));
 };
 
+const compareTreeNodesStable = (a, b) => {
+  const labelDiff = String(a.label).localeCompare(String(b.label));
+  if (labelDiff !== 0) return labelDiff;
+  return String(a.id).localeCompare(String(b.id));
+};
+
 const sortDevicesForTree = (devices) =>
   [...devices].sort((a, b) => {
     const statusDiff = getHealthRank(a.health.status) - getHealthRank(b.health.status);
@@ -258,7 +265,14 @@ const sortDevicesForTree = (devices) =>
     return String(a.deviceId).localeCompare(String(b.deviceId));
   });
 
-const buildHierarchyTree = (devices) => {
+const sortDevicesForTreeStable = (devices) =>
+  [...devices].sort((a, b) => {
+    const deviceDiff = String(a.deviceId).localeCompare(String(b.deviceId));
+    if (deviceDiff !== 0) return deviceDiff;
+    return String(a.key).localeCompare(String(b.key));
+  });
+
+const buildHierarchyTree = (devices, sortMode = "hierarchical") => {
   const root = {
     id: "root",
     label: "All",
@@ -321,7 +335,8 @@ const buildHierarchyTree = (devices) => {
 
   const toNodeList = (node, depth = 0) => {
     const children = Array.from(node.children.values()).map((child) => toNodeList(child, depth + 1));
-    const sortedChildren = children.sort(compareTreeNodes);
+    const sortedChildren =
+      sortMode === "explorer" ? children.sort(compareTreeNodesStable) : children.sort(compareTreeNodes);
     let worst = "ok";
     let oldestSeenMs = null;
     let devicesForNode = node.devices;
@@ -335,7 +350,7 @@ const buildHierarchyTree = (devices) => {
       );
       if (!Number.isFinite(oldestSeenMs)) oldestSeenMs = null;
     } else {
-      devicesForNode = sortDevicesForTree(node.devices);
+      devicesForNode = sortMode === "explorer" ? sortDevicesForTreeStable(node.devices) : sortDevicesForTree(node.devices);
       worst = getWorstHealthStatus(devicesForNode.map((device) => device.health.status));
       oldestSeenMs = getOldestSeenMs(devicesForNode);
     }
@@ -350,6 +365,22 @@ const buildHierarchyTree = (devices) => {
   };
 
   return toNodeList(root, 0);
+};
+
+const buildGroupKeysFromIdentity = (identity, deviceKind) => {
+  const farmId = normalizeIdValue(identity.farmId);
+  const unitTypeRaw = normalizeUnitType(identity.unitType);
+  const unitId = normalizeIdValue(identity.unitId);
+  const layerId = normalizeLayerId(identity.layerId);
+  const normalizedKind = normalizeDeviceKind(deviceKind || identity.deviceKind || identity.deviceType);
+
+  const farmKey = farmId || "unknown";
+  const unitTypeKey = `${farmKey}|${unitTypeRaw || "unknown"}`;
+  const unitIdKey = `${unitTypeKey}|${unitId || "unknown"}`;
+  const layerKey = `${unitIdKey}|${layerId}`;
+  const kindKey = `${layerKey}|${normalizedKind || "UNKNOWN"}`;
+
+  return [farmKey, unitTypeKey, unitIdKey, layerKey, kindKey];
 };
 
 const aggregateTreeCounts = (node) => {
@@ -381,7 +412,7 @@ const flattenTree = (node) => {
   return list;
 };
 
-function VirtualizedDeviceTable({ devices, sortColumns, isDebugAllowed, onSelect, onDebug }) {
+function VirtualizedDeviceTable({ devices, flashKeys, sortColumns, isDebugAllowed, onSelect, onDebug }) {
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(520);
   const tableScrollRef = useRef(null);
@@ -428,7 +459,10 @@ function VirtualizedDeviceTable({ devices, sortColumns, isDebugAllowed, onSelect
             </tr>
           ) : null}
           {visibleDevices.map((entry) => (
-            <tr key={entry.key} className={styles.treeDeviceRow}>
+            <tr
+              key={entry.key}
+              className={`${styles.treeDeviceRow} ${flashKeys?.has(entry.key) ? styles.treeDeviceRowFlash : ""}`}
+            >
               <td>
                 <DeviceStatusBadge status={entry.health.status} />
               </td>
@@ -518,6 +552,10 @@ export default function Overview() {
   const [wsConnected, setWsConnected] = useState(false);
   const [messageBuffers, setMessageBuffers] = useState({});
   const [metricBuffers, setMetricBuffers] = useState({});
+  const [flashKeys, setFlashKeys] = useState(() => new Set());
+  const [flashGroups, setFlashGroups] = useState(() => new Set());
+  const flashTimersRef = useRef(new Map());
+  const flashGroupTimersRef = useRef(new Map());
   const [lastRefresh, setLastRefresh] = useState(null);
   const [nowMs, setNowMs] = useState(Date.now());
   const [scrollTop, setScrollTop] = useState(0);
@@ -695,6 +733,40 @@ export default function Overview() {
     }
   }, [filters, search, viewMode, timeWindowMs, searchParams, setSearchParams]);
 
+  const triggerFlash = useCallback((keys, setState, timersRef) => {
+    if (!keys.length) return;
+    setState((prev) => {
+      const next = new Set(prev);
+      keys.forEach((key) => next.add(key));
+      return next;
+    });
+    keys.forEach((key) => {
+      const timers = timersRef.current;
+      if (timers.has(key)) {
+        clearTimeout(timers.get(key));
+      }
+      const timeoutId = setTimeout(() => {
+        setState((prev) => {
+          if (!prev.has(key)) return prev;
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+        timers.delete(key);
+      }, FLASH_DURATION_MS);
+      timers.set(key, timeoutId);
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      flashTimersRef.current.forEach((timer) => clearTimeout(timer));
+      flashTimersRef.current.clear();
+      flashGroupTimersRef.current.forEach((timer) => clearTimeout(timer));
+      flashGroupTimersRef.current.clear();
+    };
+  }, []);
+
   const onMessage = useCallback(
     (topic, message) => {
       setWsBanner("");
@@ -761,6 +833,9 @@ export default function Overview() {
           messageKind === "telemetry" && Object.keys(metrics).length ? metrics : existing?.latestMetrics,
       });
 
+      triggerFlash([key], setFlashKeys, flashTimersRef);
+      triggerFlash(buildGroupKeysFromIdentity(identity, deviceKind), setFlashGroups, flashGroupTimersRef);
+
       if (messageKind === "telemetry" && Object.keys(metrics || {}).length) {
         setMetricBuffers((prev) => {
           const current = Array.isArray(prev[key]) ? prev[key] : [];
@@ -813,7 +888,7 @@ export default function Overview() {
         });
       }
     },
-    [devicesMap, queueUpdate, selectedDeviceKey, viewerPaused],
+    [devicesMap, queueUpdate, selectedDeviceKey, triggerFlash, viewerPaused],
   );
 
   useStomp(WS_TOPICS, onMessage, {
@@ -1095,7 +1170,11 @@ export default function Overview() {
     });
   };
 
-  const hierarchyTree = useMemo(() => buildHierarchyTree(filteredDevices), [filteredDevices]);
+  const treeSortMode = viewMode === "explorer" ? "explorer" : "hierarchical";
+  const hierarchyTree = useMemo(
+    () => buildHierarchyTree(filteredDevices, treeSortMode),
+    [filteredDevices, treeSortMode],
+  );
   const allTreeNodes = useMemo(() => flattenTree(hierarchyTree), [hierarchyTree]);
   const autoExpandedRef = useRef(false);
 
@@ -1170,6 +1249,7 @@ export default function Overview() {
   const renderDeviceTable = (devices) => (
     <VirtualizedDeviceTable
       devices={devices}
+      flashKeys={flashKeys}
       sortColumns={sortColumns}
       isDebugAllowed={isDebugAllowed}
       onSelect={setSelectedDeviceKey}
@@ -1184,10 +1264,11 @@ export default function Overview() {
     node.children.flatMap((child) => {
       const { counts, worst } = aggregateTreeCounts(child);
       const isExpanded = treeExpanded[child.id] ?? child.level === "farm";
+      const isFlashing = flashGroups.has(child.id);
       const rows = [
         <div
           key={`${child.id}-group`}
-          className={styles.treeGroup}
+          className={`${styles.treeGroup} ${isFlashing ? styles.treeGroupFlash : ""}`}
           style={{ "--tree-depth": child.depth }}
         >
           <button type="button" className={styles.treeToggle} onClick={() => handleToggleNode(child.id)}>
@@ -1219,6 +1300,8 @@ export default function Overview() {
 
       return rows;
     });
+
+  const isTreeView = viewMode === "hierarchical" || viewMode === "explorer";
 
   return (
     <div className={styles.page}>
@@ -1293,11 +1376,13 @@ export default function Overview() {
 
       <section className={styles.card}>
         <div className={styles.viewActions}>
-          {viewMode === "hierarchical" ? (
+          {isTreeView ? (
             <>
-              <button type="button" className={styles.secondaryButton} onClick={handleExpandProblems}>
-                Expand problems
-              </button>
+              {viewMode === "hierarchical" ? (
+                <button type="button" className={styles.secondaryButton} onClick={handleExpandProblems}>
+                  Expand problems
+                </button>
+              ) : null}
               <button type="button" className={styles.secondaryButton} onClick={handleExpandAll}>
                 Expand all
               </button>
@@ -1434,7 +1519,7 @@ export default function Overview() {
               ) : null}
             </table>
           ) : null}
-          {viewMode === "hierarchical" ? (
+          {isTreeView ? (
             <div className={styles.treeWrap}>
               {loading ? <div className={styles.treeEmpty}>Loading devices...</div> : null}
               {!loading && filteredDevices.length === 0 ? (

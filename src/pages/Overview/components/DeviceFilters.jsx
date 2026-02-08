@@ -136,6 +136,7 @@ export default function DeviceFilters({
         >
           <option value="flat">Flat List</option>
           <option value="hierarchical">Hierarchical</option>
+          <option value="explorer">Explorer</option>
         </select>
       </div>
     </div>
