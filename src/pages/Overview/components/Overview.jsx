@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } 
 import { useSearchParams } from "react-router-dom";
 import Header from "../../common/Header";
 import { listDevices } from "../../../api/deviceMonitoring.js";
+import { getApiBaseUrl } from "../../../config/apiBase.js";
 import { useStomp } from "../../../hooks/useStomp.js";
 import { useAuth } from "../../../context/AuthContext.jsx";
 import {
@@ -35,6 +36,7 @@ import {
 } from "../utils/deviceHealth.js";
 import styles from "./Overview.module.css";
 
+const API_BASE = getApiBaseUrl();
 const REFRESH_INTERVAL_MS = 5000;
 const FAST_REFRESH_INTERVAL_MS = 8000;
 const SLOW_RECONCILE_INTERVAL_MS = 120000;
@@ -120,6 +122,21 @@ const formatRelativeTime = (timestamp, nowMs) => {
   return `${days}d ago`;
 };
 
+const formatUptime = (uptimeSeconds) => {
+  if (!Number.isFinite(uptimeSeconds)) return null;
+  if (uptimeSeconds < 60) return `${Math.floor(uptimeSeconds)}s`;
+  const minutes = Math.floor(uptimeSeconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(uptimeSeconds / 3600);
+  if (hours < 24) {
+    const remainingMinutes = Math.floor((uptimeSeconds % 3600) / 60);
+    return `${hours}h ${remainingMinutes}m`;
+  }
+  const days = Math.floor(uptimeSeconds / 86400);
+  const remainingHours = Math.floor((uptimeSeconds % 86400) / 3600);
+  return `${days}d ${remainingHours}h`;
+};
+
 const formatLocation = ({ farmId, unitType, unitId, layerId }) =>
   `${farmId || "—"} • ${String(unitType || "").toUpperCase()} ${unitId || "—"} • ${normalizeLayerId(layerId)}`;
 
@@ -170,6 +187,11 @@ const normalizeDevice = (device) => {
     ),
     payloadError: Boolean(device?.payloadError),
     latestMetrics: extractMetricsFromPayload(device?.metrics ?? device?.sensors ?? device?.data ?? {}),
+    uptimeSeconds:
+      device?.uptimeSeconds ?? device?.uptime_seconds ?? device?.uptime ?? device?.extra?.uptimeSeconds ?? null,
+    // TODO: confirm boot signature field names from device monitoring payloads (bootId/bootTime).
+    bootId: device?.bootId ?? device?.boot_id ?? null,
+    bootTime: device?.bootTime ?? device?.boot_time ?? null,
   };
 
   normalized.key = buildDeviceKey(normalized);
@@ -232,6 +254,15 @@ const getOldestSeenMs = (devices) => {
   if (timestamps.length === 0) return null;
   return Math.min(...timestamps);
 };
+
+const resolveBootSignature = (payload) => ({
+  // TODO: confirm boot signature field names from live telemetry payloads (bootId/bootTime).
+  bootId: payload?.bootId ?? payload?.boot_id ?? null,
+  bootTime: payload?.bootTime ?? payload?.boot_time ?? null,
+});
+
+const resolveUptimeSeconds = (payload) =>
+  payload?.uptimeSeconds ?? payload?.uptime_seconds ?? payload?.uptime ?? payload?.extra?.uptimeSeconds ?? null;
 
 const compareTreeNodes = (a, b) => {
   const healthDiff = getHealthRank(a.worst) - getHealthRank(b.worst);
@@ -412,7 +443,17 @@ const flattenTree = (node) => {
   return list;
 };
 
-function VirtualizedDeviceTable({ devices, flashKeys, sortColumns, isDebugAllowed, onSelect, onDebug }) {
+function VirtualizedDeviceTable({
+  devices,
+  flashKeys,
+  sortColumns,
+  isDebugAllowed,
+  resetStateByDevice,
+  resettingDevices,
+  onSelect,
+  onDebug,
+  onReset,
+}) {
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(520);
   const tableScrollRef = useRef(null);
@@ -449,13 +490,14 @@ function VirtualizedDeviceTable({ devices, flashKeys, sortColumns, isDebugAllowe
               <th key={column.key}>{column.label}</th>
             ))}
             <th>Details</th>
+            <th>Reset</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {topSpacer ? (
             <tr className={styles.spacerRow} aria-hidden="true">
-              <td colSpan={8} style={{ height: `${topSpacer}px` }} />
+              <td colSpan={10} style={{ height: `${topSpacer}px` }} />
             </tr>
           ) : null}
           {visibleDevices.map((entry) => (
@@ -474,6 +516,7 @@ function VirtualizedDeviceTable({ devices, flashKeys, sortColumns, isDebugAllowe
                 <p className={styles.locationLine}>{entry.locationLabel}</p>
               </td>
               <td title={entry.lastSeenAbsolute}>{entry.lastSeenRelative}</td>
+              <td title={entry.uptimeLabel ? undefined : "Uptime unknown"}>{entry.uptimeLabel || "—"}</td>
               <td>
                 <span
                   className={`${styles.rateChip} ${
@@ -505,6 +548,24 @@ function VirtualizedDeviceTable({ devices, flashKeys, sortColumns, isDebugAllowe
                 </button>
               </td>
               <td>
+                <div className={styles.resetCell}>
+                  <button
+                    type="button"
+                    className={styles.resetButton}
+                    onClick={() => onReset(entry)}
+                    disabled={resettingDevices?.has(entry.key)}
+                  >
+                    {resettingDevices?.has(entry.key) ? "Resetting..." : "Reset"}
+                  </button>
+                  {resetStateByDevice?.[entry.key]?.status === "requested" ? (
+                    <span className={styles.resetRequested}>Reset requested</span>
+                  ) : null}
+                  {resetStateByDevice?.[entry.key]?.error ? (
+                    <span className={styles.resetError}>{resetStateByDevice[entry.key].error}</span>
+                  ) : null}
+                </div>
+              </td>
+              <td>
                 {isDebugAllowed ? (
                   <button type="button" className={styles.secondaryButton} onClick={() => onDebug(entry.key)}>
                     Debug
@@ -517,7 +578,7 @@ function VirtualizedDeviceTable({ devices, flashKeys, sortColumns, isDebugAllowe
           ))}
           {bottomSpacer ? (
             <tr className={styles.spacerRow} aria-hidden="true">
-              <td colSpan={8} style={{ height: `${bottomSpacer}px` }} />
+              <td colSpan={10} style={{ height: `${bottomSpacer}px` }} />
             </tr>
           ) : null}
         </tbody>
@@ -550,6 +611,16 @@ export default function Overview() {
   const [errorBanner, setErrorBanner] = useState("");
   const [wsBanner, setWsBanner] = useState("");
   const [wsConnected, setWsConnected] = useState(false);
+  const [commandToken, setCommandToken] = useState(() => {
+    try {
+      return window.localStorage.getItem("overviewCommandToken") || "";
+    } catch {
+      return "";
+    }
+  });
+  const [resetStateByDevice, setResetStateByDevice] = useState({});
+  const [resettingDevices, setResettingDevices] = useState(() => new Set());
+  const [toastMessage, setToastMessage] = useState("");
   const [messageBuffers, setMessageBuffers] = useState({});
   const [metricBuffers, setMetricBuffers] = useState({});
   const [flashKeys, setFlashKeys] = useState(() => new Set());
@@ -688,6 +759,34 @@ export default function Overview() {
   }, []);
 
   useEffect(() => {
+    if (!toastMessage) return undefined;
+    const timeout = window.setTimeout(() => setToastMessage(""), 3500);
+    return () => window.clearTimeout(timeout);
+  }, [toastMessage]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("overviewCommandToken", commandToken);
+    } catch {
+      // Ignore storage write failures.
+    }
+  }, [commandToken]);
+
+  useEffect(() => {
+    if (!commandToken.trim()) return;
+    setResetStateByDevice((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      Object.entries(prev).forEach(([deviceKey, state]) => {
+        if (state?.error !== "Token required") return;
+        next[deviceKey] = { ...state, error: "" };
+        changed = true;
+      });
+      return changed ? next : prev;
+    });
+  }, [commandToken]);
+
+  useEffect(() => {
     if (!tableWrapRef.current) return;
     const handleResize = () => {
       if (tableWrapRef.current) setViewportHeight(tableWrapRef.current.clientHeight || 520);
@@ -812,6 +911,8 @@ export default function Overview() {
         .slice(-400);
       const msgRate = Number.isFinite(payload.msgRate) ? payload.msgRate : msgTimes.length;
       const metrics = extractMetricsFromPayload(payload);
+      const uptimeSeconds = resolveUptimeSeconds(payload);
+      const liveBoot = resolveBootSignature(payload);
 
       queueUpdate(key, {
         farmId: identity.farmId,
@@ -831,6 +932,10 @@ export default function Overview() {
         payloadError: payloadError || existing?.payloadError,
         latestMetrics:
           messageKind === "telemetry" && Object.keys(metrics).length ? metrics : existing?.latestMetrics,
+        uptimeSeconds:
+          uptimeSeconds !== null && uptimeSeconds !== undefined ? uptimeSeconds : existing?.uptimeSeconds ?? null,
+        bootId: liveBoot.bootId ?? existing?.bootId ?? null,
+        bootTime: liveBoot.bootTime ?? existing?.bootTime ?? null,
       });
 
       triggerFlash([key], setFlashKeys, flashTimersRef);
@@ -973,6 +1078,7 @@ export default function Overview() {
         : expectedIntervalMs && lastTelemetryAgeMs > expectedIntervalMs * 2
           ? "stale"
           : "fresh";
+      const uptimeLabel = formatUptime(entry.uptimeSeconds);
       return {
         ...entry,
         health,
@@ -986,6 +1092,7 @@ export default function Overview() {
         lastTelemetryRelative: formatRelativeTime(entry.lastTelemetryMs, nowMs),
         lastTelemetryAgeMs,
         telemetryStatus,
+        uptimeLabel,
         metricsList: [...expected.expectedMetrics.critical, ...expected.expectedMetrics.optional].map((key) => ({
           key,
           value: entry.latestMetrics?.[key] ?? null,
@@ -993,6 +1100,111 @@ export default function Overview() {
       };
     });
   }, [devices, nowMs]);
+
+  useEffect(() => {
+    if (!resetStateByDevice || Object.keys(resetStateByDevice).length === 0) return;
+    const deviceMap = new Map(derivedDevices.map((entry) => [entry.key, entry]));
+    setResetStateByDevice((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      Object.entries(prev).forEach(([deviceKey, state]) => {
+        if (state?.status !== "requested") return;
+        const device = deviceMap.get(deviceKey);
+        if (!device) return;
+        const bootIdChanged = device.bootId && device.bootId !== state.bootId;
+        const bootTimeChanged = device.bootTime && device.bootTime !== state.bootTime;
+        if (bootIdChanged || bootTimeChanged) {
+          next[deviceKey] = { ...state, status: "" };
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [derivedDevices, resetStateByDevice]);
+
+  const handleResetClick = useCallback(
+    async (entry) => {
+      const trimmedToken = commandToken.trim();
+      if (!trimmedToken) {
+        setResetStateByDevice((prev) => ({
+          ...prev,
+          [entry.key]: { ...prev[entry.key], error: "Token required" },
+        }));
+        return;
+      }
+
+      const deviceLabel = entry.deviceId || entry.key;
+      const shouldProceed = window.confirm(`Reset device ${deviceLabel}?`);
+      if (!shouldProceed) return;
+
+      const deviceId = entry.deviceId;
+      if (!deviceId) {
+        setResetStateByDevice((prev) => ({
+          ...prev,
+          [entry.key]: { ...prev[entry.key], error: "Device ID missing" },
+        }));
+        return;
+      }
+
+      setResettingDevices((prev) => new Set(prev).add(entry.key));
+      setResetStateByDevice((prev) => ({
+        ...prev,
+        [entry.key]: { ...prev[entry.key], error: "" },
+      }));
+
+      try {
+        // TODO: confirm command transport (MQTT topic/QoS/client) if reset should route elsewhere.
+        const response = await fetch(
+          `${API_BASE}/api/devices/${encodeURIComponent(deviceId)}/reset`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${trimmedToken}`,
+            },
+          },
+        );
+
+        if (response.status === 401) {
+          setResetStateByDevice((prev) => ({
+            ...prev,
+            [entry.key]: { ...prev[entry.key], error: "Unauthorized (invalid token)" },
+          }));
+          return;
+        }
+
+        if (!response.ok) {
+          setResetStateByDevice((prev) => ({
+            ...prev,
+            [entry.key]: { ...prev[entry.key], error: "Unable to request reset" },
+          }));
+          return;
+        }
+
+        setToastMessage("Reset requested");
+        setResetStateByDevice((prev) => ({
+          ...prev,
+          [entry.key]: {
+            status: "requested",
+            error: "",
+            bootId: entry.bootId ?? null,
+            bootTime: entry.bootTime ?? null,
+          },
+        }));
+      } catch {
+        setResetStateByDevice((prev) => ({
+          ...prev,
+          [entry.key]: { ...prev[entry.key], error: "Unable to request reset" },
+        }));
+      } finally {
+        setResettingDevices((prev) => {
+          const next = new Set(prev);
+          next.delete(entry.key);
+          return next;
+        });
+      }
+    },
+    [commandToken],
+  );
 
   useEffect(() => {
     try {
@@ -1012,6 +1224,8 @@ export default function Overview() {
         return entry.locationLabel;
       case "lastSeen":
         return entry.lastSeenMs ?? null;
+      case "uptime":
+        return entry.uptimeSeconds ?? null;
       case "msgRate":
         return entry.msgRate ?? null;
       case "dataQuality":
@@ -1155,6 +1369,7 @@ export default function Overview() {
     { key: "device", label: "Device", defaultDir: "asc" },
     { key: "location", label: "Location", defaultDir: "asc" },
     { key: "lastSeen", label: "Last seen", defaultDir: "desc" },
+    { key: "uptime", label: "Uptime", defaultDir: "desc" },
     { key: "msgRate", label: "Msg rate", defaultDir: "desc" },
     { key: "dataQuality", label: "Data quality", defaultDir: "desc" },
   ];
@@ -1252,11 +1467,14 @@ export default function Overview() {
       flashKeys={flashKeys}
       sortColumns={sortColumns}
       isDebugAllowed={isDebugAllowed}
+      resetStateByDevice={resetStateByDevice}
+      resettingDevices={resettingDevices}
       onSelect={setSelectedDeviceKey}
       onDebug={(deviceKey) => {
         setSelectedDeviceKey(deviceKey);
         setDebugOpen(true);
       }}
+      onReset={handleResetClick}
     />
   );
 
@@ -1376,22 +1594,40 @@ export default function Overview() {
 
       <section className={styles.card}>
         <div className={styles.viewActions}>
-          {isTreeView ? (
-            <>
-              {viewMode === "hierarchical" ? (
-                <button type="button" className={styles.secondaryButton} onClick={handleExpandProblems}>
-                  Expand problems
+          <label className={styles.tokenField}>
+            <span className={styles.tokenLabel}>Command token</span>
+            <input
+              type="password"
+              className={styles.tokenInput}
+              placeholder="PASTE_TOKEN_HERE"
+              value={commandToken}
+              onChange={(event) => setCommandToken(event.target.value)}
+              autoComplete="off"
+            />
+          </label>
+          <div className={styles.viewActionsButtons}>
+            {isTreeView ? (
+              <>
+                {viewMode === "hierarchical" ? (
+                  <button type="button" className={styles.secondaryButton} onClick={handleExpandProblems}>
+                    Expand problems
+                  </button>
+                ) : null}
+                <button type="button" className={styles.secondaryButton} onClick={handleExpandAll}>
+                  Expand all
                 </button>
-              ) : null}
-              <button type="button" className={styles.secondaryButton} onClick={handleExpandAll}>
-                Expand all
-              </button>
-              <button type="button" className={styles.secondaryButton} onClick={handleCollapseAll}>
-                Collapse all
-              </button>
-            </>
-          ) : null}
+                <button type="button" className={styles.secondaryButton} onClick={handleCollapseAll}>
+                  Collapse all
+                </button>
+              </>
+            ) : null}
+          </div>
         </div>
+        {toastMessage ? (
+          <div className={styles.toast} role="status" aria-live="polite">
+            {toastMessage}
+          </div>
+        ) : null}
         <div
           className={styles.tableWrap}
           ref={tableWrapRef}
@@ -1420,20 +1656,21 @@ export default function Overview() {
                     </th>
                   ))}
                   <th>Details</th>
+                  <th>Reset</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               {loading ? (
                 <tbody>
                   <tr>
-                    <td colSpan={8}>Loading devices...</td>
+                    <td colSpan={10}>Loading devices...</td>
                   </tr>
                 </tbody>
               ) : null}
               {!loading && filteredDevices.length === 0 ? (
                 <tbody>
                   <tr>
-                    <td colSpan={8}>No devices found.</td>
+                    <td colSpan={10}>No devices found.</td>
                   </tr>
                 </tbody>
               ) : null}
@@ -1441,7 +1678,7 @@ export default function Overview() {
                 <tbody>
                   {topSpacer ? (
                     <tr className={styles.spacerRow} aria-hidden="true">
-                      <td colSpan={8} style={{ height: `${topSpacer}px` }} />
+                      <td colSpan={10} style={{ height: `${topSpacer}px` }} />
                     </tr>
                   ) : null}
                   {filteredDevices.slice(startIndex, endIndex).map((entry) => (
@@ -1457,6 +1694,7 @@ export default function Overview() {
                         <p className={styles.locationLine}>{entry.locationLabel}</p>
                       </td>
                       <td title={entry.lastSeenAbsolute}>{entry.lastSeenRelative}</td>
+                      <td title={entry.uptimeLabel ? undefined : "Uptime unknown"}>{entry.uptimeLabel || "—"}</td>
                       <td>
                         <span
                           className={`${styles.rateChip} ${
@@ -1493,6 +1731,24 @@ export default function Overview() {
                         </button>
                       </td>
                       <td>
+                        <div className={styles.resetCell}>
+                          <button
+                            type="button"
+                            className={styles.resetButton}
+                            onClick={() => handleResetClick(entry)}
+                            disabled={resettingDevices.has(entry.key)}
+                          >
+                            {resettingDevices.has(entry.key) ? "Resetting..." : "Reset"}
+                          </button>
+                          {resetStateByDevice[entry.key]?.status === "requested" ? (
+                            <span className={styles.resetRequested}>Reset requested</span>
+                          ) : null}
+                          {resetStateByDevice[entry.key]?.error ? (
+                            <span className={styles.resetError}>{resetStateByDevice[entry.key].error}</span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td>
                         {isDebugAllowed ? (
                           <button
                             type="button"
@@ -1512,7 +1768,7 @@ export default function Overview() {
                   ))}
                   {bottomSpacer ? (
                     <tr className={styles.spacerRow} aria-hidden="true">
-                      <td colSpan={8} style={{ height: `${bottomSpacer}px` }} />
+                      <td colSpan={10} style={{ height: `${bottomSpacer}px` }} />
                     </tr>
                   ) : null}
                 </tbody>
