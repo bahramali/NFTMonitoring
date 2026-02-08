@@ -304,12 +304,49 @@
   background: rgba(12, 24, 46, 0.85);
 }
 
-.treeRow {
-  background: rgba(12, 24, 46, 0.8);
+.treeWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.treeEmpty {
+  padding: 1rem;
+  text-align: center;
+  color: #b6caef;
+}
+
+.treeGroup {
+  background: rgba(12, 24, 46, 0.82);
+  border-radius: 0.6rem;
+  border-left: 2px solid rgba(120, 156, 210, 0.5);
+  padding: 0.45rem 0.9rem;
+  margin-left: calc(var(--tree-depth) * 18px);
+  position: relative;
+}
+
+.treeGroup::before {
+  content: "";
+  position: absolute;
+  left: 0.4rem;
+  top: 0.4rem;
+  bottom: 0.4rem;
+  width: 1px;
+  background: rgba(120, 156, 210, 0.35);
 }
 
 .treeDeviceRow {
   background: rgba(9, 18, 36, 0.6);
+}
+
+.treeLeafBlock {
+  margin-left: calc(var(--tree-depth) * 18px);
+  padding-left: 0.6rem;
+  border-left: 1px dashed rgba(120, 156, 210, 0.4);
+}
+
+.treeDeviceTable {
+  margin: 0.35rem 0 0.75rem;
 }
 
 .treeToggle {
@@ -320,7 +357,7 @@
   background: transparent;
   border: none;
   color: inherit;
-  padding: 0.35rem 0;
+  padding: 0;
   cursor: pointer;
   text-align: left;
 }
