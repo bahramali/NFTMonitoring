@@ -334,6 +334,7 @@ export default function ProductAdmin() {
                 price: getVariantPrice(variant) ?? '',
                 stock: getVariantStock(variant) ?? '',
                 sku: variant.sku ?? '',
+                imageUrl: variant.imageUrl ?? '',
                 active: variant.active !== false && variant.isActive !== false,
                 localId: variant.id ?? variant.variantId ?? variant._id ?? globalThis.crypto?.randomUUID?.(),
             })),
@@ -355,6 +356,7 @@ export default function ProductAdmin() {
                 price: '',
                 stock: '',
                 sku: '',
+                imageUrl: '',
                 active: true,
                 localId: globalThis.crypto?.randomUUID?.() || `new-${Date.now()}`,
             },
@@ -366,6 +368,7 @@ export default function ProductAdmin() {
         priceSek: normalizeNumber(variant.price, 0),
         stockQuantity: normalizeNumber(variant.stock, 0),
         sku: variant.sku?.trim() || '',
+        imageUrl: (variant.imageUrl || '').trim(),
         active: variant.active !== false,
     });
 
@@ -770,6 +773,16 @@ export default function ProductAdmin() {
                                                 value={variant.sku}
                                                 onChange={(event) => handleVariantChange(index, 'sku', event.target.value)}
                                                 placeholder="Optional"
+                                            />
+                                        </div>
+                                        <div className={styles.variantField}>
+                                            <label className={styles.variantLabel} htmlFor={`variant-image-${index}`}>Image URL (optional)</label>
+                                            <input
+                                                id={`variant-image-${index}`}
+                                                className={`${styles.input} ${styles.variantInput}`}
+                                                value={variant.imageUrl}
+                                                onChange={(event) => handleVariantChange(index, 'imageUrl', event.target.value)}
+                                                placeholder="https://..."
                                             />
                                         </div>
                                         <div className={styles.variantToggle}>
