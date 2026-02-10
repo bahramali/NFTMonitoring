@@ -155,7 +155,11 @@ export async function fetchCheckoutQuote(token, { cartId, couponCode, sessionId 
     return parseApiResponse(res, 'Failed to quote checkout total');
 }
 
-export async function createStripeCheckoutSession(token, { cartId, email, shippingAddress, couponCode, sessionId } = {}, { signal } = {}) {
+export async function createStripeCheckoutSession(
+    token,
+    { cartId, email, shippingAddress, couponCode, sessionId, customerType, company } = {},
+    { signal } = {},
+) {
     if (!cartId) throw new Error('Cart ID is required');
     const res = await authFetch(
         `${STORE_BASE}/checkout/stripe/session`,
@@ -170,6 +174,8 @@ export async function createStripeCheckoutSession(token, { cartId, email, shippi
                 email,
                 shippingAddress,
                 couponCode,
+                customerType,
+                company,
             }),
             signal,
         },

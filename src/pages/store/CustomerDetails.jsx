@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
     createAdminCustomerCoupon,
     fetchAdminCustomer,
@@ -69,7 +69,6 @@ const maskCouponCode = (code) => {
 export default function CustomerDetails() {
     const { customerId } = useParams();
     const normalizedCustomerId = normalizeCustomerId(customerId);
-    const isLegacyCustomerId = `${customerId ?? ''}`.startsWith('user_') && !!normalizedCustomerId;
     const { token } = useAuth();
     const [customer, setCustomer] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -210,10 +209,6 @@ export default function CustomerDetails() {
             setCopyState('failed');
         }
     };
-
-    if (isLegacyCustomerId) {
-        return <Navigate to={`/store/admin/customers/${normalizedCustomerId}`} replace />;
-    }
 
     if (!normalizedCustomerId) {
         return (
