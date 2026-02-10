@@ -267,6 +267,28 @@
     color: #0f172a;
 }
 
+
+.variantHeaderActions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.variantOrderControls {
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+    margin-bottom: 0.35rem;
+}
+
+.variantErrors {
+    width: 100%;
+    color: #991b1b;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
 .variantList {
     display: flex;
     flex-direction: column;
