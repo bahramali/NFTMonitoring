@@ -58,6 +58,7 @@ export default function Navbar() {
     const userMenuRef = useRef(null);
     const [menuStyles, setMenuStyles] = useState({ visibility: 'hidden' });
     const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const location = useLocation();
     const isStoreRoute = location.pathname === '/store' || location.pathname.startsWith('/store/');
     const availableRoles = roles?.length ? roles : role ? [role] : [];
@@ -93,6 +94,16 @@ export default function Navbar() {
     const canAccessAdmin = adminLinks.length > 0;
     const canSeeMonitoring = isSuperAdmin || hasPerm({ permissions }, PERMISSIONS.MONITORING_VIEW);
     const accountLink = role === 'CUSTOMER' ? '/account' : '/monitoring/overview';
+    const mobileMenuButtonRef = useRef(null);
+    const mobileDrawerCloseButtonRef = useRef(null);
+
+    const closeMobileMenu = () => {
+        setIsMobileMenuOpen(false);
+    };
+
+    const openMobileMenu = () => {
+        setIsMobileMenuOpen(true);
+    };
 
     useEffect(() => {
         setAvatarLoadFailed(false);
@@ -100,7 +111,22 @@ export default function Navbar() {
 
     useEffect(() => {
         setIsUserMenuOpen(false);
+        setIsMobileMenuOpen(false);
     }, [location.pathname]);
+
+    useEffect(() => {
+        if (!isMobileMenuOpen) return;
+
+        const previousOverflow = document.body.style.overflow;
+        const menuButton = mobileMenuButtonRef.current;
+        document.body.style.overflow = 'hidden';
+        mobileDrawerCloseButtonRef.current?.focus();
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+            menuButton?.focus();
+        };
+    }, [isMobileMenuOpen]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -114,6 +140,7 @@ export default function Navbar() {
         const handleEscape = (event) => {
             if (event.key === 'Escape') {
                 setIsUserMenuOpen(false);
+                setIsMobileMenuOpen(false);
             }
         };
 
@@ -166,6 +193,7 @@ export default function Navbar() {
 
     const handleNavLinkClick = () => {
         setIsUserMenuOpen(false);
+        closeMobileMenu();
     };
 
     const moduleTabClass = ({ isActive }) => `${styles.moduleTab} ${isActive ? styles.moduleTabActive : ''}`;
@@ -246,6 +274,27 @@ export default function Navbar() {
                             {itemCount > 0 && <span className={styles.cartTotal}>{totalLabel}</span>}
                         </button>
                     )}
+                    <button
+                        type="button"
+                        className={styles.hamburgerButton}
+                        aria-label="Open navigation menu"
+                        aria-expanded={isMobileMenuOpen}
+                        aria-controls="mobile-navigation-drawer"
+                        ref={mobileMenuButtonRef}
+                        onClick={() => {
+                            if (isMobileMenuOpen) {
+                                closeMobileMenu();
+                                return;
+                            }
+                            openMobileMenu();
+                        }}
+                    >
+                        <span className={styles.hamburgerIcon} aria-hidden="true">
+                            <span />
+                            <span />
+                            <span />
+                        </span>
+                    </button>
                     {isAuthenticated ? (
                         <div className={styles.userArea}>
                             <button
@@ -391,6 +440,101 @@ export default function Navbar() {
                     )}
                 </div>
             </div>
+
+            {isMobileMenuOpen &&
+                createPortal(
+                    <div
+                        className={styles.mobileDrawerBackdrop}
+                        onClick={closeMobileMenu}
+                        role="presentation"
+                    >
+                        <aside
+                            id="mobile-navigation-drawer"
+                            className={styles.mobileDrawerPanel}
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label="Navigation menu"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                            }}
+                        >
+                            <div className={styles.mobileDrawerHeader}>
+                                <h2 className={styles.mobileDrawerTitle}>Menu</h2>
+                                <button
+                                    type="button"
+                                    className={styles.mobileDrawerCloseButton}
+                                    aria-label="Close navigation menu"
+                                    onClick={closeMobileMenu}
+                                    ref={mobileDrawerCloseButtonRef}
+                                >
+                                    ×
+                                </button>
+                            </div>
+
+                            <nav className={styles.mobileDrawerNav} aria-label="Primary">
+                                <NavLink to="/store" className={styles.mobileDrawerLink} onClick={handleNavLinkClick}>
+                                    Store
+                                </NavLink>
+                                <NavLink to="/about" className={styles.mobileDrawerLink} onClick={handleNavLinkClick}>
+                                    About
+                                </NavLink>
+                                <NavLink
+                                    to="/contact"
+                                    className={styles.mobileDrawerLink}
+                                    onClick={handleNavLinkClick}
+                                >
+                                    Contact
+                                </NavLink>
+                                {showInternalTabs && canSeeMonitoring && (
+                                    <>
+                                        <NavLink
+                                            to="/monitoring/overview"
+                                            className={styles.mobileDrawerLink}
+                                            onClick={handleNavLinkClick}
+                                        >
+                                            Monitoring
+                                        </NavLink>
+                                        <NavLink
+                                            to="/monitoring/reports"
+                                            className={styles.mobileDrawerLink}
+                                            onClick={handleNavLinkClick}
+                                        >
+                                            Reports
+                                        </NavLink>
+                                    </>
+                                )}
+                                {showInternalTabs && canAccessAdmin && (
+                                    <NavLink
+                                        to="/admin/overview"
+                                        className={styles.mobileDrawerLink}
+                                        onClick={handleNavLinkClick}
+                                    >
+                                        Admin
+                                    </NavLink>
+                                )}
+                                {!isAuthenticated && (
+                                    <>
+                                        <NavLink
+                                            to="/login"
+                                            className={styles.mobileDrawerLink}
+                                            onClick={handleNavLinkClick}
+                                        >
+                                            Login
+                                        </NavLink>
+                                        <NavLink
+                                            to="/register"
+                                            className={styles.mobileDrawerLink}
+                                            onClick={handleNavLinkClick}
+                                        >
+                                            Create account
+                                        </NavLink>
+                                    </>
+                                )}
+                            </nav>
+                        </aside>
+                    </div>,
+                    document.body,
+                )}
         </header>
     );
 }
