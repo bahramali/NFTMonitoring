@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, act, renderHook } from '@testing-library/react';
+import { render, screen, act, renderHook, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import ProductCard from '../src/components/store/ProductCard.jsx';
@@ -93,6 +93,73 @@ describe('ProductCard', () => {
         expect(await screen.findByText('Out of stock')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
         expect(screen.getByText(/39/)).toBeInTheDocument();
+    });
+
+
+    it('resolves image with strict fallback chain and updates on variant change', async () => {
+        const product = {
+            id: 'p-img-1',
+            name: 'Basil Image Test',
+            currency: 'SEK',
+            thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+            images: [{ url: 'https://cdn.example.com/gallery.jpg' }],
+            variants: [
+                { id: 'v-1', label: '50g', price: 29, stock: 3, imageUrl: 'https://cdn.example.com/v1.jpg' },
+                { id: 'v-2', label: '70g', price: 39, stock: 2, imageUrl: 'https://cdn.example.com/v2.jpg' },
+            ],
+        };
+
+        render(
+            <MemoryRouter>
+                <ProductCard product={product} />
+            </MemoryRouter>,
+        );
+
+        const image = screen.getByRole('img', { name: 'Basil Image Test' });
+        expect(image).toHaveAttribute('src', 'https://cdn.example.com/v1.jpg');
+        expect(image).toHaveAttribute('data-image-source', 'selectedVariant.imageUrl');
+
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: '70g' }));
+        });
+
+        expect(screen.getByRole('img', { name: 'Basil Image Test' })).toHaveAttribute('src', 'https://cdn.example.com/v2.jpg');
+        expect(screen.getByRole('img', { name: 'Basil Image Test' })).toHaveAttribute('data-image-source', 'selectedVariant.imageUrl');
+    });
+
+    it('falls back to thumbnail, primary image and first gallery image', () => {
+        const { rerender } = render(
+            <MemoryRouter>
+                <ProductCard
+                    product={{ id: 'p-img-2', name: 'Thumb Product', currency: 'SEK', thumbnailUrl: 'https://cdn.example.com/thumb.jpg' }}
+                />
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByRole('img', { name: 'Thumb Product' })).toHaveAttribute('src', 'https://cdn.example.com/thumb.jpg');
+        expect(screen.getByRole('img', { name: 'Thumb Product' })).toHaveAttribute('data-image-source', 'product.thumbnailUrl');
+
+        rerender(
+            <MemoryRouter>
+                <ProductCard
+                    product={{ id: 'p-img-3', name: 'Primary Product', currency: 'SEK', primaryImageUrl: 'https://cdn.example.com/primary.jpg' }}
+                />
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByRole('img', { name: 'Primary Product' })).toHaveAttribute('src', 'https://cdn.example.com/primary.jpg');
+        expect(screen.getByRole('img', { name: 'Primary Product' })).toHaveAttribute('data-image-source', 'product.primaryImageUrl');
+
+        rerender(
+            <MemoryRouter>
+                <ProductCard
+                    product={{ id: 'p-img-4', name: 'Gallery Product', currency: 'SEK', images: [{ url: 'https://cdn.example.com/gallery.jpg' }] }}
+                />
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByRole('img', { name: 'Gallery Product' })).toHaveAttribute('src', 'https://cdn.example.com/gallery.jpg');
+        expect(screen.getByRole('img', { name: 'Gallery Product' })).toHaveAttribute('data-image-source', 'product.images[0].url');
     });
 
     it('keeps view details link visible', () => {

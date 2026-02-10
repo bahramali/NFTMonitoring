@@ -11,6 +11,15 @@ import {
     isVariantInStock,
 } from '../../utils/storeVariants.js';
 import styles from './ProductCard.module.css';
+import placeholderImage from '../../assets/hydroleaf_logo.png';
+
+const getFirstGalleryImage = (images) => {
+    if (!Array.isArray(images) || images.length === 0) return '';
+    const first = images[0];
+    if (!first) return '';
+    if (typeof first === 'string') return first;
+    return first.url ?? first.imageUrl ?? first.src ?? '';
+};
 
 export default function ProductCard({ product, onAdd, pending = false, layout = 'grid' }) {
     const [quantity, setQuantity] = useState(1);
@@ -18,14 +27,12 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
     const variants = useMemo(() => getActiveVariants(product), [product]);
     const defaultVariantId = useMemo(() => getDefaultVariantId(variants), [variants]);
     const [selectedVariantId, setSelectedVariantId] = useState(defaultVariantId);
+    const [selectedVariant, setSelectedVariant] = useState(null);
 
-    const { name, id, imageUrl, currency } = product || {};
-    const activeVariant = useMemo(
-        () => variants.find((variant) => variant.id === selectedVariantId) ?? variants[0],
-        [selectedVariantId, variants],
-    );
-    const priceValue = getVariantPrice(activeVariant) ?? product?.price ?? 0;
-    const stockValue = activeVariant ? getVariantStock(activeVariant) : product?.stock;
+    const { name, id, currency } = product || {};
+    const activeVariant = selectedVariant;
+    const priceValue = getVariantPrice(selectedVariant) ?? product?.price ?? 0;
+    const stockValue = selectedVariant ? getVariantStock(selectedVariant) : product?.stock;
     const isOutOfStock = stockValue !== undefined && stockValue <= 0;
     const stockLabel = useMemo(() => {
         if (stockValue === undefined) return 'In stock';
@@ -54,6 +61,10 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
     }, [defaultVariantId, variants]);
 
     useEffect(() => {
+        setSelectedVariant(variants.find((variant) => variant.id === selectedVariantId) ?? variants[0] ?? null);
+    }, [selectedVariantId, variants]);
+
+    useEffect(() => {
         if (stockValue !== undefined && stockValue > 0 && quantity > stockValue) {
             setQuantity(stockValue);
         }
@@ -66,6 +77,27 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
     const showVariantSelector = variants.length > 1;
     const useDropdown = variants.length > 4;
     const detailHref = id ? `/store/product/${encodeURIComponent(id)}` : null;
+    const variantImageUrl = selectedVariant?.imageUrl ?? selectedVariant?.image?.url;
+    const thumbnailUrl = product?.thumbnailUrl ?? product?.primaryImageUrl;
+    const galleryImageUrl = getFirstGalleryImage(product?.images);
+    const resolvedImage = variantImageUrl || thumbnailUrl || galleryImageUrl || placeholderImage;
+    const imageSourceField = variantImageUrl
+        ? 'selectedVariant.imageUrl'
+        : thumbnailUrl
+            ? (product?.thumbnailUrl ? 'product.thumbnailUrl' : 'product.primaryImageUrl')
+            : galleryImageUrl
+                ? 'product.images[0].url'
+                : 'placeholderImage';
+
+    useEffect(() => {
+        if (!import.meta.env.DEV) return;
+        console.debug('[Store/ProductCard] image source resolved', {
+            productId: id,
+            selectedVariantId,
+            imageSourceField,
+            resolvedImage,
+        });
+    }, [id, imageSourceField, resolvedImage, selectedVariantId]);
 
     const handleCardNavigate = (event) => {
         if (!detailHref) return;
@@ -92,13 +124,12 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
             aria-label={detailHref ? `View details for ${title}` : undefined}
         >
             <div className={styles.media}>
-                {imageUrl ? (
-                    <img src={imageUrl} alt={name} />
-                ) : (
-                    <div className={styles.placeholder} aria-hidden="true">
-                        <span className={styles.logoDot} />
-                    </div>
-                )}
+                <img src={resolvedImage} alt={name} data-image-source={imageSourceField} loading="lazy" />
+                {import.meta.env.DEV ? (
+                    <span className={styles.imageDebug} aria-label={`Image source: ${imageSourceField}`}>
+                        {imageSourceField}
+                    </span>
+                ) : null}
             </div>
 
             <div className={styles.body}>
