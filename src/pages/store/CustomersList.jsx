@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { listAdminCustomers } from '../../api/adminCustomers.js';
+import { listAdminCustomers, normalizeCustomerId } from '../../api/adminCustomers.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { formatCurrency } from '../../utils/currency.js';
 import styles from './CustomersList.module.css';
@@ -261,11 +261,14 @@ export default function CustomersList() {
                         </tr>
                     </thead>
                     <tbody>
-                        {customers.map((customer) => {
+                        {customers.map((customer, index) => {
+                            const routeCustomerId = normalizeCustomerId(customer.id);
+                            if (!routeCustomerId) return null;
                             const statusLabel = customer.status || '—';
                             const statusKey = `${customer.status || ''}`.replace(' ', '');
+                            const rowKey = customer.id || `customer-row-${index}`;
                             return (
-                                <tr key={customer.id}>
+                                <tr key={rowKey}>
                                 <td>
                                     <div className={styles.customerCell}>
                                         <div className={styles.customerName}>{customer.name}</div>
@@ -281,7 +284,7 @@ export default function CustomersList() {
                                 <td>{formatDate(customer.lastOrderDate)}</td>
                                 <td>{formatCurrency(customer.totalSpent, customer.currency || 'SEK')}</td>
                                 <td>
-                                    <Link to={`/store/admin/customers/${customer.id}`} className={styles.detailLink}>
+                                    <Link to={`/store/admin/customers/${routeCustomerId}`} className={styles.detailLink}>
                                         View details
                                     </Link>
                                 </td>

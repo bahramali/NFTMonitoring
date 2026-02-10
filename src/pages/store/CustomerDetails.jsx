@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, Navigate, useParams } from 'react-router-dom';
 import {
     createAdminCustomerCoupon,
     fetchAdminCustomer,
+    normalizeCustomerId,
     listAdminCustomerCoupons,
 } from '../../api/adminCustomers.js';
 import { listAdminProducts } from '../../api/products.js';
@@ -67,6 +68,8 @@ const maskCouponCode = (code) => {
 
 export default function CustomerDetails() {
     const { customerId } = useParams();
+    const normalizedCustomerId = normalizeCustomerId(customerId);
+    const isLegacyCustomerId = `${customerId ?? ''}`.startsWith('user_') && !!normalizedCustomerId;
     const { token } = useAuth();
     const [customer, setCustomer] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -88,13 +91,13 @@ export default function CustomerDetails() {
     const [couponListError, setCouponListError] = useState('');
 
     useEffect(() => {
-        if (!token || !customerId) return;
+        if (!token || !normalizedCustomerId) return;
         const controller = new AbortController();
         const loadCustomer = async () => {
             setLoading(true);
             setError('');
             try {
-                const payload = await fetchAdminCustomer(customerId, token, { signal: controller.signal });
+                const payload = await fetchAdminCustomer(normalizedCustomerId, token, { signal: controller.signal });
                 setCustomer(payload);
             } catch (loadError) {
                 console.error('Failed to load customer details', loadError);
@@ -108,7 +111,7 @@ export default function CustomerDetails() {
         loadCustomer();
 
         return () => controller.abort();
-    }, [customerId, token]);
+    }, [normalizedCustomerId, token]);
 
     useEffect(() => {
         if (!token) return;
@@ -131,11 +134,11 @@ export default function CustomerDetails() {
     }, [selectedVariantId, token]);
 
     const reloadCoupons = useCallback(async (signal) => {
-        if (!token || !customerId) return;
+        if (!token || !normalizedCustomerId) return;
         setCouponListLoading(true);
         setCouponListError('');
         try {
-            const result = await listAdminCustomerCoupons(customerId, token, { signal });
+            const result = await listAdminCustomerCoupons(normalizedCustomerId, token, { signal });
             setCoupons(result);
         } catch (loadError) {
             console.error('Failed to load coupons', loadError);
@@ -144,7 +147,7 @@ export default function CustomerDetails() {
         } finally {
             setCouponListLoading(false);
         }
-    }, [customerId, token]);
+    }, [normalizedCustomerId, token]);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -185,7 +188,7 @@ export default function CustomerDetails() {
 
         setIsSubmittingCoupon(true);
         try {
-            const created = await createAdminCustomerCoupon(customerId, payload, token);
+            const created = await createAdminCustomerCoupon(normalizedCustomerId, payload, token);
             const nextCode = created?.couponCode || '';
             setGeneratedCode(nextCode);
             setSuccessMessage('Code generated. Share it with the customer.');
@@ -207,6 +210,24 @@ export default function CustomerDetails() {
             setCopyState('failed');
         }
     };
+
+    if (isLegacyCustomerId) {
+        return <Navigate to={`/store/admin/customers/${normalizedCustomerId}`} replace />;
+    }
+
+    if (!normalizedCustomerId) {
+        return (
+            <section className={styles.wrapper}>
+                <Link to="/store/admin/customers" className={styles.backLink}>
+                    ← Back to customers
+                </Link>
+                <div className={styles.emptyState}>
+                    <h1>Customer not found</h1>
+                    <p>Invalid customer id.</p>
+                </div>
+            </section>
+        );
+    }
 
     if (loading) {
         return (

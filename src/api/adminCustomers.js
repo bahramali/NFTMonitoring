@@ -4,6 +4,30 @@ import { getApiBaseUrl } from '../config/apiBase.js';
 
 const API_BASE = getApiBaseUrl();
 const ADMIN_CUSTOMERS_URL = `${API_BASE}/api/admin/customers`;
+const NUMERIC_CUSTOMER_ID_REGEX = /^\d+$/;
+
+export const isNumericCustomerId = (customerId) => NUMERIC_CUSTOMER_ID_REGEX.test(`${customerId ?? ''}`.trim());
+
+export const normalizeCustomerId = (customerId) => {
+    const normalized = `${customerId ?? ''}`.trim();
+    if (!normalized) return '';
+    if (isNumericCustomerId(normalized)) return normalized;
+
+    if (normalized.startsWith('user_')) {
+        const legacyValue = normalized.slice(5);
+        if (isNumericCustomerId(legacyValue)) return legacyValue;
+    }
+
+    return '';
+};
+
+const assertValidCustomerId = (customerId) => {
+    const normalizedCustomerId = normalizeCustomerId(customerId);
+    if (!normalizedCustomerId) {
+        throw new Error('Invalid customer id');
+    }
+    return normalizedCustomerId;
+};
 
 const normalizeStatus = (status) => {
     if (!status) return '';
@@ -60,7 +84,7 @@ const normalizeOrders = (orders = []) => {
 
 const normalizeCustomer = (customer) => {
     if (!customer) return null;
-    const id = customer?.id ?? customer?.customerId ?? customer?._id ?? customer?.userId ?? '';
+    const id = normalizeCustomerId(customer?.id ?? customer?.customerId ?? customer?._id ?? customer?.userId);
     const orders = normalizeOrders(customer?.orders ?? customer?.orderHistory ?? customer?.recentOrders);
 
     return {
@@ -225,9 +249,9 @@ export async function listAdminCustomers(token, params = {}, { signal } = {}) {
 
 export async function fetchAdminCustomer(customerId, token, { signal } = {}) {
     if (!token) throw new Error('Authentication is required to load customer details');
-    if (!customerId) throw new Error('Customer ID is required');
+    const normalizedCustomerId = assertValidCustomerId(customerId);
     const res = await authFetch(
-        `${ADMIN_CUSTOMERS_URL}/${encodeURIComponent(customerId)}`,
+        `${ADMIN_CUSTOMERS_URL}/${encodeURIComponent(normalizedCustomerId)}`,
         {
             method: 'GET',
             headers: buildAuthHeaders(token),
@@ -241,9 +265,9 @@ export async function fetchAdminCustomer(customerId, token, { signal } = {}) {
 
 export async function listAdminCustomerCoupons(customerId, token, { signal } = {}) {
     if (!token) throw new Error('Authentication is required to load customer coupons');
-    if (!customerId) throw new Error('Customer ID is required');
+    const normalizedCustomerId = assertValidCustomerId(customerId);
     const res = await authFetch(
-        `${ADMIN_CUSTOMERS_URL}/${encodeURIComponent(customerId)}/coupons`,
+        `${ADMIN_CUSTOMERS_URL}/${encodeURIComponent(normalizedCustomerId)}/coupons`,
         {
             method: 'GET',
             headers: buildAuthHeaders(token),
@@ -257,10 +281,10 @@ export async function listAdminCustomerCoupons(customerId, token, { signal } = {
 
 export async function createAdminCustomerCoupon(customerId, body, token, { signal } = {}) {
     if (!token) throw new Error('Authentication is required to create customer coupons');
-    if (!customerId) throw new Error('Customer ID is required');
+    const normalizedCustomerId = assertValidCustomerId(customerId);
 
     const res = await authFetch(
-        `${ADMIN_CUSTOMERS_URL}/${encodeURIComponent(customerId)}/coupons`,
+        `${ADMIN_CUSTOMERS_URL}/${encodeURIComponent(normalizedCustomerId)}/coupons`,
         {
             method: 'POST',
             headers: buildAuthHeaders(token),
