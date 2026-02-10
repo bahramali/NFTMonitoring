@@ -97,6 +97,12 @@ const normalizeVariants = (variants) => {
     return [];
 };
 
+const resolveVariantSortOrder = (variant, fallback = 0) => {
+    const candidate = variant?.sortOrder ?? variant?.order ?? variant?.position ?? variant?.displayOrder;
+    const numeric = Number(candidate);
+    return Number.isFinite(numeric) ? numeric : fallback;
+};
+
 export default function ProductAdmin() {
     const { isAuthenticated, token, permissions } = useAuth();
     const [products, setProducts] = useState([]);
@@ -367,7 +373,7 @@ export default function ProductAdmin() {
                 stock: getVariantStock(variant) ?? '',
                 sku: variant.sku ?? '',
                 imageUrl: variant.imageUrl ?? '',
-                sortOrder: Number.isFinite(Number(variant.sortOrder)) ? Number(variant.sortOrder) : index,
+                sortOrder: resolveVariantSortOrder(variant, index),
                 active: variant.active !== false && variant.isActive !== false,
                 localId: variant.id ?? variant.variantId ?? variant._id ?? globalThis.crypto?.randomUUID?.(),
             }))
@@ -439,6 +445,8 @@ export default function ProductAdmin() {
         imageUrl: (variant.imageUrl || '').trim(),
         active: variant.active !== false,
         sortOrder: Number(variant.sortOrder ?? 0),
+        order: Number(variant.sortOrder ?? 0),
+        position: Number(variant.sortOrder ?? 0),
     });
 
     const variantValidation = useMemo(() => {
