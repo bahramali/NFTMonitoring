@@ -424,6 +424,15 @@
     font-size: 14px;
 }
 
+
+.avatarImage {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    object-fit: cover;
+    display: block;
+}
 .avatarStatus {
     position: absolute;
     width: 8px;
