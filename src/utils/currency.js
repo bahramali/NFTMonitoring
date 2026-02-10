@@ -4,7 +4,7 @@ export function formatCurrency(amount, currency = 'SEK') {
         return new Intl.NumberFormat('sv-SE', {
             style: 'currency',
             currency: currency || 'SEK',
-            minimumFractionDigits: 0,
+            minimumFractionDigits: 2,
             maximumFractionDigits: 2,
         }).format(Number(amount));
     } catch {
