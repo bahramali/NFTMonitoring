@@ -77,6 +77,10 @@ export default function Storefront() {
 
     return (
         <div className={styles.page}>
+            <section className={styles.intro} aria-label="Store introduction">
+                <p>Welcome to the HydroLeaf Store — explore our latest products and order directly online.</p>
+            </section>
+
             {error && (
                 <div className={styles.alert} role="alert">
                     <span>{error}</span>
@@ -138,10 +142,15 @@ export default function Storefront() {
                 {loading ? (
                     <div className={styles.loading}>Loading products…</div>
                 ) : (products?.length ?? 0) === 0 ? (
-                    <div className={styles.emptyState}>
-                        <p>No products available right now.</p>
-                        <Link to="/contact" className={styles.emptyStateLink}>Contact us</Link>
-                    </div>
+                    <>
+                        <div className={styles.comingSoonBar} role="status" aria-live="polite">
+                            New products are coming soon — check back shortly.
+                        </div>
+                        <div className={styles.emptyState}>
+                            <p>No products available right now.</p>
+                            <Link to="/contact" className={styles.emptyStateLink}>Contact us</Link>
+                        </div>
+                    </>
                 ) : inStock.length > 0 ? (
                     <div className={`${styles.grid} ${isSingleProduct ? styles.singleGrid : ''}`}>
                         {inStock.map((product) => (

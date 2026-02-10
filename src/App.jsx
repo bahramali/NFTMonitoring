@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import CustomerRoute from './components/CustomerRoute.jsx';
-import Home from './pages/Home.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import NotAuthorized from './pages/NotAuthorized.jsx';
@@ -120,7 +119,7 @@ function AppRoutes() {
         <SensorConfigProvider locationPath={location.pathname}>
             <Routes>
                 <Route element={<PublicLayout />}>
-                    <Route path="/" element={<Home />} />
+                    <Route path="/" element={<Navigate to="/store" replace />} />
                     <Route path="/timelapse" element={<TimelapsePage />} />
                     <Route path="/webrtc-test" element={<WebRTCConnectivityTest />} />
                     <Route path="/login" element={<Login />} />
@@ -322,7 +321,7 @@ function AppRoutes() {
                 <Route path="/super-admin/admins" element={<Navigate to="/admin/directory" replace />} />
                 <Route path="/store/home" element={<Navigate to="/store" replace />} />
 
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<Navigate to="/store" replace />} />
             </Routes>
         </SensorConfigProvider>
     );
