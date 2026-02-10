@@ -282,6 +282,113 @@
     height: 20px;
 }
 
+.hamburgerButton {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.hamburgerButton:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.hamburgerIcon {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+}
+
+.hamburgerIcon span {
+    display: block;
+    width: 16px;
+    height: 2px;
+    border-radius: 999px;
+    background: currentColor;
+}
+
+.mobileDrawerBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    background: rgba(2, 6, 23, 0.56);
+}
+
+.mobileDrawerPanel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100dvh;
+    width: min(320px, 86vw);
+    background: #0b1224;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: -18px 0 30px rgba(2, 6, 23, 0.48);
+    padding: calc(12px + env(safe-area-inset-top)) 14px calc(16px + env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 14px;
+}
+
+.mobileDrawerHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.mobileDrawerTitle {
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.2;
+}
+
+.mobileDrawerCloseButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
+    cursor: pointer;
+    font-size: 24px;
+    line-height: 1;
+}
+
+.mobileDrawerNav {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-right: 2px;
+}
+
+.mobileDrawerLink {
+    text-decoration: none;
+    color: #e2e8f0;
+    font-weight: 700;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+    min-height: 42px;
+    padding: 10px 12px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.mobileDrawerLink:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
 .userName {
     font-size: 14px;
     max-width: 180px;
@@ -383,6 +490,13 @@
     outline-offset: 2px;
 }
 
+.hamburgerButton:focus-visible,
+.mobileDrawerCloseButton:focus-visible,
+.mobileDrawerLink:focus-visible {
+    outline: 2px solid rgba(94, 234, 212, 0.6);
+    outline-offset: 2px;
+}
+
 .menuAction {
     background: rgba(248, 113, 113, 0.12);
     color: #fecdd3;
@@ -465,19 +579,15 @@
     }
 
     :global(.topbar__center) {
-        gap: 8px;
-        justify-content: flex-start;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+        display: none;
     }
 
     :global(.topbar__right) {
         gap: 8px;
     }
 
-    .moduleTab {
-        flex: 0 0 auto;
-        min-width: auto;
+    .hamburgerButton {
+        display: inline-flex;
     }
 }
 
