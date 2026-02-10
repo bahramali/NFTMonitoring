@@ -171,3 +171,103 @@
         align-items: flex-start;
     }
 }
+
+.couponSection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.couponForm {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    align-items: end;
+}
+
+.couponForm label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.couponForm span {
+    font-size: 0.85rem;
+    color: #374151;
+}
+
+.couponForm input,
+.couponForm select {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 9px 10px;
+}
+
+.couponForm button {
+    border: none;
+    background: #2563eb;
+    color: #fff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.couponForm button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.errorMessage {
+    color: #b91c1c;
+    margin: 0;
+}
+
+.successMessage {
+    color: #047857;
+    margin: 0;
+}
+
+.generatedCodeWrap {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.generatedCodeWrap label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 240px;
+}
+
+.generatedCodeWrap input {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 9px 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+.generatedCodeWrap button {
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #111827;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.copyFeedback {
+    color: #047857;
+    font-size: 0.9rem;
+}
