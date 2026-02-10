@@ -51,8 +51,12 @@ const flattenVariants = (products = []) =>
     products.flatMap((product) => {
         const variants = Array.isArray(product?.variants) ? product.variants : [];
         return variants
-            .filter((variant) => variant?.id)
             .map((variant) => {
+                const variantId = `${variant?.id ?? variant?.variantId ?? variant?._id ?? ''}`.trim();
+                return { variant, variantId };
+            })
+            .filter(({ variantId }) => Boolean(variantId))
+            .map(({ variant, variantId }) => {
                 const weightValue =
                     variant?.weight
                     ?? variant?.weightGrams
@@ -70,7 +74,8 @@ const flattenVariants = (products = []) =>
                     : `${variantName}`.trim();
 
                 return {
-                    id: variant.id,
+                    id: variantId,
+                    productId: `${product?.id ?? product?.productId ?? product?._id ?? ''}`.trim(),
                     label: `${product?.name || 'Product'} ${variantSuffix}`.trim(),
                 };
             });
@@ -178,6 +183,11 @@ export default function CustomerDetails() {
         return variants.filter((variant) => variant.label.toLowerCase().includes(query));
     }, [variantSearch, variants]);
 
+    const selectedVariant = useMemo(
+        () => variants.find((variant) => variant.id === selectedVariantId) || null,
+        [selectedVariantId, variants],
+    );
+
     const handleSubmitCoupon = async (event) => {
         event.preventDefault();
         setCouponError('');
@@ -198,8 +208,13 @@ export default function CustomerDetails() {
 
         const amountOffCents = Math.round(amountSekNumber * 100);
         const payload = {
-            variantId: selectedVariantId,
+            variantId: `${selectedVariantId}`.trim(),
+            productVariantId: `${selectedVariantId}`.trim(),
             amountOffCents,
+            discountAmountCents: amountOffCents,
+            amountOff: Number(amountSekNumber.toFixed(2)),
+            discountAmount: Number(amountSekNumber.toFixed(2)),
+            ...(selectedVariant?.productId ? { productId: selectedVariant.productId } : {}),
             ...(expiryAt ? { expiresAt: new Date(expiryAt).toISOString() } : {}),
         };
 
