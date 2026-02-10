@@ -309,7 +309,7 @@ export default function Checkout() {
             notify('info', 'Starting Stripe Checkout…');
             setStatusMessage('Requesting Stripe Checkout…');
             const shippingAddress = {
-                fullName: form.fullName?.trim() || '',
+                name: form.fullName?.trim() || '',
                 phone: form.phone?.trim() || '',
                 addressLine1: form.addressLine1?.trim() || '',
                 addressLine2: form.addressLine2?.trim() || '',
