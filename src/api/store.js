@@ -133,7 +133,29 @@ export async function createCheckoutSession(cartId, payload = {}, { signal } = {
     };
 }
 
-export async function createStripeCheckoutSession(token, { cartId, email, shippingAddress } = {}, { signal } = {}) {
+export async function fetchCheckoutQuote(token, { cartId, couponCode, sessionId } = {}, { signal } = {}) {
+    if (!cartId) throw new Error('Cart ID is required');
+    const res = await authFetch(
+        `${STORE_BASE}/checkout/quote`,
+        {
+            method: 'POST',
+            headers: {
+                ...buildAuthHeaders(token),
+                ...buildCartHeaders(cartId, sessionId),
+            },
+            body: JSON.stringify({
+                cartId,
+                couponCode,
+            }),
+            signal,
+        },
+        { token },
+    );
+
+    return parseApiResponse(res, 'Failed to quote checkout total');
+}
+
+export async function createStripeCheckoutSession(token, { cartId, email, shippingAddress, couponCode, sessionId } = {}, { signal } = {}) {
     if (!cartId) throw new Error('Cart ID is required');
     const res = await authFetch(
         `${STORE_BASE}/checkout/stripe/session`,
@@ -141,12 +163,13 @@ export async function createStripeCheckoutSession(token, { cartId, email, shippi
             method: 'POST',
             headers: {
                 ...buildAuthHeaders(token),
-                ...buildCartHeaders(cartId),
+                ...buildCartHeaders(cartId, sessionId),
             },
             body: JSON.stringify({
                 cartId,
                 email,
                 shippingAddress,
+                couponCode,
             }),
             signal,
         },

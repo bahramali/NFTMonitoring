@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom';
 import { createCustomerAddress, fetchCustomerAddresses, setDefaultCustomerAddress } from '../../api/customerAddresses.js';
 import { fetchCustomerProfile } from '../../api/customer.js';
-import { createStripeCheckoutSession } from '../../api/store.js';
+import { createStripeCheckoutSession, fetchCheckoutQuote } from '../../api/store.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
@@ -67,6 +67,18 @@ const getCheckoutErrorMessage = (error) => {
     return error?.message || 'Checkout failed. Please try again.';
 };
 
+
+const getCouponErrorMessage = (error) => {
+    if (error?.status === 401 || error?.status === 403) {
+        const code = error?.payload?.code || error?.payload?.errorCode || error?.payload?.error?.code;
+        if (code === 'COUPON_LOGIN_REQUIRED') {
+            return 'Please log in to use your coupon';
+        }
+    }
+
+    return 'Invalid coupon code';
+};
+
 const logCheckoutError = (error) => {
     const payloadMessage =
         typeof error?.payload === 'string'
@@ -96,6 +108,10 @@ export default function Checkout() {
     const [loadingAddresses, setLoadingAddresses] = useState(false);
     const [addressError, setAddressError] = useState(null);
     const [saveNewAddress, setSaveNewAddress] = useState(true);
+    const [couponCode, setCouponCode] = useState('');
+    const [couponStatus, setCouponStatus] = useState('idle');
+    const [couponMessage, setCouponMessage] = useState('');
+    const [quote, setQuote] = useState(null);
     const checkoutInFlight = useRef(false);
 
     const totals = cart?.totals || {};
@@ -106,10 +122,23 @@ export default function Checkout() {
     const profileEmail = profile?.email || '';
     const orderEmail = isAuthenticated ? profileEmail : form.email;
     const canSubmit = hasItems && !submitting && (!isAuthenticated || Boolean(orderEmail));
+    const isApplyingCoupon = couponStatus === 'applying';
     const selectedAddress = useMemo(
         () => addresses.find((address) => String(address.id) === String(selectedAddressId)),
         [addresses, selectedAddressId],
     );
+    const cartFingerprint = useMemo(
+        () => JSON.stringify((summaryItems || []).map((item) => ({
+            id: item.id || item.productId || item.variantId,
+            quantity: item.quantity ?? item.qty ?? 1,
+        }))),
+        [summaryItems],
+    );
+
+    const quoteCurrency = quote?.currency || quote?.totals?.currency || currency;
+    const summarySubtotal = quote?.subtotal ?? quote?.totals?.subtotal ?? totals.subtotal ?? totals.total ?? 0;
+    const summaryDiscount = quote?.discount ?? quote?.totals?.discount ?? 0;
+    const summaryTotal = quote?.total ?? quote?.totals?.total ?? totals.total ?? totals.subtotal ?? 0;
 
     const applyAddressToForm = useCallback((address) => {
         if (!address) return;
@@ -245,6 +274,42 @@ export default function Checkout() {
         setAddressMode('saved');
     };
 
+
+    const clearCouponState = useCallback(() => {
+        setQuote(null);
+        setCouponCode('');
+        setCouponStatus('idle');
+        setCouponMessage('');
+    }, []);
+
+    useEffect(() => {
+        clearCouponState();
+    }, [cartFingerprint, clearCouponState]);
+
+    const handleApplyCoupon = async () => {
+        const normalizedCoupon = couponCode.trim();
+        if (!normalizedCoupon || !cartId || isApplyingCoupon) {
+            return;
+        }
+
+        setCouponStatus('applying');
+        setCouponMessage('');
+        try {
+            const quoted = await fetchCheckoutQuote(token, {
+                cartId,
+                sessionId,
+                couponCode: normalizedCoupon,
+            });
+            setQuote(quoted || null);
+            setCouponStatus('applied');
+            setCouponMessage(quoted?.message || 'Coupon applied.');
+        } catch (err) {
+            setQuote(null);
+            setCouponStatus('invalid');
+            setCouponMessage(getCouponErrorMessage(err));
+        }
+    };
+
     const handleSubmit = async (event) => {
         event.preventDefault();
         if (checkoutInFlight.current) {
@@ -320,8 +385,10 @@ export default function Checkout() {
             };
             const response = await createStripeCheckoutSession(token, {
                 cartId,
+                sessionId,
                 email: orderEmail,
                 shippingAddress,
+                couponCode: couponCode.trim() || undefined,
             });
             setStatusMessage('Redirecting to Stripe Checkout…');
             notify('success', 'Checkout session created. Redirecting…');
@@ -538,6 +605,30 @@ export default function Checkout() {
                             </>
                         ) : null}
                         <div className={styles.fieldGroup}>
+                            <label htmlFor="couponCode">Coupon code</label>
+                            <div className={styles.couponRow}>
+                                <input
+                                    id="couponCode"
+                                    name="couponCode"
+                                    type="text"
+                                    value={couponCode}
+                                    onChange={(event) => setCouponCode(event.target.value)}
+                                    placeholder="Enter coupon"
+                                />
+                                <button
+                                    type="button"
+                                    className={styles.applyCoupon}
+                                    onClick={handleApplyCoupon}
+                                    disabled={isApplyingCoupon || !couponCode.trim() || !cartId}
+                                >
+                                    {isApplyingCoupon ? 'Applying…' : 'Apply'}
+                                </button>
+                            </div>
+                            {couponMessage ? (
+                                <p className={couponStatus === 'invalid' ? styles.error : styles.status}>{couponMessage}</p>
+                            ) : null}
+                        </div>
+                        <div className={styles.fieldGroup}>
                             <label htmlFor="notes">Notes</label>
                             <textarea id="notes" name="notes" value={form.notes} onChange={handleChange} rows={3} />
                         </div>
@@ -550,7 +641,7 @@ export default function Checkout() {
                                     <span>Starting checkout…</span>
                                 </span>
                             ) : (
-                                `Pay ${formatCurrency(totals.total ?? totals.subtotal ?? 0, currency)}`
+                                `Pay ${formatCurrency(summaryTotal, quoteCurrency)}`
                             )}
                         </button>
                     </form>
@@ -570,16 +661,22 @@ export default function Checkout() {
                         </div>
                         <div className={styles.row}>
                             <span>Subtotal</span>
-                            <span>{formatCurrency(totals.subtotal ?? totals.total ?? 0, currency)}</span>
+                            <span>{formatCurrency(summarySubtotal, quoteCurrency)}</span>
                         </div>
+                        {summaryDiscount > 0 ? (
+                            <div className={styles.row}>
+                                <span>Discount</span>
+                                <span>-{formatCurrency(summaryDiscount, quoteCurrency)}</span>
+                            </div>
+                        ) : null}
                         <div className={styles.row}>
                             <span>Fulfillment</span>
                             <span>Local pickup (Stockholm) – free</span>
                         </div>
                         <div className={styles.pickupNote}>Pickup confirmed after payment. We&apos;ll email the details.</div>
                         <div className={`${styles.row} ${styles.total}`}>
-                            <span>Total ({currencyLabel(currency)})</span>
-                            <span>{formatCurrency(totals.total ?? totals.subtotal ?? 0, currency)}</span>
+                            <span>Total ({currencyLabel(quoteCurrency)})</span>
+                            <span>{formatCurrency(summaryTotal, quoteCurrency)}</span>
                         </div>
                     </aside>
                 </div>
