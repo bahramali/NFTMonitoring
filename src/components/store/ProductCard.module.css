@@ -295,3 +295,17 @@
         max-height: 220px;
     }
 }
+
+
+.imageDebug {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    padding: 3px 6px;
+    border-radius: 999px;
+    background: rgba(17, 17, 17, 0.72);
+    color: #fff;
+    font-size: 10px;
+    line-height: 1;
+    pointer-events: none;
+}
