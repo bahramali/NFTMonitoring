@@ -52,10 +52,28 @@ const flattenVariants = (products = []) =>
         const variants = Array.isArray(product?.variants) ? product.variants : [];
         return variants
             .filter((variant) => variant?.id)
-            .map((variant) => ({
-                id: variant.id,
-                label: `${product?.name || 'Product'} ${variant?.weight ? `${variant.weight}g` : variant?.name || ''}`.trim(),
-            }));
+            .map((variant) => {
+                const weightValue =
+                    variant?.weight
+                    ?? variant?.weightGrams
+                    ?? variant?.weightInGrams
+                    ?? variant?.grams;
+                const hasWeight = Number.isFinite(Number(weightValue)) && Number(weightValue) > 0;
+                const variantName =
+                    variant?.name
+                    ?? variant?.label
+                    ?? variant?.title
+                    ?? variant?.option
+                    ?? '';
+                const variantSuffix = hasWeight
+                    ? `${Number(weightValue)}g`
+                    : `${variantName}`.trim();
+
+                return {
+                    id: variant.id,
+                    label: `${product?.name || 'Product'} ${variantSuffix}`.trim(),
+                };
+            });
     });
 
 const maskCouponCode = (code) => {
