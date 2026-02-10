@@ -67,9 +67,22 @@
 
 .layout {
     display: grid;
-    grid-template-columns: minmax(340px, 1fr) minmax(520px, 1.35fr) minmax(340px, 1fr);
-    gap: 20px;
+    grid-template-columns: 300px minmax(640px, 1.6fr) minmax(320px, 0.9fr);
+    gap: 16px;
     align-items: start;
+}
+
+.catalogPanel {
+    min-width: 0;
+}
+
+.detailsPanel {
+    min-width: 0;
+    max-width: none;
+}
+
+.variantsPanel {
+    min-width: 0;
 }
 
 .panel {
@@ -96,10 +109,12 @@
     gap: 8px;
     flex-wrap: wrap;
     align-items: center;
+    min-width: 0;
 }
 
 .input, .textarea, select.input {
     width: 100%;
+    min-width: 0;
     padding: 10px;
     border-radius: 10px;
     border: 1px solid #cbd5e1;
@@ -233,14 +248,15 @@
 .form {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 20px;
+    min-width: 0;
 }
 
 .formCard {
     border: 1px solid #e2e8f0;
     border-radius: 12px;
     background: #f8fafc;
-    padding: 16px;
+    padding: 18px;
 }
 
 .variantRowHeader {
@@ -261,12 +277,6 @@
     font-size: 13px;
 }
 
-.twoCol {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 12px;
-}
-
 .toggleRow {
     display: flex;
     align-items: center;
@@ -275,16 +285,21 @@
 }
 
 .formActions {
+    position: sticky;
+    bottom: 0;
     display: flex;
     gap: 10px;
-    margin-top: 20px;
-    padding-top: 8px;
+    margin-top: 16px;
+    padding: 12px 0 4px;
+    border-top: 1px solid #e2e8f0;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, #ffffff 40%);
+    z-index: 2;
 }
 
 .variantsSection {
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
-    border-top: 0.0625rem solid #e2e8f0;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -487,9 +502,19 @@
     color: #991b1b;
 }
 
-@media (max-width: 1400px) {
+@media (max-width: 1600px) {
     .layout {
-        grid-template-columns: minmax(300px, 1fr) minmax(460px, 1.2fr);
+        grid-template-columns: 280px minmax(560px, 1.45fr) minmax(300px, 0.85fr);
+    }
+}
+
+@media (max-width: 1360px) {
+    .layout {
+        grid-template-columns: 280px minmax(520px, 1.35fr);
+    }
+
+    .variantsPanel {
+        grid-column: 1 / -1;
     }
 }
 

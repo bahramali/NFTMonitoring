@@ -652,7 +652,7 @@ export default function ProductAdmin() {
             </header>
 
             <div className={styles.layout}>
-                <section className={styles.panel}>
+                <section className={`${styles.panel} ${styles.catalogPanel}`}>
                     <div className={styles.panelHeader}>
                         <div>
                             <p className={styles.kickerSmall}>Catalog</p>
@@ -771,7 +771,7 @@ export default function ProductAdmin() {
                     </div>
                 </section>
 
-                <section className={styles.panel}>
+                <section className={`${styles.panel} ${styles.detailsPanel}`}>
                     <div className={styles.panelHeader}>
                         <div>
                             <p className={styles.kickerSmall}>Product details</p>
@@ -814,31 +814,26 @@ export default function ProductAdmin() {
 
                         <div className={styles.formCard}>
                             <h3 className={styles.sectionTitle}>Classification</h3>
-                            <div className={styles.twoCol}>
-                                <div>
-                                    <label className={styles.label} htmlFor="product-sku">SKU</label>
-                                    <input
-                                        id="product-sku"
-                                        className={styles.input}
-                                        value={formState.sku}
-                                        onChange={(event) => setFormState((prev) => ({ ...prev, sku: event.target.value }))}
-                                        placeholder="Optional"
-                                    />
-                                </div>
-                                <div>
-                                    <label className={styles.label} htmlFor="product-category">Category</label>
-                                    <select
-                                        id="product-category"
-                                        className={styles.input}
-                                        value={formState.category}
-                                        onChange={(event) => setFormState((prev) => ({ ...prev, category: event.target.value }))}
-                                    >
-                                        {CATEGORY_OPTIONS.map((category) => (
-                                            <option key={category} value={category}>{category}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
+                            <label className={styles.label} htmlFor="product-sku">SKU</label>
+                            <input
+                                id="product-sku"
+                                className={styles.input}
+                                value={formState.sku}
+                                onChange={(event) => setFormState((prev) => ({ ...prev, sku: event.target.value }))}
+                                placeholder="Optional"
+                            />
+
+                            <label className={styles.label} htmlFor="product-category">Category</label>
+                            <select
+                                id="product-category"
+                                className={styles.input}
+                                value={formState.category}
+                                onChange={(event) => setFormState((prev) => ({ ...prev, category: event.target.value }))}
+                            >
+                                {CATEGORY_OPTIONS.map((category) => (
+                                    <option key={category} value={category}>{category}</option>
+                                ))}
+                            </select>
                             <div className={styles.toggleRow}>
                                 <input
                                     id="product-active"
@@ -880,7 +875,7 @@ export default function ProductAdmin() {
                     </form>
                 </section>
 
-                <section className={styles.panel}>
+                <section className={`${styles.panel} ${styles.variantsPanel}`}>
                     <div className={styles.variantsSection}>
                         <div className={styles.variantsHeader}>
                             <div>
