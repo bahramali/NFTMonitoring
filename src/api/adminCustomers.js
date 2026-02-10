@@ -135,6 +135,55 @@ const extractKpis = (payload, customers, totalFromMeta) => {
     return { totalCustomers, activeCustomers };
 };
 
+const normalizeCouponStatus = (status, coupon) => {
+    const raw = `${status ?? coupon?.status ?? coupon?.state ?? ''}`.trim().toUpperCase();
+    if (raw === 'REDEEMED' || raw === 'USED') return 'Redeemed';
+    if (raw === 'EXPIRED') return 'Expired';
+    if (raw === 'ACTIVE') return 'Active';
+
+    const expiresAt = coupon?.expiresAt ?? coupon?.expiryDate ?? coupon?.expirationDate ?? '';
+    if (expiresAt) {
+        const expiryDate = new Date(expiresAt);
+        if (!Number.isNaN(expiryDate.getTime()) && expiryDate.getTime() < Date.now()) {
+            return 'Expired';
+        }
+    }
+    if (coupon?.redeemedAt || coupon?.usedAt) return 'Redeemed';
+    return 'Active';
+};
+
+const normalizeCoupon = (coupon) => {
+    if (!coupon) return null;
+    const amountOffCents =
+        coupon?.amountOffCents ?? coupon?.discountAmountCents ?? coupon?.amountOff ?? coupon?.discountAmount ?? 0;
+
+    return {
+        ...coupon,
+        id: coupon?.id ?? coupon?.couponId ?? coupon?._id ?? '',
+        couponCode: coupon?.couponCode ?? coupon?.code ?? '',
+        variantId: coupon?.variantId ?? coupon?.productVariantId ?? '',
+        variantLabel: coupon?.variantLabel ?? coupon?.variantName ?? coupon?.productVariantLabel ?? '—',
+        amountOffCents,
+        status: normalizeCouponStatus(coupon?.status, coupon),
+        createdAt: coupon?.createdAt ?? coupon?.created ?? coupon?.issuedAt ?? '',
+        expiresAt: coupon?.expiresAt ?? coupon?.expiryDate ?? coupon?.expirationDate ?? '',
+    };
+};
+
+const normalizeCouponsPayload = (payload) => {
+    const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.coupons)
+            ? payload.coupons
+            : Array.isArray(payload?.items)
+                ? payload.items
+                : Array.isArray(payload?.data)
+                    ? payload.data
+                    : [];
+
+    return list.map(normalizeCoupon).filter(Boolean);
+};
+
 export async function listAdminCustomers(token, params = {}, { signal } = {}) {
     if (!token) throw new Error('Authentication is required to load customers');
     const resolvedParams = {
@@ -188,4 +237,39 @@ export async function fetchAdminCustomer(customerId, token, { signal } = {}) {
     );
     const payload = await parseApiResponse(res, 'Failed to load customer');
     return normalizeCustomer(payload?.customer ?? payload?.data ?? payload);
+}
+
+export async function listAdminCustomerCoupons(customerId, token, { signal } = {}) {
+    if (!token) throw new Error('Authentication is required to load customer coupons');
+    if (!customerId) throw new Error('Customer ID is required');
+    const res = await authFetch(
+        `${ADMIN_CUSTOMERS_URL}/${encodeURIComponent(customerId)}/coupons`,
+        {
+            method: 'GET',
+            headers: buildAuthHeaders(token),
+            signal,
+        },
+        { token },
+    );
+    const payload = await parseApiResponse(res, 'Failed to load customer coupons');
+    return normalizeCouponsPayload(payload);
+}
+
+export async function createAdminCustomerCoupon(customerId, body, token, { signal } = {}) {
+    if (!token) throw new Error('Authentication is required to create customer coupons');
+    if (!customerId) throw new Error('Customer ID is required');
+
+    const res = await authFetch(
+        `${ADMIN_CUSTOMERS_URL}/${encodeURIComponent(customerId)}/coupons`,
+        {
+            method: 'POST',
+            headers: buildAuthHeaders(token),
+            signal,
+            body: JSON.stringify(body),
+        },
+        { token },
+    );
+
+    const payload = await parseApiResponse(res, 'Failed to create coupon');
+    return normalizeCoupon(payload?.coupon ?? payload?.data ?? payload);
 }
