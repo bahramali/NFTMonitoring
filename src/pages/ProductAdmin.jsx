@@ -118,6 +118,8 @@ export default function ProductAdmin() {
     const [actioningId, setActioningId] = useState(null);
     const [variantRows, setVariantRows] = useState([]);
     const [variantActionId, setVariantActionId] = useState(null);
+    const [defaultVariantId, setDefaultVariantId] = useState(null);
+    const [variantSnapshot, setVariantSnapshot] = useState('');
 
     const hasAccess = hasPerm({ permissions }, PERMISSIONS.PRODUCTS_MANAGE);
 
@@ -323,11 +325,12 @@ export default function ProductAdmin() {
     useEffect(() => {
         if (!selectedProduct) {
             setVariantRows([]);
+            setDefaultVariantId(null);
+            setVariantSnapshot('');
             return;
         }
-        const variants = normalizeVariants(selectedProduct.variants);
-        setVariantRows(
-            variants.map((variant) => ({
+        const variants = normalizeVariants(selectedProduct.variants)
+            .map((variant, index) => ({
                 ...variant,
                 id: variant.id ?? variant.variantId ?? variant._id ?? null,
                 weight: variant.weight ?? variant.weightGrams ?? variant.weightInGrams ?? variant.grams ?? '',
@@ -335,15 +338,35 @@ export default function ProductAdmin() {
                 stock: getVariantStock(variant) ?? '',
                 sku: variant.sku ?? '',
                 imageUrl: variant.imageUrl ?? '',
+                sortOrder: Number.isFinite(Number(variant.sortOrder)) ? Number(variant.sortOrder) : index,
                 active: variant.active !== false && variant.isActive !== false,
                 localId: variant.id ?? variant.variantId ?? variant._id ?? globalThis.crypto?.randomUUID?.(),
+            }))
+            .sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0))
+            .map((variant, index) => ({ ...variant, sortOrder: index }));
+
+        const resolvedDefaultId = selectedProduct.defaultVariantId || variants[0]?.id || null;
+        setVariantRows(variants);
+        setDefaultVariantId(resolvedDefaultId);
+        setVariantSnapshot(JSON.stringify({
+            defaultVariantId: resolvedDefaultId,
+            variants: variants.map((variant) => ({
+                id: variant.id,
+                localId: variant.localId,
+                weight: `${variant.weight ?? ''}`,
+                price: `${variant.price ?? ''}`,
+                stock: `${variant.stock ?? ''}`,
+                sku: variant.sku ?? '',
+                imageUrl: variant.imageUrl ?? '',
+                active: variant.active !== false,
+                sortOrder: Number(variant.sortOrder ?? 0),
             })),
-        );
+        }));
     }, [selectedProduct]);
 
-    const handleVariantChange = (index, field, value) => {
+    const handleVariantChange = (localId, field, value) => {
         setVariantRows((prev) =>
-            prev.map((variant, rowIndex) => (rowIndex === index ? { ...variant, [field]: value } : variant)),
+            prev.map((variant) => ((variant.localId || variant.id) === localId ? { ...variant, [field]: value } : variant)),
         );
     };
 
@@ -357,10 +380,24 @@ export default function ProductAdmin() {
                 stock: '',
                 sku: '',
                 imageUrl: '',
+                sortOrder: prev.length,
                 active: true,
                 localId: globalThis.crypto?.randomUUID?.() || `new-${Date.now()}`,
             },
         ]);
+    };
+
+    const moveVariant = (localId, direction) => {
+        setVariantRows((prev) => {
+            const currentIndex = prev.findIndex((variant) => (variant.localId || variant.id) === localId);
+            if (currentIndex < 0) return prev;
+            const nextIndex = currentIndex + direction;
+            if (nextIndex < 0 || nextIndex >= prev.length) return prev;
+            const reordered = [...prev];
+            const [moved] = reordered.splice(currentIndex, 1);
+            reordered.splice(nextIndex, 0, moved);
+            return reordered.map((variant, index) => ({ ...variant, sortOrder: index }));
+        });
     };
 
     const buildVariantPayload = (variant) => ({
@@ -370,34 +407,138 @@ export default function ProductAdmin() {
         sku: variant.sku?.trim() || '',
         imageUrl: (variant.imageUrl || '').trim(),
         active: variant.active !== false,
+        sortOrder: Number(variant.sortOrder ?? 0),
     });
 
-    const saveVariantRow = async (index) => {
-        if (!selectedProduct?.id || saving) return;
-        const variant = variantRows[index];
-        if (!variant) return;
-        const payload = buildVariantPayload(variant);
-        if (payload.weightGrams <= 0) {
-            showToast('error', 'Weight must be greater than zero.');
-            return;
-        }
-        if (payload.priceSek < 0 || payload.stockQuantity < 0) {
-            showToast('error', 'Price and stock cannot be negative.');
-            return;
-        }
-        setVariantActionId(variant.localId || variant.id);
-        try {
-            if (variant.id) {
-                await updateProductVariant(selectedProduct.id, variant.id, payload, token);
-                showToast('success', 'Variant updated');
+    const variantValidation = useMemo(() => {
+        const errorsByVariant = {};
+        const weightMap = new Map();
+        let hasBlockingError = false;
+
+        variantRows.forEach((variant) => {
+            const key = variant.localId || variant.id;
+            const errors = [];
+            const weight = normalizeNumber(variant.weight, -1);
+            const price = normalizeNumber(variant.price, -1);
+            const stock = normalizeNumber(variant.stock, -1);
+
+            if (weight <= 0) {
+                errors.push('Weight must be greater than zero.');
             } else {
-                await createProductVariant(selectedProduct.id, payload, token);
-                showToast('success', 'Variant created');
+                const existing = weightMap.get(weight) || [];
+                existing.push(key);
+                weightMap.set(weight, existing);
             }
+
+            if (price < 0) errors.push('Price cannot be negative.');
+            if (stock < 0) errors.push('Stock cannot be negative.');
+            if (errors.length > 0) {
+                hasBlockingError = true;
+                errorsByVariant[key] = errors;
+            }
+        });
+
+        weightMap.forEach((keys, weight) => {
+            if (keys.length <= 1) return;
+            hasBlockingError = true;
+            keys.forEach((key) => {
+                errorsByVariant[key] = [...(errorsByVariant[key] || []), `Duplicate weight: ${weight}g.`];
+            });
+        });
+
+        if (variantRows.length > 0 && !defaultVariantId) {
+            hasBlockingError = true;
+        }
+
+        return {
+            hasBlockingError,
+            errorsByVariant,
+            defaultVariantError: variantRows.length > 0 && !defaultVariantId ? 'Please select a default variant.' : '',
+        };
+    }, [defaultVariantId, variantRows]);
+
+    const variantDraftSignature = useMemo(() => JSON.stringify({
+        defaultVariantId,
+        variants: variantRows.map((variant) => ({
+            id: variant.id,
+            localId: variant.localId,
+            weight: `${variant.weight ?? ''}`,
+            price: `${variant.price ?? ''}`,
+            stock: `${variant.stock ?? ''}`,
+            sku: variant.sku ?? '',
+            imageUrl: variant.imageUrl ?? '',
+            active: variant.active !== false,
+            sortOrder: Number(variant.sortOrder ?? 0),
+        })),
+    }), [defaultVariantId, variantRows]);
+
+    const hasUnsavedVariantChanges = variantSnapshot !== '' && variantDraftSignature !== variantSnapshot;
+
+    const saveAllVariants = async () => {
+        if (!selectedProduct?.id || saving || variantValidation.hasBlockingError) return;
+        setVariantActionId('all');
+        try {
+            const saveResults = [];
+            for (let index = 0; index < variantRows.length; index += 1) {
+                const variant = variantRows[index];
+                const payload = buildVariantPayload({ ...variant, sortOrder: index });
+                if (variant.id) {
+                    const updated = await updateProductVariant(selectedProduct.id, variant.id, payload, token);
+                    saveResults.push({
+                        localId: variant.localId,
+                        id: variant.id,
+                        saved: { ...variant, ...updated, sortOrder: index },
+                    });
+                } else {
+                    const created = await createProductVariant(selectedProduct.id, payload, token);
+                    saveResults.push({
+                        localId: variant.localId,
+                        id: created?.id || variant.id,
+                        saved: { ...variant, ...created, id: created?.id || variant.id, sortOrder: index },
+                    });
+                }
+            }
+
+            const idLookup = new Map();
+            saveResults.forEach((item) => {
+                if (item.localId) idLookup.set(item.localId, item.id || item.saved?.id);
+                if (item.id) idLookup.set(item.id, item.id);
+            });
+            const resolvedDefaultVariantId = idLookup.get(defaultVariantId) || defaultVariantId;
+
+            await updateProduct(selectedProduct.id, { defaultVariantId: resolvedDefaultVariantId }, token);
+
+            setVariantRows((prev) => {
+                const saveMap = new Map(saveResults.map((item) => [item.localId || item.id, item.saved]));
+                return prev
+                    .map((variant, index) => {
+                        const key = variant.localId || variant.id;
+                        const savedVariant = saveMap.get(key);
+                        return savedVariant
+                            ? { ...variant, ...savedVariant, localId: savedVariant.id || variant.localId, sortOrder: index }
+                            : { ...variant, sortOrder: index };
+                    });
+            });
+            setDefaultVariantId(resolvedDefaultVariantId);
+            setVariantSnapshot(JSON.stringify({
+                defaultVariantId: resolvedDefaultVariantId,
+                variants: variantRows.map((variant, index) => ({
+                    id: saveResults[index]?.id || variant.id,
+                    localId: saveResults[index]?.id || variant.localId,
+                    weight: `${variant.weight ?? ''}`,
+                    price: `${variant.price ?? ''}`,
+                    stock: `${variant.stock ?? ''}`,
+                    sku: variant.sku ?? '',
+                    imageUrl: variant.imageUrl ?? '',
+                    active: variant.active !== false,
+                    sortOrder: Number(index),
+                })),
+            }));
+            showToast('success', 'Variants saved');
             loadProducts({ preferId: selectedProduct.id });
         } catch (error) {
-            console.error('Failed to save variant', error);
-            showToast('error', 'Could not save variant.');
+            console.error('Failed to save variants', error);
+            showToast('error', 'Could not save variants.');
         } finally {
             setVariantActionId(null);
         }
@@ -408,34 +549,20 @@ export default function ProductAdmin() {
         const variant = variantRows[index];
         if (!variant) return;
         if (!variant.id) {
-            setVariantRows((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
+            setVariantRows((prev) => prev.filter((_, rowIndex) => rowIndex !== index).map((row, rowIndex) => ({ ...row, sortOrder: rowIndex })));
             return;
         }
         setVariantActionId(variant.localId || variant.id);
         try {
             await deleteProductVariant(selectedProduct.id, variant.id, token);
             showToast('success', 'Variant removed');
+            if (defaultVariantId === variant.id) {
+                setDefaultVariantId((variantRows.find((item) => item.id !== variant.id)?.id) || null);
+            }
             loadProducts({ preferId: selectedProduct.id });
         } catch (error) {
             console.error('Failed to delete variant', error);
             showToast('error', 'Could not remove variant.');
-        } finally {
-            setVariantActionId(null);
-        }
-    };
-
-    const deactivateVariantRow = async (index) => {
-        if (!selectedProduct?.id) return;
-        const variant = variantRows[index];
-        if (!variant?.id) return;
-        setVariantActionId(variant.localId || variant.id);
-        try {
-            await updateProductVariant(selectedProduct.id, variant.id, buildVariantPayload({ ...variant, active: false }), token);
-            showToast('success', 'Variant deactivated');
-            loadProducts({ preferId: selectedProduct.id });
-        } catch (error) {
-            console.error('Failed to deactivate variant', error);
-            showToast('error', 'Could not deactivate variant.');
         } finally {
             setVariantActionId(null);
         }
@@ -458,6 +585,12 @@ export default function ProductAdmin() {
         if (stockValues.length === 0) return 'Per variant';
         return stockValues.reduce((total, value) => total + value, 0);
     };
+
+    const defaultVariantLabel = useMemo(() => {
+        const selectedDefault = variantRows.find((variant) => variant.id === defaultVariantId || variant.localId === defaultVariantId);
+        if (!selectedDefault) return '—';
+        return `${normalizeNumber(selectedDefault.weight, 0)}g`;
+    }, [defaultVariantId, variantRows]);
 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace />;
@@ -711,17 +844,31 @@ export default function ProductAdmin() {
                             <div>
                                 <p className={styles.kickerSmall}>Variants (weights)</p>
                                 <h3 className={styles.sectionTitle}>Variants</h3>
+                                <p className={styles.muted}>Default: {defaultVariantLabel} | {variantRows.length} variants</p>
                                 <p className={styles.muted}>Manage price and stock per weight. Variants require a saved product.</p>
                             </div>
-                            <button
-                                type="button"
-                                className={styles.secondaryButton}
-                                onClick={handleAddVariantRow}
-                                disabled={!selectedProduct || saving}
-                            >
-                                Add variant
-                            </button>
+                            <div className={styles.variantHeaderActions}>
+                                {hasUnsavedVariantChanges && <span className={styles.warningBadge}>Unsaved changes</span>}
+                                <button
+                                    type="button"
+                                    className={styles.secondaryButton}
+                                    onClick={handleAddVariantRow}
+                                    disabled={!selectedProduct || saving}
+                                >
+                                    Add variant
+                                </button>
+                                <button
+                                    type="button"
+                                    className={styles.primaryButton}
+                                    onClick={saveAllVariants}
+                                    disabled={!selectedProduct || saving || variantActionId === 'all' || !hasUnsavedVariantChanges || variantValidation.hasBlockingError}
+                                >
+                                    {variantActionId === 'all' ? 'Saving…' : 'Save variants'}
+                                </button>
+                            </div>
                         </div>
+
+                        {variantValidation.defaultVariantError && <div className={styles.bannerError}>{variantValidation.defaultVariantError}</div>}
 
                         {!selectedProduct ? (
                             <div className={styles.variantEmpty}>Create the product first to add weight variants.</div>
@@ -729,90 +876,89 @@ export default function ProductAdmin() {
                             <div className={styles.variantEmpty}>No variants yet. Add weights like 50g, 70g, 100g.</div>
                         ) : (
                             <div className={styles.variantList}>
-                                {variantRows.map((variant, index) => (
-                                    <div key={variant.localId || variant.id || index} className={styles.variantRow}>
-                                        <div className={styles.variantField}>
-                                            <label className={styles.variantLabel} htmlFor={`variant-weight-${index}`}>Weight (grams)</label>
+                                {variantRows.map((variant, index) => {
+                                    const variantKey = variant.id || variant.localId;
+                                    const errors = variantValidation.errorsByVariant[variant.localId || variant.id] || [];
+                                    return (
+                                    <div key={variant.id || variant.localId} className={styles.variantRow}>
+                                        <div className={styles.variantOrderControls}>
+                                            <button type="button" className={styles.secondaryButton} onClick={() => moveVariant(variantKey, -1)} disabled={index === 0}>↑</button>
+                                            <button type="button" className={styles.secondaryButton} onClick={() => moveVariant(variantKey, 1)} disabled={index === variantRows.length - 1}>↓</button>
+                                        </div>
+                                        <div className={styles.variantToggle}>
                                             <input
-                                                id={`variant-weight-${index}`}
+                                                id={`variant-default-${variant.localId}`}
+                                                type="radio"
+                                                name="defaultVariant"
+                                                checked={defaultVariantId === variant.id || defaultVariantId === variant.localId}
+                                                onChange={() => setDefaultVariantId(variant.id || variant.localId)}
+                                            />
+                                            <label htmlFor={`variant-default-${variant.localId}`}>Default</label>
+                                        </div>
+                                        <div className={styles.variantField}>
+                                            <label className={styles.variantLabel} htmlFor={`variant-weight-${variant.localId}`}>Weight (grams)</label>
+                                            <input
+                                                id={`variant-weight-${variant.localId}`}
                                                 type="number"
                                                 className={`${styles.input} ${styles.variantInput}`}
                                                 value={variant.weight}
-                                                onChange={(event) => handleVariantChange(index, 'weight', event.target.value)}
+                                                onChange={(event) => handleVariantChange(variantKey, 'weight', event.target.value)}
                                                 min="0"
                                             />
                                         </div>
                                         <div className={styles.variantField}>
-                                            <label className={styles.variantLabel} htmlFor={`variant-price-${index}`}>Price (SEK)</label>
+                                            <label className={styles.variantLabel} htmlFor={`variant-price-${variant.localId}`}>Price (SEK)</label>
                                             <input
-                                                id={`variant-price-${index}`}
+                                                id={`variant-price-${variant.localId}`}
                                                 type="number"
                                                 className={`${styles.input} ${styles.variantInput}`}
                                                 value={variant.price}
-                                                onChange={(event) => handleVariantChange(index, 'price', event.target.value)}
+                                                onChange={(event) => handleVariantChange(variantKey, 'price', event.target.value)}
                                                 step="0.01"
                                                 min="0"
                                             />
                                         </div>
                                         <div className={styles.variantField}>
-                                            <label className={styles.variantLabel} htmlFor={`variant-stock-${index}`}>Stock</label>
+                                            <label className={styles.variantLabel} htmlFor={`variant-stock-${variant.localId}`}>Stock</label>
                                             <input
-                                                id={`variant-stock-${index}`}
+                                                id={`variant-stock-${variant.localId}`}
                                                 type="number"
                                                 className={`${styles.input} ${styles.variantInput}`}
                                                 value={variant.stock}
-                                                onChange={(event) => handleVariantChange(index, 'stock', event.target.value)}
+                                                onChange={(event) => handleVariantChange(variantKey, 'stock', event.target.value)}
                                                 min="0"
                                             />
                                         </div>
                                         <div className={styles.variantField}>
-                                            <label className={styles.variantLabel} htmlFor={`variant-sku-${index}`}>SKU (optional)</label>
+                                            <label className={styles.variantLabel} htmlFor={`variant-sku-${variant.localId}`}>SKU (optional)</label>
                                             <input
-                                                id={`variant-sku-${index}`}
+                                                id={`variant-sku-${variant.localId}`}
                                                 className={`${styles.input} ${styles.variantInput}`}
                                                 value={variant.sku}
-                                                onChange={(event) => handleVariantChange(index, 'sku', event.target.value)}
+                                                onChange={(event) => handleVariantChange(variantKey, 'sku', event.target.value)}
                                                 placeholder="Optional"
                                             />
                                         </div>
                                         <div className={styles.variantField}>
-                                            <label className={styles.variantLabel} htmlFor={`variant-image-${index}`}>Image URL (optional)</label>
+                                            <label className={styles.variantLabel} htmlFor={`variant-image-${variant.localId}`}>Image URL (optional)</label>
                                             <input
-                                                id={`variant-image-${index}`}
+                                                id={`variant-image-${variant.localId}`}
                                                 className={`${styles.input} ${styles.variantInput}`}
                                                 value={variant.imageUrl}
-                                                onChange={(event) => handleVariantChange(index, 'imageUrl', event.target.value)}
+                                                onChange={(event) => handleVariantChange(variantKey, 'imageUrl', event.target.value)}
                                                 placeholder="https://..."
                                             />
                                         </div>
                                         <div className={styles.variantToggle}>
                                             <input
-                                                id={`variant-active-${index}`}
+                                                id={`variant-active-${variant.localId}`}
                                                 type="checkbox"
                                                 checked={variant.active}
-                                                onChange={(event) => handleVariantChange(index, 'active', event.target.checked)}
+                                                onChange={(event) => handleVariantChange(variantKey, 'active', event.target.checked)}
                                             />
-                                            <label htmlFor={`variant-active-${index}`}>Active</label>
+                                            <label htmlFor={`variant-active-${variant.localId}`}>Active</label>
                                         </div>
                                         <div className={styles.variantActions}>
-                                            <button
-                                                type="button"
-                                                className={styles.primaryButton}
-                                                onClick={() => saveVariantRow(index)}
-                                                disabled={variantActionId === (variant.localId || variant.id)}
-                                            >
-                                                {variant.id ? 'Save' : 'Create'}
-                                            </button>
-                                            {variant.id && variant.active && (
-                                                <button
-                                                    type="button"
-                                                    className={styles.secondaryButton}
-                                                    onClick={() => deactivateVariantRow(index)}
-                                                    disabled={variantActionId === (variant.localId || variant.id)}
-                                                >
-                                                    Deactivate
-                                                </button>
-                                            )}
                                             <button
                                                 type="button"
                                                 className={styles.danger}
@@ -822,8 +968,10 @@ export default function ProductAdmin() {
                                                 Remove
                                             </button>
                                         </div>
+                                        {errors.length > 0 && <div className={styles.variantErrors}>{errors.join(' ')}</div>}
                                     </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
