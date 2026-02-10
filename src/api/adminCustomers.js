@@ -12,12 +12,6 @@ export const normalizeCustomerId = (customerId) => {
     const normalized = `${customerId ?? ''}`.trim();
     if (!normalized) return '';
     if (isNumericCustomerId(normalized)) return normalized;
-
-    if (normalized.startsWith('user_')) {
-        const legacyValue = normalized.slice(5);
-        if (isNumericCustomerId(legacyValue)) return legacyValue;
-    }
-
     return '';
 };
 

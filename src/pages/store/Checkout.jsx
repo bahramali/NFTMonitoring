@@ -16,6 +16,11 @@ const initialForm = {
     fullName: '',
     phone: '',
     notes: '',
+    customerType: 'B2C',
+    companyName: '',
+    orgNumber: '',
+    vatNumber: '',
+    invoiceEmail: '',
     addressLine1: '',
     addressLine2: '',
     postalCode: '',
@@ -121,7 +126,15 @@ export default function Checkout() {
     const summaryItems = useMemo(() => cart?.items ?? [], [cart?.items]);
     const profileEmail = profile?.email || '';
     const orderEmail = isAuthenticated ? profileEmail : form.email;
-    const canSubmit = hasItems && !submitting && (!isAuthenticated || Boolean(orderEmail));
+    const isB2B = form.customerType === 'B2B';
+    const trimmedCompanyName = form.companyName.trim();
+    const trimmedOrgNumber = form.orgNumber.trim();
+    const trimmedInvoiceEmail = form.invoiceEmail.trim();
+    const canSubmit =
+        hasItems
+        && !submitting
+        && (!isAuthenticated || Boolean(orderEmail))
+        && (!isB2B || (Boolean(trimmedCompanyName) && Boolean(trimmedOrgNumber)));
     const isApplyingCoupon = couponStatus === 'applying';
     const selectedAddress = useMemo(
         () => addresses.find((address) => String(address.id) === String(selectedAddressId)),
@@ -331,6 +344,12 @@ export default function Checkout() {
             checkoutInFlight.current = false;
             return;
         }
+        if (isB2B && (!trimmedCompanyName || !trimmedOrgNumber)) {
+            setError('Company name and org number are required for company checkout.');
+            setSubmitting(false);
+            checkoutInFlight.current = false;
+            return;
+        }
         try {
             if (isAuthenticated && token && addressMode === 'new' && saveNewAddress) {
                 try {
@@ -383,12 +402,23 @@ export default function Checkout() {
                 state: form.state?.trim() || '',
                 country: (form.country || 'SE').trim(),
             };
+            const company = isB2B
+                ? {
+                    companyName: trimmedCompanyName,
+                    orgNumber: trimmedOrgNumber,
+                    vatNumber: form.vatNumber.trim() || undefined,
+                    invoiceEmail: trimmedInvoiceEmail || orderEmail,
+                }
+                : undefined;
+
             const response = await createStripeCheckoutSession(token, {
                 cartId,
                 sessionId,
                 email: orderEmail,
                 shippingAddress,
                 couponCode: couponCode.trim() || undefined,
+                customerType: isB2B ? 'B2B' : 'B2C',
+                company,
             });
             setStatusMessage('Redirecting to Stripe Checkout…');
             notify('success', 'Checkout session created. Redirecting…');
@@ -604,6 +634,85 @@ export default function Checkout() {
                                 ) : null}
                             </>
                         ) : null}
+                        <fieldset className={styles.customerTypeFieldset}>
+                            <legend>Customer type</legend>
+                            <label className={styles.radioOption} htmlFor="customerType-b2c">
+                                <input
+                                    id="customerType-b2c"
+                                    type="radio"
+                                    name="customerType"
+                                    value="B2C"
+                                    checked={form.customerType === 'B2C'}
+                                    onChange={handleChange}
+                                />
+                                Private (B2C)
+                            </label>
+                            <label className={styles.radioOption} htmlFor="customerType-b2b">
+                                <input
+                                    id="customerType-b2b"
+                                    type="radio"
+                                    name="customerType"
+                                    value="B2B"
+                                    checked={form.customerType === 'B2B'}
+                                    onChange={handleChange}
+                                />
+                                Company/Restaurant (B2B)
+                            </label>
+                        </fieldset>
+
+                        {isB2B ? (
+                            <>
+                                <div className={styles.fieldGroup}>
+                                    <label htmlFor="companyName">Company name</label>
+                                    <input
+                                        id="companyName"
+                                        name="companyName"
+                                        type="text"
+                                        required={isB2B}
+                                        value={form.companyName}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                                <div className={styles.fieldGroup}>
+                                    <label htmlFor="orgNumber">Org number</label>
+                                    <input
+                                        id="orgNumber"
+                                        name="orgNumber"
+                                        type="text"
+                                        required={isB2B}
+                                        value={form.orgNumber}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                                <div className={styles.fieldGroup}>
+                                    <label htmlFor="vatNumber">VAT number (optional)</label>
+                                    <input
+                                        id="vatNumber"
+                                        name="vatNumber"
+                                        type="text"
+                                        value={form.vatNumber}
+                                        onChange={handleChange}
+                                    />
+                                </div>
+                                <div className={styles.fieldGroup}>
+                                    <label htmlFor="invoiceEmail">Invoice email (optional)</label>
+                                    <input
+                                        id="invoiceEmail"
+                                        name="invoiceEmail"
+                                        type="email"
+                                        value={form.invoiceEmail}
+                                        placeholder={orderEmail || 'Defaults to contact email'}
+                                        onChange={handleChange}
+                                        onBlur={() => {
+                                            if (!form.invoiceEmail.trim() && orderEmail) {
+                                                setForm((prev) => ({ ...prev, invoiceEmail: orderEmail }));
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            </>
+                        ) : null}
+
                         <div className={styles.fieldGroup}>
                             <label htmlFor="couponCode">Coupon code</label>
                             <div className={styles.couponRow}>

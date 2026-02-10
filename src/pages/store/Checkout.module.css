@@ -175,6 +175,28 @@
 
 
 
+
+.customerTypeFieldset {
+    border: 1px solid var(--border, #e6e6e6);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: grid;
+    gap: 8px;
+}
+
+.customerTypeFieldset legend {
+    padding: 0 4px;
+    color: var(--muted, #666);
+    font-size: 0.95rem;
+}
+
+.radioOption {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text, #111);
+}
+
 .couponRow {
     display: grid;
     grid-template-columns: 1fr auto;

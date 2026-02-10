@@ -15,13 +15,9 @@ describe('adminCustomers customer id helpers', () => {
         expect(normalizeCustomerId('  42 ')).toBe('42');
     });
 
-    it('normalizes legacy user_-prefixed customer ids', () => {
-        expect(normalizeCustomerId('user_2')).toBe('2');
-        expect(normalizeCustomerId('user_0007')).toBe('0007');
-    });
-
     it('rejects non-numeric or malformed ids', () => {
         expect(isNumericCustomerId('user_2')).toBe(false);
+        expect(normalizeCustomerId('user_2')).toBe('');
         expect(normalizeCustomerId('user_abc')).toBe('');
         expect(normalizeCustomerId('abc')).toBe('');
         expect(normalizeCustomerId('')).toBe('');
