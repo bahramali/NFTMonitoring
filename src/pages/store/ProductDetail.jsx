@@ -26,6 +26,7 @@ export default function ProductDetail() {
     const variants = useMemo(() => getActiveVariants(product), [product]);
     const defaultVariantId = useMemo(() => getDefaultVariantId(variants), [variants]);
     const [selectedVariantId, setSelectedVariantId] = useState(defaultVariantId);
+    const [selectedVariant, setSelectedVariant] = useState(null);
 
     useEffect(() => {
         let mounted = true;
@@ -59,19 +60,20 @@ export default function ProductDetail() {
         });
     }, [defaultVariantId, variants]);
 
-    const activeVariant = useMemo(
-        () => variants.find((variant) => variant.id === selectedVariantId) ?? variants[0],
-        [selectedVariantId, variants],
-    );
-    const stockValue = activeVariant ? getVariantStock(activeVariant) : product?.stock;
+    useEffect(() => {
+        setSelectedVariant(variants.find((variant) => variant.id === selectedVariantId) ?? variants[0] ?? null);
+    }, [selectedVariantId, variants]);
+
+    const stockValue = selectedVariant ? getVariantStock(selectedVariant) : product?.stock;
     const isOutOfStock = stockValue !== undefined && stockValue <= 0;
-    const currency = product?.currency || activeVariant?.currency || 'SEK';
-    const priceValue = getVariantPrice(activeVariant) ?? product?.price ?? 0;
+    const currency = product?.currency || selectedVariant?.currency || 'SEK';
+    const priceValue = getVariantPrice(selectedVariant) ?? product?.price ?? 0;
     const priceLabel = formatCurrency(priceValue, currency);
-    const priceContext = getPriceContext(activeVariant ?? product);
-    const productFacts = getProductFacts(activeVariant ?? product);
+    const priceContext = getPriceContext(selectedVariant ?? product);
+    const productFacts = getProductFacts(selectedVariant ?? product);
     const showVariantSelector = variants.length > 1;
     const useDropdown = variants.length > 4;
+    const imageSrc = selectedVariant?.imageUrl ?? product?.imageUrl;
 
     useEffect(() => {
         if (stockValue !== undefined && stockValue > 0 && quantity > stockValue) {
@@ -100,8 +102,16 @@ export default function ProductDetail() {
             ) : (
                 <div className={styles.layout}>
                     <div className={styles.media}>
-                        {product?.imageUrl ? (
-                            <img src={product.imageUrl} alt={product.name} />
+                        {imageSrc ? (
+                            <img
+                                src={imageSrc}
+                                alt={product.name}
+                                onError={(event) => {
+                                    if (product?.imageUrl && event.currentTarget.src !== product.imageUrl) {
+                                        event.currentTarget.src = product.imageUrl;
+                                    }
+                                }}
+                            />
                         ) : (
                             <div className={styles.placeholder} aria-hidden="true" />
                         )}
@@ -177,7 +187,7 @@ export default function ProductDetail() {
                                 type="button"
                                 className={styles.add}
                                 disabled={pendingProductId === productId || isOutOfStock}
-                                onClick={() => addToCart(activeVariant?.id, quantity, product.id)}
+                                onClick={() => addToCart(selectedVariant?.id, quantity, product.id)}
                             >
                                 {pendingProductId === productId ? 'Adding…' : 'Add to cart'}
                             </button>
