@@ -1,7 +1,9 @@
 .page {
-    padding: 24px;
+    padding: 24px 28px;
     background: #f8fafc;
     min-height: calc(100vh - 64px);
+    max-width: 1800px;
+    margin: 0 auto;
 }
 
 .header {
@@ -65,15 +67,16 @@
 
 .layout {
     display: grid;
-    grid-template-columns: 1.4fr 1fr;
-    gap: 16px;
+    grid-template-columns: minmax(340px, 1fr) minmax(520px, 1.35fr) minmax(340px, 1fr);
+    gap: 20px;
+    align-items: start;
 }
 
 .panel {
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
-    padding: 16px;
+    padding: 20px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
     display: flex;
     flex-direction: column;
@@ -85,7 +88,7 @@
     justify-content: space-between;
     gap: 12px;
     flex-wrap: wrap;
-    margin-bottom: 10px;
+    margin-bottom: 16px;
 }
 
 .panelActions {
@@ -222,8 +225,40 @@
 
 .label {
     display: block;
-    margin: 12px 0 6px;
+    margin: 16px 0 8px;
     font-weight: 700;
+}
+
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.formCard {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+    padding: 16px;
+}
+
+.variantRowHeader {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.variantDetails {
+    width: 100%;
+}
+
+.variantSummary {
+    cursor: pointer;
+    color: #0369a1;
+    font-weight: 700;
+    font-size: 13px;
 }
 
 .twoCol {
@@ -241,8 +276,9 @@
 
 .formActions {
     display: flex;
-    gap: 8px;
-    margin-top: 12px;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 8px;
 }
 
 .variantsSection {
@@ -378,14 +414,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 16px;
+    padding: 20px;
     z-index: 10;
 }
 
 .modal {
     background: #ffffff;
     border-radius: 12px;
-    padding: 16px;
+    padding: 20px;
     width: min(480px, 100%);
     border: 1px solid #e2e8f0;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.14);
@@ -449,6 +485,12 @@
 .toastError {
     background: #fef2f2;
     color: #991b1b;
+}
+
+@media (max-width: 1400px) {
+    .layout {
+        grid-template-columns: minmax(300px, 1fr) minmax(460px, 1.2fr);
+    }
 }
 
 @media (max-width: 1100px) {

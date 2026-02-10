@@ -120,6 +120,7 @@ export default function ProductAdmin() {
     const [variantActionId, setVariantActionId] = useState(null);
     const [defaultVariantId, setDefaultVariantId] = useState(null);
     const [variantSnapshot, setVariantSnapshot] = useState('');
+    const [editorMode, setEditorMode] = useState('edit');
 
     const hasAccess = hasPerm({ permissions }, PERMISSIONS.PRODUCTS_MANAGE);
 
@@ -144,6 +145,7 @@ export default function ProductAdmin() {
         if (targetId) {
             const matched = nextList.find((item) => item?.id === targetId);
             if (matched) {
+                setEditorMode('edit');
                 setSelectedId(matched.id);
                 setFormState({ ...emptyForm, ...matched, active: matched.active !== false });
                 return;
@@ -151,7 +153,7 @@ export default function ProductAdmin() {
         }
 
         setSelectedId(null);
-        setFormState(emptyForm);
+        setFormState({ ...emptyForm });
     }, [selectedId]);
 
     const loadProducts = useCallback(async (options = {}) => {
@@ -225,6 +227,7 @@ export default function ProductAdmin() {
 
     const handleEdit = useCallback((product) => {
         if (!product?.id) return;
+        setEditorMode('edit');
         setSelectedId(product.id);
         setFormState({ ...emptyForm, ...product, active: product.active !== false });
     }, []);
@@ -317,10 +320,37 @@ export default function ProductAdmin() {
         }
     };
 
-    const resetForm = () => {
+    const startCreateProduct = () => {
+        setEditorMode('create');
         setSelectedId(null);
         setFormState({ ...emptyForm });
     };
+
+    const productSnapshot = useMemo(() => {
+        if (!selectedProduct) return '';
+        return JSON.stringify({
+            name: selectedProduct.name || '',
+            description: selectedProduct.description || '',
+            currency: selectedProduct.currency || 'SEK',
+            category: selectedProduct.category || CATEGORY_OPTIONS[0],
+            imageUrl: selectedProduct.imageUrl || '',
+            sku: selectedProduct.sku || '',
+            active: selectedProduct.active !== false,
+        });
+    }, [selectedProduct]);
+
+    const formSignature = useMemo(() => JSON.stringify({
+        name: formState.name || '',
+        description: formState.description || '',
+        currency: formState.currency || 'SEK',
+        category: formState.category || CATEGORY_OPTIONS[0],
+        imageUrl: formState.imageUrl || '',
+        sku: formState.sku || '',
+        active: formState.active !== false,
+    }), [formState]);
+
+    const isCreateMode = editorMode === 'create';
+    const hasUnsavedProductChanges = selectedProduct ? formSignature !== productSnapshot : isCreateMode && Boolean(formState.name?.trim() || formState.description?.trim() || formState.sku?.trim() || formState.imageUrl?.trim());
 
     useEffect(() => {
         if (!selectedProduct) {
@@ -744,12 +774,14 @@ export default function ProductAdmin() {
                 <section className={styles.panel}>
                     <div className={styles.panelHeader}>
                         <div>
-                            <p className={styles.kickerSmall}>Form</p>
-                            <h2>{selectedProduct ? 'Edit product' : 'Create product'}</h2>
-                        <p className={styles.muted}>Fill in the details. Validation happens before saving.</p>
-                    </div>
-                    <div className={styles.panelActions}>
-                        <button type="button" className={styles.secondaryButton} onClick={resetForm} disabled={saving}>
+                            <p className={styles.kickerSmall}>Product details</p>
+                            <h2>{selectedProduct && !isCreateMode ? `Edit product — ${selectedProduct.name || 'Untitled'}` : isCreateMode ? 'Create new product' : 'Select a product to edit'}</h2>
+                            <p className={styles.muted}>{selectedProduct && !isCreateMode ? 'Update core product information.' : isCreateMode ? 'Start by entering basic product information.' : 'Choose a product from the catalog or start a new one.'}</p>
+                        </div>
+                        <div className={styles.panelActions}>
+                            {!isCreateMode && <span className={styles.muted}>Select a product to edit</span>}
+                            {hasUnsavedProductChanges && <span className={styles.warningBadge}>Unsaved changes</span>}
+                            <button type="button" className={styles.secondaryButton} onClick={startCreateProduct} disabled={saving}>
                                 New product
                             </button>
                         </div>
@@ -758,78 +790,86 @@ export default function ProductAdmin() {
                     {formError && <div className={styles.bannerError}>{formError}</div>}
 
                     <form className={styles.form} onSubmit={handleSubmit}>
-                        <label className={styles.label} htmlFor="product-name">Name *</label>
-                        <input
-                            id="product-name"
-                            className={styles.input}
-                            value={formState.name}
-                            onChange={(event) => setFormState((prev) => ({ ...prev, name: event.target.value }))}
-                            required
-                            minLength={2}
-                        />
+                        <div className={styles.formCard}>
+                            <h3 className={styles.sectionTitle}>Basic info</h3>
+                            <label className={styles.label} htmlFor="product-name">Name *</label>
+                            <input
+                                id="product-name"
+                                className={styles.input}
+                                value={formState.name}
+                                onChange={(event) => setFormState((prev) => ({ ...prev, name: event.target.value }))}
+                                required
+                                minLength={2}
+                            />
 
-                        <label className={styles.label} htmlFor="product-description">Description</label>
-                        <textarea
-                            id="product-description"
-                            className={styles.textarea}
-                            value={formState.description}
-                            onChange={(event) => setFormState((prev) => ({ ...prev, description: event.target.value }))}
-                            rows={3}
-                        />
+                            <label className={styles.label} htmlFor="product-description">Description</label>
+                            <textarea
+                                id="product-description"
+                                className={styles.textarea}
+                                value={formState.description}
+                                onChange={(event) => setFormState((prev) => ({ ...prev, description: event.target.value }))}
+                                rows={3}
+                            />
+                        </div>
 
-                        <div className={styles.twoCol}>
-                            <div>
-                                <label className={styles.label} htmlFor="product-sku">SKU</label>
-                                <input
-                                    id="product-sku"
-                                    className={styles.input}
-                                    value={formState.sku}
-                                    onChange={(event) => setFormState((prev) => ({ ...prev, sku: event.target.value }))}
-                                    placeholder="Optional"
-                                />
+                        <div className={styles.formCard}>
+                            <h3 className={styles.sectionTitle}>Classification</h3>
+                            <div className={styles.twoCol}>
+                                <div>
+                                    <label className={styles.label} htmlFor="product-sku">SKU</label>
+                                    <input
+                                        id="product-sku"
+                                        className={styles.input}
+                                        value={formState.sku}
+                                        onChange={(event) => setFormState((prev) => ({ ...prev, sku: event.target.value }))}
+                                        placeholder="Optional"
+                                    />
+                                </div>
+                                <div>
+                                    <label className={styles.label} htmlFor="product-category">Category</label>
+                                    <select
+                                        id="product-category"
+                                        className={styles.input}
+                                        value={formState.category}
+                                        onChange={(event) => setFormState((prev) => ({ ...prev, category: event.target.value }))}
+                                    >
+                                        {CATEGORY_OPTIONS.map((category) => (
+                                            <option key={category} value={category}>{category}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
-                            <div>
-                                <label className={styles.label} htmlFor="product-category">Category</label>
-                                <select
-                                    id="product-category"
-                                    className={styles.input}
-                                    value={formState.category}
-                                    onChange={(event) => setFormState((prev) => ({ ...prev, category: event.target.value }))}
-                                >
-                                    {CATEGORY_OPTIONS.map((category) => (
-                                        <option key={category} value={category}>{category}</option>
-                                    ))}
-                                </select>
+                            <div className={styles.toggleRow}>
+                                <input
+                                    id="product-active"
+                                    type="checkbox"
+                                    checked={formState.active}
+                                    onChange={(event) => setFormState((prev) => ({ ...prev, active: event.target.checked }))}
+                                />
+                                <label htmlFor="product-active">Active</label>
                             </div>
                         </div>
 
-                        <label className={styles.label} htmlFor="product-image">Image URL</label>
-                        <input
-                            id="product-image"
-                            className={styles.input}
-                            value={formState.imageUrl}
-                            onChange={(event) => setFormState((prev) => ({ ...prev, imageUrl: event.target.value }))}
-                            placeholder="https://"
-                        />
-
-                        <div className={styles.toggleRow}>
+                        <div className={styles.formCard}>
+                            <h3 className={styles.sectionTitle}>Media</h3>
+                            <label className={styles.label} htmlFor="product-image">Image URL</label>
                             <input
-                                id="product-active"
-                                type="checkbox"
-                                checked={formState.active}
-                                onChange={(event) => setFormState((prev) => ({ ...prev, active: event.target.checked }))}
+                                id="product-image"
+                                className={styles.input}
+                                value={formState.imageUrl}
+                                onChange={(event) => setFormState((prev) => ({ ...prev, imageUrl: event.target.value }))}
+                                placeholder="https://"
                             />
-                            <label htmlFor="product-active">Active</label>
                         </div>
 
                         <div className={styles.formActions}>
                             <button type="submit" className={styles.primaryButton} disabled={saving}>
-                                {saving ? 'Saving…' : selectedProduct ? 'Save changes' : 'Create product'}
+                                {saving ? 'Saving…' : 'Save product'}
                             </button>
-                            {selectedProduct && (
+                            {selectedProduct && !isCreateMode && (
                                 <button
                                     type="button"
-                                    className={styles.secondaryButton}
+                                    className={styles.linkButton}
                                     onClick={() => handleToggleActive(selectedProduct)}
                                     disabled={saving || actioningId === selectedId}
                                 >
@@ -838,13 +878,15 @@ export default function ProductAdmin() {
                             )}
                         </div>
                     </form>
+                </section>
 
+                <section className={styles.panel}>
                     <div className={styles.variantsSection}>
                         <div className={styles.variantsHeader}>
                             <div>
                                 <p className={styles.kickerSmall}>Variants (weights)</p>
                                 <h3 className={styles.sectionTitle}>Variants</h3>
-                                <p className={styles.muted}>Default: {defaultVariantLabel} | {variantRows.length} variants</p>
+                                <p className={styles.muted}>Default: {defaultVariantLabel} · {variantRows.length} variants</p>
                                 <p className={styles.muted}>Manage price and stock per weight. Variants require a saved product.</p>
                             </div>
                             <div className={styles.variantHeaderActions}>
@@ -855,7 +897,7 @@ export default function ProductAdmin() {
                                     onClick={handleAddVariantRow}
                                     disabled={!selectedProduct || saving}
                                 >
-                                    Add variant
+                                    + Add variant
                                 </button>
                                 <button
                                     type="button"
@@ -881,6 +923,10 @@ export default function ProductAdmin() {
                                     const errors = variantValidation.errorsByVariant[variant.localId || variant.id] || [];
                                     return (
                                     <div key={variant.id || variant.localId} className={styles.variantRow}>
+                                        <div className={styles.variantRowHeader}>
+                                            <strong>{normalizeNumber(variant.weight, 0)}g</strong>
+                                            <span className={styles.meta}>Price: {normalizeNumber(variant.price, 0)} | Stock: {normalizeNumber(variant.stock, 0)} | {variant.active ? 'Active' : 'Inactive'}</span>
+                                        </div>
                                         <div className={styles.variantOrderControls}>
                                             <button type="button" className={styles.secondaryButton} onClick={() => moveVariant(variantKey, -1)} disabled={index === 0}>↑</button>
                                             <button type="button" className={styles.secondaryButton} onClick={() => moveVariant(variantKey, 1)} disabled={index === variantRows.length - 1}>↓</button>
@@ -940,14 +986,17 @@ export default function ProductAdmin() {
                                             />
                                         </div>
                                         <div className={styles.variantField}>
-                                            <label className={styles.variantLabel} htmlFor={`variant-image-${variant.localId}`}>Image URL (optional)</label>
-                                            <input
-                                                id={`variant-image-${variant.localId}`}
-                                                className={`${styles.input} ${styles.variantInput}`}
-                                                value={variant.imageUrl}
-                                                onChange={(event) => handleVariantChange(variantKey, 'imageUrl', event.target.value)}
-                                                placeholder="https://..."
-                                            />
+                                            <details className={styles.variantDetails}>
+                                                <summary className={styles.variantSummary}>Image URL (optional)</summary>
+                                                <label className={styles.variantLabel} htmlFor={`variant-image-${variant.localId}`}>Image URL (optional)</label>
+                                                <input
+                                                    id={`variant-image-${variant.localId}`}
+                                                    className={`${styles.input} ${styles.variantInput}`}
+                                                    value={variant.imageUrl}
+                                                    onChange={(event) => handleVariantChange(variantKey, 'imageUrl', event.target.value)}
+                                                    placeholder="https://..."
+                                                />
+                                            </details>
                                         </div>
                                         <div className={styles.variantToggle}>
                                             <input
