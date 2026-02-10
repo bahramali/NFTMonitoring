@@ -173,6 +173,29 @@
     cursor: pointer;
 }
 
+
+
+.couponRow {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+}
+
+.applyCoupon {
+    border: 1px solid var(--border, #e6e6e6);
+    background: #fff;
+    color: var(--text, #111);
+    border-radius: 10px;
+    padding: 0 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.applyCoupon:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
 .checkboxRow {
     display: inline-flex;
     align-items: center;
