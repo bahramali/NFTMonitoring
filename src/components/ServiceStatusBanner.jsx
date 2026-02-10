@@ -3,7 +3,7 @@ import styles from './ServiceStatusBanner.module.css';
 
 const isBannerEnabled = () => {
     const flag = import.meta.env?.VITE_SHOW_SERVICE_BANNER;
-    return flag !== 'false';
+    return flag === 'true';
 };
 
 export default function ServiceStatusBanner() {
