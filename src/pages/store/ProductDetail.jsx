@@ -27,6 +27,7 @@ export default function ProductDetail() {
     const defaultVariantId = useMemo(() => getDefaultVariantId(variants), [variants]);
     const [selectedVariantId, setSelectedVariantId] = useState(defaultVariantId);
     const [selectedVariant, setSelectedVariant] = useState(null);
+    const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
     useEffect(() => {
         let mounted = true;
@@ -84,6 +85,19 @@ export default function ProductDetail() {
         }
     }, [quantity, stockValue]);
 
+    useEffect(() => {
+        if (!isImageModalOpen) return undefined;
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') {
+                setIsImageModalOpen(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isImageModalOpen]);
+
     return (
         <div className={styles.page}>
             <div className={styles.breadcrumbs}>
@@ -103,21 +117,29 @@ export default function ProductDetail() {
                 <div className={styles.layout}>
                     <div className={styles.media}>
                         {imageSrc ? (
-                            <img
-                                src={imageSrc}
-                                alt={product.name}
-                                onError={(event) => {
-                                    if (product?.imageUrl && event.currentTarget.src !== product.imageUrl) {
-                                        event.currentTarget.src = product.imageUrl;
-                                    }
-                                }}
-                            />
+                            <button
+                                type="button"
+                                className={styles.imageButton}
+                                onClick={() => setIsImageModalOpen(true)}
+                                aria-label="Open product image"
+                            >
+                                <img
+                                    src={imageSrc}
+                                    alt={product.name}
+                                    onError={(event) => {
+                                        if (product?.imageUrl && event.currentTarget.src !== product.imageUrl) {
+                                            event.currentTarget.src = product.imageUrl;
+                                        }
+                                    }}
+                                />
+                            </button>
                         ) : (
                             <div className={styles.placeholder} aria-hidden="true" />
                         )}
                     </div>
 
                     <div className={styles.panel}>
+                        <Link to="/store" className={styles.backLink}>← Back to store</Link>
                         <p className={styles.kicker}>In the HydroLeaf store</p>
                         <h1 className={styles.title}>{product?.name}</h1>
                         <p className={styles.subtitle}>Product details</p>
@@ -196,6 +218,25 @@ export default function ProductDetail() {
                     </div>
                 </div>
             )}
+
+            {isImageModalOpen && imageSrc ? (
+                <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="Product image preview" onClick={() => setIsImageModalOpen(false)}>
+                    <button
+                        type="button"
+                        className={styles.modalClose}
+                        onClick={() => setIsImageModalOpen(false)}
+                        aria-label="Close image preview"
+                    >
+                        ×
+                    </button>
+                    <img
+                        className={styles.modalImage}
+                        src={imageSrc}
+                        alt={product?.name}
+                        onClick={(event) => event.stopPropagation()}
+                    />
+                </div>
+            ) : null}
         </div>
     );
 }
