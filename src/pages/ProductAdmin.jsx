@@ -13,7 +13,6 @@ import {
 import { fetchPermissionDefinitions } from '../api/admins.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import AccessDenied from '../components/AccessDenied.jsx';
-import { formatCurrency } from '../utils/currency.js';
 import { getActiveVariants, getVariantLabel, getVariantPrice, getVariantStock, getProductSortPrice } from '../utils/storeVariants.js';
 import { PERMISSIONS, findPermissionLabel, hasPerm } from '../utils/permissions.js';
 import styles from './ProductAdmin.module.css';
@@ -598,24 +597,6 @@ export default function ProductAdmin() {
         }
     };
 
-    const renderPriceRange = (product) => {
-        const variants = getActiveVariants(product);
-        const prices = variants.map(getVariantPrice).filter((value) => Number.isFinite(value));
-        if (prices.length === 0) return '—';
-        const min = Math.min(...prices);
-        const max = Math.max(...prices);
-        if (min === max) return `From ${formatCurrency(min, product.currency || 'SEK')}`;
-        return `${formatCurrency(min, product.currency || 'SEK')}–${formatCurrency(max, product.currency || 'SEK')}`;
-    };
-
-    const renderStockTotal = (product) => {
-        const variants = getActiveVariants(product);
-        if (variants.length === 0) return '—';
-        const stockValues = variants.map(getVariantStock).filter((value) => Number.isFinite(value));
-        if (stockValues.length === 0) return 'Per variant';
-        return stockValues.reduce((total, value) => total + value, 0);
-    };
-
     const defaultVariantLabel = useMemo(() => {
         const selectedDefault = variantRows.find((variant) => variant.id === defaultVariantId || variant.localId === defaultVariantId);
         if (!selectedDefault) return '—';
@@ -657,6 +638,7 @@ export default function ProductAdmin() {
                         <div>
                             <p className={styles.kickerSmall}>Catalog</p>
                             <h2>Products</h2>
+                            <p className={styles.muted}>Select a product to edit</p>
                         </div>
                         <div className={styles.panelActions}>
                             <input
@@ -691,82 +673,61 @@ export default function ProductAdmin() {
 
                     {listError && <div className={styles.bannerError}>{listError}</div>}
 
-                    <div className={styles.tableWrapper}>
+                    <div className={styles.catalogListWrapper}>
                         {loading ? (
                             <p className={styles.muted}>Loading products…</p>
                         ) : filteredProducts.length === 0 ? (
                             <p className={styles.muted}>No products match your filters.</p>
                         ) : (
-                            <table className={styles.table}>
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>SKU</th>
-                                        <th>Price</th>
-                                        <th>Stock</th>
-                                        <th>Variants</th>
-                                        <th>Status</th>
-                                        <th>Updated</th>
-                                        <th className={styles.actionsColumn}>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredProducts.map((product) => {
-                                        const isActive = product.active ?? true;
-                                        const isSelected = product.id === selectedId;
-                                        const activeVariants = getActiveVariants(product);
-                                        const variantLabels = activeVariants.map(getVariantLabel).filter(Boolean);
-                                        return (
-                                            <tr key={product.id} className={isSelected ? styles.selectedRow : ''}>
-                                                <td>
-                                                    <div className={styles.primary}>{product.name}</div>
-                                                    <div className={styles.meta}>Category: {product.category || '—'}</div>
-                                                    {activeVariants.length === 0 && (
-                                                        <span className={styles.warningBadge}>No variants — not sellable</span>
-                                                    )}
-                                                </td>
-                                                <td>{product.sku || '—'}</td>
-                                                <td>{renderPriceRange(product)}</td>
-                                                <td>{renderStockTotal(product)}</td>
-                                                <td>
-                                                    <div className={styles.meta}>
-                                                        {variantLabels.length > 0 ? variantLabels.join(', ') : '—'}
-                                                    </div>
-                                                </td>
-                                                <td>
+                            <div className={styles.catalogList}>
+                                {filteredProducts.map((product) => {
+                                    const isActive = product.active ?? true;
+                                    const isSelected = product.id === selectedId;
+                                    const activeVariants = getActiveVariants(product);
+                                    const variantLabels = activeVariants.map(getVariantLabel).filter(Boolean);
+                                    return (
+                                        <article key={product.id} className={`${styles.productCard} ${isSelected ? styles.selectedProductCard : ''}`}>
+                                            <button type="button" className={styles.productMain} onClick={() => handleEdit(product)}>
+                                                <div className={styles.primary}>{product.name}</div>
+                                                <div className={styles.meta}>SKU: {product.sku || '—'}</div>
+                                                <div>
                                                     <span className={`${styles.status} ${isActive ? styles.active : styles.inactive}`}>
                                                         {isActive ? 'Active' : 'Inactive'}
                                                     </span>
-                                                </td>
-                                                <td>{product.updatedAt ? new Date(product.updatedAt).toLocaleString() : '—'}</td>
-                                                <td>
-                                                    <div className={styles.rowActions}>
-                                                        <button type="button" onClick={() => handleEdit(product)} className={styles.linkButton}>
-                                                            Edit
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleToggleActive(product)}
-                                                            className={styles.linkButton}
-                                                            disabled={actioningId === product.id}
-                                                        >
-                                                            {isActive ? 'Deactivate' : 'Activate'}
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className={styles.danger}
-                                                            onClick={() => setConfirmingDelete(product)}
-                                                            disabled={actioningId === product.id}
-                                                        >
-                                                            Delete
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
+                                                </div>
+                                                <div className={styles.meta}>Updated: {product.updatedAt ? new Date(product.updatedAt).toLocaleString() : '—'}</div>
+                                                {variantLabels.length > 0 && (
+                                                    <div className={styles.meta}>Variants: {variantLabels.join(', ')}</div>
+                                                )}
+                                                {activeVariants.length === 0 && (
+                                                    <span className={styles.warningBadge}>No variants — not sellable</span>
+                                                )}
+                                            </button>
+                                            <div className={styles.productActions}>
+                                                <button type="button" onClick={() => handleEdit(product)} className={styles.cardPrimaryAction}>
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleToggleActive(product)}
+                                                    className={styles.cardSecondaryAction}
+                                                    disabled={actioningId === product.id}
+                                                >
+                                                    {isActive ? 'Deactivate' : 'Activate'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={styles.cardDangerAction}
+                                                    onClick={() => setConfirmingDelete(product)}
+                                                    disabled={actioningId === product.id}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </article>
+                                    );
+                                })}
+                            </div>
                         )}
                     </div>
                 </section>
