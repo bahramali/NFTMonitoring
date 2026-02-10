@@ -57,6 +57,7 @@ export default function Navbar() {
     const userButtonRef = useRef(null);
     const userMenuRef = useRef(null);
     const [menuStyles, setMenuStyles] = useState({ visibility: 'hidden' });
+    const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
     const location = useLocation();
     const isStoreRoute = location.pathname === '/store' || location.pathname.startsWith('/store/');
     const availableRoles = roles?.length ? roles : role ? [role] : [];
@@ -70,6 +71,8 @@ export default function Navbar() {
     const userLabel = profileLabel || 'User';
     const userInitial = profileLabel?.trim()?.charAt(0)?.toUpperCase() || 'U';
     const emailLabel = profile?.email?.trim() || '';
+    const pictureUrl = profile?.pictureUrl?.trim() || '';
+    const shouldShowAvatarImage = Boolean(pictureUrl) && !avatarLoadFailed;
     const menuHeaderLabel =
         profile?.displayName || profile?.fullName || emailLabel || profile?.username || 'Account';
     const showProfileSkeleton = loadingProfile && !profileLabel;
@@ -90,6 +93,10 @@ export default function Navbar() {
     const canAccessAdmin = adminLinks.length > 0;
     const canSeeMonitoring = isSuperAdmin || hasPerm({ permissions }, PERMISSIONS.MONITORING_VIEW);
     const accountLink = role === 'CUSTOMER' ? '/account' : '/monitoring/overview';
+
+    useEffect(() => {
+        setAvatarLoadFailed(false);
+    }, [pictureUrl]);
 
     useEffect(() => {
         setIsUserMenuOpen(false);
@@ -257,7 +264,20 @@ export default function Navbar() {
                                 }}
                             >
                                 <span className={styles.avatarWrapper} aria-hidden="true">
-                                    <span className={styles.avatar}>{userInitial}</span>
+                                    {shouldShowAvatarImage ? (
+                                        <img
+                                            src={pictureUrl}
+                                            alt=""
+                                            className={styles.avatarImage}
+                                            referrerPolicy="no-referrer"
+                                            onError={() => {
+                                                console.warn('[Navbar] Failed to load avatar image', pictureUrl);
+                                                setAvatarLoadFailed(true);
+                                            }}
+                                        />
+                                    ) : (
+                                        <span className={styles.avatar}>{userInitial}</span>
+                                    )}
                                     <span className={styles.avatarStatus} />
                                 </span>
                                 {!isStoreRoute &&

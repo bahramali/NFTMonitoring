@@ -134,12 +134,27 @@ export function AuthProvider({ children, initialSession }) {
     const [isBootstrapping, setIsBootstrapping] = useState(import.meta.env?.MODE !== 'test');
     const [authNotice, setAuthNotice] = useState(null);
     const sessionRef = useRef(session);
+    const loggedPictureUrlRef = useRef(null);
     const bootstrapAttemptedRef = useRef(false);
     const authFailureHandledRef = useRef(false);
 
     useEffect(() => {
         sessionRef.current = session;
     }, [session]);
+
+    useEffect(() => {
+        if (!session.isAuthenticated || !profile) {
+            loggedPictureUrlRef.current = null;
+            return;
+        }
+
+        if (loggedPictureUrlRef.current === profile.pictureUrl) {
+            return;
+        }
+
+        console.info('[Auth] User pictureUrl:', profile.pictureUrl || '(none)');
+        loggedPictureUrlRef.current = profile.pictureUrl;
+    }, [profile, session.isAuthenticated]);
 
     useEffect(() => {
         if (import.meta.env?.MODE === 'test') {

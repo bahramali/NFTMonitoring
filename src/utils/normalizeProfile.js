@@ -7,6 +7,14 @@ export function normalizeProfile(payload) {
     const phoneNumber = raw.phoneNumber ?? source.phoneNumber ?? raw.phone ?? source.phone ?? '';
     const displayName =
         fullName || source.displayName || source.name || source.fullName || source.nickname || email || 'Customer';
+    const pictureUrl =
+        source.pictureUrl
+        || source.picture_url
+        || raw.pictureUrl
+        || raw.picture_url
+        || source.avatarUrl
+        || raw.avatarUrl
+        || null;
 
     return {
         id: source.id ?? source.userId ?? null,
@@ -15,6 +23,7 @@ export function normalizeProfile(payload) {
         fullName,
         phoneNumber,
         displayName,
+        pictureUrl,
         role: source.role ?? 'CUSTOMER',
         raw,
         features: source.features ?? source.capabilities ?? [],
