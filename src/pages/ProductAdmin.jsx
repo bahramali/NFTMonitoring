@@ -400,6 +400,7 @@ export default function ProductAdmin() {
     };
 
     const handleAddVariantRow = () => {
+        const localId = globalThis.crypto?.randomUUID?.() || `new-${Date.now()}`;
         setVariantRows((prev) => [
             ...prev,
             {
@@ -411,9 +412,10 @@ export default function ProductAdmin() {
                 imageUrl: '',
                 sortOrder: prev.length,
                 active: true,
-                localId: globalThis.crypto?.randomUUID?.() || `new-${Date.now()}`,
+                localId,
             },
         ]);
+        setDefaultVariantId((prevDefault) => prevDefault || localId);
     };
 
     const moveVariant = (localId, direction) => {
@@ -578,7 +580,17 @@ export default function ProductAdmin() {
         const variant = variantRows[index];
         if (!variant) return;
         if (!variant.id) {
-            setVariantRows((prev) => prev.filter((_, rowIndex) => rowIndex !== index).map((row, rowIndex) => ({ ...row, sortOrder: rowIndex })));
+            setVariantRows((prev) => {
+                const remaining = prev
+                    .filter((_, rowIndex) => rowIndex !== index)
+                    .map((row, rowIndex) => ({ ...row, sortOrder: rowIndex }));
+
+                if (defaultVariantId === (variant.localId || variant.id)) {
+                    setDefaultVariantId(remaining[0]?.id || remaining[0]?.localId || null);
+                }
+
+                return remaining;
+            });
             return;
         }
         setVariantActionId(variant.localId || variant.id);
