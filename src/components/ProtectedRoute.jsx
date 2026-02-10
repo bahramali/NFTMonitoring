@@ -20,7 +20,7 @@ export default function ProtectedRoute({ children, requiredRoles = [], requiredP
 
     if (requiredRoles.length > 0 && !requiredRoles.some((requiredRole) => availableRoles.includes(requiredRole))) {
         if (requiresSuperAdmin) {
-            return <Navigate to="/" replace />;
+            return <Navigate to="/store" replace />;
         }
         return <Navigate to="/not-authorized" replace />;
     }

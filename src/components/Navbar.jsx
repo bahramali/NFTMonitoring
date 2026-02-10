@@ -175,9 +175,9 @@ export default function Navbar() {
             <div className="topbar__inner">
                 <div className="topbar__left">
                     <Link
-                        to="/"
+                        to="/store"
                         className={styles.brand}
-                        aria-label="Go to home"
+                        aria-label="Go to store"
                         onClick={handleNavLinkClick}
                     >
                         <img src={hydroleafLogo} alt="HydroLeaf logo" className={styles.brandLogo} />
@@ -186,9 +186,6 @@ export default function Navbar() {
                 </div>
 
                 <div className="topbar__center">
-                    <NavLink to="/" className={moduleTabClass} onClick={handleNavLinkClick} end>
-                        Home
-                    </NavLink>
                     <NavLink to="/store" className={moduleTabClass} onClick={handleNavLinkClick}>
                         Store
                     </NavLink>

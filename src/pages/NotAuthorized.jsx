@@ -9,7 +9,7 @@ export default function NotAuthorized() {
                 <h1>Not authorized</h1>
                 <p>You tried to open a page that your role or permissions do not allow.</p>
                 <div className={styles.actions}>
-                    <Link to="/" className={styles.button}>Go to Home</Link>
+                    <Link to="/store" className={styles.button}>Go to Store</Link>
                     <Link to="/login" className={styles.secondary}>Login again</Link>
                 </div>
             </div>
