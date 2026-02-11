@@ -112,3 +112,33 @@ describe('adminCustomers list normalization', () => {
     });
 
 });
+
+describe('adminCustomers list normalization', () => {
+    it('maps userId and lastLoginAt from backend payload variants', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(async () =>
+                createJsonResponse({
+                    body: {
+                        customers: [
+                            {
+                                id: 3,
+                                name: 'Ada',
+                                user_id: 'auth0|abc123',
+                                lastSignInAt: '2026-02-11T13:45:00Z',
+                            },
+                        ],
+                    },
+                }),
+            ),
+        );
+
+        const response = await listAdminCustomers('token-123');
+
+        expect(response.customers[0]).toMatchObject({
+            id: '3',
+            userId: 'auth0|abc123',
+            lastLoginAt: '2026-02-11T13:45:00Z',
+        });
+    });
+});
