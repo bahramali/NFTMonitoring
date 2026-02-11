@@ -180,6 +180,51 @@ export async function fetchOrderDetail(token, orderId, { signal, onUnauthorized 
     }
 }
 
+
+export async function fetchOrderReceipt(token, orderId, { signal, onUnauthorized } = {}) {
+    if (!token) throw new Error('Authentication is required to load a receipt');
+    if (!orderId) throw new Error('Order ID is required');
+
+    const url = `${API_BASE}/api/orders/${encodeURIComponent(orderId)}/receipt`;
+    const res = await authFetch(
+        url,
+        {
+            headers: buildAuthHeaders(token),
+            signal,
+        },
+        { token },
+    );
+
+    try {
+        return await parseApiResponse(res, 'Failed to load receipt');
+    } catch (error) {
+        if (handleUnauthorized(error, onUnauthorized)) return null;
+        throw error;
+    }
+}
+
+export async function emailOrderInvoice(token, orderId, { signal, onUnauthorized } = {}) {
+    if (!token) throw new Error('Authentication is required to email an invoice');
+    if (!orderId) throw new Error('Order ID is required');
+
+    const url = `${API_BASE}/api/orders/${encodeURIComponent(orderId)}/invoice/email`;
+    const res = await authFetch(
+        url,
+        {
+            method: 'POST',
+            headers: buildAuthHeaders(token),
+            signal,
+        },
+        { token },
+    );
+
+    try {
+        return await parseApiResponse(res, 'Failed to email invoice');
+    } catch (error) {
+        if (handleUnauthorized(error, onUnauthorized)) return null;
+        throw error;
+    }
+}
 export async function createOrderPaymentSession(token, orderId, { signal, onUnauthorized } = {}) {
     if (!token) throw new Error('Authentication is required to continue payment');
     if (!orderId) throw new Error('Order ID is required');

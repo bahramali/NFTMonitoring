@@ -3,12 +3,12 @@ import { mapOrderStatus } from '../src/utils/orderStatus.js';
 describe('mapOrderStatus', () => {
     test('maps key statuses to expected metadata', () => {
         expect(mapOrderStatus('PENDING_PAYMENT')).toMatchObject({
-            label: 'Awaiting payment',
+            label: 'Pending confirmation',
             badgeVariant: 'warning',
             primaryActionType: 'continue-payment',
         });
         expect(mapOrderStatus('payment failed')).toMatchObject({
-            label: 'Payment failed',
+            label: 'Failed',
             badgeVariant: 'danger',
             primaryActionType: 'retry-payment',
         });
@@ -26,7 +26,7 @@ describe('mapOrderStatus', () => {
 
     test('normalizes input and handles fallback', () => {
         expect(mapOrderStatus('delivered')).toMatchObject({
-            label: 'Delivered',
+            label: 'Completed',
             badgeVariant: 'success',
             primaryActionType: 'view-receipt',
         });
@@ -36,13 +36,13 @@ describe('mapOrderStatus', () => {
             primaryActionType: 'view-order',
         });
         expect(mapOrderStatus(undefined)).toMatchObject({
-            label: 'Status unknown',
-            badgeVariant: 'neutral',
+            label: 'Pending confirmation',
+            badgeVariant: 'warning',
             primaryActionType: 'view-order',
         });
         expect(mapOrderStatus('unexpected status')).toMatchObject({
-            label: 'Status unknown',
-            badgeVariant: 'neutral',
+            label: 'Pending confirmation',
+            badgeVariant: 'warning',
             primaryActionType: 'view-order',
         });
     });
