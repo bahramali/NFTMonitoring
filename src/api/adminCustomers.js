@@ -11,8 +11,7 @@ export const isNumericCustomerId = (customerId) => NUMERIC_CUSTOMER_ID_REGEX.tes
 export const normalizeCustomerId = (customerId) => {
     const normalized = `${customerId ?? ''}`.trim();
     if (!normalized) return '';
-    if (isNumericCustomerId(normalized)) return normalized;
-    return '';
+    return normalized;
 };
 
 const assertValidCustomerId = (customerId) => {
@@ -81,7 +80,15 @@ const normalizeCustomer = (customer) => {
     const id = normalizeCustomerId(customer?.id ?? customer?.customerId ?? customer?._id ?? customer?.userId);
     const orders = normalizeOrders(customer?.orders ?? customer?.orderHistory ?? customer?.recentOrders);
     const userId =
-        customer?.userId ?? customer?.user_id ?? customer?.authUserId ?? customer?.identityId ?? customer?.uid ?? '';
+        customer?.userId ??
+        customer?.user_id ??
+        customer?.authUserId ??
+        customer?.identityId ??
+        customer?.uid ??
+        customer?.id ??
+        customer?.customerId ??
+        customer?._id ??
+        '';
     const lastLoginAt =
         customer?.lastLoginAt ??
         customer?.lastLogin ??
