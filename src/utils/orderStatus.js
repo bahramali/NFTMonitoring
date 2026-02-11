@@ -1,36 +1,54 @@
 const STATUS_VARIANTS = {
     PENDING_PAYMENT: {
-        label: 'Awaiting payment',
-        description: 'Payment is required to complete this order.',
+        label: 'Pending confirmation',
+        description: 'We’re confirming your payment. This can take up to a minute. We’ll email you when it’s confirmed.',
         badgeVariant: 'warning',
         primaryActionType: 'continue-payment',
     },
+    PENDING_CONFIRMATION: {
+        label: 'Pending confirmation',
+        description: 'We’re confirming your payment. This can take up to a minute. We’ll email you when it’s confirmed.',
+        badgeVariant: 'warning',
+        primaryActionType: 'view-order',
+    },
+    PENDING: {
+        label: 'Pending confirmation',
+        description: 'We’re confirming your payment. This can take up to a minute. We’ll email you when it’s confirmed.',
+        badgeVariant: 'warning',
+        primaryActionType: 'view-order',
+    },
     PAYMENT_FAILED: {
-        label: 'Payment failed',
+        label: 'Failed',
         description: 'Payment did not complete. Please retry to place the order.',
         badgeVariant: 'danger',
         primaryActionType: 'retry-payment',
     },
     FAILED: {
-        label: 'Payment failed',
+        label: 'Failed',
         description: 'Payment did not complete. Please retry to place the order.',
         badgeVariant: 'danger',
         primaryActionType: 'retry-payment',
     },
     PAID: {
         label: 'Paid',
-        description: 'Payment received. Your order is confirmed.',
+        description: 'Payment confirmed. A receipt has been sent to your email.',
         badgeVariant: 'success',
         primaryActionType: 'view-order',
     },
     PAYMENT_SUCCEEDED: {
         label: 'Paid',
-        description: 'Payment received. Your order is confirmed.',
+        description: 'Payment confirmed. A receipt has been sent to your email.',
         badgeVariant: 'success',
         primaryActionType: 'view-order',
     },
+    REFUNDED: {
+        label: 'Refunded',
+        description: 'Payment was refunded.',
+        badgeVariant: 'neutral',
+        primaryActionType: 'view-order',
+    },
     PROCESSING: {
-        label: 'Processing',
+        label: 'Preparing',
         description: 'Your order is being prepared.',
         badgeVariant: 'info',
         primaryActionType: 'view-order',
@@ -41,9 +59,21 @@ const STATUS_VARIANTS = {
         badgeVariant: 'info',
         primaryActionType: 'track-order',
     },
+    READY_FOR_PICKUP: {
+        label: 'Ready for pickup',
+        description: 'Your order is ready for pickup.',
+        badgeVariant: 'info',
+        primaryActionType: 'view-order',
+    },
     DELIVERED: {
-        label: 'Delivered',
+        label: 'Completed',
         description: 'Your order has been delivered.',
+        badgeVariant: 'success',
+        primaryActionType: 'view-receipt',
+    },
+    COMPLETED: {
+        label: 'Completed',
+        description: 'Your order is complete.',
         badgeVariant: 'success',
         primaryActionType: 'view-receipt',
     },
@@ -62,15 +92,15 @@ const STATUS_VARIANTS = {
 };
 
 const FALLBACK_STATUS = {
-    label: 'Status unknown',
-    description: 'Status details are not available yet.',
-    badgeVariant: 'neutral',
+    label: 'Pending confirmation',
+    description: 'We’re confirming your payment. This can take up to a minute. We’ll email you when it’s confirmed.',
+    badgeVariant: 'warning',
     primaryActionType: 'view-order',
 };
 
 const ACTION_LABELS = {
     'continue-payment': 'Continue payment',
-    'retry-payment': 'Retry payment',
+    'retry-payment': 'Try payment again',
     'view-order': 'View order',
     'track-order': 'Track order',
     'view-receipt': 'View receipt',

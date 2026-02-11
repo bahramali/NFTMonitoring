@@ -39,8 +39,8 @@ const isPendingStatus = (status) => {
     return ['pending', 'processing', 'requires_payment_method', 'requires_action', 'unpaid', 'open'].includes(normalized);
 };
 
-const POLL_INTERVAL_MS = 2000;
-const MAX_POLL_COUNT = 5;
+const POLL_INTERVAL_MS = 4000;
+const POLL_TIMEOUT_MS = 180000;
 
 export default function PaymentSuccess() {
     const { orderId } = useParams();
@@ -48,7 +48,8 @@ export default function PaymentSuccess() {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [pollCount, setPollCount] = useState(0);
+    const [pollTick, setPollTick] = useState(0);
+    const [pollStartedAt] = useState(Date.now());
     const [referenceId, setReferenceId] = useState(null);
 
     useEffect(() => {
@@ -76,6 +77,9 @@ export default function PaymentSuccess() {
             .catch((err) => {
                 if (!isMounted) return;
                 if (err?.name === 'AbortError') return;
+                if (err?.status === 404 && Date.now() - pollStartedAt < POLL_TIMEOUT_MS) {
+                    return;
+                }
                 setError(err?.message || 'Unable to load order status.');
                 if (err?.correlationId) {
                     setReferenceId((prev) => (prev === err.correlationId ? prev : err.correlationId));
@@ -90,15 +94,15 @@ export default function PaymentSuccess() {
             isMounted = false;
             controller.abort();
         };
-    }, [orderId, pollCount]);
+    }, [orderId, pollTick]);
 
     useEffect(() => {
         const status = resolveOrderStatus(order);
         if (!isPendingStatus(status)) return;
-        if (pollCount >= MAX_POLL_COUNT) return;
-        const timer = setTimeout(() => setPollCount((count) => count + 1), POLL_INTERVAL_MS);
+        if (Date.now() - pollStartedAt > POLL_TIMEOUT_MS) return;
+        const timer = setTimeout(() => setPollTick((count) => count + 1), POLL_INTERVAL_MS);
         return () => clearTimeout(timer);
-    }, [order, pollCount]);
+    }, [order, pollStartedAt]);
 
     const status = resolveOrderStatus(order);
     const isPaid = isPaidStatus(status);
@@ -149,7 +153,7 @@ export default function PaymentSuccess() {
                     </div>
                     {loading ? <p className={styles.loading}>Fetching latest status…</p> : null}
                     {isPending && !loading ? (
-                        <p className={styles.loading}>Awaiting confirmation…</p>
+                        <p className={styles.loading}>Confirmation pending; we’ll email you when confirmed.</p>
                     ) : null}
                     {error ? <p className={styles.error}>{error}</p> : null}
                 </div>

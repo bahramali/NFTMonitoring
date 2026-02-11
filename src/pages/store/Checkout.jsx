@@ -115,6 +115,7 @@ export default function Checkout() {
     const [saveNewAddress, setSaveNewAddress] = useState(true);
     const [couponCode, setCouponCode] = useState('');
     const [couponStatus, setCouponStatus] = useState('idle');
+    const [totalsRefreshing, setTotalsRefreshing] = useState(false);
     const [couponMessage, setCouponMessage] = useState('');
     const [appliedCouponCode, setAppliedCouponCode] = useState('');
     const [quote, setQuote] = useState(null);
@@ -136,6 +137,7 @@ export default function Checkout() {
         hasItems
         && !submitting
         && !isApplyingCoupon
+        && !totalsRefreshing
         && (!isAuthenticated || Boolean(orderEmail))
         && (!isB2B || (Boolean(trimmedCompanyName) && Boolean(trimmedOrgNumber)));
     const selectedAddress = useMemo(
@@ -152,8 +154,10 @@ export default function Checkout() {
 
     const quoteCurrency = quote?.currency || quote?.totals?.currency || currency;
     const summarySubtotal = quote?.subtotal ?? quote?.totals?.subtotal ?? totals.subtotal ?? totals.total ?? 0;
-    const summaryDiscount = quote?.discount ?? quote?.totals?.discount ?? 0;
-    const summaryTotal = quote?.total ?? quote?.totals?.total ?? totals.total ?? totals.subtotal ?? 0;
+    const summaryDiscount = quote?.discount ?? quote?.totals?.discount ?? totals.discount ?? 0;
+    const summaryShipping = quote?.shipping ?? quote?.totals?.shipping ?? totals.shipping ?? 0;
+    const summaryTax = quote?.tax ?? quote?.totals?.tax ?? totals.tax ?? 0;
+    const summaryTotal = quote?.total ?? quote?.totals?.total ?? totals.total ?? (summarySubtotal + summaryShipping + summaryTax - summaryDiscount) ?? 0;
 
     const applyAddressToForm = useCallback((address) => {
         if (!address) return;
@@ -304,12 +308,13 @@ export default function Checkout() {
 
     const handleApplyCoupon = async () => {
         const normalizedCoupon = couponCode.trim();
-        if (!normalizedCoupon || !cartId || isApplyingCoupon) {
+        if (!normalizedCoupon || !cartId || isApplyingCoupon || totalsRefreshing) {
             return;
         }
 
         setCouponStatus('applying');
         setCouponMessage('');
+        setTotalsRefreshing(true);
         try {
             const quoted = await fetchCheckoutQuote(token, {
                 cartId,
@@ -337,12 +342,16 @@ export default function Checkout() {
             setAppliedCouponCode(normalizedCoupon);
             setCouponStatus('applied');
             setCouponMessage(nextQuote?.message || quoted?.message || 'Coupon applied.');
+            setCouponStatus('refreshing');
             await refreshCart();
+            setCouponStatus('applied');
         } catch (err) {
             setQuote(null);
             setAppliedCouponCode('');
             setCouponStatus('invalid');
             setCouponMessage(getCouponErrorMessage(err));
+        } finally {
+            setTotalsRefreshing(false);
         }
     };
 
@@ -754,9 +763,9 @@ export default function Checkout() {
                                     type="button"
                                     className={styles.applyCoupon}
                                     onClick={handleApplyCoupon}
-                                    disabled={isApplyingCoupon || !couponCode.trim() || !cartId}
+                                    disabled={isApplyingCoupon || totalsRefreshing || !couponCode.trim() || !cartId}
                                 >
-                                    {isApplyingCoupon ? 'Applying…' : 'Apply'}
+                                    {isApplyingCoupon || totalsRefreshing ? 'Applying…' : 'Apply'}
                                 </button>
                             </div>
                             {couponMessage ? (
@@ -798,15 +807,17 @@ export default function Checkout() {
                             <span>Subtotal</span>
                             <span>{formatCurrency(summarySubtotal, quoteCurrency)}</span>
                         </div>
-                        {summaryDiscount > 0 ? (
-                            <div className={styles.row}>
-                                <span>Discount</span>
-                                <span>-{formatCurrency(summaryDiscount, quoteCurrency)}</span>
-                            </div>
-                        ) : null}
                         <div className={styles.row}>
-                            <span>Fulfillment</span>
-                            <span>Local pickup (Stockholm) – free</span>
+                            <span>Discount</span>
+                            <span>-{formatCurrency(summaryDiscount, quoteCurrency)}</span>
+                        </div>
+                        <div className={styles.row}>
+                            <span>Shipping/Pickup fee</span>
+                            <span>{formatCurrency(summaryShipping, quoteCurrency)}</span>
+                        </div>
+                        <div className={styles.row}>
+                            <span>Tax</span>
+                            <span>{formatCurrency(summaryTax, quoteCurrency)}</span>
                         </div>
                         <div className={styles.pickupNote}>Pickup confirmed after payment. We&apos;ll email the details.</div>
                         <div className={`${styles.row} ${styles.total}`}>
