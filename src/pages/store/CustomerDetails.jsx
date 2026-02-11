@@ -5,6 +5,8 @@ import {
     fetchAdminCustomer,
     normalizeCustomerId,
     listAdminCustomerCoupons,
+    resendCustomerCoupon,
+    renewCustomerCoupon,
 } from '../../api/adminCustomers.js';
 import { listAdminProducts } from '../../api/products.js';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -45,6 +47,18 @@ const getErrorMessage = (error, fallback) => {
     }
     if (typeof details === 'string') return details;
     return error?.message || fallback;
+};
+
+const addDaysFromNow = (days) => {
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    return date;
+};
+
+const toDateInputValue = (value) => {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toISOString().slice(0, 10);
 };
 
 const flattenVariants = (products = []) =>
@@ -89,30 +103,6 @@ const maskCouponCode = (code) => {
     return `${'•'.repeat(Math.max(4, normalized.length - 4))}${visibleTail}`;
 };
 
-const buildCouponMailtoHref = (email, couponCode, variantLabel) => {
-    const normalizedEmail = `${email || ''}`.trim();
-    const normalizedCode = `${couponCode || ''}`.trim();
-    if (!normalizedEmail || !normalizedCode) return '';
-
-    const normalizedVariant = `${variantLabel || 'your selected product'}`.trim();
-    const subject = encodeURIComponent('Your Hydroleaf discount code');
-    const body = encodeURIComponent(
-        [
-            'Hi,',
-            '',
-            `Here is your discount code for ${normalizedVariant}:`,
-            normalizedCode,
-            '',
-            'Enter this code at checkout to apply your discount.',
-            '',
-            'Best regards,',
-            'Hydroleaf',
-        ].join('\n'),
-    );
-
-    return `mailto:${encodeURIComponent(normalizedEmail)}?subject=${subject}&body=${body}`;
-};
-
 export default function CustomerDetails() {
     const { customerId } = useParams();
     const normalizedCustomerId = normalizeCustomerId(customerId);
@@ -137,6 +127,14 @@ export default function CustomerDetails() {
     const [couponListError, setCouponListError] = useState('');
     const [visibleCouponIds, setVisibleCouponIds] = useState(() => new Set());
     const [copiedCouponKey, setCopiedCouponKey] = useState('');
+    const [actionFeedback, setActionFeedback] = useState(null);
+    const [resendingCouponKey, setResendingCouponKey] = useState('');
+    const [renewingCouponKey, setRenewingCouponKey] = useState('');
+    const [renewModalCoupon, setRenewModalCoupon] = useState(null);
+    const [renewRegenerateCode, setRenewRegenerateCode] = useState(true);
+    const [renewExpiryDate, setRenewExpiryDate] = useState(() => toDateInputValue(addDaysFromNow(30)));
+    const [renewSendEmail, setRenewSendEmail] = useState(true);
+    const [renewError, setRenewError] = useState('');
 
     useEffect(() => {
         if (!token || !normalizedCustomerId) return;
@@ -292,6 +290,123 @@ export default function CustomerDetails() {
             }, 1800);
         } catch {
             setCouponListError('Copy failed. Please copy manually.');
+        }
+    };
+
+    const showActionFeedback = useCallback((type, message) => {
+        setActionFeedback({ type, message });
+    }, []);
+
+    useEffect(() => {
+        if (!actionFeedback) return undefined;
+        const timeoutId = window.setTimeout(() => {
+            setActionFeedback(null);
+        }, 3500);
+        return () => window.clearTimeout(timeoutId);
+    }, [actionFeedback]);
+
+    const updateCouponInState = useCallback((couponKey, nextCoupon) => {
+        if (!nextCoupon) return;
+        setCoupons((current) =>
+            current.map((coupon) => {
+                const rowKey = coupon.id || `${coupon.variantId}-${coupon.createdAt}`;
+                return rowKey === couponKey ? { ...coupon, ...nextCoupon } : coupon;
+            }),
+        );
+    }, []);
+
+    const upsertRenewedCouponState = useCallback((couponKey, renewedCoupon, replacedCoupon) => {
+        if (!renewedCoupon) return;
+        setCoupons((current) => {
+            const rowIndex = current.findIndex((coupon) => {
+                const rowKey = coupon.id || `${coupon.variantId}-${coupon.createdAt}`;
+                return rowKey === couponKey;
+            });
+            const nextRows = [...current];
+
+            if (replacedCoupon && rowIndex >= 0) {
+                nextRows[rowIndex] = { ...nextRows[rowIndex], ...replacedCoupon };
+            }
+
+            if (renewedCoupon.id && nextRows.some((coupon) => coupon.id === renewedCoupon.id)) {
+                return nextRows.map((coupon) => (coupon.id === renewedCoupon.id ? { ...coupon, ...renewedCoupon } : coupon));
+            }
+
+            const hasSameRow = rowIndex >= 0;
+            if (hasSameRow) {
+                nextRows[rowIndex] = { ...nextRows[rowIndex], ...renewedCoupon };
+                return nextRows;
+            }
+
+            return [renewedCoupon, ...nextRows];
+        });
+    }, []);
+
+    const handleResendCoupon = async (coupon) => {
+        const couponKey = coupon.id || `${coupon.variantId}-${coupon.createdAt}`;
+        const confirmed = window.confirm(`Resend this code to ${customer.email}?`);
+        if (!confirmed) return;
+
+        setCouponListError('');
+        setResendingCouponKey(couponKey);
+        try {
+            const { coupon: updatedCoupon } = await resendCustomerCoupon(normalizedCustomerId, coupon.id, token);
+            updateCouponInState(couponKey, updatedCoupon);
+            showActionFeedback('success', `Sent to ${customer.email}`);
+        } catch (submitError) {
+            if (submitError?.status === 429) {
+                showActionFeedback('error', 'Already sent recently. Try again later.');
+            } else {
+                showActionFeedback('error', getErrorMessage(submitError, 'Unable to resend coupon right now.'));
+            }
+        } finally {
+            setResendingCouponKey('');
+        }
+    };
+
+    const openRenewModal = (coupon) => {
+        setRenewModalCoupon(coupon);
+        setRenewRegenerateCode(true);
+        setRenewExpiryDate(toDateInputValue(addDaysFromNow(30)));
+        setRenewSendEmail(true);
+        setRenewError('');
+    };
+
+    const closeRenewModal = () => {
+        if (renewingCouponKey) return;
+        setRenewModalCoupon(null);
+        setRenewError('');
+    };
+
+    const handleSubmitRenew = async (event) => {
+        event.preventDefault();
+        if (!renewModalCoupon) return;
+
+        const couponKey = renewModalCoupon.id || `${renewModalCoupon.variantId}-${renewModalCoupon.createdAt}`;
+        const payload = {
+            regenerateCode: renewRegenerateCode,
+            sendEmail: renewSendEmail,
+            ...(renewExpiryDate ? { newExpiryAt: new Date(`${renewExpiryDate}T23:59:59`).toISOString() } : {}),
+        };
+
+        setRenewError('');
+        setCouponListError('');
+        setRenewingCouponKey(couponKey);
+        try {
+            const { coupon: renewedCoupon, replacedCoupon } = await renewCustomerCoupon(
+                normalizedCustomerId,
+                renewModalCoupon.id,
+                payload,
+                token,
+            );
+            upsertRenewedCouponState(couponKey, renewedCoupon, replacedCoupon);
+            showActionFeedback('success', renewSendEmail ? 'Coupon renewed and sent.' : 'Coupon renewed.');
+            setRenewModalCoupon(null);
+        } catch (submitError) {
+            const message = getErrorMessage(submitError, 'Unable to renew coupon.');
+            setRenewError(message);
+        } finally {
+            setRenewingCouponKey('');
         }
     };
 
@@ -469,6 +584,11 @@ export default function CustomerDetails() {
                 <div className={styles.ordersHeader}>
                     <h3>Existing customer coupons</h3>
                 </div>
+                {actionFeedback ? (
+                    <p className={actionFeedback.type === 'error' ? styles.errorMessage : styles.successMessage}>
+                        {actionFeedback.message}
+                    </p>
+                ) : null}
                 {couponListError ? <p className={styles.errorMessage}>{couponListError}</p> : null}
                 {couponListLoading ? <div className={styles.emptyState}>Loading coupons…</div> : null}
                 {!couponListLoading && !couponListError ? (
@@ -481,6 +601,7 @@ export default function CustomerDetails() {
                                     <th>Status</th>
                                     <th>Created</th>
                                     <th>Expiry</th>
+                                    <th>Last sent</th>
                                     <th>Code</th>
                                     <th>Actions</th>
                                 </tr>
@@ -490,7 +611,16 @@ export default function CustomerDetails() {
                                     const couponKey = coupon.id || `${coupon.variantId}-${coupon.createdAt}`;
                                     const canReveal = Boolean(`${coupon.couponCode || ''}`.trim());
                                     const isVisible = visibleCouponIds.has(couponKey);
-                                    const mailtoHref = buildCouponMailtoHref(customer.email, coupon.couponCode, coupon.variantLabel);
+                                    const status = `${coupon.status || 'Active'}`;
+                                    const isExpired = status.toLowerCase() === 'expired';
+                                    const isRedeemed = status.toLowerCase() === 'redeemed';
+                                    const resendDisabledReason = isExpired
+                                        ? 'Expired – renew to send'
+                                        : isRedeemed
+                                            ? 'Redeemed coupon cannot be resent'
+                                            : '';
+                                    const isRowBusy = resendingCouponKey === couponKey || renewingCouponKey === couponKey;
+                                    const canResend = Boolean(coupon.id) && !resendDisabledReason;
 
                                     return (
                                     <tr key={couponKey}>
@@ -501,6 +631,7 @@ export default function CustomerDetails() {
                                         </td>
                                         <td>{formatDateTime(coupon.createdAt)}</td>
                                         <td>{formatDateTime(coupon.expiresAt)}</td>
+                                        <td>{formatDateTime(coupon.lastSentAt)}</td>
                                         <td className={styles.couponCodeCell}>
                                             <code>{isVisible ? coupon.couponCode || '—' : maskCouponCode(coupon.couponCode)}</code>
                                             {canReveal ? (
@@ -519,20 +650,27 @@ export default function CustomerDetails() {
                                                     type="button"
                                                     className={styles.tableActionButton}
                                                     onClick={() => handleCopyExistingCoupon(couponKey, coupon.couponCode)}
-                                                    disabled={!canReveal}
+                                                    disabled={!canReveal || isRowBusy}
                                                 >
                                                     Copy
                                                 </button>
-                                                <a
-                                                    className={`${styles.tableActionButton} ${styles.tableActionLink}`}
-                                                    href={mailtoHref || undefined}
-                                                    aria-disabled={!mailtoHref}
-                                                    onClick={(event) => {
-                                                        if (!mailtoHref) event.preventDefault();
-                                                    }}
+                                                <button
+                                                    type="button"
+                                                    className={styles.tableActionButton}
+                                                    onClick={() => handleResendCoupon(coupon)}
+                                                    disabled={!canResend || isRowBusy}
+                                                    title={resendDisabledReason || ''}
                                                 >
-                                                    Send
-                                                </a>
+                                                    {resendingCouponKey === couponKey ? 'Resending…' : 'Resend'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={styles.tableActionButton}
+                                                    onClick={() => openRenewModal(coupon)}
+                                                    disabled={!coupon.id || isRowBusy}
+                                                >
+                                                    {renewingCouponKey === couponKey ? 'Renewing…' : 'Renew'}
+                                                </button>
                                                 {copiedCouponKey === couponKey ? (
                                                     <span className={styles.copyFeedback}>Copied</span>
                                                 ) : null}
@@ -547,6 +685,71 @@ export default function CustomerDetails() {
                     </div>
                 ) : null}
             </div>
+
+            {renewModalCoupon ? (
+                <div className={styles.modalBackdrop} role="presentation" onClick={closeRenewModal}>
+                    <aside
+                        className={styles.modalPanel}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Renew coupon"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <header className={styles.modalHeader}>
+                            <h3>Renew coupon for {customer.email}</h3>
+                        </header>
+                        <form className={styles.renewForm} onSubmit={handleSubmitRenew}>
+                            <fieldset disabled={Boolean(renewingCouponKey)}>
+                                <label className={styles.radioLabel}>
+                                    <input
+                                        type="radio"
+                                        name="renewType"
+                                        checked={renewRegenerateCode}
+                                        onChange={() => setRenewRegenerateCode(true)}
+                                    />
+                                    Generate a new code (recommended)
+                                </label>
+                                <label className={styles.radioLabel}>
+                                    <input
+                                        type="radio"
+                                        name="renewType"
+                                        checked={!renewRegenerateCode}
+                                        onChange={() => setRenewRegenerateCode(false)}
+                                    />
+                                    Extend expiry for same code
+                                </label>
+
+                                <label>
+                                    <span>Expiry date</span>
+                                    <input
+                                        type="date"
+                                        value={renewExpiryDate}
+                                        onChange={(event) => setRenewExpiryDate(event.target.value)}
+                                    />
+                                </label>
+
+                                <label className={styles.checkboxLabel}>
+                                    <input
+                                        type="checkbox"
+                                        checked={renewSendEmail}
+                                        onChange={(event) => setRenewSendEmail(event.target.checked)}
+                                    />
+                                    Send email after renew
+                                </label>
+                            </fieldset>
+                            {renewError ? <p className={styles.errorMessage}>{renewError}</p> : null}
+                            <div className={styles.modalActions}>
+                                <button type="button" className={styles.tableActionButton} onClick={closeRenewModal}>
+                                    Cancel
+                                </button>
+                                <button type="submit" className={styles.primaryButton}>
+                                    {renewingCouponKey ? 'Renewing…' : renewSendEmail ? 'Renew & Send' : 'Renew'}
+                                </button>
+                            </div>
+                        </form>
+                    </aside>
+                </div>
+            ) : null}
 
             <div className={styles.ordersSection}>
                 <div className={styles.ordersHeader}>
