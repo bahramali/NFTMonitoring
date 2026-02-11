@@ -27,11 +27,16 @@ const SORT_OPTIONS = [
 const PAGE_SIZE = 6;
 const SEARCH_DEBOUNCE_MS = 300;
 
-const formatDate = (value) => {
+const formatDate = (value, { includeTime = false } = {}) => {
     if (!value) return '—';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleDateString('sv-SE', { year: 'numeric', month: 'short', day: 'numeric' });
+    return date.toLocaleString('sv-SE', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        ...(includeTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+    });
 };
 
 export default function CustomersList() {
@@ -255,6 +260,8 @@ export default function CustomersList() {
                             <th>Customer</th>
                             <th>Status</th>
                             <th>Type</th>
+                            <th>User ID</th>
+                            <th>Last login</th>
                             <th>Last order</th>
                             <th>Total spent</th>
                             <th />
@@ -269,26 +276,28 @@ export default function CustomersList() {
                             const rowKey = customer.id || `customer-row-${index}`;
                             return (
                                 <tr key={rowKey}>
-                                <td>
-                                    <div className={styles.customerCell}>
-                                        <div className={styles.customerName}>{customer.name}</div>
-                                        <div className={styles.customerEmail}>{customer.email}</div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span className={`${styles.status} ${styles[`status${statusKey}`]}`}>
-                                        {statusLabel}
-                                    </span>
-                                </td>
-                                <td>{customer.type || '—'}</td>
-                                <td>{formatDate(customer.lastOrderDate)}</td>
-                                <td>{formatCurrency(customer.totalSpent, customer.currency || 'SEK')}</td>
-                                <td>
-                                    <Link to={`/store/admin/customers/${routeCustomerId}`} className={styles.detailLink}>
-                                        View details
-                                    </Link>
-                                </td>
-                            </tr>
+                                    <td>
+                                        <div className={styles.customerCell}>
+                                            <div className={styles.customerName}>{customer.name}</div>
+                                            <div className={styles.customerEmail}>{customer.email}</div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span className={`${styles.status} ${styles[`status${statusKey}`]}`}>
+                                            {statusLabel}
+                                        </span>
+                                    </td>
+                                    <td>{customer.type || '—'}</td>
+                                    <td className={styles.monoText}>{customer.userId || '—'}</td>
+                                    <td>{formatDate(customer.lastLoginAt, { includeTime: true })}</td>
+                                    <td>{formatDate(customer.lastOrderDate)}</td>
+                                    <td>{formatCurrency(customer.totalSpent, customer.currency || 'SEK')}</td>
+                                    <td>
+                                        <Link to={`/store/admin/customers/${routeCustomerId}`} className={styles.detailLink}>
+                                            View details
+                                        </Link>
+                                    </td>
+                                </tr>
                             );
                         })}
                     </tbody>
