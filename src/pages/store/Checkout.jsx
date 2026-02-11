@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom';
 import { createCustomerAddress, fetchCustomerAddresses, setDefaultCustomerAddress } from '../../api/customerAddresses.js';
 import { fetchCustomerProfile } from '../../api/customer.js';
-import { createStripeCheckoutSession, fetchCheckoutQuote } from '../../api/store.js';
+import { applyStoreCoupon, createStripeCheckoutSession, fetchCheckoutQuote } from '../../api/store.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
@@ -98,7 +98,7 @@ const logCheckoutError = (error) => {
 };
 
 export default function Checkout() {
-    const { cart, cartId, sessionId, notify } = useStorefront();
+    const { cart, cartId, sessionId, notify, refreshCart } = useStorefront();
     const { isAuthenticated, token, logout } = useAuth();
     const redirectToLogin = useRedirectToLogin();
     const [form, setForm] = useState(initialForm);
@@ -116,6 +116,7 @@ export default function Checkout() {
     const [couponCode, setCouponCode] = useState('');
     const [couponStatus, setCouponStatus] = useState('idle');
     const [couponMessage, setCouponMessage] = useState('');
+    const [appliedCouponCode, setAppliedCouponCode] = useState('');
     const [quote, setQuote] = useState(null);
     const checkoutInFlight = useRef(false);
 
@@ -130,12 +131,13 @@ export default function Checkout() {
     const trimmedCompanyName = form.companyName.trim();
     const trimmedOrgNumber = form.orgNumber.trim();
     const trimmedInvoiceEmail = form.invoiceEmail.trim();
+    const isApplyingCoupon = couponStatus === 'applying';
     const canSubmit =
         hasItems
         && !submitting
+        && !isApplyingCoupon
         && (!isAuthenticated || Boolean(orderEmail))
         && (!isB2B || (Boolean(trimmedCompanyName) && Boolean(trimmedOrgNumber)));
-    const isApplyingCoupon = couponStatus === 'applying';
     const selectedAddress = useMemo(
         () => addresses.find((address) => String(address.id) === String(selectedAddressId)),
         [addresses, selectedAddressId],
@@ -291,6 +293,7 @@ export default function Checkout() {
     const clearCouponState = useCallback(() => {
         setQuote(null);
         setCouponCode('');
+        setAppliedCouponCode('');
         setCouponStatus('idle');
         setCouponMessage('');
     }, []);
@@ -313,11 +316,31 @@ export default function Checkout() {
                 sessionId,
                 couponCode: normalizedCoupon,
             });
-            setQuote(quoted || null);
+            let appliedPayload = null;
+            try {
+                appliedPayload = await applyStoreCoupon(token, {
+                    cartId,
+                    sessionId,
+                    couponCode: normalizedCoupon,
+                });
+            } catch (applyError) {
+                if (applyError?.status !== 404 && applyError?.status !== 405) {
+                    throw applyError;
+                }
+            }
+
+            const nextQuote = appliedPayload
+                ?? quoted
+                ?? null;
+
+            setQuote(nextQuote);
+            setAppliedCouponCode(normalizedCoupon);
             setCouponStatus('applied');
-            setCouponMessage(quoted?.message || 'Coupon applied.');
+            setCouponMessage(nextQuote?.message || quoted?.message || 'Coupon applied.');
+            await refreshCart();
         } catch (err) {
             setQuote(null);
+            setAppliedCouponCode('');
             setCouponStatus('invalid');
             setCouponMessage(getCouponErrorMessage(err));
         }
@@ -416,7 +439,7 @@ export default function Checkout() {
                 sessionId,
                 email: orderEmail,
                 shippingAddress,
-                couponCode: couponCode.trim() || undefined,
+                couponCode: appliedCouponCode || undefined,
                 customerType: isB2B ? 'B2B' : 'B2C',
                 company,
             });
@@ -721,7 +744,10 @@ export default function Checkout() {
                                     name="couponCode"
                                     type="text"
                                     value={couponCode}
-                                    onChange={(event) => setCouponCode(event.target.value)}
+                                    onChange={(event) => {
+                                        setCouponCode(event.target.value);
+                                        setAppliedCouponCode('');
+                                    }}
                                     placeholder="Enter coupon"
                                 />
                                 <button

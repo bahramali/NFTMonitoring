@@ -155,6 +155,30 @@ export async function fetchCheckoutQuote(token, { cartId, couponCode, sessionId 
     return parseApiResponse(res, 'Failed to quote checkout total');
 }
 
+export async function applyStoreCoupon(token, { cartId, couponCode, sessionId } = {}, { signal } = {}) {
+    if (!cartId) throw new Error('Cart ID is required');
+    if (!couponCode) throw new Error('Coupon code is required');
+
+    const res = await authFetch(
+        `${STORE_BASE}/cart/apply-coupon`,
+        {
+            method: 'POST',
+            headers: {
+                ...buildAuthHeaders(token),
+                ...buildCartHeaders(cartId, sessionId),
+            },
+            body: JSON.stringify({
+                cartId,
+                couponCode,
+            }),
+            signal,
+        },
+        { token },
+    );
+
+    return parseApiResponse(res, 'Failed to apply coupon');
+}
+
 export async function createStripeCheckoutSession(
     token,
     { cartId, email, shippingAddress, couponCode, sessionId, customerType, company } = {},
@@ -194,7 +218,7 @@ export async function fetchOrderStatus(orderId, { signal } = {}) {
 export async function fetchStoreOrderBySession(sessionId, { signal } = {}) {
     if (!sessionId) throw new Error('Session ID is required');
     const encodedSessionId = encodeURIComponent(sessionId);
-    const res = await fetch(`${API_BASE}/api/orders?sessionId=${encodedSessionId}`, { signal });
+    const res = await fetch(`${API_BASE}/api/store/orders/by-session/${encodedSessionId}`, { signal });
     return parseApiResponseWithMeta(res, 'Failed to load order by session');
 }
 

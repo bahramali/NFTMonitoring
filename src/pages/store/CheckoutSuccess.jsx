@@ -189,7 +189,7 @@ export default function CheckoutSuccess() {
                     ) : null}
                     {timedOut ? (
                         <p className={styles.statusMessage}>
-                            Payment confirmation pending. You will receive an email once confirmed.
+                            Confirmation pending; you&apos;ll receive an email once confirmed.
                         </p>
                     ) : null}
                     {error ? <p className={styles.errorMessage}>{error}</p> : null}
