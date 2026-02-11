@@ -193,7 +193,8 @@ export async function fetchOrderStatus(orderId, { signal } = {}) {
 
 export async function fetchStoreOrderBySession(sessionId, { signal } = {}) {
     if (!sessionId) throw new Error('Session ID is required');
-    const res = await fetch(`${STORE_BASE}/orders/by-session/${encodeURIComponent(sessionId)}`, { signal });
+    const encodedSessionId = encodeURIComponent(sessionId);
+    const res = await fetch(`${API_BASE}/api/orders?sessionId=${encodedSessionId}`, { signal });
     return parseApiResponseWithMeta(res, 'Failed to load order by session');
 }
 

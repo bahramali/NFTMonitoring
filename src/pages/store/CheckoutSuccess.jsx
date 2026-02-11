@@ -32,7 +32,16 @@ const isPendingStatus = (status) => {
 };
 
 const POLL_INTERVAL_MS = 2000;
-const MAX_POLL_DURATION_MS = 60000;
+const MAX_POLL_DURATION_MS = 180000;
+
+const normalizeOrderPayload = (payload) => {
+    if (!payload) return null;
+    if (Array.isArray(payload)) return payload[0] ?? null;
+    if (payload?.order) return payload.order;
+    if (Array.isArray(payload?.orders)) return payload.orders[0] ?? null;
+    if (Array.isArray(payload?.content)) return payload.content[0] ?? null;
+    return payload;
+};
 
 export default function CheckoutSuccess() {
     const [searchParams] = useSearchParams();
@@ -46,6 +55,7 @@ export default function CheckoutSuccess() {
     const [referenceId, setReferenceId] = useState(null);
     const startTimeRef = useRef(null);
     const timeoutRef = useRef(null);
+    const orderRef = useRef(null);
 
     useEffect(() => {
         if (!sessionId) return;
@@ -67,6 +77,7 @@ export default function CheckoutSuccess() {
         setError(null);
         setNotFound(false);
         setOrder(null);
+        orderRef.current = null;
 
         const poll = async () => {
             if (!isMounted) return;
@@ -75,8 +86,9 @@ export default function CheckoutSuccess() {
             try {
                 const { data, correlationId } = await fetchStoreOrderBySession(sessionId, { signal: controller.signal });
                 if (!isMounted) return;
-                latestOrder = data;
-                setOrder(data);
+                latestOrder = normalizeOrderPayload(data);
+                setOrder(latestOrder);
+                orderRef.current = latestOrder;
                 setError(null);
                 setNotFound(false);
                 if (correlationId) {
@@ -93,11 +105,12 @@ export default function CheckoutSuccess() {
                     setReferenceId((prev) => (prev === err.correlationId ? prev : err.correlationId));
                 }
             } finally {
-                if (!isMounted) return;
-                setLoading(false);
+                if (isMounted) {
+                    setLoading(false);
+                }
             }
 
-            const status = resolveOrderStatus(latestOrder ?? order);
+            const status = resolveOrderStatus(latestOrder ?? orderRef.current);
             const elapsed = Date.now() - startedAt;
             const shouldContinue = elapsed < MAX_POLL_DURATION_MS
                 && !isPaidStatus(status)
@@ -134,9 +147,9 @@ export default function CheckoutSuccess() {
             ? 'Payment failed'
             : 'Payment received / processing';
     const subtitle = isPaid
-        ? 'Payment received. Your order is confirmed.'
+        ? 'Payment confirmed. A receipt has been sent to your email.'
         : isFailed
-            ? 'Your payment did not complete. Please return to your cart to try again.'
+            ? 'Your payment did not complete. Please contact support if the issue persists, or return to your cart to try again.'
             : 'Thanks for your order! We are confirming your payment with Stripe and will update your order shortly.';
 
     useEffect(() => {
@@ -176,7 +189,7 @@ export default function CheckoutSuccess() {
                     ) : null}
                     {timedOut ? (
                         <p className={styles.statusMessage}>
-                            We are still waiting for confirmation. Please check back shortly.
+                            Payment confirmation pending. You will receive an email once confirmed.
                         </p>
                     ) : null}
                     {error ? <p className={styles.errorMessage}>{error}</p> : null}
