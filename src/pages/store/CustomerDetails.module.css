@@ -148,6 +148,47 @@
     color: #111827;
 }
 
+.couponCodeCell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.couponCodeCell code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    font-size: 0.85rem;
+}
+
+.tableActions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.tableActionButton {
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #111827;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.tableActionButton:disabled,
+.tableActionLink[aria-disabled='true'] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.tableActionLink {
+    display: inline-flex;
+    align-items: center;
+}
+
 .orderStatus {
     display: inline-flex;
     padding: 4px 10px;
