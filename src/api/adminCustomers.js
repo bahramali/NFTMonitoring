@@ -80,14 +80,25 @@ const normalizeCustomer = (customer) => {
     if (!customer) return null;
     const id = normalizeCustomerId(customer?.id ?? customer?.customerId ?? customer?._id ?? customer?.userId);
     const orders = normalizeOrders(customer?.orders ?? customer?.orderHistory ?? customer?.recentOrders);
+    const userId =
+        customer?.userId ?? customer?.user_id ?? customer?.authUserId ?? customer?.identityId ?? customer?.uid ?? '';
+    const lastLoginAt =
+        customer?.lastLoginAt ??
+        customer?.lastLogin ??
+        customer?.lastLoginDate ??
+        customer?.lastSignInAt ??
+        customer?.latestLoginAt ??
+        '';
 
     return {
         ...customer,
         id,
+        userId,
         name: joinName(customer),
         email: customer?.email ?? customer?.contactEmail ?? '',
         status: normalizeStatus(customer?.status ?? customer?.state),
         type: normalizeCustomerType(customer?.type ?? customer?.customerType),
+        lastLoginAt,
         lastOrderDate:
             customer?.lastOrderDate ??
             customer?.lastOrderAt ??
