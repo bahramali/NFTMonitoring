@@ -189,6 +189,10 @@
     align-items: center;
 }
 
+.tableActionButton:hover:not(:disabled) {
+    border-color: #9ca3af;
+}
+
 .orderStatus {
     display: inline-flex;
     padding: 4px 10px;
@@ -311,4 +315,83 @@
 .copyFeedback {
     color: #047857;
     font-size: 0.9rem;
+}
+
+.modalBackdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 24, 39, 0.45);
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    z-index: 30;
+}
+
+.modalPanel {
+    width: min(520px, 100%);
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    padding: 18px;
+}
+
+.modalHeader h3 {
+    margin: 0;
+}
+
+.renewForm {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 12px;
+}
+
+.renewForm fieldset {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.renewForm label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.renewForm input[type='date'] {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 8px 10px;
+}
+
+.radioLabel,
+.checkboxLabel {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 8px;
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.primaryButton {
+    border: none;
+    background: #2563eb;
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.primaryButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }

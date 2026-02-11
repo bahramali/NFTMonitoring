@@ -203,6 +203,7 @@ const normalizeCoupon = (coupon) => {
         status: normalizeCouponStatus(coupon?.status, coupon),
         createdAt: coupon?.createdAt ?? coupon?.created ?? coupon?.issuedAt ?? '',
         expiresAt: coupon?.expiresAt ?? coupon?.expiryDate ?? coupon?.expirationDate ?? '',
+        lastSentAt: coupon?.lastSentAt ?? coupon?.sentAt ?? coupon?.lastEmailedAt ?? coupon?.updatedAt ?? '',
     };
 };
 
@@ -308,4 +309,52 @@ export async function createAdminCustomerCoupon(customerId, body, token, { signa
 
     const payload = await parseApiResponse(res, 'Failed to create coupon');
     return normalizeCoupon(payload?.coupon ?? payload?.data ?? payload);
+}
+
+export async function resendCustomerCoupon(customerId, couponId, token, { signal } = {}) {
+    if (!token) throw new Error('Authentication is required to resend customer coupons');
+    const normalizedCustomerId = assertValidCustomerId(customerId);
+    const normalizedCouponId = `${couponId ?? ''}`.trim();
+    if (!normalizedCouponId) throw new Error('Invalid coupon id');
+
+    const res = await authFetch(
+        `${ADMIN_CUSTOMERS_URL}/${encodeURIComponent(normalizedCustomerId)}/coupons/${encodeURIComponent(normalizedCouponId)}/resend`,
+        {
+            method: 'POST',
+            headers: buildAuthHeaders(token),
+            signal,
+        },
+        { token },
+    );
+
+    const payload = await parseApiResponse(res, 'Failed to resend coupon');
+    return {
+        coupon: normalizeCoupon(payload?.coupon ?? payload?.data?.coupon ?? payload?.data),
+        raw: payload,
+    };
+}
+
+export async function renewCustomerCoupon(customerId, couponId, body, token, { signal } = {}) {
+    if (!token) throw new Error('Authentication is required to renew customer coupons');
+    const normalizedCustomerId = assertValidCustomerId(customerId);
+    const normalizedCouponId = `${couponId ?? ''}`.trim();
+    if (!normalizedCouponId) throw new Error('Invalid coupon id');
+
+    const res = await authFetch(
+        `${ADMIN_CUSTOMERS_URL}/${encodeURIComponent(normalizedCustomerId)}/coupons/${encodeURIComponent(normalizedCouponId)}/renew`,
+        {
+            method: 'POST',
+            headers: buildAuthHeaders(token),
+            signal,
+            body: JSON.stringify(body),
+        },
+        { token },
+    );
+
+    const payload = await parseApiResponse(res, 'Failed to renew coupon');
+    return {
+        coupon: normalizeCoupon(payload?.coupon ?? payload?.newCoupon ?? payload?.data?.coupon ?? payload?.data?.newCoupon ?? payload?.data),
+        replacedCoupon: normalizeCoupon(payload?.replacedCoupon ?? payload?.oldCoupon ?? payload?.data?.replacedCoupon),
+        raw: payload,
+    };
 }
