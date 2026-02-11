@@ -89,6 +89,30 @@ const maskCouponCode = (code) => {
     return `${'•'.repeat(Math.max(4, normalized.length - 4))}${visibleTail}`;
 };
 
+const buildCouponMailtoHref = (email, couponCode, variantLabel) => {
+    const normalizedEmail = `${email || ''}`.trim();
+    const normalizedCode = `${couponCode || ''}`.trim();
+    if (!normalizedEmail || !normalizedCode) return '';
+
+    const normalizedVariant = `${variantLabel || 'your selected product'}`.trim();
+    const subject = encodeURIComponent('Your Hydroleaf discount code');
+    const body = encodeURIComponent(
+        [
+            'Hi,',
+            '',
+            `Here is your discount code for ${normalizedVariant}:`,
+            normalizedCode,
+            '',
+            'Enter this code at checkout to apply your discount.',
+            '',
+            'Best regards,',
+            'Hydroleaf',
+        ].join('\n'),
+    );
+
+    return `mailto:${encodeURIComponent(normalizedEmail)}?subject=${subject}&body=${body}`;
+};
+
 export default function CustomerDetails() {
     const { customerId } = useParams();
     const normalizedCustomerId = normalizeCustomerId(customerId);
@@ -111,6 +135,8 @@ export default function CustomerDetails() {
     const [coupons, setCoupons] = useState([]);
     const [couponListLoading, setCouponListLoading] = useState(false);
     const [couponListError, setCouponListError] = useState('');
+    const [visibleCouponIds, setVisibleCouponIds] = useState(() => new Set());
+    const [copiedCouponKey, setCopiedCouponKey] = useState('');
 
     useEffect(() => {
         if (!token || !normalizedCustomerId) return;
@@ -240,6 +266,32 @@ export default function CustomerDetails() {
             setCopyState('copied');
         } catch {
             setCopyState('failed');
+        }
+    };
+
+    const handleToggleCouponVisibility = (couponKey) => {
+        setVisibleCouponIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(couponKey)) {
+                next.delete(couponKey);
+            } else {
+                next.add(couponKey);
+            }
+            return next;
+        });
+    };
+
+    const handleCopyExistingCoupon = async (couponKey, couponCode) => {
+        const codeValue = `${couponCode || ''}`.trim();
+        if (!codeValue) return;
+        try {
+            await navigator.clipboard.writeText(codeValue);
+            setCopiedCouponKey(couponKey);
+            window.setTimeout(() => {
+                setCopiedCouponKey((current) => (current === couponKey ? '' : current));
+            }, 1800);
+        } catch {
+            setCouponListError('Copy failed. Please copy manually.');
         }
     };
 
@@ -430,11 +482,18 @@ export default function CustomerDetails() {
                                     <th>Created</th>
                                     <th>Expiry</th>
                                     <th>Code</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {coupons.map((coupon) => (
-                                    <tr key={coupon.id || `${coupon.variantId}-${coupon.createdAt}`}>
+                                {coupons.map((coupon) => {
+                                    const couponKey = coupon.id || `${coupon.variantId}-${coupon.createdAt}`;
+                                    const canReveal = Boolean(`${coupon.couponCode || ''}`.trim());
+                                    const isVisible = visibleCouponIds.has(couponKey);
+                                    const mailtoHref = buildCouponMailtoHref(customer.email, coupon.couponCode, coupon.variantLabel);
+
+                                    return (
+                                    <tr key={couponKey}>
                                         <td>{coupon.variantLabel || '—'}</td>
                                         <td>{`-${formatCurrency((coupon.amountOffCents || 0) / 100, 'SEK')}`}</td>
                                         <td>
@@ -442,9 +501,46 @@ export default function CustomerDetails() {
                                         </td>
                                         <td>{formatDateTime(coupon.createdAt)}</td>
                                         <td>{formatDateTime(coupon.expiresAt)}</td>
-                                        <td>{maskCouponCode(coupon.couponCode)}</td>
+                                        <td className={styles.couponCodeCell}>
+                                            <code>{isVisible ? coupon.couponCode || '—' : maskCouponCode(coupon.couponCode)}</code>
+                                            {canReveal ? (
+                                                <button
+                                                    type="button"
+                                                    className={styles.tableActionButton}
+                                                    onClick={() => handleToggleCouponVisibility(couponKey)}
+                                                >
+                                                    {isVisible ? 'Hide' : 'Show'}
+                                                </button>
+                                            ) : null}
+                                        </td>
+                                        <td>
+                                            <div className={styles.tableActions}>
+                                                <button
+                                                    type="button"
+                                                    className={styles.tableActionButton}
+                                                    onClick={() => handleCopyExistingCoupon(couponKey, coupon.couponCode)}
+                                                    disabled={!canReveal}
+                                                >
+                                                    Copy
+                                                </button>
+                                                <a
+                                                    className={`${styles.tableActionButton} ${styles.tableActionLink}`}
+                                                    href={mailtoHref || undefined}
+                                                    aria-disabled={!mailtoHref}
+                                                    onClick={(event) => {
+                                                        if (!mailtoHref) event.preventDefault();
+                                                    }}
+                                                >
+                                                    Send
+                                                </a>
+                                                {copiedCouponKey === couponKey ? (
+                                                    <span className={styles.copyFeedback}>Copied</span>
+                                                ) : null}
+                                            </div>
+                                        </td>
                                     </tr>
-                                ))}
+                                    );
+                                })}
                             </tbody>
                         </table>
                         {!coupons.length ? <div className={styles.emptyState}>No coupons created for this customer yet.</div> : null}
