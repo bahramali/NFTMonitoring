@@ -152,6 +152,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .couponCodeCell code {
@@ -164,6 +165,11 @@
     align-items: center;
     gap: 6px;
     flex-wrap: wrap;
+}
+
+.inlineCodeAction {
+    padding: 4px 8px;
+    font-size: 0.75rem;
 }
 
 .tableActionButton {
@@ -191,6 +197,47 @@
 
 .tableActionButton:hover:not(:disabled) {
     border-color: #9ca3af;
+}
+
+.iconActionButton {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    color: #111827;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.iconActionButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.primaryActionButton {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+}
+
+.primaryActionButton:hover:not(:disabled) {
+    border-color: #1d4ed8;
+    background: #1d4ed8;
+}
+
+.dangerActionButton {
+    border-color: #ef4444;
+    color: #b91c1c;
+    background: #fff;
+}
+
+.dangerActionButton:hover:not(:disabled) {
+    border-color: #dc2626;
+    background: #fef2f2;
 }
 
 .orderStatus {
@@ -394,4 +441,19 @@
 .primaryButton:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+.deleteModalBody {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.deleteModalBody p {
+    margin: 0;
+}
+
+.warningText {
+    color: #b45309;
 }

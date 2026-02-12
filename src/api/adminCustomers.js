@@ -173,9 +173,12 @@ const extractKpis = (payload, customers, totalFromMeta) => {
 
 const normalizeCouponStatus = (status, coupon) => {
     const raw = `${status ?? coupon?.status ?? coupon?.state ?? ''}`.trim().toUpperCase();
+    if (raw === 'DELETED' || raw === 'ARCHIVED' || raw === 'INACTIVE') return 'Deleted';
     if (raw === 'REDEEMED' || raw === 'USED') return 'Redeemed';
     if (raw === 'EXPIRED') return 'Expired';
     if (raw === 'ACTIVE') return 'Active';
+
+    if (coupon?.deletedAt || coupon?.archivedAt || coupon?.removedAt || coupon?.deactivatedAt) return 'Deleted';
 
     const expiresAt = coupon?.expiresAt ?? coupon?.expiryDate ?? coupon?.expirationDate ?? '';
     if (expiresAt) {
@@ -364,4 +367,24 @@ export async function renewCustomerCoupon(customerId, couponId, body, token, { s
         replacedCoupon: normalizeCoupon(payload?.replacedCoupon ?? payload?.oldCoupon ?? payload?.data?.replacedCoupon),
         raw: payload,
     };
+}
+
+export async function deleteCustomerCoupon(customerId, couponId, token, { signal } = {}) {
+    if (!token) throw new Error('Authentication is required to delete customer coupons');
+    const normalizedCustomerId = assertValidCustomerId(customerId);
+    const normalizedCouponId = `${couponId ?? ''}`.trim();
+    if (!normalizedCouponId) throw new Error('Invalid coupon id');
+
+    const res = await authFetch(
+        `${ADMIN_CUSTOMERS_URL}/${encodeURIComponent(normalizedCustomerId)}/coupons/${encodeURIComponent(normalizedCouponId)}`,
+        {
+            method: 'DELETE',
+            headers: buildAuthHeaders(token),
+            signal,
+        },
+        { token },
+    );
+
+    if (res.status === 204) return null;
+    return parseApiResponse(res, 'Failed to delete coupon');
 }
