@@ -337,3 +337,26 @@ export async function deleteProductVariant(productId, variantId, token) {
         throw error;
     }
 }
+
+
+export async function updateVariantTierPrices(variantId, payload, token) {
+    if (!variantId) throw new Error('Variant ID is required');
+    try {
+        const res = await authFetch(
+            `${API_BASE}/api/variants/${encodeURIComponent(variantId)}/prices`,
+            {
+                method: 'PUT',
+                headers: authHeaders(token),
+                body: JSON.stringify(payload),
+            },
+            { token },
+        );
+        return parseApiResponse(res, 'Failed to update variant tier prices');
+    } catch (error) {
+        if (useMockFallback(error)) {
+            console.warn('Mocking variant tier pricing update until backend endpoint is ready.', error);
+            return { id: variantId, ...payload };
+        }
+        throw error;
+    }
+}

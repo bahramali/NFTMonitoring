@@ -8,11 +8,13 @@ import {
     resendCustomerCoupon,
     renewCustomerCoupon,
     deleteCustomerCoupon,
+    updateAdminCustomerPricingTier,
 } from '../../api/adminCustomers.js';
 import { listAdminProducts } from '../../api/products.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { formatCurrency } from '../../utils/currency.js';
 import { mapOrderStatus } from '../../utils/orderStatus.js';
+import { PRICING_TIERS } from '../../utils/pricingTier.js';
 import styles from './CustomerDetails.module.css';
 
 const formatDate = (value) => {
@@ -130,6 +132,8 @@ export default function CustomerDetails() {
     const [isSubmittingCoupon, setIsSubmittingCoupon] = useState(false);
     const [couponError, setCouponError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
+    const [selectedPricingTier, setSelectedPricingTier] = useState('DEFAULT');
+    const [savingPricingTier, setSavingPricingTier] = useState(false);
     const [generatedCode, setGeneratedCode] = useState('');
     const [copyState, setCopyState] = useState('idle');
 
@@ -157,6 +161,7 @@ export default function CustomerDetails() {
             try {
                 const payload = await fetchAdminCustomer(normalizedCustomerId, token, { signal: controller.signal });
                 setCustomer(payload);
+                setSelectedPricingTier(payload?.pricingTier || 'DEFAULT');
             } catch (loadError) {
                 console.error('Failed to load customer details', loadError);
                 setError(getErrorMessage(loadError, 'Unable to load customer details right now.'));
@@ -230,6 +235,24 @@ export default function CustomerDetails() {
             .map((entry) => `${entry}`.trim().toUpperCase());
         return roleList.some((entry) => entry.includes('ADMIN'));
     }, [role, roles]);
+
+
+    const handleSavePricingTier = async () => {
+        if (!customer?.id) return;
+        setSavingPricingTier(true);
+        try {
+            const updated = await updateAdminCustomerPricingTier(customer.id, selectedPricingTier, token);
+            if (updated) {
+                setCustomer(updated);
+                setSelectedPricingTier(updated.pricingTier || selectedPricingTier);
+            }
+            showActionFeedback('success', 'Pricing tier updated.');
+        } catch (tierError) {
+            showActionFeedback('error', getErrorMessage(tierError, 'Unable to update pricing tier.'));
+        } finally {
+            setSavingPricingTier(false);
+        }
+    };
 
     const handleSubmitCoupon = async (event) => {
         event.preventDefault();
@@ -566,6 +589,21 @@ export default function CustomerDetails() {
                         <div>
                             <dt>Total spent</dt>
                             <dd>{formatCurrency(customer.totalSpent, customer.currency || 'SEK')}</dd>
+                        </div>
+                        <div>
+                            <dt>Pricing tier</dt>
+                            <dd>
+                                <div className={styles.tierRow}>
+                                    <select value={selectedPricingTier} onChange={(event) => setSelectedPricingTier(event.target.value)}>
+                                        {PRICING_TIERS.map((tier) => (
+                                            <option key={tier} value={tier}>{tier}</option>
+                                        ))}
+                                    </select>
+                                    <button type="button" onClick={handleSavePricingTier} disabled={savingPricingTier}>
+                                        {savingPricingTier ? 'Saving…' : 'Save'}
+                                    </button>
+                                </div>
+                            </dd>
                         </div>
                     </dl>
                 </div>

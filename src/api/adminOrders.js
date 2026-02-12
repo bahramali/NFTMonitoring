@@ -34,6 +34,19 @@ const shouldUseMockFallback = (error) => {
     return !status || status === 404 || status === 501;
 };
 
+
+const toNumber = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+};
+
+const resolveAmount = (amount, amountCents) => {
+    const cents = toNumber(amountCents);
+    if (cents !== null) return cents / 100;
+    const decimal = toNumber(amount);
+    return decimal ?? 0;
+};
+
 const asArray = (payload, ...keys) => {
     for (const key of keys) {
         if (Array.isArray(payload?.[key])) return payload[key];
@@ -58,8 +71,8 @@ const normalizeItems = (items) => {
     const list = Array.isArray(items) ? items : [];
     return list.map((item, index) => {
         const quantity = Number(item?.quantity ?? item?.qty ?? 1) || 1;
-        const unitPrice = Number(item?.unitPrice ?? item?.price ?? item?.amount ?? 0) || 0;
-        const lineTotal = Number(item?.lineTotal ?? item?.total ?? quantity * unitPrice) || 0;
+        const unitPrice = resolveAmount(item?.unitPrice ?? item?.price ?? item?.amount, item?.unitPriceCents ?? item?.priceCents ?? item?.amountCents);
+        const lineTotal = resolveAmount(item?.lineTotal ?? item?.total, item?.lineTotalCents ?? item?.totalCents) || (quantity * unitPrice);
         return {
             id: item?.id ?? item?.lineId ?? `${index}`,
             name: item?.name ?? item?.title ?? item?.sku ?? 'Item',
@@ -105,11 +118,11 @@ export const normalizeAdminOrder = (order = {}) => {
         billingAddress: normalizeAddress(order?.billingAddress ?? payment?.billingAddress),
         items,
         totals: {
-            subtotal: Number(order?.subtotal ?? totals?.subtotal ?? subtotalFallback) || 0,
-            shipping: Number(order?.shipping ?? totals?.shipping ?? totals?.shippingTotal ?? 0) || 0,
-            tax: Number(order?.tax ?? totals?.tax ?? totals?.taxTotal ?? 0) || 0,
-            discount: Number(order?.discount ?? totals?.discount ?? 0) || 0,
-            total: Number(order?.total ?? totals?.total ?? subtotalFallback) || 0,
+            subtotal: resolveAmount(order?.subtotal ?? totals?.subtotal, order?.subtotalCents ?? totals?.subtotalCents) || subtotalFallback,
+            shipping: resolveAmount(order?.shipping ?? totals?.shipping ?? totals?.shippingTotal, order?.shippingCents ?? totals?.shippingCents),
+            tax: resolveAmount(order?.tax ?? totals?.tax ?? totals?.taxTotal, order?.taxCents ?? totals?.taxCents),
+            discount: resolveAmount(order?.discount ?? totals?.discount, order?.discountCents ?? totals?.discountCents),
+            total: resolveAmount(order?.paidTotal ?? order?.total ?? totals?.total, order?.paidTotalCents ?? order?.totalCents ?? totals?.totalCents) || subtotalFallback,
             currency: order?.currency ?? totals?.currency ?? 'SEK',
         },
         internalNotes: order?.internalNotes ?? order?.adminNote ?? '',
