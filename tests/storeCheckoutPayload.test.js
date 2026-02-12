@@ -77,6 +77,46 @@ describe('createStripeCheckoutSession payload', () => {
         });
     });
 
+
+    it('normalizes cart totals from cents fields', async () => {
+        const { normalizeCartResponse } = await import('../src/api/store.js');
+
+        const normalized = normalizeCartResponse({
+            id: 'cart-1',
+            currency: 'SEK',
+            subtotalCents: 12900,
+            discountCents: 1990,
+            totalCents: 10910,
+            items: [{ id: 'i1', quantity: 1, unitPriceCents: 12900, discountedUnitPriceCents: 10910, lineTotalCents: 12900, discountedLineTotalCents: 10910 }],
+        });
+
+        expect(normalized.totals).toMatchObject({
+            currency: 'SEK',
+            subtotal: 129,
+            discount: 19.9,
+            total: 109.1,
+        });
+        expect(normalized.items[0]).toMatchObject({
+            unitPrice: 129,
+            discountedUnitPrice: 109.1,
+            lineTotal: 129,
+            discountedLineTotal: 109.1,
+        });
+    });
+
+    it('prefers discounted line values in normalized item shape when present', async () => {
+        const { normalizeCartResponse } = await import('../src/api/store.js');
+
+        const normalized = normalizeCartResponse({
+            id: 'cart-2',
+            totals: { currency: 'SEK', subtotalCents: 5000, discountCents: 500, totalCents: 4500 },
+            items: [{ id: 'i2', quantity: 2, lineDiscountCents: 500 }],
+        });
+
+        expect(normalized.totals.discount).toBe(5);
+        expect(normalized.items[0].lineDiscount).toBe(5);
+    });
+
     it('loads checkout success orders through store by-session route', async () => {
         const { fetchStoreOrderBySession } = await import('../src/api/store.js');
         global.fetch.mockResolvedValue({ ok: true, headers: { get: vi.fn() } });

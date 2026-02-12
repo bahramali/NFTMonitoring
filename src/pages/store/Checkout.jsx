@@ -171,7 +171,7 @@ export default function Checkout() {
     const trimmedCompanyName = form.companyName.trim();
     const trimmedOrgNumber = form.orgNumber.trim();
     const trimmedInvoiceEmail = form.invoiceEmail.trim();
-    const isApplyingCoupon = couponStatus === 'applying';
+    const isApplyingCoupon = couponStatus === 'loading';
     const canSubmit =
         hasItems
         && !submitting
@@ -184,11 +184,11 @@ export default function Checkout() {
         [addresses, selectedAddressId],
     );
     const cartFingerprint = useMemo(
-        () => JSON.stringify((summaryItems || []).map((item) => ({
+        () => JSON.stringify(((cart?.items) || []).map((item) => ({
             id: item.id || item.productId || item.variantId,
             quantity: item.quantity ?? item.qty ?? 1,
         }))),
-        [summaryItems],
+        [cart?.items],
     );
 
     const quoteCurrency = currency;
@@ -351,7 +351,7 @@ export default function Checkout() {
             return;
         }
 
-        setCouponStatus('applying');
+        setCouponStatus('loading');
         setCouponMessage('');
         setTotalsRefreshing(true);
         try {
@@ -382,12 +382,12 @@ export default function Checkout() {
 
             setPricedCart(updatedCart);
             setAppliedCouponCode(normalizedCoupon);
-            setCouponStatus('applied');
-            setCouponMessage('Coupon applied.');
+            setCouponStatus('success');
+            setCouponMessage('Coupon applied');
 
             refreshCart().catch(() => {});
         } catch (err) {
-            setCouponStatus('invalid');
+            setCouponStatus('error');
             setCouponMessage(getCouponErrorMessage(err));
         } finally {
             setTotalsRefreshing(false);
@@ -796,6 +796,8 @@ export default function Checkout() {
                                         setCouponCode(event.target.value);
                                         setAppliedCouponCode('');
                                         setPricedCart(null);
+                                        setCouponStatus('idle');
+                                        setCouponMessage('');
                                     }}
                                     placeholder="Enter coupon"
                                 />
@@ -808,9 +810,8 @@ export default function Checkout() {
                                     {isApplyingCoupon || totalsRefreshing ? 'Applying…' : 'Apply'}
                                 </button>
                             </div>
-                            {couponMessage ? (
-                                <p className={couponStatus === 'invalid' ? styles.error : styles.status}>{couponMessage}</p>
-                            ) : null}
+                            {couponStatus === 'success' && couponMessage ? <p className={styles.status}>{couponMessage}</p> : null}
+                            {couponStatus === 'error' && couponMessage ? <p className={styles.error}>{couponMessage}</p> : null}
                         </div>
                         <div className={styles.fieldGroup}>
                             <label htmlFor="notes">Notes</label>
@@ -837,9 +838,21 @@ export default function Checkout() {
                                 <div key={item.id || item.productId} className={styles.item}>
                                     <div>
                                         <p className={styles.itemName}>{getCartItemDisplayName(item)}</p>
-                                        <p className={styles.itemMeta}>{item.quantity ?? item.qty ?? 1} × {formatCurrency(item.price ?? item.unitPrice ?? 0, currency)}</p>
+                                        <p className={styles.itemMeta}>
+                                            {item.quantity ?? item.qty ?? 1}
+                                            {' × '}
+                                            {formatCurrency(item.discountedUnitPrice ?? item.price ?? item.unitPrice ?? 0, currency)}
+                                        </p>
                                     </div>
-                                    <span>{formatCurrency(item.total ?? item.lineTotal ?? (item.quantity ?? item.qty ?? 1) * (item.price ?? 0), currency)}</span>
+                                    <span>
+                                        {formatCurrency(
+                                            item.discountedLineTotal
+                                            ?? item.total
+                                            ?? item.lineTotal
+                                            ?? (item.quantity ?? item.qty ?? 1) * (item.discountedUnitPrice ?? item.price ?? item.unitPrice ?? 0),
+                                            currency,
+                                        )}
+                                    </span>
                                 </div>
                             ))}
                         </div>
