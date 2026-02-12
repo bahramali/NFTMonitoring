@@ -457,3 +457,10 @@
 .warningText {
     color: #b45309;
 }
+
+
+.tierRow {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}

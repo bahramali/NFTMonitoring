@@ -9,6 +9,7 @@ import {
     createProductVariant,
     updateProductVariant,
     deleteProductVariant,
+    updateVariantTierPrices,
 } from '../api/products.js';
 import { fetchPermissionDefinitions } from '../api/admins.js';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -391,6 +392,7 @@ export default function ProductAdmin() {
                 imageUrl: variant.imageUrl ?? '',
                 sortOrder: resolveVariantSortOrder(variant, index),
                 active: variant.active !== false && variant.isActive !== false,
+                tierPrices: variant.priceByTier ?? variant.pricesByTier ?? variant.tierPrices ?? {},
                 localId: variant.id ?? variant.variantId ?? variant._id ?? globalThis.crypto?.randomUUID?.(),
             }))
             .sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0))
@@ -411,6 +413,7 @@ export default function ProductAdmin() {
                 imageUrl: variant.imageUrl ?? '',
                 active: variant.active !== false,
                 sortOrder: Number(variant.sortOrder ?? 0),
+                tierPrices: variant.tierPrices ?? {},
             })),
         }));
     }, []);
@@ -422,6 +425,14 @@ export default function ProductAdmin() {
     const handleVariantChange = (localId, field, value) => {
         setVariantRows((prev) =>
             prev.map((variant) => ((variant.localId || variant.id) === localId ? { ...variant, [field]: value } : variant)),
+        );
+    };
+
+    const handleTierPriceChange = (localId, tierKey, value) => {
+        setVariantRows((prev) =>
+            prev.map((variant) => ((variant.localId || variant.id) === localId
+                ? { ...variant, tierPrices: { ...(variant.tierPrices || {}), [tierKey]: value } }
+                : variant)),
         );
     };
 
@@ -477,6 +488,13 @@ export default function ProductAdmin() {
         sortOrder: Number(variant.sortOrder ?? 0),
         order: Number(variant.sortOrder ?? 0),
         position: Number(variant.sortOrder ?? 0),
+    });
+
+    const buildTierPricePayload = (variant) => ({
+        DEFAULT: normalizeNumber(variant?.tierPrices?.DEFAULT ?? variant.price, 0),
+        SUPPORTER: normalizeNumber(variant?.tierPrices?.SUPPORTER, 0),
+        B2B: normalizeNumber(variant?.tierPrices?.B2B, 0),
+        VIP: normalizeNumber(variant?.tierPrices?.VIP, 0),
     });
 
     const variantValidation = useMemo(() => {
@@ -538,6 +556,7 @@ export default function ProductAdmin() {
             imageUrl: variant.imageUrl ?? '',
             active: variant.active !== false,
             sortOrder: Number(variant.sortOrder ?? 0),
+            tierPrices: variant.tierPrices ?? {},
         })),
     }), [defaultVariantId, variantRows]);
 
@@ -553,6 +572,7 @@ export default function ProductAdmin() {
                 const payload = buildVariantPayload({ ...variant, sortOrder: index });
                 if (variant.id) {
                     const updated = await updateProductVariant(productId, variant.id, payload, token);
+                    await updateVariantTierPrices(variant.id, { priceByTier: buildTierPricePayload(variant) }, token);
                     saveResults.push({
                         localId: variant.localId,
                         id: variant.id,
@@ -560,6 +580,9 @@ export default function ProductAdmin() {
                     });
                 } else {
                     const created = await createProductVariant(productId, payload, token);
+                    if (created?.id) {
+                        await updateVariantTierPrices(created.id, { priceByTier: buildTierPricePayload(variant) }, token);
+                    }
                     saveResults.push({
                         localId: variant.localId,
                         id: created?.id || variant.id,
@@ -996,6 +1019,24 @@ export default function ProductAdmin() {
                                                 step="0.01"
                                                 min="0"
                                             />
+                                        </div>
+                                        <div className={styles.variantField}>
+                                            <label className={styles.variantLabel}>Prices by tier (SEK)</label>
+                                            <div className={styles.tierPriceGrid}>
+                                                {['DEFAULT', 'SUPPORTER', 'B2B', 'VIP'].map((tier) => (
+                                                    <input
+                                                        key={tier}
+                                                        aria-label={`Price ${tier}`}
+                                                        type="number"
+                                                        className={`${styles.input} ${styles.variantInput}`}
+                                                        value={variant?.tierPrices?.[tier] ?? (tier === 'DEFAULT' ? variant.price : '')}
+                                                        onChange={(event) => handleTierPriceChange(variantKey, tier, event.target.value)}
+                                                        step="0.01"
+                                                        min="0"
+                                                        placeholder={tier}
+                                                    />
+                                                ))}
+                                            </div>
                                         </div>
                                         <div className={styles.variantField}>
                                             <label className={styles.variantLabel} htmlFor={`variant-stock-${variant.localId}`}>Stock</label>

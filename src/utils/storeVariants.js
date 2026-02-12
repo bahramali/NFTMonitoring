@@ -1,3 +1,5 @@
+import { resolveTierPrice } from './pricingTier.js';
+
 const normalizeVariantList = (variants) => {
     if (!variants) return [];
     if (Array.isArray(variants)) return variants;
@@ -20,8 +22,10 @@ export const getVariantStock = (variant) => {
     return stockValue === null ? undefined : stockValue;
 };
 
-export const getVariantPrice = (variant) => {
+export const getVariantPrice = (variant, tier = 'DEFAULT') => {
     if (!variant) return undefined;
+    const tierResolvedPrice = resolveTierPrice(variant, tier);
+    if (tierResolvedPrice != null) return tierResolvedPrice;
     const priceValue = variant.price ?? variant.priceSek ?? variant.unitPrice;
     if (priceValue != null) return priceValue;
     if (variant.priceCents != null) return variant.priceCents / 100;

@@ -9,6 +9,7 @@ import {
     normalizeCartResponse,
 } from '../../api/store.js';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { extractUserPricingTier } from '../../utils/pricingTier.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
 import { extractAddressList, formatAddressLine, normalizeAddress } from '../customer/addressUtils.js';
@@ -137,7 +138,7 @@ const logCheckoutError = (error) => {
 
 export default function Checkout() {
     const { cart, cartId, sessionId, notify, refreshCart } = useStorefront();
-    const { isAuthenticated, token, logout } = useAuth();
+    const { isAuthenticated, token, logout, profile: authProfile } = useAuth();
     const redirectToLogin = useRedirectToLogin();
     const [form, setForm] = useState(initialForm);
     const [submitting, setSubmitting] = useState(false);
@@ -171,6 +172,8 @@ export default function Checkout() {
     const trimmedCompanyName = form.companyName.trim();
     const trimmedOrgNumber = form.orgNumber.trim();
     const trimmedInvoiceEmail = form.invoiceEmail.trim();
+    const pricingTier = extractUserPricingTier(authProfile);
+    const hasTierPricing = pricingTier !== 'DEFAULT';
     const isApplyingCoupon = couponStatus === 'loading';
     const canSubmit =
         hasItems
@@ -483,11 +486,12 @@ export default function Checkout() {
                 : undefined;
 
             const response = await createStripeCheckoutSession(token, {
+                // Keep coupon optional; tier pricing is resolved server-side without coupon dependency.
                 cartId,
                 sessionId,
                 email: orderEmail,
                 shippingAddress,
-                couponCode: appliedCouponCode || undefined,
+                couponCode: hasTierPricing ? undefined : (appliedCouponCode || undefined),
                 customerType: isB2B ? 'B2B' : 'B2C',
                 company,
             });
@@ -786,32 +790,38 @@ export default function Checkout() {
 
                         <div className={styles.fieldGroup}>
                             <label htmlFor="couponCode">Coupon code</label>
-                            <div className={styles.couponRow}>
-                                <input
-                                    id="couponCode"
-                                    name="couponCode"
-                                    type="text"
-                                    value={couponCode}
-                                    onChange={(event) => {
-                                        setCouponCode(event.target.value);
-                                        setAppliedCouponCode('');
-                                        setPricedCart(null);
-                                        setCouponStatus('idle');
-                                        setCouponMessage('');
-                                    }}
-                                    placeholder="Enter coupon"
-                                />
-                                <button
-                                    type="button"
-                                    className={styles.applyCoupon}
-                                    onClick={handleApplyCoupon}
-                                    disabled={isApplyingCoupon || totalsRefreshing || !couponCode.trim() || !cartId}
-                                >
-                                    {isApplyingCoupon || totalsRefreshing ? 'Applying…' : 'Apply'}
-                                </button>
-                            </div>
-                            {couponStatus === 'success' && couponMessage ? <p className={styles.status}>{couponMessage}</p> : null}
-                            {couponStatus === 'error' && couponMessage ? <p className={styles.error}>{couponMessage}</p> : null}
+                            {hasTierPricing ? (
+                                <p className={styles.status}>Your supporter price is already applied.</p>
+                            ) : (
+                                <>
+                                    <div className={styles.couponRow}>
+                                        <input
+                                            id="couponCode"
+                                            name="couponCode"
+                                            type="text"
+                                            value={couponCode}
+                                            onChange={(event) => {
+                                                setCouponCode(event.target.value);
+                                                setAppliedCouponCode('');
+                                                setPricedCart(null);
+                                                setCouponStatus('idle');
+                                                setCouponMessage('');
+                                            }}
+                                            placeholder="Enter coupon"
+                                        />
+                                        <button
+                                            type="button"
+                                            className={styles.applyCoupon}
+                                            onClick={handleApplyCoupon}
+                                            disabled={isApplyingCoupon || totalsRefreshing || !couponCode.trim() || !cartId}
+                                        >
+                                            {isApplyingCoupon || totalsRefreshing ? 'Applying…' : 'Apply'}
+                                        </button>
+                                    </div>
+                                    {couponStatus === 'success' && couponMessage ? <p className={styles.status}>{couponMessage}</p> : null}
+                                    {couponStatus === 'error' && couponMessage ? <p className={styles.error}>{couponMessage}</p> : null}
+                                </>
+                            )}
                         </div>
                         <div className={styles.fieldGroup}>
                             <label htmlFor="notes">Notes</label>
@@ -860,10 +870,12 @@ export default function Checkout() {
                             <span>Subtotal</span>
                             <span>{formatCurrency(summarySubtotal, quoteCurrency)}</span>
                         </div>
-                        <div className={styles.row}>
-                            <span>Discount</span>
-                            <span>-{formatCurrency(summaryDiscount, quoteCurrency)}</span>
-                        </div>
+                        {summaryDiscount > 0 ? (
+                            <div className={styles.row}>
+                                <span>{hasTierPricing ? 'You saved' : 'Discount'}</span>
+                                <span>-{formatCurrency(summaryDiscount, quoteCurrency)}</span>
+                            </div>
+                        ) : null}
                         <div className={styles.row}>
                             <span>Shipping/Pickup fee</span>
                             <span>{formatCurrency(summaryShipping, quoteCurrency)}</span>

@@ -2,6 +2,8 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import QuantityStepper from './QuantityStepper.jsx';
 import { formatCurrency } from '../../utils/currency.js';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { extractUserPricingTier, hasTierPriceDiscount, resolveTierPrice } from '../../utils/pricingTier.js';
 import {
     getActiveVariants,
     getDefaultVariantId,
@@ -22,6 +24,7 @@ const getFirstGalleryImage = (images) => {
 };
 
 export default function ProductCard({ product, onAdd, pending = false, layout = 'grid' }) {
+    const { profile } = useAuth();
     const [quantity, setQuantity] = useState(1);
     const navigate = useNavigate();
     const variants = useMemo(() => getActiveVariants(product), [product]);
@@ -31,7 +34,10 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
 
     const { name, id, currency } = product || {};
     const activeVariant = selectedVariant;
-    const priceValue = getVariantPrice(selectedVariant) ?? product?.price ?? 0;
+    const pricingTier = extractUserPricingTier(profile);
+    const priceValue = getVariantPrice(selectedVariant, pricingTier) ?? resolveTierPrice(product, pricingTier) ?? product?.price ?? 0;
+    const defaultPriceValue = getVariantPrice(selectedVariant, 'DEFAULT') ?? resolveTierPrice(product, 'DEFAULT') ?? product?.price ?? 0;
+    const hasTierDiscount = hasTierPriceDiscount(selectedVariant ?? product, pricingTier);
     const stockValue = selectedVariant ? getVariantStock(selectedVariant) : product?.stock;
     const isOutOfStock = stockValue !== undefined && stockValue <= 0;
     const stockLabel = useMemo(() => {
@@ -139,7 +145,9 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
                         {badge ? <span className={styles.badge}>{badge}</span> : null}
                     </div>
                     <div className={styles.price}>
+                        {hasTierDiscount ? <span className={styles.originalPrice}>{formatCurrency(defaultPriceValue, currency || 'SEK')}</span> : null}
                         <span className={styles.priceValue}>{priceLabel}</span>
+                        {hasTierDiscount ? <span className={styles.supporterTag}>Supporter price</span> : null}
                     </div>
                 </div>
 

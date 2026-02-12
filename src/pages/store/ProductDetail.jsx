@@ -2,9 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { fetchStoreProduct } from '../../api/store.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 import QuantityStepper from '../../components/store/QuantityStepper.jsx';
 import { currencyLabel, formatCurrency } from '../../utils/currency.js';
 import { getPriceContext, getProductFacts } from '../../utils/productCopy.js';
+import { extractUserPricingTier, hasTierPriceDiscount, resolveTierPrice } from '../../utils/pricingTier.js';
 import {
     getActiveVariants,
     getDefaultVariantId,
@@ -19,6 +21,7 @@ export default function ProductDetail() {
     const { productId } = useParams();
     const navigate = useNavigate();
     const { addToCart, pendingProductId } = useStorefront();
+    const { profile } = useAuth();
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -68,7 +71,10 @@ export default function ProductDetail() {
     const stockValue = selectedVariant ? getVariantStock(selectedVariant) : product?.stock;
     const isOutOfStock = stockValue !== undefined && stockValue <= 0;
     const currency = product?.currency || selectedVariant?.currency || 'SEK';
-    const priceValue = getVariantPrice(selectedVariant) ?? product?.price ?? 0;
+    const pricingTier = extractUserPricingTier(profile);
+    const priceValue = getVariantPrice(selectedVariant, pricingTier) ?? resolveTierPrice(product, pricingTier) ?? product?.price ?? 0;
+    const defaultPriceValue = getVariantPrice(selectedVariant, 'DEFAULT') ?? resolveTierPrice(product, 'DEFAULT') ?? product?.price ?? 0;
+    const hasTierDiscount = hasTierPriceDiscount(selectedVariant ?? product, pricingTier);
     const priceLabel = formatCurrency(priceValue, currency);
     const priceContext = getPriceContext(selectedVariant ?? product);
     const productFacts = getProductFacts(selectedVariant ?? product);
@@ -144,9 +150,10 @@ export default function ProductDetail() {
                         <h1 className={styles.title}>{product?.name}</h1>
                         <p className={styles.subtitle}>Product details</p>
                         <div className={styles.priceBlock}>
+                            {hasTierDiscount ? <span className={styles.originalPrice}>{formatCurrency(defaultPriceValue, currency)}</span> : null}
                             <span className={styles.price}>{priceLabel}</span>
                             <span className={styles.currency}>{currencyLabel(currency)}</span>
-                            <span className={styles.priceMeta}>{priceContext}</span>
+                            <span className={styles.priceMeta}>{hasTierDiscount ? 'Supporter price' : priceContext}</span>
                             {stockValue !== undefined && (
                                 <span className={`${styles.badge} ${isOutOfStock ? styles.badgeMuted : styles.badgePositive}`}>
                                     {isOutOfStock ? 'Out of stock' : `${stockValue} in stock`}

@@ -1,4 +1,5 @@
 import { authFetch, buildAuthHeaders, parseApiResponse } from './http.js';
+import { normalizePricingTier } from '../utils/pricingTier.js';
 
 import { getApiBaseUrl } from '../config/apiBase.js';
 
@@ -179,6 +180,7 @@ const normalizeCustomer = (customer) => {
         totalSpent,
         currency: customer?.currency ?? customer?.totalCurrency ?? customer?.spendCurrency ?? '',
         orders,
+        pricingTier: normalizePricingTier(customer?.pricingTier ?? customer?.tier ?? customer?.customerTier),
     };
 };
 
@@ -451,4 +453,25 @@ export async function deleteCustomerCoupon(customerId, couponId, token, { signal
 
     if (res.status === 204) return null;
     return parseApiResponse(res, 'Failed to delete coupon');
+}
+
+
+export async function updateAdminCustomerPricingTier(customerId, tier, token, { signal } = {}) {
+    if (!token) throw new Error('Authentication is required to update customer tier');
+    const normalizedCustomerId = assertValidCustomerId(customerId);
+    const normalizedTier = normalizePricingTier(tier);
+
+    const res = await authFetch(
+        `${ADMIN_CUSTOMERS_URL}/${encodeURIComponent(normalizedCustomerId)}/tier`,
+        {
+            method: 'PUT',
+            headers: buildAuthHeaders(token),
+            signal,
+            body: JSON.stringify({ tier: normalizedTier, pricingTier: normalizedTier }),
+        },
+        { token },
+    );
+
+    const payload = await parseApiResponse(res, 'Failed to update customer tier');
+    return normalizeCustomer(payload?.customer ?? payload?.data ?? payload);
 }

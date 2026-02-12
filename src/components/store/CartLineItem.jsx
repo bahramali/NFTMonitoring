@@ -6,8 +6,8 @@ import styles from './CartLineItem.module.css';
 
 export default function CartLineItem({ item, currency = 'SEK', onChangeQuantity, onRemove, pending, disabled = false }) {
     const quantity = item?.quantity ?? item?.qty ?? 1;
-    const unitPrice = item?.price ?? item?.unitPrice ?? 0;
-    const lineTotal = item?.total ?? item?.lineTotal ?? null;
+    const unitPrice = item?.discountedUnitPrice ?? item?.unitPrice ?? item?.price ?? 0;
+    const lineTotal = item?.discountedLineTotal ?? item?.lineTotal ?? item?.total ?? null;
     const priceLabel = formatCurrency(unitPrice, currency);
     const totalLabel = lineTotal !== null ? formatCurrency(lineTotal, currency) : formatCurrency(unitPrice * quantity, currency);
     const maxQuantity = item?.stock ?? item?.availableStock ?? item?.product?.stock;
