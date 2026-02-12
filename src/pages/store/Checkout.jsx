@@ -2,7 +2,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom';
 import { createCustomerAddress, fetchCustomerAddresses, setDefaultCustomerAddress } from '../../api/customerAddresses.js';
 import { fetchCustomerProfile } from '../../api/customer.js';
-import { applyStoreCoupon, createStripeCheckoutSession, fetchCheckoutQuote } from '../../api/store.js';
+import {
+    applyStoreCoupon,
+    createStripeCheckoutSession,
+    fetchStoreCart,
+    normalizeCartResponse,
+} from '../../api/store.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
@@ -103,6 +108,20 @@ const getCouponErrorMessage = (error) => {
     return 'Invalid coupon code';
 };
 
+
+
+const toPricedCart = (payload, fallback = {}) => {
+    if (!payload) return null;
+
+    const normalized = normalizeCartResponse(payload, fallback);
+    if (normalized?.totals || Array.isArray(normalized?.items)) {
+        return normalized;
+    }
+
+    const nested = payload?.cart ?? payload?.data?.cart ?? payload?.result?.cart ?? payload?.checkout?.cart ?? null;
+    return normalizeCartResponse(nested, fallback);
+};
+
 const logCheckoutError = (error) => {
     const payloadMessage =
         typeof error?.payload === 'string'
@@ -137,14 +156,15 @@ export default function Checkout() {
     const [totalsRefreshing, setTotalsRefreshing] = useState(false);
     const [couponMessage, setCouponMessage] = useState('');
     const [appliedCouponCode, setAppliedCouponCode] = useState('');
-    const [quote, setQuote] = useState(null);
+    const [pricedCart, setPricedCart] = useState(null);
     const checkoutInFlight = useRef(false);
 
-    const totals = cart?.totals || {};
-    const currency = totals.currency || cart?.currency || 'SEK';
-    const hasItems = (cart?.items?.length ?? 0) > 0;
+    const activeCart = pricedCart || cart;
+    const totals = activeCart?.totals || {};
+    const currency = totals.currency || activeCart?.currency || 'SEK';
+    const hasItems = (activeCart?.items?.length ?? 0) > 0;
 
-    const summaryItems = useMemo(() => cart?.items ?? [], [cart?.items]);
+    const summaryItems = useMemo(() => activeCart?.items ?? [], [activeCart?.items]);
     const profileEmail = profile?.email || '';
     const orderEmail = isAuthenticated ? profileEmail : form.email;
     const isB2B = form.customerType === 'B2B';
@@ -171,12 +191,12 @@ export default function Checkout() {
         [summaryItems],
     );
 
-    const quoteCurrency = quote?.currency || quote?.totals?.currency || currency;
-    const summarySubtotal = quote?.subtotal ?? quote?.totals?.subtotal ?? totals.subtotal ?? totals.total ?? 0;
-    const summaryDiscount = quote?.discount ?? quote?.totals?.discount ?? totals.discount ?? 0;
-    const summaryShipping = quote?.shipping ?? quote?.totals?.shipping ?? totals.shipping ?? 0;
-    const summaryTax = quote?.tax ?? quote?.totals?.tax ?? totals.tax ?? 0;
-    const summaryTotal = quote?.total ?? quote?.totals?.total ?? totals.total ?? (summarySubtotal + summaryShipping + summaryTax - summaryDiscount);
+    const quoteCurrency = currency;
+    const summarySubtotal = totals.subtotal ?? totals.total ?? 0;
+    const summaryDiscount = totals.discount ?? 0;
+    const summaryShipping = totals.shipping ?? 0;
+    const summaryTax = totals.tax ?? 0;
+    const summaryTotal = totals.total ?? (summarySubtotal + summaryShipping + summaryTax - summaryDiscount);
 
     const applyAddressToForm = useCallback((address) => {
         if (!address) return;
@@ -314,7 +334,7 @@ export default function Checkout() {
 
 
     const clearCouponState = useCallback(() => {
-        setQuote(null);
+        setPricedCart(null);
         setCouponCode('');
         setAppliedCouponCode('');
         setCouponStatus('idle');
@@ -348,33 +368,25 @@ export default function Checkout() {
                 }
             }
 
-            setCouponStatus('refreshing');
-            const refreshedCart = await refreshCart();
-            const refreshedCartId = refreshedCart?.id || refreshedCart?.cartId || cartId;
-            const refreshedSessionId = refreshedCart?.sessionId || sessionId;
+            const fallback = { cartId, sessionId };
+            let updatedCart = toPricedCart(appliedPayload, fallback);
 
-            let quoted = null;
-            try {
-                quoted = await fetchCheckoutQuote(token, {
-                    cartId: refreshedCartId,
-                    sessionId: refreshedSessionId,
-                    couponCode: normalizedCoupon,
-                });
-            } catch {
-                quoted = null;
+            if (!updatedCart) {
+                const fetchedCart = await fetchStoreCart(cartId, sessionId);
+                updatedCart = normalizeCartResponse(fetchedCart, fallback);
             }
 
-            const nextQuote = appliedPayload
-                ?? quoted
-                ?? null;
+            if (!updatedCart) {
+                throw new Error('Failed to refresh cart totals after applying coupon.');
+            }
 
-            setQuote(nextQuote);
+            setPricedCart(updatedCart);
             setAppliedCouponCode(normalizedCoupon);
             setCouponStatus('applied');
-            setCouponMessage(nextQuote?.message || 'Coupon applied.');
+            setCouponMessage('Coupon applied.');
+
+            refreshCart().catch(() => {});
         } catch (err) {
-            setQuote(null);
-            setAppliedCouponCode('');
             setCouponStatus('invalid');
             setCouponMessage(getCouponErrorMessage(err));
         } finally {
@@ -783,6 +795,7 @@ export default function Checkout() {
                                     onChange={(event) => {
                                         setCouponCode(event.target.value);
                                         setAppliedCouponCode('');
+                                        setPricedCart(null);
                                     }}
                                     placeholder="Enter coupon"
                                 />
