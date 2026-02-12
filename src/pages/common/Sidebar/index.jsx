@@ -57,7 +57,7 @@ const NAV_SECTIONS = [
         label: "Store",
         items: [
             { to: "/store", icon: "🛍️", label: "Products" },
-            { icon: "📦", label: "Orders", disabled: true },
+            { to: "/store/admin/orders", icon: "📦", label: "Orders", permissions: [PERMISSIONS.ORDERS_MANAGE] },
             { to: "/store/admin/customers", icon: "👥", label: "Customers", permissions: [PERMISSIONS.CUSTOMERS_VIEW] },
         ],
     },

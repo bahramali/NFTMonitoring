@@ -50,6 +50,7 @@ import CheckoutSuccess from './pages/store/CheckoutSuccess.jsx';
 import ProductAdmin from './pages/ProductAdmin.jsx';
 import CustomersList from './pages/store/CustomersList.jsx';
 import CustomerDetails from './pages/store/CustomerDetails.jsx';
+import AdminOrders from './pages/store/AdminOrders.jsx';
 import Contact from './pages/store/Contact.jsx';
 import About from './pages/store/About.jsx';
 import FAQ from './pages/store/FAQ.jsx';
@@ -168,6 +169,14 @@ function AppRoutes() {
                             element={(
                                 <ProtectedRoute requiredPermissions={[PERMISSIONS.CUSTOMERS_VIEW]}>
                                     <CustomerDetails />
+                                </ProtectedRoute>
+                            )}
+                        />
+                        <Route
+                            path="admin/orders"
+                            element={(
+                                <ProtectedRoute requiredPermissions={[PERMISSIONS.ORDERS_MANAGE]}>
+                                    <AdminOrders />
                                 </ProtectedRoute>
                             )}
                         />

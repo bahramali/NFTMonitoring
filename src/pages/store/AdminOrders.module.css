@@ -1,0 +1,109 @@
+.page {
+  padding: 1rem;
+  position: relative;
+}
+.header h1 { margin: 0; }
+.header p { margin: 0.25rem 0 1rem; color: #64748b; }
+.filters {
+  display: grid;
+  grid-template-columns: 2fr repeat(5, minmax(120px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.filters input,
+.filters select,
+.section textarea,
+.statusRow select {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.5rem 0.6rem;
+  font: inherit;
+}
+.board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-right: 360px;
+}
+.column {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.65rem;
+  min-height: 60vh;
+}
+.column h3 { margin: 0 0 0.6rem; font-size: 0.95rem; }
+.card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.65rem;
+  margin-bottom: 0.55rem;
+}
+.cardTitle { font-weight: 600; }
+.muted { color: #64748b; font-size: 0.85rem; margin-top: 0.2rem; }
+.total { margin: 0.4rem 0; font-weight: 600; }
+.badges { display: flex; gap: 0.35rem; margin-bottom: 0.35rem; }
+.badge {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.72rem;
+  background: #e2e8f0;
+}
+.badgeGreen { background: #dcfce7; color: #166534; }
+.badgeYellow { background: #fef9c3; color: #854d0e; }
+.badgeRed { background: #fee2e2; color: #991b1b; }
+.openBtn {
+  margin-top: 0.45rem;
+  border: 0;
+  border-radius: 8px;
+  padding: 0.4rem 0.7rem;
+  background: #1d4ed8;
+  color: white;
+}
+.drawer {
+  position: fixed;
+  right: -360px;
+  top: 0;
+  width: 360px;
+  height: 100vh;
+  background: #fff;
+  border-left: 1px solid #e2e8f0;
+  transition: right 0.2s ease;
+  overflow: auto;
+  padding: 0.8rem;
+}
+.drawerOpen { right: 0; }
+.drawerHeader { display: flex; justify-content: space-between; align-items: center; }
+.section { margin-top: 0.9rem; border-top: 1px solid #e2e8f0; padding-top: 0.8rem; }
+.section h4 { margin: 0 0 0.5rem; }
+.statusRow { display: flex; gap: 0.5rem; }
+.statusRow button {
+  border: 0;
+  background: #0f766e;
+  color: white;
+  border-radius: 8px;
+  padding: 0.45rem 0.75rem;
+}
+.lineItem { display: flex; justify-content: space-between; margin-bottom: 0.3rem; }
+.toast {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  color: white;
+  padding: 0.55rem 0.8rem;
+  border-radius: 10px;
+}
+.toastSuccess { background: #166534; }
+.toastError { background: #991b1b; }
+.empty { color: #64748b; font-size: 0.9rem; padding: 0.5rem; }
+.skeletonCard { height: 120px; border-radius: 10px; background: linear-gradient(90deg, #e2e8f0, #f1f5f9, #e2e8f0); margin-bottom: 0.5rem; }
+.error { color: #b91c1c; margin-bottom: 0.5rem; }
+.noAccess { padding: 1rem; }
+.drawerPlaceholder { color: #64748b; margin-top: 2rem; text-align: center; }
+
+@media (max-width: 1200px) {
+  .board { grid-template-columns: repeat(2, 1fr); margin-right: 0; }
+  .drawer { width: 100%; right: -100%; }
+}
