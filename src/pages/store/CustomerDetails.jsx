@@ -642,7 +642,7 @@ export default function CustomerDetails() {
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Variant</th>
+                                    <th>Product / Variant</th>
                                     <th>Amount off</th>
                                     <th>Status</th>
                                     <th>Created</th>
@@ -675,10 +675,14 @@ export default function CustomerDetails() {
                                             : '';
                                     const isRowBusy = resendingCouponKey === couponKey || renewingCouponKey === couponKey;
                                     const canResend = Boolean(coupon.id) && !resendDisabledReason;
+                                    const variantDisplay = coupon.variantDisplay
+                                        || (coupon.productName && coupon.variantLabel
+                                            ? `${coupon.productName} ${coupon.variantLabel}`
+                                            : coupon.variantLabel || '—');
 
                                     return (
                                     <tr key={couponKey}>
-                                        <td>{coupon.variantLabel || '—'}</td>
+                                        <td>{variantDisplay}</td>
                                         <td>{`-${formatCurrency((coupon.amountOffCents || 0) / 100, 'SEK')}`}</td>
                                         <td>
                                             <span className={styles.orderStatus}>{coupon.status || 'Active'}</span>
