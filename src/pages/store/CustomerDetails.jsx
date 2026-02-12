@@ -134,6 +134,7 @@ export default function CustomerDetails() {
     const [successMessage, setSuccessMessage] = useState('');
     const [selectedPricingTier, setSelectedPricingTier] = useState('DEFAULT');
     const [savingPricingTier, setSavingPricingTier] = useState(false);
+    const [pricingTierFeedback, setPricingTierFeedback] = useState(null);
     const [generatedCode, setGeneratedCode] = useState('');
     const [copyState, setCopyState] = useState('idle');
 
@@ -240,15 +241,19 @@ export default function CustomerDetails() {
     const handleSavePricingTier = async () => {
         if (!customer?.id) return;
         setSavingPricingTier(true);
+        setPricingTierFeedback(null);
         try {
             const updated = await updateAdminCustomerPricingTier(customer.id, selectedPricingTier, token);
             if (updated) {
                 setCustomer(updated);
                 setSelectedPricingTier(updated.pricingTier || selectedPricingTier);
             }
-            showActionFeedback('success', 'Pricing tier updated.');
+            setPricingTierFeedback({ type: 'success', message: 'Saved' });
         } catch (tierError) {
-            showActionFeedback('error', getErrorMessage(tierError, 'Unable to update pricing tier.'));
+            setPricingTierFeedback({
+                type: 'error',
+                message: getErrorMessage(tierError, 'Unable to update pricing tier.'),
+            });
         } finally {
             setSavingPricingTier(false);
         }
@@ -594,7 +599,13 @@ export default function CustomerDetails() {
                             <dt>Pricing tier</dt>
                             <dd>
                                 <div className={styles.tierRow}>
-                                    <select value={selectedPricingTier} onChange={(event) => setSelectedPricingTier(event.target.value)}>
+                                    <select
+                                        value={selectedPricingTier}
+                                        onChange={(event) => {
+                                            setSelectedPricingTier(event.target.value);
+                                            setPricingTierFeedback(null);
+                                        }}
+                                    >
                                         {PRICING_TIERS.map((tier) => (
                                             <option key={tier} value={tier}>{tier}</option>
                                         ))}
@@ -602,6 +613,18 @@ export default function CustomerDetails() {
                                     <button type="button" onClick={handleSavePricingTier} disabled={savingPricingTier}>
                                         {savingPricingTier ? 'Saving…' : 'Save'}
                                     </button>
+                                    {pricingTierFeedback ? (
+                                        <span
+                                            className={
+                                                pricingTierFeedback.type === 'error'
+                                                    ? styles.tierFeedbackError
+                                                    : styles.tierFeedbackSuccess
+                                            }
+                                            role="status"
+                                        >
+                                            {pricingTierFeedback.message}
+                                        </span>
+                                    ) : null}
                                 </div>
                             </dd>
                         </div>
