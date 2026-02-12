@@ -229,7 +229,7 @@ export function normalizeCartResponse(payload, fallback = {}) {
     const sessionId = cart.sessionId ?? payload.sessionId ?? fallback.sessionId ?? null;
     const normalizedCart = { ...cart, id: cartId, cartId, sessionId };
     const totals = normalizedCart.totals ?? {};
-    const currency = totals.currency || normalizedCart.currency || 'SEK';
+    const currency = totals.currency || normalizedCart.currency || payload?.currency || 'SEK';
     const items = Array.isArray(normalizedCart.items) ? normalizedCart.items : [];
 
     const safeNumber = (value) => {
@@ -237,16 +237,28 @@ export function normalizeCartResponse(payload, fallback = {}) {
         return Number.isFinite(parsed) ? parsed : 0;
     };
 
+    const toCurrencyAmount = (value, centsValue) => {
+        if (value != null) return safeNumber(value);
+        if (centsValue != null) return safeNumber(centsValue) / 100;
+        return undefined;
+    };
+
     const mappedItems = items.map((item) => {
         const quantity = item?.quantity ?? item?.qty ?? 1;
-        const unitPrice = item?.price ?? item?.unitPrice ?? (item?.unitPriceCents != null ? item.unitPriceCents / 100 : undefined);
-        const lineTotal = item?.total ?? item?.lineTotal ?? (item?.lineTotalCents != null ? item.lineTotalCents / 100 : undefined);
+        const unitPrice = toCurrencyAmount(item?.price ?? item?.unitPrice, item?.unitPriceCents);
+        const discountedUnitPrice = toCurrencyAmount(item?.discountedUnitPrice, item?.discountedUnitPriceCents);
+        const lineTotal = toCurrencyAmount(item?.total ?? item?.lineTotal, item?.lineTotalCents);
+        const discountedLineTotal = toCurrencyAmount(item?.discountedLineTotal, item?.discountedLineTotalCents);
+        const lineDiscount = toCurrencyAmount(item?.lineDiscount, item?.lineDiscountCents);
 
         return {
             ...item,
             quantity,
             unitPrice,
+            discountedUnitPrice,
             lineTotal,
+            discountedLineTotal,
+            lineDiscount,
         };
     });
 
@@ -260,20 +272,34 @@ export function normalizeCartResponse(payload, fallback = {}) {
         return sum + lineValue;
     }, 0);
 
-    const shipping = totals.shipping != null ? safeNumber(totals.shipping) : 0;
-    const totalComputed = subtotalComputed + shipping;
+    const subtotalFromTotals = toCurrencyAmount(totals.subtotal, totals.subtotalCents);
+    const discountFromTotals = toCurrencyAmount(totals.discount, totals.discountCents);
+    const shippingFromTotals = toCurrencyAmount(totals.shipping, totals.shippingCents);
+    const taxFromTotals = toCurrencyAmount(totals.tax, totals.taxCents);
+    const totalFromTotals = toCurrencyAmount(totals.total, totals.totalCents);
 
-    const subtotalNeedsFallback = totals.subtotal == null || (totals.subtotal === 0 && subtotalComputed > 0);
-    const totalNeedsFallback = totals.total == null || (totals.total === 0 && totalComputed > 0);
+    const subtotalFromCart = toCurrencyAmount(normalizedCart.subtotal, normalizedCart.subtotalCents);
+    const discountFromCart = toCurrencyAmount(normalizedCart.discount, normalizedCart.discountCents);
+    const totalFromCart = toCurrencyAmount(normalizedCart.total, normalizedCart.totalCents);
+    const shippingFromCart = toCurrencyAmount(normalizedCart.shipping, normalizedCart.shippingCents);
+    const taxFromCart = toCurrencyAmount(normalizedCart.tax, normalizedCart.taxCents);
 
-    if (subtotalNeedsFallback || totalNeedsFallback) {
-        normalizedCart.totals = {
-            ...totals,
-            currency,
-            subtotal: subtotalNeedsFallback ? subtotalComputed : totals.subtotal,
-            total: totalNeedsFallback ? totalComputed : totals.total,
-        };
-    }
+    const subtotal = subtotalFromTotals ?? subtotalFromCart ?? subtotalComputed;
+    const discount = discountFromTotals ?? discountFromCart ?? 0;
+    const shipping = shippingFromTotals ?? shippingFromCart ?? 0;
+    const tax = taxFromTotals ?? taxFromCart ?? 0;
+    const totalComputed = subtotal + shipping + tax - discount;
+    const total = totalFromTotals ?? totalFromCart ?? totalComputed;
+
+    normalizedCart.totals = {
+        ...totals,
+        currency,
+        subtotal,
+        discount,
+        shipping,
+        tax,
+        total,
+    };
 
     return normalizedCart;
 }
