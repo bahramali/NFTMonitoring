@@ -903,7 +903,7 @@ export default function CustomerDetails() {
                                 <th>Date</th>
                                 <th>Items</th>
                                 <th>Status</th>
-                                <th>Total</th>
+                                <th>Paid total</th>
                             </tr>
                         </thead>
                         <tbody>

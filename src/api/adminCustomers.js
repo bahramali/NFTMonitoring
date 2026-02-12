@@ -63,16 +63,71 @@ const describeOrderItems = (order) => {
     return names.join(', ');
 };
 
+const toNumber = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+};
+
+const toAmountFromCents = (cents) => {
+    const parsed = toNumber(cents);
+    if (parsed === null) return null;
+    return parsed / 100;
+};
+
+const resolveAmount = ({ amount, amountCents }) => {
+    const fromCents = toAmountFromCents(amountCents);
+    if (fromCents !== null) return fromCents;
+    const parsedAmount = toNumber(amount);
+    return parsedAmount ?? 0;
+};
+
+const computeOrderSubtotal = (order) => {
+    const items = Array.isArray(order?.items) ? order.items : Array.isArray(order?.lineItems) ? order.lineItems : [];
+    if (!items.length) return 0;
+
+    return items.reduce((sum, item) => {
+        const lineTotal = resolveAmount({
+            amount: item?.lineTotal ?? item?.total ?? item?.amount,
+            amountCents: item?.lineTotalCents ?? item?.totalCents ?? item?.amountCents,
+        });
+        if (lineTotal > 0) return sum + lineTotal;
+
+        const quantity = toNumber(item?.quantity ?? item?.qty) ?? 1;
+        const unitPrice = resolveAmount({
+            amount: item?.unitPrice ?? item?.price,
+            amountCents: item?.unitPriceCents ?? item?.priceCents,
+        });
+        return sum + unitPrice * quantity;
+    }, 0);
+};
+
 const normalizeOrders = (orders = []) => {
     const list = Array.isArray(orders) ? orders : [];
-    return list.map((order) => ({
-        id: order?.id ?? order?.orderId ?? order?._id ?? `${order?.date ?? order?.createdAt ?? ''}-${order?.total ?? ''}`,
-        date: order?.date ?? order?.createdAt ?? order?.orderedAt ?? order?.submittedAt ?? '',
-        items: describeOrderItems(order),
-        status: order?.status ?? order?.state ?? '',
-        total: order?.total ?? order?.amount ?? order?.totalAmount ?? order?.totalPrice ?? 0,
-        currency: order?.currency ?? order?.totalCurrency ?? '',
-    }));
+    return list.map((order) => {
+        const computedSubtotal = computeOrderSubtotal(order);
+        const paidTotal = resolveAmount({
+            amount: order?.paidTotal ?? order?.paidAmount,
+            amountCents: order?.paidTotalCents ?? order?.paidAmountCents,
+        });
+        const total = resolveAmount({
+            amount: order?.total ?? order?.amount ?? order?.totalAmount ?? order?.totalPrice,
+            amountCents: order?.totalCents,
+        });
+
+        const resolvedRowTotal = paidTotal ?? total ?? computedSubtotal;
+
+        return {
+            id: order?.id ?? order?.orderId ?? order?._id ?? `${order?.date ?? order?.createdAt ?? ''}-${order?.total ?? ''}`,
+            date: order?.date ?? order?.createdAt ?? order?.orderedAt ?? order?.submittedAt ?? '',
+            items: describeOrderItems(order),
+            status: order?.status ?? order?.state ?? '',
+            total: resolvedRowTotal,
+            paidTotal,
+            totalBeforeDiscount: total,
+            currency: order?.currency ?? order?.totalCurrency ?? '',
+        };
+    });
 };
 
 const normalizeCustomer = (customer) => {
@@ -97,6 +152,15 @@ const normalizeCustomer = (customer) => {
         customer?.latestLoginAt ??
         '';
 
+    const totalSpent = resolveAmount({
+        amount: customer?.totalSpent ?? customer?.lifetimeValue ?? customer?.totalValue ?? customer?.totalSpend,
+        amountCents:
+            customer?.totalSpentCents
+            ?? customer?.lifetimeValueCents
+            ?? customer?.totalValueCents
+            ?? customer?.totalSpendCents,
+    });
+
     return {
         ...customer,
         id,
@@ -112,7 +176,7 @@ const normalizeCustomer = (customer) => {
             customer?.lastOrder ??
             customer?.lastOrderTime ??
             (orders[0]?.date || ''),
-        totalSpent: customer?.totalSpent ?? customer?.lifetimeValue ?? customer?.totalValue ?? customer?.totalSpend ?? 0,
+        totalSpent,
         currency: customer?.currency ?? customer?.totalCurrency ?? customer?.spendCurrency ?? '',
         orders,
     };
