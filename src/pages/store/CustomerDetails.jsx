@@ -7,6 +7,7 @@ import {
     listAdminCustomerCoupons,
     resendCustomerCoupon,
     renewCustomerCoupon,
+    deleteCustomerCoupon,
 } from '../../api/adminCustomers.js';
 import { listAdminProducts } from '../../api/products.js';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -116,7 +117,7 @@ const maskCouponCode = (code) => {
 export default function CustomerDetails() {
     const { customerId } = useParams();
     const normalizedCustomerId = normalizeCustomerId(customerId);
-    const { token } = useAuth();
+    const { token, role, roles } = useAuth();
     const [customer, setCustomer] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -140,7 +141,9 @@ export default function CustomerDetails() {
     const [actionFeedback, setActionFeedback] = useState(null);
     const [resendingCouponKey, setResendingCouponKey] = useState('');
     const [renewingCouponKey, setRenewingCouponKey] = useState('');
+    const [deletingCouponKey, setDeletingCouponKey] = useState('');
     const [renewModalCoupon, setRenewModalCoupon] = useState(null);
+    const [deleteModalCoupon, setDeleteModalCoupon] = useState(null);
     const [renewRegenerateCode, setRenewRegenerateCode] = useState(true);
     const [renewExpiryDate, setRenewExpiryDate] = useState(() => toDateInputValue(addDaysFromNow(30)));
     const [renewSendEmail, setRenewSendEmail] = useState(true);
@@ -221,6 +224,13 @@ export default function CustomerDetails() {
         () => variants.find((variant) => variant.id === selectedVariantId) || null,
         [selectedVariantId, variants],
     );
+
+    const isAdminUser = useMemo(() => {
+        const roleList = [role, ...(Array.isArray(roles) ? roles : [])]
+            .filter(Boolean)
+            .map((entry) => `${entry}`.trim().toUpperCase());
+        return roleList.some((entry) => entry.includes('ADMIN'));
+    }, [role, roles]);
 
     const handleSubmitCoupon = async (event) => {
         event.preventDefault();
@@ -422,6 +432,35 @@ export default function CustomerDetails() {
         if (renewingCouponKey) return;
         setRenewModalCoupon(null);
         setRenewError('');
+    };
+
+    const openDeleteModal = (coupon) => {
+        setDeleteModalCoupon(coupon);
+    };
+
+    const closeDeleteModal = () => {
+        if (deletingCouponKey) return;
+        setDeleteModalCoupon(null);
+    };
+
+    const handleDeleteCoupon = async () => {
+        if (!deleteModalCoupon?.id) return;
+        const couponKey = deleteModalCoupon.id || `${deleteModalCoupon.variantId}-${deleteModalCoupon.createdAt}`;
+        setCouponListError('');
+        setDeletingCouponKey(couponKey);
+        try {
+            await deleteCustomerCoupon(normalizedCustomerId, deleteModalCoupon.id, token);
+            setCoupons((current) => current.filter((coupon) => {
+                const rowKey = coupon.id || `${coupon.variantId}-${coupon.createdAt}`;
+                return rowKey !== couponKey;
+            }));
+            setDeleteModalCoupon(null);
+            showActionFeedback('success', 'Coupon deleted.');
+        } catch (submitError) {
+            showActionFeedback('error', getErrorMessage(submitError, 'Unable to delete coupon right now.'));
+        } finally {
+            setDeletingCouponKey('');
+        }
     };
 
     const handleSubmitRenew = async (event) => {
@@ -658,8 +697,10 @@ export default function CustomerDetails() {
                                     const canReveal = Boolean(`${coupon.couponCode || ''}`.trim());
                                     const isVisible = visibleCouponIds.has(couponKey);
                                     const status = `${coupon.status || 'Active'}`;
+                                    const normalizedStatus = status.toLowerCase();
                                     const isExpired = status.toLowerCase() === 'expired';
-                                    const isRedeemed = status.toLowerCase() === 'redeemed';
+                                    const isRedeemed = normalizedStatus === 'redeemed';
+                                    const isDeleted = normalizedStatus === 'deleted';
                                     const hasStoredCodeValue = Boolean(`${coupon.codeValue || ''}`.trim());
                                     const codeValueUnavailable = coupon.codeAvailable === false || !hasStoredCodeValue;
                                     const supportsResendRegeneration =
@@ -670,10 +711,12 @@ export default function CustomerDetails() {
                                         ? 'Expired – renew to send'
                                         : isRedeemed
                                             ? 'Redeemed coupon cannot be resent'
+                                            : isDeleted
+                                                ? 'Deleted coupon cannot be resent'
                                             : codeValueUnavailable && !supportsResendRegeneration
                                                 ? 'Code value isn’t available for this legacy coupon. Use Renew to generate a new code.'
                                             : '';
-                                    const isRowBusy = resendingCouponKey === couponKey || renewingCouponKey === couponKey;
+                                    const isRowBusy = resendingCouponKey === couponKey || renewingCouponKey === couponKey || deletingCouponKey === couponKey;
                                     const canResend = Boolean(coupon.id) && !resendDisabledReason;
                                     const variantDisplay = coupon.variantDisplay
                                         || (coupon.productName && coupon.variantLabel
@@ -693,28 +736,35 @@ export default function CustomerDetails() {
                                         <td className={styles.couponCodeCell}>
                                             <code>{isVisible ? coupon.couponCode || '—' : maskCouponCode(coupon.couponCode)}</code>
                                             {canReveal ? (
-                                                <button
-                                                    type="button"
-                                                    className={styles.tableActionButton}
-                                                    onClick={() => handleToggleCouponVisibility(couponKey)}
-                                                >
-                                                    {isVisible ? 'Hide' : 'Show'}
-                                                </button>
+                                                <>
+                                                    <button
+                                                        type="button"
+                                                        className={`${styles.tableActionButton} ${styles.inlineCodeAction}`}
+                                                        onClick={() => handleToggleCouponVisibility(couponKey)}
+                                                    >
+                                                        {isVisible ? 'Hide' : 'Show'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className={`${styles.iconActionButton} ${styles.inlineCodeAction}`}
+                                                        onClick={() => handleCopyExistingCoupon(couponKey, coupon.couponCode)}
+                                                        disabled={isRowBusy}
+                                                        title="Copy coupon code"
+                                                        aria-label="Copy coupon code"
+                                                    >
+                                                        ⧉
+                                                    </button>
+                                                </>
+                                            ) : null}
+                                            {copiedCouponKey === couponKey ? (
+                                                <span className={styles.copyFeedback}>Copied</span>
                                             ) : null}
                                         </td>
                                         <td>
                                             <div className={styles.tableActions}>
                                                 <button
                                                     type="button"
-                                                    className={styles.tableActionButton}
-                                                    onClick={() => handleCopyExistingCoupon(couponKey, coupon.couponCode)}
-                                                    disabled={!canReveal || isRowBusy}
-                                                >
-                                                    Copy
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className={styles.tableActionButton}
+                                                    className={`${styles.tableActionButton} ${styles.primaryActionButton}`}
                                                     onClick={() => handleResendCoupon(coupon)}
                                                     disabled={!canResend || isRowBusy}
                                                     title={resendDisabledReason || ''}
@@ -725,12 +775,22 @@ export default function CustomerDetails() {
                                                     type="button"
                                                     className={styles.tableActionButton}
                                                     onClick={() => openRenewModal(coupon)}
-                                                    disabled={!coupon.id || isRowBusy}
+                                                    disabled={!coupon.id || isDeleted || isRowBusy}
+                                                    title={isDeleted ? 'Deleted coupon cannot be renewed' : ''}
                                                 >
                                                     {renewingCouponKey === couponKey ? 'Renewing…' : 'Renew'}
                                                 </button>
-                                                {copiedCouponKey === couponKey ? (
-                                                    <span className={styles.copyFeedback}>Copied</span>
+                                                {isAdminUser ? (
+                                                    <button
+                                                        type="button"
+                                                        className={`${styles.iconActionButton} ${styles.dangerActionButton}`}
+                                                        onClick={() => openDeleteModal(coupon)}
+                                                        disabled={isRowBusy || !coupon.id}
+                                                        title="Delete coupon"
+                                                        aria-label="Delete coupon"
+                                                    >
+                                                        {deletingCouponKey === couponKey ? '…' : '🗑'}
+                                                    </button>
                                                 ) : null}
                                             </div>
                                         </td>
@@ -805,6 +865,55 @@ export default function CustomerDetails() {
                                 </button>
                             </div>
                         </form>
+                    </aside>
+                </div>
+            ) : null}
+
+            {deleteModalCoupon ? (
+                <div className={styles.modalBackdrop} role="presentation" onClick={closeDeleteModal}>
+                    <aside
+                        className={styles.modalPanel}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Delete coupon"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <header className={styles.modalHeader}>
+                            <h3>Delete coupon?</h3>
+                        </header>
+                        <div className={styles.deleteModalBody}>
+                            <p><strong>Code:</strong> {maskCouponCode(deleteModalCoupon.couponCode)}</p>
+                            <p>
+                                <strong>Product/Variant:</strong>{' '}
+                                {deleteModalCoupon.variantDisplay
+                                    || (deleteModalCoupon.productName && deleteModalCoupon.variantLabel
+                                        ? `${deleteModalCoupon.productName} ${deleteModalCoupon.variantLabel}`
+                                        : deleteModalCoupon.variantLabel || '—')}
+                            </p>
+                            <p><strong>Amount off:</strong> {`-${formatCurrency((deleteModalCoupon.amountOffCents || 0) / 100, 'SEK')}`}</p>
+                            <p><strong>Expiry:</strong> {formatDateTime(deleteModalCoupon.expiresAt)}</p>
+                            <p className={styles.warningText}>
+                                This will deactivate the coupon and remove it from the list. Customers won’t be able to use it anymore.
+                            </p>
+                            {`${deleteModalCoupon.status || ''}`.toLowerCase() === 'redeemed' ? (
+                                <p className={styles.warningText}>
+                                    This only removes it from admin list; it doesn’t change past orders.
+                                </p>
+                            ) : null}
+                        </div>
+                        <div className={styles.modalActions}>
+                            <button type="button" className={styles.tableActionButton} onClick={closeDeleteModal}>
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className={`${styles.tableActionButton} ${styles.dangerActionButton}`}
+                                onClick={handleDeleteCoupon}
+                                disabled={Boolean(deletingCouponKey)}
+                            >
+                                {deletingCouponKey ? 'Deleting…' : 'Delete'}
+                            </button>
+                        </div>
                     </aside>
                 </div>
             ) : null}
