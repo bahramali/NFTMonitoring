@@ -169,7 +169,7 @@ export async function applyStoreCoupon(token, { cartId, couponCode, sessionId } 
             },
             body: JSON.stringify({
                 cartId,
-                couponCode,
+                code: couponCode,
             }),
             signal,
         },

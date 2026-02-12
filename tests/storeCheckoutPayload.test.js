@@ -73,7 +73,7 @@ describe('createStripeCheckoutSession payload', () => {
         });
         expect(JSON.parse(request.body)).toEqual({
             cartId: 'cart-1',
-            couponCode: 'SPRING25',
+            code: 'SPRING25',
         });
     });
 
