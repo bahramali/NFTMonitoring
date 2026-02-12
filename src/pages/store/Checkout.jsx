@@ -74,12 +74,31 @@ const getCheckoutErrorMessage = (error) => {
 
 
 const getCouponErrorMessage = (error) => {
+    const payload = error?.payload ?? {};
+    const detailErrors = Array.isArray(payload?.errors) ? payload.errors : [];
+    const topLevelCode = `${payload?.code ?? payload?.errorCode ?? payload?.error?.code ?? ''}`.trim().toUpperCase();
+    const detailCode = `${detailErrors[0]?.code ?? detailErrors[0]?.errorCode ?? ''}`.trim().toUpperCase();
+    const code = topLevelCode || detailCode;
+
+    const topLevelMessage = `${payload?.message ?? payload?.error?.message ?? ''}`.trim();
+    const detailMessage = `${detailErrors[0]?.message ?? detailErrors[0]?.msg ?? detailErrors[0]?.detail ?? ''}`.trim();
+    const backendMessage = topLevelMessage || detailMessage;
+
     if (error?.status === 401 || error?.status === 403) {
-        const code = error?.payload?.code || error?.payload?.errorCode || error?.payload?.error?.code;
         if (code === 'COUPON_LOGIN_REQUIRED') {
             return 'Please log in to use your coupon';
         }
     }
+
+    if (backendMessage) {
+        return backendMessage;
+    }
+
+    if (code === 'COUPON_EXPIRED') return 'Coupon expired';
+    if (code === 'COUPON_ALREADY_REDEEMED') return 'Coupon already redeemed';
+    if (code === 'COUPON_NOT_APPLICABLE') return 'Coupon not applicable to this product';
+    if (code === 'COUPON_NOT_ACTIVE') return 'Coupon not active';
+    if (code) return code;
 
     return 'Invalid coupon code';
 };
@@ -157,7 +176,7 @@ export default function Checkout() {
     const summaryDiscount = quote?.discount ?? quote?.totals?.discount ?? totals.discount ?? 0;
     const summaryShipping = quote?.shipping ?? quote?.totals?.shipping ?? totals.shipping ?? 0;
     const summaryTax = quote?.tax ?? quote?.totals?.tax ?? totals.tax ?? 0;
-    const summaryTotal = quote?.total ?? quote?.totals?.total ?? totals.total ?? (summarySubtotal + summaryShipping + summaryTax - summaryDiscount) ?? 0;
+    const summaryTotal = quote?.total ?? quote?.totals?.total ?? totals.total ?? (summarySubtotal + summaryShipping + summaryTax - summaryDiscount);
 
     const applyAddressToForm = useCallback((address) => {
         if (!address) return;
@@ -316,11 +335,6 @@ export default function Checkout() {
         setCouponMessage('');
         setTotalsRefreshing(true);
         try {
-            const quoted = await fetchCheckoutQuote(token, {
-                cartId,
-                sessionId,
-                couponCode: normalizedCoupon,
-            });
             let appliedPayload = null;
             try {
                 appliedPayload = await applyStoreCoupon(token, {
@@ -334,6 +348,22 @@ export default function Checkout() {
                 }
             }
 
+            setCouponStatus('refreshing');
+            const refreshedCart = await refreshCart();
+            const refreshedCartId = refreshedCart?.id || refreshedCart?.cartId || cartId;
+            const refreshedSessionId = refreshedCart?.sessionId || sessionId;
+
+            let quoted = null;
+            try {
+                quoted = await fetchCheckoutQuote(token, {
+                    cartId: refreshedCartId,
+                    sessionId: refreshedSessionId,
+                    couponCode: normalizedCoupon,
+                });
+            } catch {
+                quoted = null;
+            }
+
             const nextQuote = appliedPayload
                 ?? quoted
                 ?? null;
@@ -341,10 +371,7 @@ export default function Checkout() {
             setQuote(nextQuote);
             setAppliedCouponCode(normalizedCoupon);
             setCouponStatus('applied');
-            setCouponMessage(nextQuote?.message || quoted?.message || 'Coupon applied.');
-            setCouponStatus('refreshing');
-            await refreshCart();
-            setCouponStatus('applied');
+            setCouponMessage(nextQuote?.message || 'Coupon applied.');
         } catch (err) {
             setQuote(null);
             setAppliedCouponCode('');
