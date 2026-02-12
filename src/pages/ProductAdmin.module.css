@@ -452,6 +452,50 @@
     margin-bottom: 8px;
 }
 
+
+.productDangerZone {
+    margin-top: 8px;
+    border-top: 1px solid #fecdd3;
+    background: #fff7ed;
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.productDangerActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.stickySaveBar {
+    position: sticky;
+    bottom: 8px;
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid #cbd5e1;
+    background: rgba(248, 250, 252, 0.96);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    z-index: 3;
+}
+
+.saveState {
+    font-weight: 700;
+    color: #334155;
+}
+
+.stickySaveActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+
 .catalogListWrapper p {
     margin: 8px 0;
 }
@@ -555,5 +599,14 @@
 @media (max-width: 1100px) {
     .layout {
         grid-template-columns: 1fr;
+    }
+
+    .stickySaveBar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .stickySaveActions {
+        justify-content: flex-end;
     }
 }
