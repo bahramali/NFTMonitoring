@@ -49,6 +49,16 @@ const getErrorMessage = (error, fallback) => {
     return error?.message || fallback;
 };
 
+const isCouponCodeUnavailableError = (error) => {
+    if (error?.status !== 409) return false;
+    const payload = error?.payload ?? {};
+    const topLevelCode = `${payload?.code ?? payload?.errorCode ?? payload?.data?.code ?? ''}`.trim().toUpperCase();
+    if (topLevelCode === 'COUPON_CODE_NOT_AVAILABLE') return true;
+
+    const details = Array.isArray(payload?.errors) ? payload.errors : [];
+    return details.some((entry) => `${entry?.code ?? entry?.errorCode ?? ''}`.trim().toUpperCase() === 'COUPON_CODE_NOT_AVAILABLE');
+};
+
 const addDaysFromNow = (days) => {
     const date = new Date();
     date.setDate(date.getDate() + days);
@@ -342,6 +352,30 @@ export default function CustomerDetails() {
         });
     }, []);
 
+    const upsertRegeneratedCouponState = useCallback((couponKey, regeneratedCoupon, replacedCoupon) => {
+        if (!regeneratedCoupon) return;
+        setCoupons((current) => {
+            const sourceIndex = current.findIndex((coupon) => {
+                const rowKey = coupon.id || `${coupon.variantId}-${coupon.createdAt}`;
+                return rowKey === couponKey;
+            });
+            const nextRows = [...current];
+
+            if (replacedCoupon && sourceIndex >= 0) {
+                nextRows[sourceIndex] = { ...nextRows[sourceIndex], ...replacedCoupon };
+            }
+
+            const existingIndex = nextRows.findIndex((coupon) => coupon.id && regeneratedCoupon.id && coupon.id === regeneratedCoupon.id);
+            if (existingIndex >= 0) {
+                const merged = { ...nextRows[existingIndex], ...regeneratedCoupon };
+                nextRows.splice(existingIndex, 1);
+                return [merged, ...nextRows];
+            }
+
+            return [regeneratedCoupon, ...nextRows];
+        });
+    }, []);
+
     const handleResendCoupon = async (coupon) => {
         const couponKey = coupon.id || `${coupon.variantId}-${coupon.createdAt}`;
         const confirmed = window.confirm(`Resend this code to ${customer.email}?`);
@@ -350,12 +384,24 @@ export default function CustomerDetails() {
         setCouponListError('');
         setResendingCouponKey(couponKey);
         try {
-            const { coupon: updatedCoupon } = await resendCustomerCoupon(normalizedCustomerId, coupon.id, token);
-            updateCouponInState(couponKey, updatedCoupon);
-            showActionFeedback('success', `Sent to ${customer.email}`);
+            const { coupon: updatedCoupon, replacedCoupon, regenerated } = await resendCustomerCoupon(
+                normalizedCustomerId,
+                coupon.id,
+                token,
+            );
+            if (regenerated) {
+                upsertRegeneratedCouponState(couponKey, updatedCoupon, replacedCoupon);
+                showActionFeedback('success', 'Resent (new code generated)');
+            } else {
+                updateCouponInState(couponKey, updatedCoupon);
+                showActionFeedback('success', `Sent to ${customer.email}`);
+            }
         } catch (submitError) {
             if (submitError?.status === 429) {
                 showActionFeedback('error', 'Already sent recently. Try again later.');
+            } else if (isCouponCodeUnavailableError(submitError)) {
+                showActionFeedback('error', 'Code value isn’t available for this legacy coupon. Use Renew to generate a new code.');
+                openRenewModal(coupon);
             } else {
                 showActionFeedback('error', getErrorMessage(submitError, 'Unable to resend coupon right now.'));
             }
@@ -614,10 +660,18 @@ export default function CustomerDetails() {
                                     const status = `${coupon.status || 'Active'}`;
                                     const isExpired = status.toLowerCase() === 'expired';
                                     const isRedeemed = status.toLowerCase() === 'redeemed';
+                                    const hasStoredCodeValue = Boolean(`${coupon.codeValue || ''}`.trim());
+                                    const codeValueUnavailable = coupon.codeAvailable === false || !hasStoredCodeValue;
+                                    const supportsResendRegeneration =
+                                        coupon.autoRenewOnResend === true
+                                        || coupon.resendAutoRenewSupported === true
+                                        || coupon.canResendWithoutCode === true;
                                     const resendDisabledReason = isExpired
                                         ? 'Expired – renew to send'
                                         : isRedeemed
                                             ? 'Redeemed coupon cannot be resent'
+                                            : codeValueUnavailable && !supportsResendRegeneration
+                                                ? 'Code value isn’t available for this legacy coupon. Use Renew to generate a new code.'
                                             : '';
                                     const isRowBusy = resendingCouponKey === couponKey || renewingCouponKey === couponKey;
                                     const canResend = Boolean(coupon.id) && !resendDisabledReason;
