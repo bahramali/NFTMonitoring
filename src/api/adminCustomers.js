@@ -462,12 +462,12 @@ export async function updateAdminCustomerPricingTier(customerId, tier, token, { 
     const normalizedTier = normalizePricingTier(tier);
 
     const res = await authFetch(
-        `${ADMIN_CUSTOMERS_URL}/${encodeURIComponent(normalizedCustomerId)}/tier`,
+        `${ADMIN_CUSTOMERS_URL}/${encodeURIComponent(normalizedCustomerId)}/pricing-tier`,
         {
-            method: 'PUT',
+            method: 'PATCH',
             headers: buildAuthHeaders(token),
             signal,
-            body: JSON.stringify({ tier: normalizedTier, pricingTier: normalizedTier }),
+            body: JSON.stringify({ pricingTier: normalizedTier }),
         },
         { token },
     );

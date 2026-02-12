@@ -464,3 +464,15 @@
     gap: 0.5rem;
     align-items: center;
 }
+
+.tierFeedbackSuccess {
+    color: #15803d;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.tierFeedbackError {
+    color: #b91c1c;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
