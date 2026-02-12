@@ -196,7 +196,12 @@ const normalizeCoupon = (coupon) => {
     return {
         ...coupon,
         id: coupon?.id ?? coupon?.couponId ?? coupon?._id ?? '',
-        couponCode: coupon?.couponCode ?? coupon?.code ?? '',
+        codeValue: coupon?.codeValue ?? coupon?.couponCode ?? coupon?.code ?? '',
+        couponCode: coupon?.couponCode ?? coupon?.codeValue ?? coupon?.code ?? '',
+        codeAvailable:
+            typeof coupon?.codeAvailable === 'boolean'
+                ? coupon.codeAvailable
+                : Boolean(`${coupon?.codeValue ?? coupon?.couponCode ?? coupon?.code ?? ''}`.trim()),
         variantId: coupon?.variantId ?? coupon?.productVariantId ?? '',
         variantLabel: coupon?.variantLabel ?? coupon?.variantName ?? coupon?.productVariantLabel ?? '—',
         amountOffCents,
@@ -329,7 +334,9 @@ export async function resendCustomerCoupon(customerId, couponId, token, { signal
 
     const payload = await parseApiResponse(res, 'Failed to resend coupon');
     return {
-        coupon: normalizeCoupon(payload?.coupon ?? payload?.data?.coupon ?? payload?.data),
+        coupon: normalizeCoupon(payload?.coupon ?? payload?.newCoupon ?? payload?.data?.coupon ?? payload?.data?.newCoupon ?? payload?.data),
+        replacedCoupon: normalizeCoupon(payload?.replacedCoupon ?? payload?.oldCoupon ?? payload?.data?.replacedCoupon),
+        regenerated: Boolean(payload?.regenerated ?? payload?.data?.regenerated),
         raw: payload,
     };
 }
