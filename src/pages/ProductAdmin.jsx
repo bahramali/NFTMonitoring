@@ -103,6 +103,23 @@ const resolveVariantSortOrder = (variant, fallback = 0) => {
     return Number.isFinite(numeric) ? numeric : fallback;
 };
 
+const getApiErrorCode = (error) => {
+    const payload = error?.payload;
+    if (!payload || typeof payload !== 'object') return '';
+    return payload.code || payload.errorCode || payload.error?.code || payload.details?.code || '';
+};
+
+const getActionErrorMessage = (error, fallbackMessage) => {
+    const code = getApiErrorCode(error);
+    if (code === 'PRODUCT_HAS_ORDERS') {
+        return 'Cannot delete. This product has existing orders. Deactivate instead.';
+    }
+    if (code === 'DEFAULT_VARIANT_CONSTRAINT') {
+        return 'This variant is the default. Set another default or deactivate instead.';
+    }
+    return fallbackMessage;
+};
+
 export default function ProductAdmin() {
     const { isAuthenticated, token, permissions } = useAuth();
     const [products, setProducts] = useState([]);
@@ -229,6 +246,7 @@ export default function ProductAdmin() {
         () => products.find((product) => product.id === selectedId) || null,
         [products, selectedId],
     );
+    const selectedProductId = selectedProduct?.id || null;
 
     const handleEdit = useCallback((product) => {
         if (!product?.id) return;
@@ -251,7 +269,7 @@ export default function ProductAdmin() {
             loadProducts({ preferId: product.id });
         } catch (error) {
             console.error('Failed to toggle status', error);
-            showToast('error', 'Could not update product status.');
+            showToast('error', getActionErrorMessage(error, 'Could not update product status.'));
         } finally {
             setActioningId(null);
         }
@@ -267,7 +285,7 @@ export default function ProductAdmin() {
             loadProducts();
         } catch (error) {
             console.error('Failed to delete product', error);
-            showToast('error', 'Could not delete product.');
+            showToast('error', getActionErrorMessage(error, 'Could not delete product.'));
         } finally {
             setSaving(false);
         }
@@ -279,20 +297,19 @@ export default function ProductAdmin() {
         setConfirmingStatus(null);
     };
 
-    const validateForm = () => {
+    const validateForm = useCallback(() => {
         if (!formState.name || formState.name.trim().length < 2) return 'Name must be at least 2 characters.';
         return '';
-    };
+    }, [formState.name]);
 
-    const handleSubmit = async (event) => {
-        event.preventDefault();
-        if (saving) return;
+    const saveProductChanges = useCallback(async () => {
+        if (saving) return selectedProductId || null;
         setFormError(null);
         const validationError = validateForm();
         if (validationError) {
             setFormError(validationError);
             showToast('error', validationError);
-            return;
+            return null;
         }
 
         setSaving(true);
@@ -309,21 +326,20 @@ export default function ProductAdmin() {
         try {
             if (selectedProduct) {
                 const updated = await updateProduct(selectedProduct.id, payload, token);
-                showToast('success', 'Product updated');
-                loadProducts({ preferId: updated?.id || selectedProduct.id });
-            } else {
-                const created = await createProduct(payload, token);
-                showToast('success', 'Product created');
-                loadProducts({ preferId: created?.id });
+                return updated?.id || selectedProduct.id;
             }
+
+            const created = await createProduct(payload, token);
+            return created?.id || null;
         } catch (error) {
             console.error('Failed to save product', error);
             setFormError('Unable to save product right now.');
             showToast('error', 'Could not save product.');
+            return null;
         } finally {
             setSaving(false);
         }
-    };
+    }, [formState, saving, selectedProduct, selectedProductId, showToast, token, validateForm]);
 
     const startCreateProduct = () => {
         setEditorMode('create');
@@ -357,14 +373,14 @@ export default function ProductAdmin() {
     const isCreateMode = editorMode === 'create';
     const hasUnsavedProductChanges = selectedProduct ? formSignature !== productSnapshot : isCreateMode && Boolean(formState.name?.trim() || formState.description?.trim() || formState.sku?.trim() || formState.imageUrl?.trim());
 
-    useEffect(() => {
-        if (!selectedProduct) {
+    const hydrateVariantDraft = useCallback((product) => {
+        if (!product) {
             setVariantRows([]);
             setDefaultVariantId(null);
             setVariantSnapshot('');
             return;
         }
-        const variants = normalizeVariants(selectedProduct.variants)
+        const variants = normalizeVariants(product.variants)
             .map((variant, index) => ({
                 ...variant,
                 id: variant.id ?? variant.variantId ?? variant._id ?? null,
@@ -380,7 +396,7 @@ export default function ProductAdmin() {
             .sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0))
             .map((variant, index) => ({ ...variant, sortOrder: index }));
 
-        const resolvedDefaultId = selectedProduct.defaultVariantId || variants[0]?.id || null;
+        const resolvedDefaultId = product.defaultVariantId || variants[0]?.id || null;
         setVariantRows(variants);
         setDefaultVariantId(resolvedDefaultId);
         setVariantSnapshot(JSON.stringify({
@@ -397,7 +413,11 @@ export default function ProductAdmin() {
                 sortOrder: Number(variant.sortOrder ?? 0),
             })),
         }));
-    }, [selectedProduct]);
+    }, []);
+
+    useEffect(() => {
+        hydrateVariantDraft(selectedProduct);
+    }, [hydrateVariantDraft, selectedProduct]);
 
     const handleVariantChange = (localId, field, value) => {
         setVariantRows((prev) =>
@@ -435,6 +455,16 @@ export default function ProductAdmin() {
             reordered.splice(nextIndex, 0, moved);
             return reordered.map((variant, index) => ({ ...variant, sortOrder: index }));
         });
+    };
+
+
+    const toggleVariantActive = (localId) => {
+        setVariantRows((prev) =>
+            prev.map((variant) => {
+                if ((variant.localId || variant.id) !== localId) return variant;
+                return { ...variant, active: !(variant.active !== false) };
+            }),
+        );
     };
 
     const buildVariantPayload = (variant) => ({
@@ -513,8 +543,8 @@ export default function ProductAdmin() {
 
     const hasUnsavedVariantChanges = variantSnapshot !== '' && variantDraftSignature !== variantSnapshot;
 
-    const saveAllVariants = async () => {
-        if (!selectedProduct?.id || saving || variantValidation.hasBlockingError) return;
+    const saveAllVariantsForProduct = useCallback(async (productId) => {
+        if (!productId || saving || variantValidation.hasBlockingError || !hasUnsavedVariantChanges) return true;
         setVariantActionId('all');
         try {
             const saveResults = [];
@@ -522,14 +552,14 @@ export default function ProductAdmin() {
                 const variant = variantRows[index];
                 const payload = buildVariantPayload({ ...variant, sortOrder: index });
                 if (variant.id) {
-                    const updated = await updateProductVariant(selectedProduct.id, variant.id, payload, token);
+                    const updated = await updateProductVariant(productId, variant.id, payload, token);
                     saveResults.push({
                         localId: variant.localId,
                         id: variant.id,
                         saved: { ...variant, ...updated, sortOrder: index },
                     });
                 } else {
-                    const created = await createProductVariant(selectedProduct.id, payload, token);
+                    const created = await createProductVariant(productId, payload, token);
                     saveResults.push({
                         localId: variant.localId,
                         id: created?.id || variant.id,
@@ -545,18 +575,17 @@ export default function ProductAdmin() {
             });
             const resolvedDefaultVariantId = idLookup.get(defaultVariantId) || defaultVariantId;
 
-            await updateProduct(selectedProduct.id, { defaultVariantId: resolvedDefaultVariantId }, token);
+            await updateProduct(productId, { defaultVariantId: resolvedDefaultVariantId }, token);
 
             setVariantRows((prev) => {
                 const saveMap = new Map(saveResults.map((item) => [item.localId || item.id, item.saved]));
-                return prev
-                    .map((variant, index) => {
-                        const key = variant.localId || variant.id;
-                        const savedVariant = saveMap.get(key);
-                        return savedVariant
-                            ? { ...variant, ...savedVariant, localId: savedVariant.id || variant.localId, sortOrder: index }
-                            : { ...variant, sortOrder: index };
-                    });
+                return prev.map((variant, index) => {
+                    const key = variant.localId || variant.id;
+                    const savedVariant = saveMap.get(key);
+                    return savedVariant
+                        ? { ...variant, ...savedVariant, localId: savedVariant.id || variant.localId, sortOrder: index }
+                        : { ...variant, sortOrder: index };
+                });
             });
             setDefaultVariantId(resolvedDefaultVariantId);
             setVariantSnapshot(JSON.stringify({
@@ -573,18 +602,49 @@ export default function ProductAdmin() {
                     sortOrder: Number(index),
                 })),
             }));
-            showToast('success', 'Variants saved');
-            loadProducts({ preferId: selectedProduct.id });
+            return true;
         } catch (error) {
             console.error('Failed to save variants', error);
-            showToast('error', 'Could not save variants.');
+            showToast('error', getActionErrorMessage(error, 'Could not save variants.'));
+            return false;
         } finally {
             setVariantActionId(null);
         }
-    };
+    }, [defaultVariantId, hasUnsavedVariantChanges, saving, showToast, token, variantRows, variantValidation.hasBlockingError]);
+
+    const handleSaveChanges = useCallback(async () => {
+        if (saving || variantActionId === 'all') return;
+
+        let productId = selectedProductId;
+        if (hasUnsavedProductChanges) {
+            const savedProductId = await saveProductChanges();
+            if (!savedProductId) return;
+            productId = savedProductId;
+        }
+
+        const variantSaved = await saveAllVariantsForProduct(productId);
+        if (!variantSaved) return;
+
+        if (!hasUnsavedProductChanges && !hasUnsavedVariantChanges) return;
+        showToast('success', 'Saved');
+        loadProducts({ preferId: productId || selectedId || null });
+    }, [hasUnsavedProductChanges, hasUnsavedVariantChanges, loadProducts, saveAllVariantsForProduct, saveProductChanges, saving, selectedId, selectedProductId, showToast, variantActionId]);
+
+    const handleDiscardChanges = useCallback(() => {
+        setFormError(null);
+        if (selectedProduct) {
+            setEditorMode('edit');
+            setFormState({ ...emptyForm, ...selectedProduct, active: selectedProduct.active !== false });
+            hydrateVariantDraft(selectedProduct);
+            return;
+        }
+        setEditorMode('create');
+        setFormState({ ...emptyForm });
+        hydrateVariantDraft(null);
+    }, [hydrateVariantDraft, selectedProduct]);
 
     const removeVariantRow = async (index) => {
-        if (!selectedProduct?.id) return;
+        if (!selectedProductId) return;
         const variant = variantRows[index];
         if (!variant) return;
         if (!variant.id) {
@@ -605,13 +665,10 @@ export default function ProductAdmin() {
         try {
             await deleteProductVariant(selectedProduct.id, variant.id, token);
             showToast('success', 'Variant removed');
-            if (defaultVariantId === variant.id) {
-                setDefaultVariantId((variantRows.find((item) => item.id !== variant.id)?.id) || null);
-            }
             loadProducts({ preferId: selectedProduct.id });
         } catch (error) {
             console.error('Failed to delete variant', error);
-            showToast('error', 'Could not remove variant.');
+            showToast('error', getActionErrorMessage(error, 'Could not remove variant.'));
         } finally {
             setVariantActionId(null);
         }
@@ -733,7 +790,7 @@ export default function ProductAdmin() {
                                                     className={styles.cardSecondaryAction}
                                                     disabled={actioningId === product.id}
                                                 >
-                                                    {isActive ? 'Deactivate' : 'Activate'}
+                                                    {isActive ? 'Deactivate product' : 'Activate product'}
                                                 </button>
                                                 <button
                                                     type="button"
@@ -741,7 +798,7 @@ export default function ProductAdmin() {
                                                     onClick={() => setConfirmingDelete(product)}
                                                     disabled={actioningId === product.id}
                                                 >
-                                                    Delete
+                                                    Delete product
                                                 </button>
                                             </div>
                                         </article>
@@ -770,7 +827,7 @@ export default function ProductAdmin() {
 
                     {formError && <div className={styles.bannerError}>{formError}</div>}
 
-                    <form className={styles.form} onSubmit={handleSubmit}>
+                    <form className={styles.form} onSubmit={(event) => event.preventDefault()}>
                         <div className={styles.formCard}>
                             <h3 className={styles.sectionTitle}>Basic info</h3>
                             <label className={styles.label} htmlFor="product-name">Name *</label>
@@ -838,21 +895,29 @@ export default function ProductAdmin() {
                             />
                         </div>
 
-                        <div className={styles.formActions}>
-                            <button type="submit" className={styles.primaryButton} disabled={saving}>
-                                {saving ? 'Saving…' : 'Save product'}
-                            </button>
-                            {selectedProduct && !isCreateMode && (
-                                <button
-                                    type="button"
-                                    className={styles.linkButton}
-                                    onClick={() => handleToggleActive(selectedProduct)}
-                                    disabled={saving || actioningId === selectedId}
-                                >
-                                    {selectedProduct.active ? 'Deactivate' : 'Activate'}
-                                </button>
-                            )}
-                        </div>
+                        {selectedProduct && !isCreateMode && (
+                            <div className={styles.productDangerZone}>
+                                <span className={styles.dangerZoneLabel}>Product actions</span>
+                                <div className={styles.productDangerActions}>
+                                    <button
+                                        type="button"
+                                        className={styles.secondaryButton}
+                                        onClick={() => handleToggleActive(selectedProduct)}
+                                        disabled={saving || actioningId === selectedId}
+                                    >
+                                        {(selectedProduct.active ?? true) ? 'Deactivate product' : 'Activate product'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={styles.danger}
+                                        onClick={() => setConfirmingDelete(selectedProduct)}
+                                        disabled={saving || actioningId === selectedId}
+                                    >
+                                        Delete product
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </form>
                 </section>
 
@@ -860,8 +925,8 @@ export default function ProductAdmin() {
                     <div className={styles.variantsSection}>
                         <div className={styles.variantsHeader}>
                             <div>
-                                <p className={styles.kickerSmall}>Variants (weights)</p>
-                                <h3 className={styles.sectionTitle}>Variants</h3>
+                                <p className={styles.kickerSmall}>Variants (Weights)</p>
+                                <h3 className={styles.sectionTitle}>Variants (Weights)</h3>
                                 <p className={styles.muted}>Default: {defaultVariantLabel} · {variantRows.length} variants</p>
                                 <p className={styles.muted}>Manage price and stock per weight. Variants require a saved product.</p>
                             </div>
@@ -874,14 +939,6 @@ export default function ProductAdmin() {
                                     disabled={!selectedProduct || saving}
                                 >
                                     + Add variant
-                                </button>
-                                <button
-                                    type="button"
-                                    className={styles.primaryButton}
-                                    onClick={saveAllVariants}
-                                    disabled={!selectedProduct || saving || variantActionId === 'all' || !hasUnsavedVariantChanges || variantValidation.hasBlockingError}
-                                >
-                                    {variantActionId === 'all' ? 'Saving…' : 'Save variants'}
                                 </button>
                             </div>
                         </div>
@@ -974,23 +1031,22 @@ export default function ProductAdmin() {
                                                 />
                                             </details>
                                         </div>
-                                        <div className={styles.variantToggle}>
-                                            <input
-                                                id={`variant-active-${variant.localId}`}
-                                                type="checkbox"
-                                                checked={variant.active}
-                                                onChange={(event) => handleVariantChange(variantKey, 'active', event.target.checked)}
-                                            />
-                                            <label htmlFor={`variant-active-${variant.localId}`}>Active</label>
-                                        </div>
                                         <div className={styles.variantActions}>
+                                            <button
+                                                type="button"
+                                                className={styles.secondaryButton}
+                                                onClick={() => toggleVariantActive(variantKey)}
+                                                disabled={variantActionId === (variant.localId || variant.id) || variantActionId === 'all'}
+                                            >
+                                                {variant.active ? 'Deactivate variant' : 'Activate variant'}
+                                            </button>
                                             <button
                                                 type="button"
                                                 className={styles.danger}
                                                 onClick={() => removeVariantRow(index)}
-                                                disabled={variantActionId === (variant.localId || variant.id)}
+                                                disabled={variantActionId === (variant.localId || variant.id) || variantActionId === 'all'}
                                             >
-                                                Remove
+                                                Delete variant
                                             </button>
                                         </div>
                                         {errors.length > 0 && <div className={styles.variantErrors}>{errors.join(' ')}</div>}
@@ -1001,6 +1057,30 @@ export default function ProductAdmin() {
                         )}
                     </div>
                 </section>
+            </div>
+
+            <div className={styles.stickySaveBar}>
+                <div className={styles.saveState}>
+                    {hasUnsavedProductChanges || hasUnsavedVariantChanges ? 'Unsaved changes' : 'All changes saved'}
+                </div>
+                <div className={styles.stickySaveActions}>
+                    <button
+                        type="button"
+                        className={styles.secondaryButton}
+                        onClick={handleDiscardChanges}
+                        disabled={saving || variantActionId === 'all' || (!hasUnsavedProductChanges && !hasUnsavedVariantChanges)}
+                    >
+                        Discard
+                    </button>
+                    <button
+                        type="button"
+                        className={styles.primaryButton}
+                        onClick={handleSaveChanges}
+                        disabled={saving || variantActionId === 'all' || (!hasUnsavedProductChanges && !hasUnsavedVariantChanges) || variantValidation.hasBlockingError}
+                    >
+                        {(saving || variantActionId === 'all') ? 'Saving…' : 'Save changes'}
+                    </button>
+                </div>
             </div>
 
             {confirmingStatus && (
@@ -1040,6 +1120,9 @@ export default function ProductAdmin() {
                                 <p className={styles.kickerSmall}>Delete product</p>
                                 <h3>{confirmingDelete.name}</h3>
                                 <p className={styles.muted}>This action cannot be undone.</p>
+                                {(confirmingDelete?.hasOrders || Number(confirmingDelete?.orderCount || 0) > 0) && (
+                                    <p className={styles.muted}>This product has orders and can’t be deleted; you can deactivate it.</p>
+                                )}
                             </div>
                             <button type="button" className={styles.closeButton} onClick={() => setConfirmingDelete(null)}>
                                 ✕

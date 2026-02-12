@@ -63,3 +63,11 @@ test('does not render report filters in the sidebar on reports route', () => {
     expect(screen.queryByText(/filters/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/timing/i)).not.toBeInTheDocument();
 });
+
+
+test('does not render duplicate Manage Products link', () => {
+    mockLocation.pathname = '/';
+    renderSidebar();
+
+    expect(screen.queryByRole('link', { name: /manage products/i })).not.toBeInTheDocument();
+});

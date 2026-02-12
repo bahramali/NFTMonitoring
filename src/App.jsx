@@ -154,6 +154,7 @@ function AppRoutes() {
                                 </ProtectedRoute>
                             )}
                         />
+                        <Route path="admin/manage-products" element={<Navigate to="/store/admin/products" replace />} />
                         <Route
                             path="admin/customers"
                             element={(
