@@ -77,6 +77,62 @@
 .table tbody tr:hover {
   background: #fafafa;
 }
+
+.variantsTableScroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #ececec;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.variantsTable {
+  min-width: 1100px;
+  width: max-content;
+  border: 0;
+  border-radius: 0;
+}
+
+.variantsTable tbody tr {
+  background: #fff;
+}
+
+.variantsTable th.actions,
+.variantsTable td.actions {
+  position: sticky;
+  right: 0;
+  background: #fff;
+  box-shadow: -8px 0 8px rgba(0, 0, 0, 0.04);
+  z-index: 2;
+}
+
+.variantsTable td.actions {
+  white-space: nowrap;
+}
+
+.variantCellInput {
+  height: 32px;
+  padding: 4px 8px;
+  font-size: 14px;
+}
+
+.truncateCell {
+  display: inline-block;
+  max-width: 260px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+@media (max-width: 900px) {
+  .colSku,
+  .colImageUrl {
+    display: none;
+  }
+}
 .primaryButton,
 .secondaryButton,
 .linkButton,
@@ -177,7 +233,7 @@
 .cellEditor {
   display: grid;
   gap: 0.2rem;
-  min-width: 120px;
+  min-width: 100px;
 }
 
 .inlineError {
