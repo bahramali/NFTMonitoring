@@ -204,7 +204,7 @@ export default function ProductAdmin() {
         ...emptyVariant(),
         ...variant,
         localId: variant.id || globalThis.crypto?.randomUUID?.(),
-        weight: variant.weight ?? "",
+        weight: variant.weight ?? variant.weightGrams ?? "",
         price: resolveEditorPrice(variant),
         stock: getVariantStock(variant) ?? "",
         imageUrl: variant.imageUrl ?? "",
@@ -265,7 +265,17 @@ export default function ProductAdmin() {
       ...prev,
       [key]: {
         ...variant,
-        tierPrices: { ...(variant.tierPrices || {}) },
+        weight: variant.weight ?? variant.weightGrams ?? "",
+        price: variant.price ?? variant.priceSek ?? "",
+        stock: variant.stock ?? variant.stockQuantity ?? "",
+        sku: variant.sku ?? "",
+        imageUrl: variant.imageUrl ?? "",
+        active: variant.active !== false,
+        tierPrices: {
+          VIP: variant.tierPrices?.VIP ?? 0,
+          SUPPORTER: variant.tierPrices?.SUPPORTER ?? 0,
+          B2B: variant.tierPrices?.B2B ?? 0,
+        },
       },
     }));
     setVariantValidationById((prev) => ({ ...prev, [key]: {} }));
@@ -349,6 +359,7 @@ export default function ProductAdmin() {
 
   const saveAll = async () => {
     if (saving) return;
+    setListError("");
     setSaving(true);
     try {
       let id = detailId;
@@ -370,8 +381,14 @@ export default function ProductAdmin() {
 
       if (id && variantsDirty) {
         for (const [index, row] of variantRows.entries()) {
+          const parsedWeight = parseIntegerInput(row.weight);
+          if (!parsedWeight || parsedWeight <= 0) {
+            setListError("Weight must be greater than zero");
+            setActiveTab("variants");
+            return;
+          }
           const payload = {
-            weightGrams: parseIntegerInput(row.weight),
+            weightGrams: parsedWeight,
             priceSek: parseDecimalInput(row.price),
             stockQuantity: parseIntegerInput(row.stock),
             sku: row.sku || "",
@@ -797,7 +814,12 @@ export default function ProductAdmin() {
                                 <input
                                   className={styles.input}
                                   inputMode="numeric"
-                                  value={rowData.weight ?? ""}
+                                  value={
+                                    draftVariantsById[key]?.weight ??
+                                    variant.weight ??
+                                    variant.weightGrams ??
+                                    ""
+                                  }
                                   onChange={(e) => {
                                     if (
                                       !INTEGER_INPUT_PATTERN.test(
