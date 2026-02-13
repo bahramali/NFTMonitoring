@@ -20,7 +20,7 @@ export default function ProductDetail() {
     const { productId } = useParams();
     const navigate = useNavigate();
     const { addToCart, pendingProductId } = useStorefront();
-    const { profile } = useAuth();
+    const { profile, isAuthenticated, token } = useAuth();
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -37,7 +37,7 @@ export default function ProductDetail() {
             setLoading(true);
             setError(null);
             try {
-                const response = await fetchStoreProduct(productId);
+                const response = await fetchStoreProduct(productId, { token: isAuthenticated ? token : null });
                 if (!mounted) return;
                 setProduct(response?.product ?? response);
             } catch (err) {
@@ -52,7 +52,7 @@ export default function ProductDetail() {
         return () => {
             mounted = false;
         };
-    }, [productId]);
+    }, [isAuthenticated, productId, token]);
 
     useEffect(() => {
         setSelectedVariantId((current) => {

@@ -49,4 +49,21 @@ describe('resolvePricingForTier', () => {
             appliedTier: 'VIP',
         });
     });
+
+
+    it('prefers effectivePriceSek over tier map for authenticated responses', () => {
+        const entity = {
+            effectivePriceSek: 9,
+            tierPricesSek: {
+                DEFAULT: 29.9,
+                VIP: 10,
+            },
+        };
+
+        expect(resolvePricingForTier(entity, 'VIP')).toEqual({
+            regularPriceSek: 29.9,
+            customerPriceSek: 9,
+            appliedTier: 'VIP',
+        });
+    });
 });

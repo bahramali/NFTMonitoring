@@ -10,6 +10,17 @@ const fromCents = (value) => {
     return Number.isFinite(parsed) ? parsed / 100 : null;
 };
 
+
+const resolveEffectivePrice = (entity) => {
+    if (!entity || typeof entity !== 'object') return null;
+    return (
+        toNumber(entity?.effectivePriceSek)
+        ?? toNumber(entity?.effectivePrice)
+        ?? fromCents(entity?.effectivePriceCents)
+        ?? fromCents(entity?.effectiveUnitPrice)
+    );
+};
+
 export const normalizePricingTier = (value) => {
     const normalized = `${value ?? ''}`.trim().toUpperCase();
     if (!normalized) return 'DEFAULT';
@@ -74,11 +85,12 @@ export const hasTierPriceDiscount = (entity, tier = 'DEFAULT') => {
 export const resolvePricingForTier = (entity, tier = 'DEFAULT') => {
     const appliedTier = normalizePricingTier(tier);
     const regularPriceSek = resolveTierPrice(entity, 'DEFAULT');
-    const customerPriceSek = resolveTierPrice(entity, appliedTier);
+    const tierMappedPriceSek = resolveTierPrice(entity, appliedTier);
+    const effectivePriceSek = appliedTier !== 'DEFAULT' ? resolveEffectivePrice(entity) : null;
 
     return {
         regularPriceSek,
-        customerPriceSek,
+        customerPriceSek: effectivePriceSek ?? tierMappedPriceSek,
         appliedTier,
     };
 };
