@@ -73,7 +73,8 @@ export default function ProductDetail() {
     const pricingTier = extractUserPricingTier(profile);
     const variantPricing = resolvePricingForTier(selectedVariant, pricingTier);
     const productPricing = resolvePricingForTier(product, pricingTier);
-    const regularPriceSek = variantPricing.regularPriceSek ?? productPricing.regularPriceSek ?? product?.price ?? 0;
+    const regularTierPriceSek = variantPricing.regularPriceSek ?? productPricing.regularPriceSek;
+    const regularPriceSek = regularTierPriceSek ?? product?.price ?? 0;
     const appliedTier = variantPricing.appliedTier;
     const variantHasTierDiff = variantPricing.customerPriceSek !== null
         && variantPricing.regularPriceSek !== null
@@ -89,7 +90,10 @@ export default function ProductDetail() {
                 ? productPricing.customerPriceSek
                 : (variantPricing.customerPriceSek ?? productPricing.customerPriceSek ?? regularPriceSek);
     const priceValue = customerPriceSek ?? regularPriceSek;
-    const tierPriceApplied = appliedTier !== 'DEFAULT' && customerPriceSek !== regularPriceSek;
+    const tierPriceApplied = appliedTier !== 'DEFAULT'
+        && regularTierPriceSek !== null
+        && customerPriceSek !== null
+        && customerPriceSek !== regularTierPriceSek;
     const priceLabel = formatCurrency(priceValue, currency);
     const priceContext = getPriceContext(selectedVariant ?? product);
     const productFacts = getProductFacts(selectedVariant ?? product);
@@ -174,7 +178,7 @@ export default function ProductDetail() {
                         <p className={styles.subtitle}>Product details</p>
                         <div className={styles.priceBlock}>
                             <div className={styles.priceWrap}>
-                                {tierPriceApplied ? <span className={styles.priceOldInvalid}>{formatCurrency(regularPriceSek, currency)}</span> : null}
+                                {tierPriceApplied ? <span className={styles.priceOldInvalid}>{formatCurrency(regularTierPriceSek, currency)}</span> : null}
                                 <span className={`${styles.price} ${tierPriceApplied ? styles.priceNewValid : ''}`}>{priceLabel}</span>
                                 <span className={styles.currency}>{currencyLabel(currency)}</span>
                                 {tierPriceApplied && tierLabel ? <span className={styles.tierBadge}>{tierLabel}</span> : null}

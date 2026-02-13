@@ -73,6 +73,19 @@ export const resolveTierPrice = (entity, tier = 'DEFAULT') => {
         if (directTierPrice !== null) return directTierPrice;
     }
 
+    if (normalizedTier === 'DEFAULT') {
+        const hasTierPricingData =
+            Object.keys(tierPricesSekMap).length > 0
+            || Object.keys(tierPricesMap).length > 0
+            || Object.keys(map).length > 0
+            || TIERS.some((knownTier) => {
+                if (knownTier === 'DEFAULT') return false;
+                return toNumber(entity?.[`price${knownTier}`]) !== null
+                    || toNumber(entity?.[`price_${knownTier.toLowerCase()}`]) !== null;
+            });
+        if (hasTierPricingData) return null;
+    }
+
     return fallbackPrice;
 };
 
