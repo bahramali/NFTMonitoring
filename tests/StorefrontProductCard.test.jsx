@@ -196,6 +196,33 @@ describe('ProductCard', () => {
         expect(screen.getByText('Supporter price')).toBeInTheDocument();
     });
 
+
+    it('does not render tier delta UI when tier map lacks DEFAULT', () => {
+        mockProfile = { pricingTier: 'SUPPORTER' };
+        const product = {
+            id: 'p-tier-2',
+            name: 'Tiered Basil Partial',
+            currency: 'SEK',
+            price: 29.9,
+            tierPricesSek: {
+                SUPPORTER: 10,
+            },
+            variants: [
+                { id: 'v-1', label: '50g', price: 29.9, stock: 4 },
+            ],
+        };
+
+        render(
+            <MemoryRouter>
+                <ProductCard product={product} />
+            </MemoryRouter>,
+        );
+
+        expect(screen.queryByText('Supporter price')).not.toBeInTheDocument();
+        expect(screen.getByText('29,90 kr')).toBeInTheDocument();
+        expect(screen.queryByText('10,00 kr')).not.toBeInTheDocument();
+    });
+
     it('keeps view details link visible', () => {
         const product = {
             id: 'p-4',

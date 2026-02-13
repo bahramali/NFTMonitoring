@@ -36,7 +36,8 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
     const pricingTier = extractUserPricingTier(profile);
     const variantPricing = resolvePricingForTier(selectedVariant, pricingTier);
     const productPricing = resolvePricingForTier(product, pricingTier);
-    const regularPriceSek = variantPricing.regularPriceSek ?? productPricing.regularPriceSek ?? product?.price ?? 0;
+    const regularTierPriceSek = variantPricing.regularPriceSek ?? productPricing.regularPriceSek;
+    const regularPriceSek = regularTierPriceSek ?? product?.price ?? 0;
     const appliedTier = variantPricing.appliedTier;
     const variantHasTierDiff = variantPricing.customerPriceSek !== null
         && variantPricing.regularPriceSek !== null
@@ -52,7 +53,10 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
                 ? productPricing.customerPriceSek
                 : (variantPricing.customerPriceSek ?? productPricing.customerPriceSek ?? regularPriceSek);
     const priceValue = customerPriceSek ?? regularPriceSek;
-    const tierPriceApplied = appliedTier !== 'DEFAULT' && customerPriceSek !== regularPriceSek;
+    const tierPriceApplied = appliedTier !== 'DEFAULT'
+        && regularTierPriceSek !== null
+        && customerPriceSek !== null
+        && customerPriceSek !== regularTierPriceSek;
     const stockValue = selectedVariant ? getVariantStock(selectedVariant) : product?.stock;
     const isOutOfStock = stockValue !== undefined && stockValue <= 0;
     const stockLabel = useMemo(() => {
@@ -169,7 +173,7 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
                     </div>
                     <div className={styles.price}>
                         <div className={styles.priceWrap}>
-                            {tierPriceApplied ? <span className={styles.priceOldInvalid}>{formatCurrency(regularPriceSek, currency || 'SEK')}</span> : null}
+                            {tierPriceApplied ? <span className={styles.priceOldInvalid}>{formatCurrency(regularTierPriceSek, currency || 'SEK')}</span> : null}
                             <span className={`${styles.priceValue} ${tierPriceApplied ? styles.priceNewValid : ''}`}>{priceLabel}</span>
                             {tierPriceApplied && tierLabel ? <span className={styles.tierBadge}>{tierLabel}</span> : null}
                         </div>

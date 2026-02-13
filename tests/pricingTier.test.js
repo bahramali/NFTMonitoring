@@ -32,6 +32,18 @@ describe('resolveTierPrice', () => {
         expect(resolveTierPrice({ price: 39.5 }, 'VIP')).toBe(39.5);
         expect(resolveTierPrice({ unitPrice: 29.5 }, 'VIP')).toBe(29.5);
     });
+
+    it('returns null for DEFAULT when tier map is partial but keeps tier price', () => {
+        const entity = {
+            price: 29.9,
+            tierPricesSek: {
+                VIP: 10,
+            },
+        };
+
+        expect(resolveTierPrice(entity, 'DEFAULT')).toBeNull();
+        expect(resolveTierPrice(entity, 'VIP')).toBe(10);
+    });
 });
 
 describe('resolvePricingForTier', () => {
