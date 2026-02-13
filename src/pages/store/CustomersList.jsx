@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { listAdminCustomers, normalizeCustomerId } from '../../api/adminCustomers.js';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { normalizePricingTier } from '../../utils/pricingTier.js';
 import { formatCurrency } from '../../utils/currency.js';
 import styles from './CustomersList.module.css';
 
@@ -26,6 +27,12 @@ const SORT_OPTIONS = [
 
 const PAGE_SIZE = 6;
 const SEARCH_DEBOUNCE_MS = 300;
+
+const formatPricingTierLabel = (tierValue) => {
+    const normalizedTier = normalizePricingTier(tierValue);
+    if (normalizedTier === 'DEFAULT') return 'Default';
+    return normalizedTier;
+};
 
 const formatDate = (value, { includeTime = false } = {}) => {
     if (!value) return '—';
@@ -278,7 +285,10 @@ export default function CustomersList() {
                                 <tr key={rowKey}>
                                     <td>
                                         <div className={styles.customerCell}>
-                                            <div className={styles.customerName}>{customer.name}</div>
+                                            <div className={styles.customerNameRow}>
+                                                <div className={styles.customerName}>{customer.name}</div>
+                                                <span className={styles.tierBadge}>{formatPricingTierLabel(customer.pricingTier)}</span>
+                                            </div>
                                             <div className={styles.customerEmail}>{customer.email}</div>
                                         </div>
                                     </td>
