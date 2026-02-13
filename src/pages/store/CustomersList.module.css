@@ -118,6 +118,27 @@
     font-weight: 600;
 }
 
+.customerNameRow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tierBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
 .customerEmail {
     font-size: 0.85rem;
     color: #6b7280;
