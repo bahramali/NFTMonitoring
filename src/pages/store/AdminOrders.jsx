@@ -201,18 +201,18 @@ export default function AdminOrders() {
                 <p>Track every order, payment, and fulfillment status in one place.</p>
             </header>
 
-            <section className={styles.filters}>
-                <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search #, email, or customer" />
-                <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+            <section className={styles.filtersRow}>
+                <input className={styles.searchInput} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search #, email, or customer" />
+                <select className={styles.statusSelect} value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
                     <option value="ALL">All statuses</option>
                     {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status.replaceAll('_', ' ')}</option>)}
                 </select>
-                <select value={paymentFilter} onChange={(event) => setPaymentFilter(event.target.value)}>
+                <select className={styles.filterSelect} value={paymentFilter} onChange={(event) => setPaymentFilter(event.target.value)}>
                     {PAYMENT_FILTERS.map((status) => <option key={status} value={status}>{status}</option>)}
                 </select>
-                <input type="date" value={dateRange.from} onChange={(event) => setDateRange((prev) => ({ ...prev, from: event.target.value }))} />
-                <input type="date" value={dateRange.to} onChange={(event) => setDateRange((prev) => ({ ...prev, to: event.target.value }))} />
-                <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
+                <input className={styles.filterSelect} type="date" value={dateRange.from} onChange={(event) => setDateRange((prev) => ({ ...prev, from: event.target.value }))} />
+                <input className={styles.filterSelect} type="date" value={dateRange.to} onChange={(event) => setDateRange((prev) => ({ ...prev, to: event.target.value }))} />
+                <select className={styles.filterSelect} value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
                     <option value="newest">Newest</option>
                     <option value="oldest">Oldest</option>
                     <option value="total">Total</option>
