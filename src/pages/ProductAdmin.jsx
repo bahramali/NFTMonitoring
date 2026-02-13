@@ -15,6 +15,7 @@ import AccessDenied from '../components/AccessDenied.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { PERMISSIONS, hasPerm } from '../utils/permissions.js';
 import { getVariantPrice, getVariantStock, getProductSortPrice, getVariantLabel } from '../utils/storeVariants.js';
+import { resolveTierPrice } from '../utils/pricingTier.js';
 import styles from './ProductAdmin.module.css';
 
 const CATEGORY_OPTIONS = ['Basil', 'Packaging', 'Hydroponic gear'];
@@ -28,6 +29,16 @@ const emptyVariant = () => ({ id: null, localId: globalThis.crypto?.randomUUID?.
 
 const normalizeProducts = (payload) => (Array.isArray(payload) ? payload : payload?.products || []);
 const normalizeVariants = (variants) => (Array.isArray(variants) ? variants : variants?.items || variants?.nodes || variants?.data || []);
+const normalizeTierPricesForEditor = (variant) => {
+    const tiers = ['VIP', 'SUPPORTER', 'B2B'];
+    return tiers.reduce((acc, tier) => {
+        const value = resolveTierPrice(variant, tier);
+        if (value !== null && value !== undefined) {
+            acc[tier] = value;
+        }
+        return acc;
+    }, {});
+};
 
 export default function ProductAdmin() {
     const { isAuthenticated, token, permissions } = useAuth();
@@ -91,7 +102,7 @@ export default function ProductAdmin() {
             weight: variant.weight ?? '',
             price: getVariantPrice(variant) ?? '',
             stock: getVariantStock(variant) ?? '',
-            tierPrices: variant.priceByTier || variant.tierPrices || {},
+            tierPrices: normalizeTierPricesForEditor(variant),
             active: variant.active !== false,
         }));
         const nextDefault = selectedProduct.defaultVariantId || nextVariants[0]?.id || nextVariants[0]?.localId || null;
@@ -157,10 +168,10 @@ export default function ProductAdmin() {
                     const savedId = saved?.id || row.id;
                     if (savedId) {
                         await updateVariantTierPrices(savedId, {
-                            DEFAULT: Math.round(Number(row.price || 0) * 100),
-                            VIP: Math.round(Number(row.tierPrices?.VIP || 0) * 100),
-                            SUPPORTER: Math.round(Number(row.tierPrices?.SUPPORTER || 0) * 100),
-                            B2B: Math.round(Number(row.tierPrices?.B2B || 0) * 100),
+                            DEFAULT: Number(row.price || 0),
+                            VIP: Number(row.tierPrices?.VIP || 0),
+                            SUPPORTER: Number(row.tierPrices?.SUPPORTER || 0),
+                            B2B: Number(row.tierPrices?.B2B || 0),
                         }, token);
                     }
                     row.id = savedId;
@@ -184,7 +195,16 @@ export default function ProductAdmin() {
         if (!selectedProduct) return;
         const nextForm = { ...emptyForm, ...selectedProduct, active: selectedProduct.active !== false };
         setFormState(nextForm);
-        const nextVariants = normalizeVariants(selectedProduct.variants).map((variant) => ({ ...emptyVariant(), ...variant, localId: variant.id || globalThis.crypto?.randomUUID?.() }));
+        const nextVariants = normalizeVariants(selectedProduct.variants).map((variant) => ({
+            ...emptyVariant(),
+            ...variant,
+            localId: variant.id || globalThis.crypto?.randomUUID?.(),
+            weight: variant.weight ?? '',
+            price: getVariantPrice(variant) ?? '',
+            stock: getVariantStock(variant) ?? '',
+            tierPrices: normalizeTierPricesForEditor(variant),
+            active: variant.active !== false,
+        }));
         setVariantRows(nextVariants);
         setDefaultVariantId(selectedProduct.defaultVariantId || nextVariants[0]?.id || null);
     };
