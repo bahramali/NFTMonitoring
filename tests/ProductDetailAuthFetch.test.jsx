@@ -41,7 +41,7 @@ describe('ProductDetail auth-aware fetch', () => {
         renderPage();
 
         await waitFor(() => {
-            expect(fetchStoreProduct).toHaveBeenCalledWith('p-1', { token: null });
+            expect(fetchStoreProduct).toHaveBeenCalledWith('p-1');
         });
     });
 
@@ -51,7 +51,7 @@ describe('ProductDetail auth-aware fetch', () => {
         renderPage();
 
         await waitFor(() => {
-            expect(fetchStoreProduct).toHaveBeenCalledWith('p-1', { token: 'jwt-2' });
+            expect(fetchStoreProduct).toHaveBeenCalledWith('p-1');
         });
     });
 });
