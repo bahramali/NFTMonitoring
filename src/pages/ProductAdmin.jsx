@@ -73,15 +73,22 @@ const digitToAscii = (char) => {
 const normalizeNumber = (value, fallback = 0) => {
     if (value === '' || value === null || value === undefined) return fallback;
 
-    const normalized = `${value}`
+    let normalized = `${value}`
         .trim()
         .split('')
         .map(digitToAscii)
         .join('')
-        // Remove grouping separators commonly used in Persian/Arabic numerals.
-        .replace(/[\u066c\u060c,\s]/g, '')
         // Normalize Arabic decimal separator.
         .replace(/\u066b/g, '.');
+
+    if (normalized.includes(',') && !normalized.includes('.')) {
+        normalized = normalized.replace(/,/g, '.');
+    }
+
+    normalized = normalized
+        // Remove grouping separators commonly used in Persian/Arabic numerals.
+        .replace(/[\u066c\u060c\s]/g, '')
+        .replace(/,/g, '');
 
     const numeric = Number(normalized);
     if (Number.isNaN(numeric)) return fallback;
@@ -491,10 +498,10 @@ export default function ProductAdmin() {
     });
 
     const buildTierPricePayload = (variant) => ({
-        DEFAULT: normalizeNumber(variant?.tierPrices?.DEFAULT ?? variant.price, 0),
-        SUPPORTER: normalizeNumber(variant?.tierPrices?.SUPPORTER, 0),
-        B2B: normalizeNumber(variant?.tierPrices?.B2B, 0),
-        VIP: normalizeNumber(variant?.tierPrices?.VIP, 0),
+        DEFAULT: Math.round(normalizeNumber(variant?.tierPrices?.DEFAULT ?? variant.price, 0) * 100),
+        SUPPORTER: Math.round(normalizeNumber(variant?.tierPrices?.SUPPORTER, 0) * 100),
+        B2B: Math.round(normalizeNumber(variant?.tierPrices?.B2B, 0) * 100),
+        VIP: Math.round(normalizeNumber(variant?.tierPrices?.VIP, 0) * 100),
     });
 
     const variantValidation = useMemo(() => {
@@ -572,7 +579,7 @@ export default function ProductAdmin() {
                 const payload = buildVariantPayload({ ...variant, sortOrder: index });
                 if (variant.id) {
                     const updated = await updateProductVariant(productId, variant.id, payload, token);
-                    await updateVariantTierPrices(variant.id, { priceByTier: buildTierPricePayload(variant) }, token);
+                    await updateVariantTierPrices(variant.id, buildTierPricePayload(variant), token);
                     saveResults.push({
                         localId: variant.localId,
                         id: variant.id,
@@ -581,7 +588,7 @@ export default function ProductAdmin() {
                 } else {
                     const created = await createProductVariant(productId, payload, token);
                     if (created?.id) {
-                        await updateVariantTierPrices(created.id, { priceByTier: buildTierPricePayload(variant) }, token);
+                        await updateVariantTierPrices(created.id, buildTierPricePayload(variant), token);
                     }
                     saveResults.push({
                         localId: variant.localId,
