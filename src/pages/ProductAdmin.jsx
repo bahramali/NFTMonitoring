@@ -79,6 +79,25 @@ const UUID_PATTERN =
 
 export const hasRealUuidId = (id) => UUID_PATTERN.test(`${id ?? ""}`.trim());
 
+export const hasDuplicateVariantWeight = (rows = []) => {
+  const seenWeights = new Set();
+
+  for (const row of rows) {
+    const rowKey = row?.id || row?.localId;
+    if (!rowKey) continue;
+
+    const weight = parseIntegerInput(row?.weight ?? row?.weightGrams);
+    if (!Number.isFinite(weight)) continue;
+
+    if (seenWeights.has(weight)) {
+      return true;
+    }
+    seenWeights.add(weight);
+  }
+
+  return false;
+};
+
 const parseDecimalInput = (value) => {
   if (value === "" || value === null || value === undefined) return 0;
   return Number.parseFloat(`${value}`.replace(",", "."));
@@ -363,6 +382,11 @@ export default function ProductAdmin() {
 
   const saveAll = async () => {
     if (saving) return;
+    if (variantsDirty && hasDuplicateVariantWeight(variantRows)) {
+      setListError("A variant with this weight already exists.");
+      setActiveTab("variants");
+      return;
+    }
     setListError("");
     setSaving(true);
     try {
