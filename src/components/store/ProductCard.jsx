@@ -8,7 +8,6 @@ import {
     getActiveVariants,
     getDefaultVariantId,
     getVariantLabel,
-    getVariantPrice,
     getVariantStock,
     isVariantInStock,
 } from '../../utils/storeVariants.js';
@@ -35,8 +34,24 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
     const { name, id, currency } = product || {};
     const activeVariant = selectedVariant;
     const pricingTier = extractUserPricingTier(profile);
-    const { regularPriceSek, customerPriceSek, appliedTier } = resolvePricingForTier(selectedVariant ?? product, pricingTier);
-    const priceValue = customerPriceSek ?? product?.price ?? 0;
+    const variantPricing = resolvePricingForTier(selectedVariant, pricingTier);
+    const productPricing = resolvePricingForTier(product, pricingTier);
+    const regularPriceSek = variantPricing.regularPriceSek ?? productPricing.regularPriceSek ?? product?.price ?? 0;
+    const appliedTier = variantPricing.appliedTier;
+    const variantHasTierDiff = variantPricing.customerPriceSek !== null
+        && variantPricing.regularPriceSek !== null
+        && variantPricing.customerPriceSek !== variantPricing.regularPriceSek;
+    const productHasTierDiff = productPricing.customerPriceSek !== null
+        && productPricing.regularPriceSek !== null
+        && productPricing.customerPriceSek !== productPricing.regularPriceSek;
+    const customerPriceSek = appliedTier === 'DEFAULT'
+        ? regularPriceSek
+        : variantHasTierDiff
+            ? variantPricing.customerPriceSek
+            : productHasTierDiff
+                ? productPricing.customerPriceSek
+                : (variantPricing.customerPriceSek ?? productPricing.customerPriceSek ?? regularPriceSek);
+    const priceValue = customerPriceSek ?? regularPriceSek;
     const tierPriceApplied = appliedTier !== 'DEFAULT' && customerPriceSek !== regularPriceSek;
     const stockValue = selectedVariant ? getVariantStock(selectedVariant) : product?.stock;
     const isOutOfStock = stockValue !== undefined && stockValue <= 0;

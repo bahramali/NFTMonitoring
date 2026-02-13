@@ -5,6 +5,12 @@ import { MemoryRouter } from 'react-router-dom';
 import ProductCard from '../src/components/store/ProductCard.jsx';
 import { StorefrontProvider, useStorefront } from '../src/context/StorefrontContext.jsx';
 
+let mockProfile = null;
+
+vi.mock('../src/context/AuthContext.jsx', () => ({
+    useAuth: () => ({ profile: mockProfile }),
+}));
+
 const createJsonResponse = (data) => ({
     ok: true,
     status: 200,
@@ -22,6 +28,7 @@ const createJsonResponse = (data) => ({
 afterEach(() => {
     vi.restoreAllMocks();
     window.localStorage.clear();
+    mockProfile = null;
 });
 
 describe('ProductCard', () => {
@@ -160,6 +167,33 @@ describe('ProductCard', () => {
 
         expect(screen.getByRole('img', { name: 'Gallery Product' })).toHaveAttribute('src', 'https://cdn.example.com/gallery.jpg');
         expect(screen.getByRole('img', { name: 'Gallery Product' })).toHaveAttribute('data-image-source', 'product.images[0].url');
+    });
+
+
+    it('shows supporter tier price when variant does not include tier map but product does', () => {
+        mockProfile = { pricingTier: 'SUPPORTER' };
+        const product = {
+            id: 'p-tier-1',
+            name: 'Tiered Basil',
+            currency: 'SEK',
+            tierPricesSek: {
+                DEFAULT: 29.9,
+                SUPPORTER: 10,
+            },
+            variants: [
+                { id: 'v-1', label: '50g', price: 29.9, stock: 4 },
+            ],
+        };
+
+        render(
+            <MemoryRouter>
+                <ProductCard product={product} />
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByText('29,90 kr')).toBeInTheDocument();
+        expect(screen.getByText('10,00 kr')).toBeInTheDocument();
+        expect(screen.getByText('Supporter price')).toBeInTheDocument();
     });
 
     it('keeps view details link visible', () => {
