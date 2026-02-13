@@ -771,23 +771,24 @@ export default function ProductAdmin() {
                     Add variant
                   </button>
                 </div>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      <th>Default</th>
-                      <th>Weight</th>
-                      <th>Price (SEK)</th>
-                      <th>VIP</th>
-                      <th>Supporter</th>
-                      <th>B2B</th>
-                      <th>Stock</th>
-                      <th>SKU</th>
-                      <th>Image URL</th>
-                      <th>Active</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <div className={styles.variantsTableScroll}>
+                  <table className={`${styles.table} ${styles.variantsTable}`}>
+                    <thead>
+                      <tr>
+                        <th>Default</th>
+                        <th>Weight</th>
+                        <th>Price (SEK)</th>
+                        <th>VIP</th>
+                        <th>Supporter</th>
+                        <th>B2B</th>
+                        <th>Stock</th>
+                        <th className={styles.colSku}>SKU</th>
+                        <th className={styles.colImageUrl}>Image URL</th>
+                        <th>Active</th>
+                        <th className={styles.actions}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
                     {variantRows.map((variant) => {
                       const key = variant.id || variant.localId;
                       const isEditing = Boolean(editingVariantIds[key]);
@@ -812,7 +813,7 @@ export default function ProductAdmin() {
                             {isEditing ? (
                               <div className={styles.cellEditor}>
                                 <input
-                                  className={styles.input}
+                                  className={`${styles.input} ${styles.variantCellInput}`}
                                   inputMode="numeric"
                                   value={
                                     draftVariantsById[key]?.weight ??
@@ -848,7 +849,7 @@ export default function ProductAdmin() {
                             {isEditing ? (
                               <div className={styles.cellEditor}>
                                 <input
-                                  className={styles.input}
+                                  className={`${styles.input} ${styles.variantCellInput}`}
                                   inputMode="decimal"
                                   value={rowData.price ?? ""}
                                   onChange={(e) => {
@@ -880,7 +881,7 @@ export default function ProductAdmin() {
                               {isEditing ? (
                                 <div className={styles.cellEditor}>
                                   <input
-                                    className={styles.input}
+                                    className={`${styles.input} ${styles.variantCellInput}`}
                                     aria-label={label}
                                     inputMode="decimal"
                                     value={rowData.tierPrices?.[tier] ?? ""}
@@ -913,7 +914,7 @@ export default function ProductAdmin() {
                             {isEditing ? (
                               <div className={styles.cellEditor}>
                                 <input
-                                  className={styles.input}
+                                  className={`${styles.input} ${styles.variantCellInput}`}
                                   inputMode="numeric"
                                   value={rowData.stock ?? ""}
                                   onChange={(e) => {
@@ -936,23 +937,28 @@ export default function ProductAdmin() {
                               variant.stock || 0
                             )}
                           </td>
-                          <td>
+                          <td className={styles.colSku}>
                             {isEditing ? (
                               <input
-                                className={styles.input}
+                                className={`${styles.input} ${styles.variantCellInput}`}
                                 value={rowData.sku || ""}
                                 onChange={(e) =>
                                   setDraftField(key, "sku", e.target.value)
                                 }
                               />
                             ) : (
-                              variant.sku || "—"
+                              <span
+                                className={styles.truncateCell}
+                                title={variant.sku || ""}
+                              >
+                                {variant.sku || "—"}
+                              </span>
                             )}
                           </td>
-                          <td>
+                          <td className={styles.colImageUrl}>
                             {isEditing ? (
                               <input
-                                className={styles.input}
+                                className={`${styles.input} ${styles.variantCellInput}`}
                                 type="url"
                                 placeholder="https://..."
                                 value={rowData.imageUrl || ""}
@@ -961,7 +967,12 @@ export default function ProductAdmin() {
                                 }
                               />
                             ) : (
-                              normalizeUrl(variant.imageUrl) || "—"
+                              <span
+                                className={styles.truncateCell}
+                                title={normalizeUrl(variant.imageUrl) || ""}
+                              >
+                                {normalizeUrl(variant.imageUrl) || "—"}
+                              </span>
                             )}
                           </td>
                           <td>
@@ -979,7 +990,7 @@ export default function ProductAdmin() {
                               "Yes"
                             )}
                           </td>
-                          <td>
+                          <td className={styles.actions}>
                             {isEditing ? (
                               <>
                                 <button
@@ -1025,8 +1036,9 @@ export default function ProductAdmin() {
                         </tr>
                       );
                     })}
-                  </tbody>
-                </table>
+                    </tbody>
+                  </table>
+                </div>
               </>
             ) : (
               <p className={styles.notice}>
