@@ -74,6 +74,10 @@ const normalizeTierPricesForEditor = (variant) => {
 
 const DECIMAL_INPUT_PATTERN = /^\d*(?:[.,]\d*)?$/;
 const INTEGER_INPUT_PATTERN = /^\d*$/;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export const hasRealUuidId = (id) => UUID_PATTERN.test(`${id ?? ""}`.trim());
 
 const parseDecimalInput = (value) => {
   if (value === "" || value === null || value === undefined) return 0;
@@ -396,7 +400,7 @@ export default function ProductAdmin() {
             active: row.active !== false,
             sortOrder: index,
           };
-          const saved = row.id
+          const saved = hasRealUuidId(row.id)
             ? await updateProductVariant(id, row.id, payload, token)
             : await createProductVariant(id, payload, token);
           const savedId = saved?.id || row.id;
