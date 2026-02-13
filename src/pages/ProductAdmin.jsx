@@ -486,15 +486,15 @@ export default function ProductAdmin() {
               New product
             </button>
           </div>
-          <div className={styles.filters}>
+          <div className={styles.filtersRow}>
             <input
-              className={styles.input}
+              className={`${styles.input} ${styles.searchInput}`}
               placeholder="Search name or SKU"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
             <select
-              className={styles.input}
+              className={`${styles.input} ${styles.statusSelect}`}
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -503,7 +503,7 @@ export default function ProductAdmin() {
               <option value="inactive">Inactive</option>
             </select>
             <select
-              className={styles.input}
+              className={`${styles.input} ${styles.filterSelect}`}
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
             >
@@ -515,7 +515,7 @@ export default function ProductAdmin() {
               ))}
             </select>
             <select
-              className={styles.input}
+              className={`${styles.input} ${styles.filterSelect}`}
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >
