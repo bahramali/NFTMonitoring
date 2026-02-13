@@ -100,26 +100,38 @@
     min-width: 120px;
 }
 
+.priceWrap {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
 .priceValue {
     display: block;
     font-size: 20px;
     font-weight: 700;
 }
 
-.originalPrice {
-    display: block;
-    font-size: 0.9rem;
+.priceOldInvalid {
+    color: #b42318;
     text-decoration: line-through;
-    color: #7a7a7a;
+    text-decoration-thickness: 2px;
+    text-decoration-color: #b42318;
+    opacity: 0.9;
+    font-size: 0.9rem;
 }
 
-.supporterTag {
-    display: inline-flex;
-    margin-top: 0.25rem;
-    font-size: 0.7rem;
+.priceNewValid {
     font-weight: 700;
-    text-transform: uppercase;
-    color: #1b6a36;
+}
+
+.tierBadge {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #eef6ee;
 }
 
 .buyFooter {
@@ -304,6 +316,10 @@
 
     .price {
         text-align: left;
+    }
+
+    .priceWrap {
+        justify-content: flex-start;
     }
 
     .media {

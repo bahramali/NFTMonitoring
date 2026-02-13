@@ -106,6 +106,13 @@
     flex-wrap: wrap;
 }
 
+.priceWrap {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
 .variantRow {
     display: inline-flex;
     flex-wrap: wrap;
@@ -165,10 +172,13 @@
 }
 
 
-.originalPrice {
-    font-size: 0.95rem;
+.priceOldInvalid {
+    color: #b42318;
     text-decoration: line-through;
-    color: #7a7a7a;
+    text-decoration-thickness: 2px;
+    text-decoration-color: #b42318;
+    opacity: 0.9;
+    font-size: 0.95rem;
 }
 
 .price {
@@ -176,10 +186,21 @@
     font-weight: 800;
 }
 
+.priceNewValid {
+    font-weight: 700;
+}
+
 .currency {
     color: var(--muted, #666);
     letter-spacing: 0.04em;
     text-transform: uppercase;
+}
+
+.tierBadge {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #eef6ee;
 }
 
 .priceMeta {
