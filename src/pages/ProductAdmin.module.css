@@ -26,5 +26,8 @@
 .drawerBackdrop { position: fixed; inset:0; background: rgba(0,0,0,.35); display:flex; justify-content:flex-end; z-index: 30; }
 .drawer { width:min(420px,100%); background:#fff; padding:1rem; overflow:auto; display:grid; gap:.55rem; }
 .drawer label { display:grid; gap:.3rem; }
+.imagePreviewWrap { display:grid; gap:.35rem; }
+.imagePreview { width:72px; height:72px; border-radius:8px; object-fit:cover; border:1px solid #e4e4e4; background:#f7f7f7; }
+.imagePreviewError { margin:0; font-size:.82rem; color:#757575; }
 .drawerActions { display:flex; justify-content:flex-end; gap:.5rem; margin-top:.75rem; }
 .stickySaveBar { position: sticky; bottom: 0; background:#111; color:#fff; padding:.7rem 1rem; border-radius:10px; display:flex; justify-content:space-between; align-items:center; gap:.75rem; }
