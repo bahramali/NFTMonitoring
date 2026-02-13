@@ -28,8 +28,6 @@ export const getVariantPrice = (variant, tier = 'DEFAULT') => {
     if (tierResolvedPrice != null) return tierResolvedPrice;
     const priceValue = variant.price ?? variant.priceSek ?? variant.unitPrice;
     if (priceValue != null) return priceValue;
-    if (variant.priceCents != null) return variant.priceCents / 100;
-    if (variant.unitPriceCents != null) return variant.unitPriceCents / 100;
     return undefined;
 };
 
