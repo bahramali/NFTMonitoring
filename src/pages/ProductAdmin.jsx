@@ -14,7 +14,7 @@ import {
 import AccessDenied from '../components/AccessDenied.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { PERMISSIONS, hasPerm } from '../utils/permissions.js';
-import { getVariantPrice, getVariantStock, getProductSortPrice, getVariantLabel } from '../utils/storeVariants.js';
+import { getVariantStock, getProductSortPrice, getVariantLabel } from '../utils/storeVariants.js';
 import { resolveTierPrice } from '../utils/pricingTier.js';
 import styles from './ProductAdmin.module.css';
 
@@ -29,6 +29,7 @@ const emptyVariant = () => ({ id: null, localId: globalThis.crypto?.randomUUID?.
 
 const normalizeProducts = (payload) => (Array.isArray(payload) ? payload : payload?.products || []);
 const normalizeVariants = (variants) => (Array.isArray(variants) ? variants : variants?.items || variants?.nodes || variants?.data || []);
+const resolveEditorPrice = (variant) => Number(variant?.priceSek ?? variant?.price ?? variant?.unitPrice ?? 0);
 const normalizeTierPricesForEditor = (variant) => {
     const tiers = ['VIP', 'SUPPORTER', 'B2B'];
     return tiers.reduce((acc, tier) => {
@@ -100,7 +101,7 @@ export default function ProductAdmin() {
             ...variant,
             localId: variant.id || globalThis.crypto?.randomUUID?.(),
             weight: variant.weight ?? '',
-            price: getVariantPrice(variant) ?? '',
+            price: resolveEditorPrice(variant),
             stock: getVariantStock(variant) ?? '',
             tierPrices: normalizeTierPricesForEditor(variant),
             active: variant.active !== false,
@@ -200,7 +201,7 @@ export default function ProductAdmin() {
             ...variant,
             localId: variant.id || globalThis.crypto?.randomUUID?.(),
             weight: variant.weight ?? '',
-            price: getVariantPrice(variant) ?? '',
+            price: resolveEditorPrice(variant),
             stock: getVariantStock(variant) ?? '',
             tierPrices: normalizeTierPricesForEditor(variant),
             active: variant.active !== false,
@@ -230,7 +231,7 @@ export default function ProductAdmin() {
                     <div className={styles.tabs}><button className={activeTab === 'overview' ? styles.activeTab : styles.tab} onClick={() => setActiveTab('overview')}>Overview</button><button className={activeTab === 'details' ? styles.activeTab : styles.tab} onClick={() => setActiveTab('details')}>Product details</button><button className={activeTab === 'variants' ? styles.activeTab : styles.tab} disabled={!detailId} onClick={() => setActiveTab('variants')}>Variants & pricing</button></div>
                     {activeTab === 'overview' && <div className={styles.cards}><article className={styles.card}><h3>Default price</h3><p>{variantRows[0]?.price || 0} SEK</p></article><article className={styles.card}><h3>Total stock</h3><p>{variantRows.reduce((sum, row) => sum + Number(row.stock || 0), 0)}</p></article><article className={styles.card}><h3>Variants</h3><p>{variantRows.length}</p></article></div>}
                     {activeTab === 'details' && <div className={styles.formGrid}><label>Name<input className={styles.input} value={formState.name} onChange={(e) => setFormState((p) => ({ ...p, name: e.target.value }))} /></label><label>SKU<input className={styles.input} value={formState.sku} onChange={(e) => setFormState((p) => ({ ...p, sku: e.target.value }))} /></label><label>Category<select className={styles.input} value={formState.category} onChange={(e) => setFormState((p) => ({ ...p, category: e.target.value }))}>{CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}</select></label><label>Description<textarea className={styles.input} rows={4} value={formState.description} onChange={(e) => setFormState((p) => ({ ...p, description: e.target.value }))} /></label></div>}
-                    {activeTab === 'variants' && (detailId ? <><div className={styles.variantToolbar}><button className={styles.secondaryButton} onClick={() => setVariantRows((prev) => [...prev, emptyVariant()])}>Add variant</button></div><table className={styles.table}><thead><tr><th>Default</th><th>Weight</th><th>Price (SEK)</th><th>VIP</th><th>Supporter</th><th>B2B</th><th>Stock</th><th>Active</th><th>Actions</th></tr></thead><tbody>{variantRows.map((variant) => { const key = variant.id || variant.localId; return <tr key={key}><td><input type="radio" name="default" checked={defaultVariantId === key || defaultVariantId === variant.id} onChange={() => setDefaultVariantId(key)} /></td><td>{getVariantLabel(variant)}</td><td>{variant.price || 0}</td><td>{variant.tierPrices?.VIP || 0}</td><td>{variant.tierPrices?.SUPPORTER || 0}</td><td>{variant.tierPrices?.B2B || 0}</td><td>{variant.stock || 0}</td><td>{variant.active === false ? 'No' : 'Yes'}</td><td><button className={styles.linkButton} onClick={() => setVariantEditorId(key)}>Edit</button><button className={styles.dangerLink} onClick={async () => { if (variant.id) await deleteProductVariant(detailId, variant.id, token); setVariantRows((prev) => prev.filter((row) => (row.id || row.localId) !== key)); }}>Delete</button></td></tr>; })}</tbody></table></> : <p className={styles.notice}>Variants require saved product. Save product details first.</p>)}
+                    {activeTab === 'variants' && (detailId ? <><div className={styles.variantToolbar}><button className={styles.secondaryButton} onClick={() => setVariantRows((prev) => [...prev, emptyVariant()])}>Add variant</button></div><table className={styles.table}><thead><tr><th>Default</th><th>Weight</th><th>Price (SEK)</th><th>VIP</th><th>Supporter</th><th>B2B</th><th>Stock</th><th>Active</th><th>Actions</th></tr></thead><tbody>{variantRows.map((variant) => { const key = variant.id || variant.localId; return <tr key={key}><td><input type="radio" name="default" checked={defaultVariantId === key || defaultVariantId === variant.id} onChange={() => setDefaultVariantId(key)} /></td><td>{getVariantLabel(variant)}</td><td>{variant.priceSek ?? variant.price ?? 0}</td><td>{variant.tierPrices?.VIP || 0}</td><td>{variant.tierPrices?.SUPPORTER || 0}</td><td>{variant.tierPrices?.B2B || 0}</td><td>{variant.stock || 0}</td><td>{variant.active === false ? 'No' : 'Yes'}</td><td><button className={styles.linkButton} onClick={() => setVariantEditorId(key)}>Edit</button><button className={styles.dangerLink} onClick={async () => { if (variant.id) await deleteProductVariant(detailId, variant.id, token); setVariantRows((prev) => prev.filter((row) => (row.id || row.localId) !== key)); }}>Delete</button></td></tr>; })}</tbody></table></> : <p className={styles.notice}>Variants require saved product. Save product details first.</p>)}
                 </>
             )}
 

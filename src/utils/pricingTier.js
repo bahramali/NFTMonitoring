@@ -5,11 +5,6 @@ const toNumber = (value) => {
     return Number.isFinite(parsed) ? parsed : null;
 };
 
-const fromCents = (cents) => {
-    const parsed = toNumber(cents);
-    return parsed === null ? null : parsed / 100;
-};
-
 export const normalizePricingTier = (value) => {
     const normalized = `${value ?? ''}`.trim().toUpperCase();
     if (!normalized) return 'DEFAULT';
@@ -30,30 +25,29 @@ export const extractUserPricingTier = (profile) => {
 export const resolveTierPrice = (entity, tier = 'DEFAULT') => {
     if (!entity) return null;
     const normalizedTier = normalizePricingTier(tier);
+    const tierPricesMap = entity?.tierPrices && typeof entity.tierPrices === 'object' ? entity.tierPrices : {};
+    const decimalTierPrice =
+        toNumber(tierPricesMap?.[normalizedTier])
+        ?? toNumber(tierPricesMap?.[normalizedTier?.toLowerCase?.()]);
+    if (decimalTierPrice !== null) return decimalTierPrice;
+
     const fallbackPrice =
         toNumber(entity?.unitPrice)
         ?? toNumber(entity?.price)
-        ?? toNumber(entity?.priceSek)
-        ?? fromCents(entity?.unitPriceCents)
-        ?? fromCents(entity?.priceCents)
-        ?? fromCents(entity?.price_sek_cents);
+        ?? toNumber(entity?.priceSek);
 
-    const rawPriceByTier = entity?.priceByTier ?? entity?.pricesByTier ?? entity?.tierPrices ?? entity?.prices ?? null;
+    const rawPriceByTier = entity?.priceByTier ?? entity?.pricesByTier ?? entity?.prices ?? null;
     const map = rawPriceByTier && typeof rawPriceByTier === 'object' ? rawPriceByTier : {};
     const tierPrice =
         toNumber(map?.[normalizedTier])
-        ?? toNumber(map?.[normalizedTier?.toLowerCase?.()])
-        ?? fromCents(map?.[`${normalizedTier}_CENTS`])
-        ?? fromCents(map?.[`${normalizedTier?.toLowerCase?.()}_cents`]);
+        ?? toNumber(map?.[normalizedTier?.toLowerCase?.()]);
 
     if (tierPrice !== null) return tierPrice;
 
     if (normalizedTier !== 'DEFAULT') {
         const directTierPrice =
             toNumber(entity?.[`price${normalizedTier}`])
-            ?? toNumber(entity?.[`price_${normalizedTier.toLowerCase()}`])
-            ?? fromCents(entity?.[`price${normalizedTier}Cents`])
-            ?? fromCents(entity?.[`price_${normalizedTier.toLowerCase()}_cents`]);
+            ?? toNumber(entity?.[`price_${normalizedTier.toLowerCase()}`]);
         if (directTierPrice !== null) return directTierPrice;
     }
 
