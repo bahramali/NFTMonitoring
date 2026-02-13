@@ -32,12 +32,12 @@ afterEach(() => {
 });
 
 describe('Storefront auth-aware product fetch', () => {
-    it('uses public fetch for anonymous users', async () => {
+    it('requests products through central auth layer for anonymous users', async () => {
         listStoreProducts.mockResolvedValue({ products: [] });
         render(<MemoryRouter><Storefront /></MemoryRouter>);
 
         await waitFor(() => {
-            expect(listStoreProducts).toHaveBeenCalledWith({ token: null });
+            expect(listStoreProducts).toHaveBeenCalledWith();
         });
     });
 
@@ -47,7 +47,7 @@ describe('Storefront auth-aware product fetch', () => {
         render(<MemoryRouter><Storefront /></MemoryRouter>);
 
         await waitFor(() => {
-            expect(listStoreProducts).toHaveBeenCalledWith({ token: 'jwt-1' });
+            expect(listStoreProducts).toHaveBeenCalledWith();
         });
     });
 });

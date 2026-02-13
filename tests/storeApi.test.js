@@ -20,13 +20,13 @@ afterEach(() => {
 });
 
 describe('store product API auth behavior', () => {
-    it('uses public product list endpoint without auth for anonymous users', async () => {
+    it('routes anonymous product list through authFetch without bearer token', async () => {
         const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ products: [] }));
 
         await listStoreProducts();
 
-        expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining('/api/store/products'), { signal: undefined });
-        expect(fetchSpy.mock.calls[0][1]?.headers).toBeUndefined();
+        expect(fetchSpy.mock.calls[0][0]).toEqual(expect.stringContaining('/api/store/products'));
+        expect(fetchSpy.mock.calls[0][1]).toMatchObject({ signal: undefined, headers: {} });
     });
 
     it('sends bearer auth for product list when token exists', async () => {

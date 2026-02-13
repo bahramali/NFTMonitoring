@@ -9,7 +9,7 @@ import styles from './Storefront.module.css';
 
 export default function Storefront() {
     const { addToCart, pendingProductId } = useStorefront();
-    const { isAuthenticated, token } = useAuth();
+    const { isAuthenticated } = useAuth();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -63,7 +63,7 @@ export default function Storefront() {
         setLoading(true);
         setError(null);
         try {
-            const response = await listStoreProducts({ token: isAuthenticated ? token : null });
+            const response = await listStoreProducts();
             const list = response?.products ?? response ?? [];
             setProducts(Array.isArray(list) ? list : []);
         } catch (err) {
@@ -75,7 +75,7 @@ export default function Storefront() {
 
     useEffect(() => {
         fetchProducts();
-    }, [isAuthenticated, token]);
+    }, [isAuthenticated]);
 
     return (
         <div className={styles.page}>
