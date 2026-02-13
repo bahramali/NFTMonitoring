@@ -5,6 +5,11 @@ const toNumber = (value) => {
     return Number.isFinite(parsed) ? parsed : null;
 };
 
+const fromCents = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed / 100 : null;
+};
+
 export const normalizePricingTier = (value) => {
     const normalized = `${value ?? ''}`.trim().toUpperCase();
     if (!normalized) return 'DEFAULT';
@@ -25,11 +30,17 @@ export const extractUserPricingTier = (profile) => {
 export const resolveTierPrice = (entity, tier = 'DEFAULT') => {
     if (!entity) return null;
     const normalizedTier = normalizePricingTier(tier);
+    const tierPricesSekMap = entity?.tierPricesSek && typeof entity.tierPricesSek === 'object' ? entity.tierPricesSek : {};
+    const sekTierPrice =
+        toNumber(tierPricesSekMap?.[normalizedTier])
+        ?? toNumber(tierPricesSekMap?.[normalizedTier?.toLowerCase?.()]);
+    if (sekTierPrice !== null) return sekTierPrice;
+
     const tierPricesMap = entity?.tierPrices && typeof entity.tierPrices === 'object' ? entity.tierPrices : {};
-    const decimalTierPrice =
-        toNumber(tierPricesMap?.[normalizedTier])
-        ?? toNumber(tierPricesMap?.[normalizedTier?.toLowerCase?.()]);
-    if (decimalTierPrice !== null) return decimalTierPrice;
+    const decimalTierPriceFromCents =
+        fromCents(tierPricesMap?.[normalizedTier])
+        ?? fromCents(tierPricesMap?.[normalizedTier?.toLowerCase?.()]);
+    if (decimalTierPriceFromCents !== null) return decimalTierPriceFromCents;
 
     const fallbackPrice =
         toNumber(entity?.unitPrice)
