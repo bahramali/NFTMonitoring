@@ -1,1202 +1,222 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import {
-    listAdminProducts,
     createProduct,
-    updateProduct,
-    toggleProductActive,
-    deleteProduct,
     createProductVariant,
-    updateProductVariant,
+    deleteProduct,
     deleteProductVariant,
+    listAdminProducts,
+    toggleProductActive,
+    updateProduct,
+    updateProductVariant,
     updateVariantTierPrices,
 } from '../api/products.js';
-import { fetchPermissionDefinitions } from '../api/admins.js';
-import { useAuth } from '../context/AuthContext.jsx';
 import AccessDenied from '../components/AccessDenied.jsx';
-import { getActiveVariants, getVariantLabel, getVariantPrice, getVariantStock, getProductSortPrice } from '../utils/storeVariants.js';
-import { PERMISSIONS, findPermissionLabel, hasPerm } from '../utils/permissions.js';
+import { useAuth } from '../context/AuthContext.jsx';
+import { PERMISSIONS, hasPerm } from '../utils/permissions.js';
+import { getVariantPrice, getVariantStock, getProductSortPrice, getVariantLabel } from '../utils/storeVariants.js';
 import styles from './ProductAdmin.module.css';
 
 const CATEGORY_OPTIONS = ['Basil', 'Packaging', 'Hydroponic gear'];
-
-const emptyForm = {
-    name: '',
-    description: '',
-    currency: 'SEK',
-    category: CATEGORY_OPTIONS[0],
-    imageUrl: '',
-    sku: '',
-    active: true,
-};
-
 const SORT_OPTIONS = [
     { value: 'updated_desc', label: 'Updated (newest)' },
     { value: 'price_desc', label: 'Price (high to low)' },
     { value: 'price_asc', label: 'Price (low to high)' },
 ];
+const emptyForm = { name: '', description: '', currency: 'SEK', category: CATEGORY_OPTIONS[0], imageUrl: '', sku: '', active: true };
+const emptyVariant = () => ({ id: null, localId: globalThis.crypto?.randomUUID?.() || `new-${Date.now()}`, weight: '', price: '', stock: '', sku: '', active: true, tierPrices: {} });
 
-const normalizeProducts = (payload) => {
-    if (Array.isArray(payload)) return payload;
-    if (Array.isArray(payload?.products)) return payload.products;
-    return [];
-};
-
-const normalizePermissionDefinitions = (payload) => {
-    if (Array.isArray(payload)) return payload;
-    if (Array.isArray(payload?.permissions)) return payload.permissions;
-    if (Array.isArray(payload?.data)) return payload.data;
-    if (Array.isArray(payload?.data?.permissions)) return payload.data.permissions;
-    const groupedPermissions = payload?.permissions || payload?.permissionGroups || payload?.groups;
-    if (groupedPermissions && typeof groupedPermissions === 'object' && !Array.isArray(groupedPermissions)) {
-        return Object.entries(groupedPermissions).flatMap(([domain, permissions]) =>
-            Array.isArray(permissions)
-                ? permissions.map((permission) => ({ ...permission, domain }))
-                : [],
-        );
-    }
-    return [];
-};
-
-const digitToAscii = (char) => {
-    const code = char.charCodeAt(0);
-    const persianZero = 0x06f0; // Persian zero
-    const persianNine = 0x06f9; // Persian nine
-    const arabicZero = 0x0660; // Arabic-indic zero
-    const arabicNine = 0x0669; // Arabic-indic nine
-
-    if (code >= persianZero && code <= persianNine) return String(code - persianZero);
-    if (code >= arabicZero && code <= arabicNine) return String(code - arabicZero);
-    return char;
-};
-
-const normalizeNumber = (value, fallback = 0) => {
-    if (value === '' || value === null || value === undefined) return fallback;
-
-    let normalized = `${value}`
-        .trim()
-        .split('')
-        .map(digitToAscii)
-        .join('')
-        // Normalize Arabic decimal separator.
-        .replace(/\u066b/g, '.');
-
-    if (normalized.includes(',') && !normalized.includes('.')) {
-        normalized = normalized.replace(/,/g, '.');
-    }
-
-    normalized = normalized
-        // Remove grouping separators commonly used in Persian/Arabic numerals.
-        .replace(/[\u066c\u060c\s]/g, '')
-        .replace(/,/g, '');
-
-    const numeric = Number(normalized);
-    if (Number.isNaN(numeric)) return fallback;
-    return numeric;
-};
-
-const normalizeVariants = (variants) => {
-    if (!variants) return [];
-    if (Array.isArray(variants)) return variants;
-    if (Array.isArray(variants.items)) return variants.items;
-    if (Array.isArray(variants.nodes)) return variants.nodes;
-    if (Array.isArray(variants.data)) return variants.data;
-    if (typeof variants === 'object') return Object.values(variants);
-    return [];
-};
-
-const resolveVariantSortOrder = (variant, fallback = 0) => {
-    const candidate = variant?.sortOrder ?? variant?.order ?? variant?.position ?? variant?.displayOrder;
-    const numeric = Number(candidate);
-    return Number.isFinite(numeric) ? numeric : fallback;
-};
-
-const getApiErrorCode = (error) => {
-    const payload = error?.payload;
-    if (!payload || typeof payload !== 'object') return '';
-    return payload.code || payload.errorCode || payload.error?.code || payload.details?.code || '';
-};
-
-const getActionErrorMessage = (error, fallbackMessage) => {
-    const code = getApiErrorCode(error);
-    if (code === 'PRODUCT_HAS_ORDERS') {
-        return 'Cannot delete. This product has existing orders. Deactivate instead.';
-    }
-    if (code === 'DEFAULT_VARIANT_CONSTRAINT') {
-        return 'This variant is the default. Set another default or deactivate instead.';
-    }
-    return fallbackMessage;
-};
+const normalizeProducts = (payload) => (Array.isArray(payload) ? payload : payload?.products || []);
+const normalizeVariants = (variants) => (Array.isArray(variants) ? variants : variants?.items || variants?.nodes || variants?.data || []);
 
 export default function ProductAdmin() {
     const { isAuthenticated, token, permissions } = useAuth();
+    const navigate = useNavigate();
+    const { productId } = useParams();
+
     const [products, setProducts] = useState([]);
-    const [selectedId, setSelectedId] = useState(null);
-    const [formState, setFormState] = useState(emptyForm);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [toast, setToast] = useState(null);
-    const [listError, setListError] = useState(null);
-    const [formError, setFormError] = useState(null);
+    const [listError, setListError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [sortBy, setSortBy] = useState('updated_desc');
-    const [permissionDefinitions, setPermissionDefinitions] = useState([]);
-    const [confirmingDelete, setConfirmingDelete] = useState(null);
-    const [confirmingStatus, setConfirmingStatus] = useState(null);
-    const [actioningId, setActioningId] = useState(null);
+
+    const [activeTab, setActiveTab] = useState('overview');
+    const [formState, setFormState] = useState(emptyForm);
+    const [formSnapshot, setFormSnapshot] = useState('');
     const [variantRows, setVariantRows] = useState([]);
-    const [variantActionId, setVariantActionId] = useState(null);
-    const [defaultVariantId, setDefaultVariantId] = useState(null);
     const [variantSnapshot, setVariantSnapshot] = useState('');
-    const [editorMode, setEditorMode] = useState('edit');
+    const [defaultVariantId, setDefaultVariantId] = useState(null);
+    const [variantEditorId, setVariantEditorId] = useState(null);
 
     const hasAccess = hasPerm({ permissions }, PERMISSIONS.PRODUCTS_MANAGE);
+    const createMode = productId === 'new';
 
-    const storePermissionLabel = useMemo(() => {
-        const labels = [
-            findPermissionLabel(permissionDefinitions, PERMISSIONS.PRODUCTS_MANAGE),
-        ].filter(Boolean);
-        if (labels.length > 0) return labels[0];
-        return 'store admin';
-    }, [permissionDefinitions]);
-
-    const showToast = useCallback((type, message) => {
-        setToast({ type, message, id: Date.now() });
-        window.setTimeout(() => setToast(null), 4000);
-    }, []);
-
-    const applySelection = useCallback((nextProducts, preferredId = null) => {
-        const nextList = normalizeProducts(nextProducts);
-        setProducts(nextList);
-
-        const targetId = preferredId || selectedId;
-        if (targetId) {
-            const matched = nextList.find((item) => item?.id === targetId);
-            if (matched) {
-                setEditorMode('edit');
-                setSelectedId(matched.id);
-                setFormState({ ...emptyForm, ...matched, active: matched.active !== false });
-                return;
-            }
-        }
-
-        setSelectedId(null);
-        setFormState({ ...emptyForm });
-    }, [selectedId]);
-
-    const loadProducts = useCallback(async (options = {}) => {
+    const loadProducts = useCallback(async () => {
         if (!token) return;
         setLoading(true);
-        setListError(null);
+        setListError('');
         try {
             const payload = await listAdminProducts(token);
-            applySelection(payload, options.preferId);
+            setProducts(normalizeProducts(payload));
         } catch (error) {
-            console.error('Failed to load products', error);
-            setListError('Unable to load products right now. Please try again.');
+            console.error(error);
+            setListError('Unable to load products right now.');
         } finally {
             setLoading(false);
         }
-    }, [applySelection, token]);
-
-    const loadPermissionDefs = useCallback(async () => {
-        if (!token) return;
-        try {
-            const defs = await fetchPermissionDefinitions(token);
-            setPermissionDefinitions(normalizePermissionDefinitions(defs));
-        } catch (error) {
-            console.warn('Permission definitions unavailable; continuing with defaults.', error);
-        }
     }, [token]);
 
-    useEffect(() => {
-        loadProducts();
-    }, [loadProducts]);
+    useEffect(() => { loadProducts(); }, [loadProducts]);
+
+    const selectedProduct = useMemo(() => products.find((product) => product.id === productId) || null, [productId, products]);
 
     useEffect(() => {
-        loadPermissionDefs();
-    }, [loadPermissionDefs]);
+        if (createMode) {
+            setFormState(emptyForm);
+            setVariantRows([]);
+            setDefaultVariantId(null);
+            setFormSnapshot(JSON.stringify(emptyForm));
+            setVariantSnapshot(JSON.stringify({ defaultVariantId: null, variants: [] }));
+            return;
+        }
+        if (!selectedProduct) return;
+        const nextForm = { ...emptyForm, ...selectedProduct, active: selectedProduct.active !== false };
+        const nextVariants = normalizeVariants(selectedProduct.variants).map((variant) => ({
+            ...emptyVariant(),
+            ...variant,
+            localId: variant.id || globalThis.crypto?.randomUUID?.(),
+            weight: variant.weight ?? '',
+            price: getVariantPrice(variant) ?? '',
+            stock: getVariantStock(variant) ?? '',
+            tierPrices: variant.priceByTier || variant.tierPrices || {},
+            active: variant.active !== false,
+        }));
+        const nextDefault = selectedProduct.defaultVariantId || nextVariants[0]?.id || nextVariants[0]?.localId || null;
+        setFormState(nextForm);
+        setVariantRows(nextVariants);
+        setDefaultVariantId(nextDefault);
+        setFormSnapshot(JSON.stringify(nextForm));
+        setVariantSnapshot(JSON.stringify({ defaultVariantId: nextDefault, variants: nextVariants }));
+    }, [createMode, selectedProduct]);
 
     const filteredProducts = useMemo(() => {
         const query = searchTerm.trim().toLowerCase();
-        let list = [...products];
-
-        if (query) {
-            list = list.filter((product) => {
-                const haystacks = [product.name, product.sku].map((value) => `${value || ''}`.toLowerCase());
-                return haystacks.some((value) => value.includes(query));
+        return [...products]
+            .filter((product) => {
+                if (query && ![product.name, product.sku].some((v) => `${v || ''}`.toLowerCase().includes(query))) return false;
+                if (statusFilter !== 'all' && (product.active ?? true) !== (statusFilter === 'active')) return false;
+                if (categoryFilter !== 'all' && product.category !== categoryFilter) return false;
+                return true;
+            })
+            .sort((a, b) => {
+                if (sortBy === 'price_desc') return getProductSortPrice(b) - getProductSortPrice(a);
+                if (sortBy === 'price_asc') return getProductSortPrice(a) - getProductSortPrice(b);
+                return new Date(b.updatedAt || b.updated || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.updated || a.createdAt || 0).getTime();
             });
-        }
-
-        if (statusFilter !== 'all') {
-            const shouldBeActive = statusFilter === 'active';
-            list = list.filter((product) => (product.active ?? true) === shouldBeActive);
-        }
-
-        if (categoryFilter !== 'all') {
-            list = list.filter((product) => product.category === categoryFilter);
-        }
-
-        list.sort((a, b) => {
-            if (sortBy === 'price_desc') return getProductSortPrice(b) - getProductSortPrice(a);
-            if (sortBy === 'price_asc') return getProductSortPrice(a) - getProductSortPrice(b);
-            const aDate = new Date(a.updatedAt || a.updated || a.createdAt || 0).getTime();
-            const bDate = new Date(b.updatedAt || b.updated || b.createdAt || 0).getTime();
-            return bDate - aDate;
-        });
-
-        return list;
     }, [categoryFilter, products, searchTerm, sortBy, statusFilter]);
 
-    const selectedProduct = useMemo(
-        () => products.find((product) => product.id === selectedId) || null,
-        [products, selectedId],
-    );
-    const selectedProductId = selectedProduct?.id || null;
+    const formDirty = JSON.stringify(formState) !== formSnapshot;
+    const variantsDirty = JSON.stringify({ defaultVariantId, variants: variantRows }) !== variantSnapshot;
+    const hasChanges = formDirty || variantsDirty;
 
-    const handleEdit = useCallback((product) => {
-        if (!product?.id) return;
-        setEditorMode('edit');
-        setSelectedId(product.id);
-        setFormState({ ...emptyForm, ...product, active: product.active !== false });
-    }, []);
+    const detailId = createMode ? null : selectedProduct?.id;
 
-    const handleToggleActive = useCallback(async (product, confirmed = false) => {
-        if (!product?.id || saving) return;
-        const nextActive = !(product.active ?? true);
-        if (!confirmed && (product.active ?? true)) {
-            setConfirmingStatus(product);
-            return;
-        }
-        setActioningId(product.id);
-        try {
-            await toggleProductActive(product.id, nextActive, token);
-            showToast('success', nextActive ? 'Product activated' : 'Product deactivated');
-            loadProducts({ preferId: product.id });
-        } catch (error) {
-            console.error('Failed to toggle status', error);
-            showToast('error', getActionErrorMessage(error, 'Could not update product status.'));
-        } finally {
-            setActioningId(null);
-        }
-    }, [loadProducts, saving, showToast, token]);
-
-    const handleDelete = useCallback(async () => {
-        if (!confirmingDelete?.id) return;
+    const saveAll = async () => {
+        if (saving) return;
         setSaving(true);
         try {
-            await deleteProduct(confirmingDelete.id, token);
-            showToast('success', 'Product removed');
-            setConfirmingDelete(null);
-            loadProducts();
-        } catch (error) {
-            console.error('Failed to delete product', error);
-            showToast('error', getActionErrorMessage(error, 'Could not delete product.'));
-        } finally {
-            setSaving(false);
-        }
-    }, [confirmingDelete, loadProducts, showToast, token]);
-
-    const confirmDeactivate = () => {
-        if (!confirmingStatus) return;
-        handleToggleActive(confirmingStatus, true);
-        setConfirmingStatus(null);
-    };
-
-    const validateForm = useCallback(() => {
-        if (!formState.name || formState.name.trim().length < 2) return 'Name must be at least 2 characters.';
-        return '';
-    }, [formState.name]);
-
-    const saveProductChanges = useCallback(async () => {
-        if (saving) return selectedProductId || null;
-        setFormError(null);
-        const validationError = validateForm();
-        if (validationError) {
-            setFormError(validationError);
-            showToast('error', validationError);
-            return null;
-        }
-
-        setSaving(true);
-        const payload = {
-            name: formState.name.trim(),
-            description: formState.description?.trim() || '',
-            currency: formState.currency || 'SEK',
-            category: formState.category || CATEGORY_OPTIONS[0],
-            imageUrl: formState.imageUrl?.trim() || '',
-            sku: formState.sku?.trim() || '',
-            active: formState.active !== false,
-        };
-
-        try {
-            if (selectedProduct) {
-                const updated = await updateProduct(selectedProduct.id, payload, token);
-                return updated?.id || selectedProduct.id;
+            let id = detailId;
+            if (formDirty) {
+                const payload = {
+                    name: formState.name.trim(),
+                    description: formState.description?.trim() || '',
+                    currency: formState.currency || 'SEK',
+                    category: formState.category,
+                    imageUrl: formState.imageUrl?.trim() || '',
+                    sku: formState.sku?.trim() || '',
+                    active: formState.active !== false,
+                };
+                const product = id ? await updateProduct(id, payload, token) : await createProduct(payload, token);
+                id = product?.id || id;
             }
 
-            const created = await createProduct(payload, token);
-            return created?.id || null;
-        } catch (error) {
-            console.error('Failed to save product', error);
-            setFormError('Unable to save product right now.');
-            showToast('error', 'Could not save product.');
-            return null;
+            if (id && variantsDirty) {
+                for (const [index, row] of variantRows.entries()) {
+                    const payload = {
+                        weightGrams: Number(row.weight || 0),
+                        priceSek: Number(row.price || 0),
+                        stockQuantity: Number(row.stock || 0),
+                        sku: row.sku || '',
+                        active: row.active !== false,
+                        sortOrder: index,
+                    };
+                    const saved = row.id ? await updateProductVariant(id, row.id, payload, token) : await createProductVariant(id, payload, token);
+                    const savedId = saved?.id || row.id;
+                    if (savedId) {
+                        await updateVariantTierPrices(savedId, {
+                            DEFAULT: Math.round(Number(row.price || 0) * 100),
+                            VIP: Math.round(Number(row.tierPrices?.VIP || 0) * 100),
+                            SUPPORTER: Math.round(Number(row.tierPrices?.SUPPORTER || 0) * 100),
+                            B2B: Math.round(Number(row.tierPrices?.B2B || 0) * 100),
+                        }, token);
+                    }
+                    row.id = savedId;
+                }
+                await updateProduct(id, { defaultVariantId: defaultVariantId || variantRows[0]?.id || null }, token);
+            }
+            await loadProducts();
+            if (!detailId && id) navigate(`/store/admin/products/${id}`, { replace: true });
         } finally {
             setSaving(false);
         }
-    }, [formState, saving, selectedProduct, selectedProductId, showToast, token, validateForm]);
-
-    const startCreateProduct = () => {
-        setEditorMode('create');
-        setSelectedId(null);
-        setFormState({ ...emptyForm });
     };
 
-    const productSnapshot = useMemo(() => {
-        if (!selectedProduct) return '';
-        return JSON.stringify({
-            name: selectedProduct.name || '',
-            description: selectedProduct.description || '',
-            currency: selectedProduct.currency || 'SEK',
-            category: selectedProduct.category || CATEGORY_OPTIONS[0],
-            imageUrl: selectedProduct.imageUrl || '',
-            sku: selectedProduct.sku || '',
-            active: selectedProduct.active !== false,
-        });
-    }, [selectedProduct]);
-
-    const formSignature = useMemo(() => JSON.stringify({
-        name: formState.name || '',
-        description: formState.description || '',
-        currency: formState.currency || 'SEK',
-        category: formState.category || CATEGORY_OPTIONS[0],
-        imageUrl: formState.imageUrl || '',
-        sku: formState.sku || '',
-        active: formState.active !== false,
-    }), [formState]);
-
-    const isCreateMode = editorMode === 'create';
-    const hasUnsavedProductChanges = selectedProduct ? formSignature !== productSnapshot : isCreateMode && Boolean(formState.name?.trim() || formState.description?.trim() || formState.sku?.trim() || formState.imageUrl?.trim());
-
-    const hydrateVariantDraft = useCallback((product) => {
-        if (!product) {
+    const discardChanges = () => {
+        if (createMode) {
+            setFormState(emptyForm);
             setVariantRows([]);
             setDefaultVariantId(null);
-            setVariantSnapshot('');
             return;
         }
-        const variants = normalizeVariants(product.variants)
-            .map((variant, index) => ({
-                ...variant,
-                id: variant.id ?? variant.variantId ?? variant._id ?? null,
-                weight: variant.weight ?? variant.weightGrams ?? variant.weightInGrams ?? variant.grams ?? '',
-                price: getVariantPrice(variant) ?? '',
-                stock: getVariantStock(variant) ?? '',
-                sku: variant.sku ?? '',
-                imageUrl: variant.imageUrl ?? '',
-                sortOrder: resolveVariantSortOrder(variant, index),
-                active: variant.active !== false && variant.isActive !== false,
-                tierPrices: variant.priceByTier ?? variant.pricesByTier ?? variant.tierPrices ?? {},
-                localId: variant.id ?? variant.variantId ?? variant._id ?? globalThis.crypto?.randomUUID?.(),
-            }))
-            .sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0))
-            .map((variant, index) => ({ ...variant, sortOrder: index }));
-
-        const resolvedDefaultId = product.defaultVariantId || variants[0]?.id || null;
-        setVariantRows(variants);
-        setDefaultVariantId(resolvedDefaultId);
-        setVariantSnapshot(JSON.stringify({
-            defaultVariantId: resolvedDefaultId,
-            variants: variants.map((variant) => ({
-                id: variant.id,
-                localId: variant.localId,
-                weight: `${variant.weight ?? ''}`,
-                price: `${variant.price ?? ''}`,
-                stock: `${variant.stock ?? ''}`,
-                sku: variant.sku ?? '',
-                imageUrl: variant.imageUrl ?? '',
-                active: variant.active !== false,
-                sortOrder: Number(variant.sortOrder ?? 0),
-                tierPrices: variant.tierPrices ?? {},
-            })),
-        }));
-    }, []);
-
-    useEffect(() => {
-        hydrateVariantDraft(selectedProduct);
-    }, [hydrateVariantDraft, selectedProduct]);
-
-    const handleVariantChange = (localId, field, value) => {
-        setVariantRows((prev) =>
-            prev.map((variant) => ((variant.localId || variant.id) === localId ? { ...variant, [field]: value } : variant)),
-        );
+        if (!selectedProduct) return;
+        const nextForm = { ...emptyForm, ...selectedProduct, active: selectedProduct.active !== false };
+        setFormState(nextForm);
+        const nextVariants = normalizeVariants(selectedProduct.variants).map((variant) => ({ ...emptyVariant(), ...variant, localId: variant.id || globalThis.crypto?.randomUUID?.() }));
+        setVariantRows(nextVariants);
+        setDefaultVariantId(selectedProduct.defaultVariantId || nextVariants[0]?.id || null);
     };
 
-    const handleTierPriceChange = (localId, tierKey, value) => {
-        setVariantRows((prev) =>
-            prev.map((variant) => ((variant.localId || variant.id) === localId
-                ? { ...variant, tierPrices: { ...(variant.tierPrices || {}), [tierKey]: value } }
-                : variant)),
-        );
-    };
+    if (!isAuthenticated) return <Navigate to="/login" replace />;
+    if (!hasAccess) return <AccessDenied title="Product access required" message="You need products permission to access this page." />;
 
-    const handleAddVariantRow = () => {
-        const localId = globalThis.crypto?.randomUUID?.() || `new-${Date.now()}`;
-        setVariantRows((prev) => [
-            ...prev,
-            {
-                id: null,
-                weight: '',
-                price: '',
-                stock: '',
-                sku: '',
-                imageUrl: '',
-                sortOrder: prev.length,
-                active: true,
-                localId,
-            },
-        ]);
-        setDefaultVariantId((prevDefault) => prevDefault || localId);
-    };
-
-    const moveVariant = (localId, direction) => {
-        setVariantRows((prev) => {
-            const currentIndex = prev.findIndex((variant) => (variant.localId || variant.id) === localId);
-            if (currentIndex < 0) return prev;
-            const nextIndex = currentIndex + direction;
-            if (nextIndex < 0 || nextIndex >= prev.length) return prev;
-            const reordered = [...prev];
-            const [moved] = reordered.splice(currentIndex, 1);
-            reordered.splice(nextIndex, 0, moved);
-            return reordered.map((variant, index) => ({ ...variant, sortOrder: index }));
-        });
-    };
-
-
-    const toggleVariantActive = (localId) => {
-        setVariantRows((prev) =>
-            prev.map((variant) => {
-                if ((variant.localId || variant.id) !== localId) return variant;
-                return { ...variant, active: !(variant.active !== false) };
-            }),
-        );
-    };
-
-    const buildVariantPayload = (variant) => ({
-        weightGrams: normalizeNumber(variant.weight, 0),
-        priceSek: normalizeNumber(variant.price, 0),
-        stockQuantity: normalizeNumber(variant.stock, 0),
-        sku: variant.sku?.trim() || '',
-        imageUrl: (variant.imageUrl || '').trim(),
-        active: variant.active !== false,
-        sortOrder: Number(variant.sortOrder ?? 0),
-        order: Number(variant.sortOrder ?? 0),
-        position: Number(variant.sortOrder ?? 0),
-    });
-
-    const buildTierPricePayload = (variant) => ({
-        DEFAULT: Math.round(normalizeNumber(variant?.tierPrices?.DEFAULT ?? variant.price, 0) * 100),
-        SUPPORTER: Math.round(normalizeNumber(variant?.tierPrices?.SUPPORTER, 0) * 100),
-        B2B: Math.round(normalizeNumber(variant?.tierPrices?.B2B, 0) * 100),
-        VIP: Math.round(normalizeNumber(variant?.tierPrices?.VIP, 0) * 100),
-    });
-
-    const variantValidation = useMemo(() => {
-        const errorsByVariant = {};
-        const weightMap = new Map();
-        let hasBlockingError = false;
-
-        variantRows.forEach((variant) => {
-            const key = variant.localId || variant.id;
-            const errors = [];
-            const weight = normalizeNumber(variant.weight, -1);
-            const price = normalizeNumber(variant.price, -1);
-            const stock = normalizeNumber(variant.stock, -1);
-
-            if (weight <= 0) {
-                errors.push('Weight must be greater than zero.');
-            } else {
-                const existing = weightMap.get(weight) || [];
-                existing.push(key);
-                weightMap.set(weight, existing);
-            }
-
-            if (price < 0) errors.push('Price cannot be negative.');
-            if (stock < 0) errors.push('Stock cannot be negative.');
-            if (errors.length > 0) {
-                hasBlockingError = true;
-                errorsByVariant[key] = errors;
-            }
-        });
-
-        weightMap.forEach((keys, weight) => {
-            if (keys.length <= 1) return;
-            hasBlockingError = true;
-            keys.forEach((key) => {
-                errorsByVariant[key] = [...(errorsByVariant[key] || []), `Duplicate weight: ${weight}g.`];
-            });
-        });
-
-        if (variantRows.length > 0 && !defaultVariantId) {
-            hasBlockingError = true;
-        }
-
-        return {
-            hasBlockingError,
-            errorsByVariant,
-            defaultVariantError: variantRows.length > 0 && !defaultVariantId ? 'Please select a default variant.' : '',
-        };
-    }, [defaultVariantId, variantRows]);
-
-    const variantDraftSignature = useMemo(() => JSON.stringify({
-        defaultVariantId,
-        variants: variantRows.map((variant) => ({
-            id: variant.id,
-            localId: variant.localId,
-            weight: `${variant.weight ?? ''}`,
-            price: `${variant.price ?? ''}`,
-            stock: `${variant.stock ?? ''}`,
-            sku: variant.sku ?? '',
-            imageUrl: variant.imageUrl ?? '',
-            active: variant.active !== false,
-            sortOrder: Number(variant.sortOrder ?? 0),
-            tierPrices: variant.tierPrices ?? {},
-        })),
-    }), [defaultVariantId, variantRows]);
-
-    const hasUnsavedVariantChanges = variantSnapshot !== '' && variantDraftSignature !== variantSnapshot;
-
-    const saveAllVariantsForProduct = useCallback(async (productId) => {
-        if (!productId || saving || variantValidation.hasBlockingError || !hasUnsavedVariantChanges) return true;
-        setVariantActionId('all');
-        try {
-            const saveResults = [];
-            for (let index = 0; index < variantRows.length; index += 1) {
-                const variant = variantRows[index];
-                const payload = buildVariantPayload({ ...variant, sortOrder: index });
-                if (variant.id) {
-                    const updated = await updateProductVariant(productId, variant.id, payload, token);
-                    await updateVariantTierPrices(variant.id, buildTierPricePayload(variant), token);
-                    saveResults.push({
-                        localId: variant.localId,
-                        id: variant.id,
-                        saved: { ...variant, ...updated, sortOrder: index },
-                    });
-                } else {
-                    const created = await createProductVariant(productId, payload, token);
-                    if (created?.id) {
-                        await updateVariantTierPrices(created.id, buildTierPricePayload(variant), token);
-                    }
-                    saveResults.push({
-                        localId: variant.localId,
-                        id: created?.id || variant.id,
-                        saved: { ...variant, ...created, id: created?.id || variant.id, sortOrder: index },
-                    });
-                }
-            }
-
-            const idLookup = new Map();
-            saveResults.forEach((item) => {
-                if (item.localId) idLookup.set(item.localId, item.id || item.saved?.id);
-                if (item.id) idLookup.set(item.id, item.id);
-            });
-            const resolvedDefaultVariantId = idLookup.get(defaultVariantId) || defaultVariantId;
-
-            await updateProduct(productId, { defaultVariantId: resolvedDefaultVariantId }, token);
-
-            setVariantRows((prev) => {
-                const saveMap = new Map(saveResults.map((item) => [item.localId || item.id, item.saved]));
-                return prev.map((variant, index) => {
-                    const key = variant.localId || variant.id;
-                    const savedVariant = saveMap.get(key);
-                    return savedVariant
-                        ? { ...variant, ...savedVariant, localId: savedVariant.id || variant.localId, sortOrder: index }
-                        : { ...variant, sortOrder: index };
-                });
-            });
-            setDefaultVariantId(resolvedDefaultVariantId);
-            setVariantSnapshot(JSON.stringify({
-                defaultVariantId: resolvedDefaultVariantId,
-                variants: variantRows.map((variant, index) => ({
-                    id: saveResults[index]?.id || variant.id,
-                    localId: saveResults[index]?.id || variant.localId,
-                    weight: `${variant.weight ?? ''}`,
-                    price: `${variant.price ?? ''}`,
-                    stock: `${variant.stock ?? ''}`,
-                    sku: variant.sku ?? '',
-                    imageUrl: variant.imageUrl ?? '',
-                    active: variant.active !== false,
-                    sortOrder: Number(index),
-                })),
-            }));
-            return true;
-        } catch (error) {
-            console.error('Failed to save variants', error);
-            showToast('error', getActionErrorMessage(error, 'Could not save variants.'));
-            return false;
-        } finally {
-            setVariantActionId(null);
-        }
-    }, [defaultVariantId, hasUnsavedVariantChanges, saving, showToast, token, variantRows, variantValidation.hasBlockingError]);
-
-    const handleSaveChanges = useCallback(async () => {
-        if (saving || variantActionId === 'all') return;
-
-        let productId = selectedProductId;
-        if (hasUnsavedProductChanges) {
-            const savedProductId = await saveProductChanges();
-            if (!savedProductId) return;
-            productId = savedProductId;
-        }
-
-        const variantSaved = await saveAllVariantsForProduct(productId);
-        if (!variantSaved) return;
-
-        if (!hasUnsavedProductChanges && !hasUnsavedVariantChanges) return;
-        showToast('success', 'Saved');
-        loadProducts({ preferId: productId || selectedId || null });
-    }, [hasUnsavedProductChanges, hasUnsavedVariantChanges, loadProducts, saveAllVariantsForProduct, saveProductChanges, saving, selectedId, selectedProductId, showToast, variantActionId]);
-
-    const handleDiscardChanges = useCallback(() => {
-        setFormError(null);
-        if (selectedProduct) {
-            setEditorMode('edit');
-            setFormState({ ...emptyForm, ...selectedProduct, active: selectedProduct.active !== false });
-            hydrateVariantDraft(selectedProduct);
-            return;
-        }
-        setEditorMode('create');
-        setFormState({ ...emptyForm });
-        hydrateVariantDraft(null);
-    }, [hydrateVariantDraft, selectedProduct]);
-
-    const removeVariantRow = async (index) => {
-        if (!selectedProductId) return;
-        const variant = variantRows[index];
-        if (!variant) return;
-        if (!variant.id) {
-            setVariantRows((prev) => {
-                const remaining = prev
-                    .filter((_, rowIndex) => rowIndex !== index)
-                    .map((row, rowIndex) => ({ ...row, sortOrder: rowIndex }));
-
-                if (defaultVariantId === (variant.localId || variant.id)) {
-                    setDefaultVariantId(remaining[0]?.id || remaining[0]?.localId || null);
-                }
-
-                return remaining;
-            });
-            return;
-        }
-        setVariantActionId(variant.localId || variant.id);
-        try {
-            await deleteProductVariant(selectedProduct.id, variant.id, token);
-            showToast('success', 'Variant removed');
-            loadProducts({ preferId: selectedProduct.id });
-        } catch (error) {
-            console.error('Failed to delete variant', error);
-            showToast('error', getActionErrorMessage(error, 'Could not remove variant.'));
-        } finally {
-            setVariantActionId(null);
-        }
-    };
-
-    const defaultVariantLabel = useMemo(() => {
-        const selectedDefault = variantRows.find((variant) => variant.id === defaultVariantId || variant.localId === defaultVariantId);
-        if (!selectedDefault) return '—';
-        return `${normalizeNumber(selectedDefault.weight, 0)}g`;
-    }, [defaultVariantId, variantRows]);
-
-    if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
-    }
-
-    if (!hasAccess) {
-        return (
-            <AccessDenied
-                message={`You need ${storePermissionLabel} permissions to manage products.`}
-                actionHref="/monitoring/overview"
-                actionLabel="Back to monitoring"
-                secondaryActionHref="/login"
-            />
-        );
-    }
+    const activeEditorVariant = variantRows.find((row) => (row.id || row.localId) === variantEditorId);
 
     return (
         <div className={styles.page}>
-            <header className={styles.header}>
-                <div>
-                    <p className={styles.kicker}>Store / Admin</p>
-                    <h1 className={styles.title}>Product Admin</h1>
-                    <p className={styles.subtitle}>Create, edit, and activate store products. Data is secured by backend permissions.</p>
-                </div>
-                <div className={styles.badges}>
-                    <span className={styles.badge}>{storePermissionLabel}</span>
-                    <span className={styles.badgeMuted}>Currency: SEK</span>
-                </div>
-            </header>
-
-            <div className={styles.layout}>
-                <section className={`${styles.panel} ${styles.catalogPanel}`}>
-                    <div className={styles.panelHeader}>
-                        <div>
-                            <p className={styles.kickerSmall}>Catalog</p>
-                            <h2>Products</h2>
-                            <p className={styles.muted}>Select a product to edit</p>
-                        </div>
-                        <div className={styles.panelActions}>
-                            <input
-                                type="search"
-                                placeholder="Search name or SKU"
-                                value={searchTerm}
-                                onChange={(event) => setSearchTerm(event.target.value)}
-                                className={styles.input}
-                                aria-label="Search products"
-                            />
-                            <select className={styles.input} value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-                                <option value="all">All statuses</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
-                            <select className={styles.input} value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
-                                <option value="all">All categories</option>
-                                {CATEGORY_OPTIONS.map((category) => (
-                                    <option key={category} value={category}>{category}</option>
-                                ))}
-                            </select>
-                            <select className={styles.input} value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
-                                {SORT_OPTIONS.map((option) => (
-                                    <option key={option.value} value={option.value}>{option.label}</option>
-                                ))}
-                            </select>
-                            <button type="button" className={styles.refreshButton} onClick={() => loadProducts({ preferId: selectedId })} disabled={loading}>
-                                Refresh
-                            </button>
-                        </div>
-                    </div>
-
-                    {listError && <div className={styles.bannerError}>{listError}</div>}
-
-                    <div className={styles.catalogListWrapper}>
-                        {loading ? (
-                            <p className={styles.muted}>Loading products…</p>
-                        ) : filteredProducts.length === 0 ? (
-                            <p className={styles.muted}>No products match your filters.</p>
-                        ) : (
-                            <div className={styles.catalogList}>
-                                {filteredProducts.map((product) => {
-                                    const isActive = product.active ?? true;
-                                    const isSelected = product.id === selectedId;
-                                    const activeVariants = getActiveVariants(product);
-                                    const variantLabels = activeVariants.map(getVariantLabel).filter(Boolean);
-                                    return (
-                                        <article key={product.id} className={`${styles.productCard} ${isSelected ? styles.selectedProductCard : ''}`}>
-                                            <button type="button" className={styles.productMain} onClick={() => handleEdit(product)}>
-                                                <div className={styles.primary}>{product.name}</div>
-                                                <div className={styles.meta}>SKU: {product.sku || '—'}</div>
-                                                <div>
-                                                    <span className={`${styles.status} ${isActive ? styles.active : styles.inactive}`}>
-                                                        {isActive ? 'Active' : 'Inactive'}
-                                                    </span>
-                                                </div>
-                                                <div className={styles.meta}>Updated: {product.updatedAt ? new Date(product.updatedAt).toLocaleString() : '—'}</div>
-                                                {variantLabels.length > 0 && (
-                                                    <div className={styles.meta}>Variants: {variantLabels.join(', ')}</div>
-                                                )}
-                                                {activeVariants.length === 0 && (
-                                                    <span className={styles.warningBadge}>No variants — not sellable</span>
-                                                )}
-                                            </button>
-                                            <div className={styles.productActions}>
-                                                <button type="button" onClick={() => handleEdit(product)} className={styles.cardPrimaryAction}>
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleToggleActive(product)}
-                                                    className={styles.cardSecondaryAction}
-                                                    disabled={actioningId === product.id}
-                                                >
-                                                    {isActive ? 'Deactivate product' : 'Activate product'}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className={styles.cardDangerAction}
-                                                    onClick={() => setConfirmingDelete(product)}
-                                                    disabled={actioningId === product.id}
-                                                >
-                                                    Delete product
-                                                </button>
-                                            </div>
-                                        </article>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                </section>
-
-                <section className={`${styles.panel} ${styles.detailsPanel}`}>
-                    <div className={styles.panelHeader}>
-                        <div>
-                            <p className={styles.kickerSmall}>Product details</p>
-                            <h2>{selectedProduct && !isCreateMode ? `Edit product — ${selectedProduct.name || 'Untitled'}` : isCreateMode ? 'Create new product' : 'Select a product to edit'}</h2>
-                            <p className={styles.muted}>{selectedProduct && !isCreateMode ? 'Update core product information.' : isCreateMode ? 'Start by entering basic product information.' : 'Choose a product from the catalog or start a new one.'}</p>
-                        </div>
-                        <div className={styles.panelActions}>
-                            {!isCreateMode && <span className={styles.muted}>Select a product to edit</span>}
-                            {hasUnsavedProductChanges && <span className={styles.warningBadge}>Unsaved changes</span>}
-                            <button type="button" className={styles.secondaryButton} onClick={startCreateProduct} disabled={saving}>
-                                New product
-                            </button>
-                        </div>
-                    </div>
-
-                    {formError && <div className={styles.bannerError}>{formError}</div>}
-
-                    <form className={styles.form} onSubmit={(event) => event.preventDefault()}>
-                        <div className={styles.formCard}>
-                            <h3 className={styles.sectionTitle}>Basic info</h3>
-                            <label className={styles.label} htmlFor="product-name">Name *</label>
-                            <input
-                                id="product-name"
-                                className={styles.input}
-                                value={formState.name}
-                                onChange={(event) => setFormState((prev) => ({ ...prev, name: event.target.value }))}
-                                required
-                                minLength={2}
-                            />
-
-                            <label className={styles.label} htmlFor="product-description">Description</label>
-                            <textarea
-                                id="product-description"
-                                className={styles.textarea}
-                                value={formState.description}
-                                onChange={(event) => setFormState((prev) => ({ ...prev, description: event.target.value }))}
-                                rows={3}
-                            />
-                        </div>
-
-                        <div className={styles.formCard}>
-                            <h3 className={styles.sectionTitle}>Classification</h3>
-                            <label className={styles.label} htmlFor="product-sku">SKU</label>
-                            <input
-                                id="product-sku"
-                                className={styles.input}
-                                value={formState.sku}
-                                onChange={(event) => setFormState((prev) => ({ ...prev, sku: event.target.value }))}
-                                placeholder="Optional"
-                            />
-
-                            <label className={styles.label} htmlFor="product-category">Category</label>
-                            <select
-                                id="product-category"
-                                className={styles.input}
-                                value={formState.category}
-                                onChange={(event) => setFormState((prev) => ({ ...prev, category: event.target.value }))}
-                            >
-                                {CATEGORY_OPTIONS.map((category) => (
-                                    <option key={category} value={category}>{category}</option>
-                                ))}
-                            </select>
-                            <div className={styles.toggleRow}>
-                                <input
-                                    id="product-active"
-                                    type="checkbox"
-                                    checked={formState.active}
-                                    onChange={(event) => setFormState((prev) => ({ ...prev, active: event.target.checked }))}
-                                />
-                                <label htmlFor="product-active">Active</label>
-                            </div>
-                        </div>
-
-                        <div className={styles.formCard}>
-                            <h3 className={styles.sectionTitle}>Media</h3>
-                            <label className={styles.label} htmlFor="product-image">Image URL</label>
-                            <input
-                                id="product-image"
-                                className={styles.input}
-                                value={formState.imageUrl}
-                                onChange={(event) => setFormState((prev) => ({ ...prev, imageUrl: event.target.value }))}
-                                placeholder="https://"
-                            />
-                        </div>
-
-                        {selectedProduct && !isCreateMode && (
-                            <div className={styles.productDangerZone}>
-                                <span className={styles.dangerZoneLabel}>Product actions</span>
-                                <div className={styles.productDangerActions}>
-                                    <button
-                                        type="button"
-                                        className={styles.secondaryButton}
-                                        onClick={() => handleToggleActive(selectedProduct)}
-                                        disabled={saving || actioningId === selectedId}
-                                    >
-                                        {(selectedProduct.active ?? true) ? 'Deactivate product' : 'Activate product'}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={styles.danger}
-                                        onClick={() => setConfirmingDelete(selectedProduct)}
-                                        disabled={saving || actioningId === selectedId}
-                                    >
-                                        Delete product
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </form>
-                </section>
-
-                <section className={`${styles.panel} ${styles.variantsPanel}`}>
-                    <div className={styles.variantsSection}>
-                        <div className={styles.variantsHeader}>
-                            <div>
-                                <p className={styles.kickerSmall}>Variants (Weights)</p>
-                                <h3 className={styles.sectionTitle}>Variants (Weights)</h3>
-                                <p className={styles.muted}>Default: {defaultVariantLabel} · {variantRows.length} variants</p>
-                                <p className={styles.muted}>Manage price and stock per weight. Variants require a saved product.</p>
-                            </div>
-                            <div className={styles.variantHeaderActions}>
-                                {hasUnsavedVariantChanges && <span className={styles.warningBadge}>Unsaved changes</span>}
-                                <button
-                                    type="button"
-                                    className={styles.secondaryButton}
-                                    onClick={handleAddVariantRow}
-                                    disabled={!selectedProduct || saving}
-                                >
-                                    + Add variant
-                                </button>
-                            </div>
-                        </div>
-
-                        {variantValidation.defaultVariantError && <div className={styles.bannerError}>{variantValidation.defaultVariantError}</div>}
-
-                        {!selectedProduct ? (
-                            <div className={styles.variantEmpty}>Create the product first to add weight variants.</div>
-                        ) : variantRows.length === 0 ? (
-                            <div className={styles.variantEmpty}>No variants yet. Add weights like 50g, 70g, 100g.</div>
-                        ) : (
-                            <div className={styles.variantList}>
-                                {variantRows.map((variant, index) => {
-                                    const variantKey = variant.id || variant.localId;
-                                    const errors = variantValidation.errorsByVariant[variant.localId || variant.id] || [];
-                                    return (
-                                    <div key={variant.id || variant.localId} className={styles.variantRow}>
-                                        <div className={styles.variantRowHeader}>
-                                            <strong>{normalizeNumber(variant.weight, 0)}g</strong>
-                                            <span className={styles.meta}>Price: {normalizeNumber(variant.price, 0)} | Stock: {normalizeNumber(variant.stock, 0)} | {variant.active ? 'Active' : 'Inactive'}</span>
-                                        </div>
-                                        <div className={styles.variantOrderControls}>
-                                            <button type="button" className={styles.secondaryButton} onClick={() => moveVariant(variantKey, -1)} disabled={index === 0}>↑</button>
-                                            <button type="button" className={styles.secondaryButton} onClick={() => moveVariant(variantKey, 1)} disabled={index === variantRows.length - 1}>↓</button>
-                                        </div>
-                                        <div className={styles.variantToggle}>
-                                            <input
-                                                id={`variant-default-${variant.localId}`}
-                                                type="radio"
-                                                name="defaultVariant"
-                                                checked={defaultVariantId === variant.id || defaultVariantId === variant.localId}
-                                                onChange={() => setDefaultVariantId(variant.id || variant.localId)}
-                                            />
-                                            <label htmlFor={`variant-default-${variant.localId}`}>Default</label>
-                                        </div>
-                                        <div className={styles.variantField}>
-                                            <label className={styles.variantLabel} htmlFor={`variant-weight-${variant.localId}`}>Weight (grams)</label>
-                                            <input
-                                                id={`variant-weight-${variant.localId}`}
-                                                type="number"
-                                                className={`${styles.input} ${styles.variantInput}`}
-                                                value={variant.weight}
-                                                onChange={(event) => handleVariantChange(variantKey, 'weight', event.target.value)}
-                                                min="0"
-                                            />
-                                        </div>
-                                        <div className={styles.variantField}>
-                                            <label className={styles.variantLabel} htmlFor={`variant-price-${variant.localId}`}>Price (SEK)</label>
-                                            <input
-                                                id={`variant-price-${variant.localId}`}
-                                                type="number"
-                                                className={`${styles.input} ${styles.variantInput}`}
-                                                value={variant.price}
-                                                onChange={(event) => handleVariantChange(variantKey, 'price', event.target.value)}
-                                                step="0.01"
-                                                min="0"
-                                            />
-                                        </div>
-                                        <div className={styles.variantField}>
-                                            <label className={styles.variantLabel}>Prices by tier (SEK)</label>
-                                            <div className={styles.tierPriceGrid}>
-                                                {['DEFAULT', 'SUPPORTER', 'B2B', 'VIP'].map((tier) => (
-                                                    <input
-                                                        key={tier}
-                                                        aria-label={`Price ${tier}`}
-                                                        type="number"
-                                                        className={`${styles.input} ${styles.variantInput}`}
-                                                        value={variant?.tierPrices?.[tier] ?? (tier === 'DEFAULT' ? variant.price : '')}
-                                                        onChange={(event) => handleTierPriceChange(variantKey, tier, event.target.value)}
-                                                        step="0.01"
-                                                        min="0"
-                                                        placeholder={tier}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div className={styles.variantField}>
-                                            <label className={styles.variantLabel} htmlFor={`variant-stock-${variant.localId}`}>Stock</label>
-                                            <input
-                                                id={`variant-stock-${variant.localId}`}
-                                                type="number"
-                                                className={`${styles.input} ${styles.variantInput}`}
-                                                value={variant.stock}
-                                                onChange={(event) => handleVariantChange(variantKey, 'stock', event.target.value)}
-                                                min="0"
-                                            />
-                                        </div>
-                                        <div className={styles.variantField}>
-                                            <label className={styles.variantLabel} htmlFor={`variant-sku-${variant.localId}`}>SKU (optional)</label>
-                                            <input
-                                                id={`variant-sku-${variant.localId}`}
-                                                className={`${styles.input} ${styles.variantInput}`}
-                                                value={variant.sku}
-                                                onChange={(event) => handleVariantChange(variantKey, 'sku', event.target.value)}
-                                                placeholder="Optional"
-                                            />
-                                        </div>
-                                        <div className={styles.variantField}>
-                                            <details className={styles.variantDetails}>
-                                                <summary className={styles.variantSummary}>Image URL (optional)</summary>
-                                                <label className={styles.variantLabel} htmlFor={`variant-image-${variant.localId}`}>Image URL (optional)</label>
-                                                <input
-                                                    id={`variant-image-${variant.localId}`}
-                                                    className={`${styles.input} ${styles.variantInput}`}
-                                                    value={variant.imageUrl}
-                                                    onChange={(event) => handleVariantChange(variantKey, 'imageUrl', event.target.value)}
-                                                    placeholder="https://..."
-                                                />
-                                            </details>
-                                        </div>
-                                        <div className={styles.variantActions}>
-                                            <button
-                                                type="button"
-                                                className={styles.secondaryButton}
-                                                onClick={() => toggleVariantActive(variantKey)}
-                                                disabled={variantActionId === (variant.localId || variant.id) || variantActionId === 'all'}
-                                            >
-                                                {variant.active ? 'Deactivate variant' : 'Activate variant'}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className={styles.danger}
-                                                onClick={() => removeVariantRow(index)}
-                                                disabled={variantActionId === (variant.localId || variant.id) || variantActionId === 'all'}
-                                            >
-                                                Delete variant
-                                            </button>
-                                        </div>
-                                        {errors.length > 0 && <div className={styles.variantErrors}>{errors.join(' ')}</div>}
-                                    </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                </section>
-            </div>
-
-            <div className={styles.stickySaveBar}>
-                <div className={styles.saveState}>
-                    {hasUnsavedProductChanges || hasUnsavedVariantChanges ? 'Unsaved changes' : 'All changes saved'}
-                </div>
-                <div className={styles.stickySaveActions}>
-                    <button
-                        type="button"
-                        className={styles.secondaryButton}
-                        onClick={handleDiscardChanges}
-                        disabled={saving || variantActionId === 'all' || (!hasUnsavedProductChanges && !hasUnsavedVariantChanges)}
-                    >
-                        Discard
-                    </button>
-                    <button
-                        type="button"
-                        className={styles.primaryButton}
-                        onClick={handleSaveChanges}
-                        disabled={saving || variantActionId === 'all' || (!hasUnsavedProductChanges && !hasUnsavedVariantChanges) || variantValidation.hasBlockingError}
-                    >
-                        {(saving || variantActionId === 'all') ? 'Saving…' : 'Save changes'}
-                    </button>
-                </div>
-            </div>
-
-            {confirmingStatus && (
-                <div className={styles.modalBackdrop}>
-                    <div className={styles.modal} role="dialog" aria-modal="true">
-                        <div className={styles.modalHeader}>
-                            <div>
-                                <p className={styles.kickerSmall}>Deactivate product</p>
-                                <h3>{confirmingStatus.name}</h3>
-                                <p className={styles.muted}>This removes the product from the storefront until reactivated.</p>
-                            </div>
-                            <button type="button" className={styles.closeButton} onClick={() => setConfirmingStatus(null)}>
-                                ✕
-                            </button>
-                        </div>
-                        <div className={styles.dangerZone}>
-                            <span className={styles.dangerZoneLabel}>Danger zone</span>
-                            <p className={styles.muted}>Confirm you want to deactivate this product.</p>
-                        </div>
-                        <div className={styles.modalActions}>
-                            <button type="button" className={styles.secondaryButton} onClick={() => setConfirmingStatus(null)} disabled={saving}>
-                                Cancel
-                            </button>
-                            <button type="button" className={styles.danger} onClick={confirmDeactivate} disabled={saving}>
-                                Deactivate
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            {!productId ? (
+                <>
+                    <div className={styles.listHeader}><h1>Products</h1><button className={styles.primaryButton} onClick={() => navigate('/store/admin/products/new')}>New product</button></div>
+                    <div className={styles.filters}><input className={styles.input} placeholder="Search name or SKU" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} /><select className={styles.input} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}><option value="all">All status</option><option value="active">Active</option><option value="inactive">Inactive</option></select><select className={styles.input} value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}><option value="all">All categories</option>{CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}</select><select className={styles.input} value={sortBy} onChange={(e) => setSortBy(e.target.value)}>{SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
+                    {listError && <p className={styles.error}>{listError}</p>}
+                    <table className={styles.table}><thead><tr><th>Name</th><th>SKU</th><th>Category</th><th>Status</th><th>Updated</th><th>Variants</th><th>Actions</th></tr></thead><tbody>{filteredProducts.map((product) => <tr key={product.id} onClick={() => navigate(`/store/admin/products/${product.id}`)}><td>{product.name}</td><td>{product.sku || '—'}</td><td>{product.category || '—'}</td><td><span className={product.active === false ? styles.badgeOff : styles.badgeOn}>{product.active === false ? 'Inactive' : 'Active'}</span></td><td>{new Date(product.updatedAt || product.updated || product.createdAt || Date.now()).toLocaleDateString()}</td><td>{normalizeVariants(product.variants).length}</td><td><button type="button" className={styles.linkButton} onClick={(e) => { e.stopPropagation(); navigate(`/store/admin/products/${product.id}`); }}>Edit</button><button type="button" className={styles.linkButton} onClick={async (e) => { e.stopPropagation(); await toggleProductActive(product.id, !(product.active ?? true), token); loadProducts(); }}>{product.active === false ? 'Activate' : 'Deactivate'}</button><button type="button" className={styles.dangerLink} onClick={async (e) => { e.stopPropagation(); if (window.confirm(`Delete ${product.name}?`)) { await deleteProduct(product.id, token); loadProducts(); } }}>Delete</button></td></tr>)}</tbody></table>
+                    {loading && <p>Loading…</p>}
+                </>
+            ) : (
+                <>
+                    <div className={styles.detailHeader}><button className={styles.linkButton} onClick={() => navigate('/store/admin/products')}>← Products</button><h1>{createMode ? 'New product' : (selectedProduct?.name || 'Product')}</h1><span className={formState.active === false ? styles.badgeOff : styles.badgeOn}>{formState.active === false ? 'Inactive' : 'Active'}</span><div className={styles.headerActions}><button className={styles.secondaryButton} onClick={() => setFormState((prev) => ({ ...prev, active: !prev.active }))}>{formState.active ? 'Deactivate' : 'Activate'}</button>{detailId && <button className={styles.dangerLink} onClick={async () => { if (window.confirm('Delete this product?')) { await deleteProduct(detailId, token); navigate('/store/admin/products'); } }}>Delete</button>}</div></div>
+                    <div className={styles.tabs}><button className={activeTab === 'overview' ? styles.activeTab : styles.tab} onClick={() => setActiveTab('overview')}>Overview</button><button className={activeTab === 'details' ? styles.activeTab : styles.tab} onClick={() => setActiveTab('details')}>Product details</button><button className={activeTab === 'variants' ? styles.activeTab : styles.tab} disabled={!detailId} onClick={() => setActiveTab('variants')}>Variants & pricing</button></div>
+                    {activeTab === 'overview' && <div className={styles.cards}><article className={styles.card}><h3>Default price</h3><p>{variantRows[0]?.price || 0} SEK</p></article><article className={styles.card}><h3>Total stock</h3><p>{variantRows.reduce((sum, row) => sum + Number(row.stock || 0), 0)}</p></article><article className={styles.card}><h3>Variants</h3><p>{variantRows.length}</p></article></div>}
+                    {activeTab === 'details' && <div className={styles.formGrid}><label>Name<input className={styles.input} value={formState.name} onChange={(e) => setFormState((p) => ({ ...p, name: e.target.value }))} /></label><label>SKU<input className={styles.input} value={formState.sku} onChange={(e) => setFormState((p) => ({ ...p, sku: e.target.value }))} /></label><label>Category<select className={styles.input} value={formState.category} onChange={(e) => setFormState((p) => ({ ...p, category: e.target.value }))}>{CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}</select></label><label>Description<textarea className={styles.input} rows={4} value={formState.description} onChange={(e) => setFormState((p) => ({ ...p, description: e.target.value }))} /></label></div>}
+                    {activeTab === 'variants' && (detailId ? <><div className={styles.variantToolbar}><button className={styles.secondaryButton} onClick={() => setVariantRows((prev) => [...prev, emptyVariant()])}>Add variant</button></div><table className={styles.table}><thead><tr><th>Default</th><th>Weight</th><th>Price (SEK)</th><th>VIP</th><th>Supporter</th><th>B2B</th><th>Stock</th><th>Active</th><th>Actions</th></tr></thead><tbody>{variantRows.map((variant) => { const key = variant.id || variant.localId; return <tr key={key}><td><input type="radio" name="default" checked={defaultVariantId === key || defaultVariantId === variant.id} onChange={() => setDefaultVariantId(key)} /></td><td>{getVariantLabel(variant)}</td><td>{variant.price || 0}</td><td>{variant.tierPrices?.VIP || 0}</td><td>{variant.tierPrices?.SUPPORTER || 0}</td><td>{variant.tierPrices?.B2B || 0}</td><td>{variant.stock || 0}</td><td>{variant.active === false ? 'No' : 'Yes'}</td><td><button className={styles.linkButton} onClick={() => setVariantEditorId(key)}>Edit</button><button className={styles.dangerLink} onClick={async () => { if (variant.id) await deleteProductVariant(detailId, variant.id, token); setVariantRows((prev) => prev.filter((row) => (row.id || row.localId) !== key)); }}>Delete</button></td></tr>; })}</tbody></table></> : <p className={styles.notice}>Variants require saved product. Save product details first.</p>)}
+                </>
             )}
 
-            {confirmingDelete && (
-                <div className={styles.modalBackdrop}>
-                    <div className={styles.modal} role="dialog" aria-modal="true">
-                        <div className={styles.modalHeader}>
-                            <div>
-                                <p className={styles.kickerSmall}>Delete product</p>
-                                <h3>{confirmingDelete.name}</h3>
-                                <p className={styles.muted}>This action cannot be undone.</p>
-                                {(confirmingDelete?.hasOrders || Number(confirmingDelete?.orderCount || 0) > 0) && (
-                                    <p className={styles.muted}>This product has orders and can’t be deleted; you can deactivate it.</p>
-                                )}
-                            </div>
-                            <button type="button" className={styles.closeButton} onClick={() => setConfirmingDelete(null)}>
-                                ✕
-                            </button>
-                        </div>
-                        <div className={styles.dangerZone}>
-                            <span className={styles.dangerZoneLabel}>Danger zone</span>
-                            <p className={styles.muted}>Deleting products cannot be undone.</p>
-                        </div>
-                        <div className={styles.modalActions}>
-                            <button type="button" className={styles.secondaryButton} onClick={() => setConfirmingDelete(null)} disabled={saving}>
-                                Cancel
-                            </button>
-                            <button type="button" className={styles.danger} onClick={handleDelete} disabled={saving}>
-                                Delete
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {activeEditorVariant && <div className={styles.drawerBackdrop} onClick={() => setVariantEditorId(null)}><aside className={styles.drawer} onClick={(e) => e.stopPropagation()}><h3>Edit variant</h3><label>Weight<input className={styles.input} type="number" value={activeEditorVariant.weight} onChange={(e) => setVariantRows((prev) => prev.map((row) => (row.id || row.localId) === variantEditorId ? { ...row, weight: e.target.value } : row))} /></label><label>Price<input className={styles.input} type="number" value={activeEditorVariant.price} onChange={(e) => setVariantRows((prev) => prev.map((row) => (row.id || row.localId) === variantEditorId ? { ...row, price: e.target.value } : row))} /></label><label>VIP<input className={styles.input} type="number" value={activeEditorVariant.tierPrices?.VIP || ''} onChange={(e) => setVariantRows((prev) => prev.map((row) => (row.id || row.localId) === variantEditorId ? { ...row, tierPrices: { ...(row.tierPrices || {}), VIP: e.target.value } } : row))} /></label><label>Supporter<input className={styles.input} type="number" value={activeEditorVariant.tierPrices?.SUPPORTER || ''} onChange={(e) => setVariantRows((prev) => prev.map((row) => (row.id || row.localId) === variantEditorId ? { ...row, tierPrices: { ...(row.tierPrices || {}), SUPPORTER: e.target.value } } : row))} /></label><label>B2B<input className={styles.input} type="number" value={activeEditorVariant.tierPrices?.B2B || ''} onChange={(e) => setVariantRows((prev) => prev.map((row) => (row.id || row.localId) === variantEditorId ? { ...row, tierPrices: { ...(row.tierPrices || {}), B2B: e.target.value } } : row))} /></label><label>Stock<input className={styles.input} type="number" value={activeEditorVariant.stock} onChange={(e) => setVariantRows((prev) => prev.map((row) => (row.id || row.localId) === variantEditorId ? { ...row, stock: e.target.value } : row))} /></label><label>SKU<input className={styles.input} value={activeEditorVariant.sku || ''} onChange={(e) => setVariantRows((prev) => prev.map((row) => (row.id || row.localId) === variantEditorId ? { ...row, sku: e.target.value } : row))} /></label><label><input type="checkbox" checked={activeEditorVariant.active !== false} onChange={(e) => setVariantRows((prev) => prev.map((row) => (row.id || row.localId) === variantEditorId ? { ...row, active: e.target.checked } : row))} /> Active</label><div className={styles.drawerActions}><button className={styles.secondaryButton} onClick={() => setVariantEditorId(null)}>Cancel</button><button className={styles.primaryButton} onClick={() => setVariantEditorId(null)}>Save</button></div></aside></div>}
 
-            {toast && (
-                <div className={`${styles.toast} ${toast.type === 'error' ? styles.toastError : styles.toastSuccess}`}>
-                    {toast.message}
-                </div>
-            )}
+            {hasChanges && <div className={styles.stickySaveBar}><span>Unsaved changes</span><div><button className={styles.secondaryButton} onClick={discardChanges}>Discard</button><button className={styles.primaryButton} onClick={saveAll} disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</button></div></div>}
         </div>
     );
 }

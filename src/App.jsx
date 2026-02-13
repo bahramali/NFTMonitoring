@@ -155,6 +155,14 @@ function AppRoutes() {
                                 </ProtectedRoute>
                             )}
                         />
+                        <Route
+                            path="admin/products/:productId"
+                            element={(
+                                <ProtectedRoute requiredPermissions={[PERMISSIONS.PRODUCTS_MANAGE]}>
+                                    <ProductAdmin />
+                                </ProtectedRoute>
+                            )}
+                        />
                         <Route path="admin/manage-products" element={<Navigate to="/store/admin/products" replace />} />
                         <Route
                             path="admin/customers"
