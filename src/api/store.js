@@ -11,14 +11,35 @@ const buildCartHeaders = (cartId, sessionId) => {
     return headers;
 };
 
-export async function listStoreProducts({ signal } = {}) {
-    const res = await fetch(`${STORE_BASE}/products`, { signal });
+export async function listStoreProducts({ signal, token } = {}) {
+    const requestOptions = { signal };
+    const res = token
+        ? await authFetch(
+            `${STORE_BASE}/products`,
+            {
+                ...requestOptions,
+                headers: buildAuthHeaders(token),
+            },
+            { token },
+        )
+        : await fetch(`${STORE_BASE}/products`, requestOptions);
     return parseApiResponse(res, 'Failed to load products');
 }
 
-export async function fetchStoreProduct(productId, { signal } = {}) {
+export async function fetchStoreProduct(productId, { signal, token } = {}) {
     if (!productId) throw new Error('Product ID is required');
-    const res = await fetch(`${STORE_BASE}/products/${encodeURIComponent(productId)}`, { signal });
+    const requestUrl = `${STORE_BASE}/products/${encodeURIComponent(productId)}`;
+    const requestOptions = { signal };
+    const res = token
+        ? await authFetch(
+            requestUrl,
+            {
+                ...requestOptions,
+                headers: buildAuthHeaders(token),
+            },
+            { token },
+        )
+        : await fetch(requestUrl, requestOptions);
     return parseApiResponse(res, 'Failed to load product');
 }
 

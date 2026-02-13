@@ -2,12 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listStoreProducts } from '../../api/store.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 import ProductCard from '../../components/store/ProductCard.jsx';
 import { getProductSortPrice, isProductInStock } from '../../utils/storeVariants.js';
 import styles from './Storefront.module.css';
 
 export default function Storefront() {
     const { addToCart, pendingProductId } = useStorefront();
+    const { isAuthenticated, token } = useAuth();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -61,7 +63,7 @@ export default function Storefront() {
         setLoading(true);
         setError(null);
         try {
-            const response = await listStoreProducts();
+            const response = await listStoreProducts({ token: isAuthenticated ? token : null });
             const list = response?.products ?? response ?? [];
             setProducts(Array.isArray(list) ? list : []);
         } catch (err) {
@@ -73,7 +75,7 @@ export default function Storefront() {
 
     useEffect(() => {
         fetchProducts();
-    }, []);
+    }, [isAuthenticated, token]);
 
     return (
         <div className={styles.page}>
