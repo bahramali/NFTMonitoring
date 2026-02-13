@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveTierPrice } from '../src/utils/pricingTier.js';
+import { resolvePricingForTier, resolveTierPrice } from '../src/utils/pricingTier.js';
 
 describe('resolveTierPrice', () => {
     it('prefers tierPricesSek values when present', () => {
@@ -31,5 +31,22 @@ describe('resolveTierPrice', () => {
         expect(resolveTierPrice({ priceSek: 49.5 }, 'VIP')).toBe(49.5);
         expect(resolveTierPrice({ price: 39.5 }, 'VIP')).toBe(39.5);
         expect(resolveTierPrice({ unitPrice: 29.5 }, 'VIP')).toBe(29.5);
+    });
+});
+
+describe('resolvePricingForTier', () => {
+    it('returns regular and tier prices with applied tier metadata', () => {
+        const entity = {
+            tierPricesSek: {
+                DEFAULT: 29.9,
+                VIP: 10,
+            },
+        };
+
+        expect(resolvePricingForTier(entity, 'VIP')).toEqual({
+            regularPriceSek: 29.9,
+            customerPriceSek: 10,
+            appliedTier: 'VIP',
+        });
     });
 });

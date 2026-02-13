@@ -3,12 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import QuantityStepper from './QuantityStepper.jsx';
 import { formatCurrency } from '../../utils/currency.js';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { extractUserPricingTier, hasTierPriceDiscount, resolveTierPrice } from '../../utils/pricingTier.js';
+import { extractUserPricingTier, resolvePricingForTier } from '../../utils/pricingTier.js';
 import {
     getActiveVariants,
     getDefaultVariantId,
     getVariantLabel,
-    getVariantPrice,
     getVariantStock,
     isVariantInStock,
 } from '../../utils/storeVariants.js';
@@ -35,9 +34,25 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
     const { name, id, currency } = product || {};
     const activeVariant = selectedVariant;
     const pricingTier = extractUserPricingTier(profile);
-    const priceValue = getVariantPrice(selectedVariant, pricingTier) ?? resolveTierPrice(product, pricingTier) ?? product?.price ?? 0;
-    const defaultPriceValue = getVariantPrice(selectedVariant, 'DEFAULT') ?? resolveTierPrice(product, 'DEFAULT') ?? product?.price ?? 0;
-    const hasTierDiscount = hasTierPriceDiscount(selectedVariant ?? product, pricingTier);
+    const variantPricing = resolvePricingForTier(selectedVariant, pricingTier);
+    const productPricing = resolvePricingForTier(product, pricingTier);
+    const regularPriceSek = variantPricing.regularPriceSek ?? productPricing.regularPriceSek ?? product?.price ?? 0;
+    const appliedTier = variantPricing.appliedTier;
+    const variantHasTierDiff = variantPricing.customerPriceSek !== null
+        && variantPricing.regularPriceSek !== null
+        && variantPricing.customerPriceSek !== variantPricing.regularPriceSek;
+    const productHasTierDiff = productPricing.customerPriceSek !== null
+        && productPricing.regularPriceSek !== null
+        && productPricing.customerPriceSek !== productPricing.regularPriceSek;
+    const customerPriceSek = appliedTier === 'DEFAULT'
+        ? regularPriceSek
+        : variantHasTierDiff
+            ? variantPricing.customerPriceSek
+            : productHasTierDiff
+                ? productPricing.customerPriceSek
+                : (variantPricing.customerPriceSek ?? productPricing.customerPriceSek ?? regularPriceSek);
+    const priceValue = customerPriceSek ?? regularPriceSek;
+    const tierPriceApplied = appliedTier !== 'DEFAULT' && customerPriceSek !== regularPriceSek;
     const stockValue = selectedVariant ? getVariantStock(selectedVariant) : product?.stock;
     const isOutOfStock = stockValue !== undefined && stockValue <= 0;
     const stockLabel = useMemo(() => {
@@ -47,6 +62,14 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
         return 'In stock';
     }, [stockValue]);
     const priceLabel = useMemo(() => formatCurrency(priceValue, currency || 'SEK'), [currency, priceValue]);
+    const tierLabel = useMemo(() => {
+        const labels = {
+            VIP: 'VIP price',
+            SUPPORTER: 'Supporter price',
+            B2B: 'B2B price',
+        };
+        return labels[appliedTier] ?? '';
+    }, [appliedTier]);
 
     const { title, badge } = useMemo(() => {
         const safeName = name ? String(name).trim() : '';
@@ -145,9 +168,11 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
                         {badge ? <span className={styles.badge}>{badge}</span> : null}
                     </div>
                     <div className={styles.price}>
-                        {hasTierDiscount ? <span className={styles.originalPrice}>{formatCurrency(defaultPriceValue, currency || 'SEK')}</span> : null}
-                        <span className={styles.priceValue}>{priceLabel}</span>
-                        {hasTierDiscount ? <span className={styles.supporterTag}>Supporter price</span> : null}
+                        <div className={styles.priceWrap}>
+                            {tierPriceApplied ? <span className={styles.priceOldInvalid}>{formatCurrency(regularPriceSek, currency || 'SEK')}</span> : null}
+                            <span className={`${styles.priceValue} ${tierPriceApplied ? styles.priceNewValid : ''}`}>{priceLabel}</span>
+                            {tierPriceApplied && tierLabel ? <span className={styles.tierBadge}>{tierLabel}</span> : null}
+                        </div>
                     </div>
                 </div>
 

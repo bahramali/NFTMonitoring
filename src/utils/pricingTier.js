@@ -71,4 +71,16 @@ export const hasTierPriceDiscount = (entity, tier = 'DEFAULT') => {
     return current !== null && base !== null && current < base;
 };
 
+export const resolvePricingForTier = (entity, tier = 'DEFAULT') => {
+    const appliedTier = normalizePricingTier(tier);
+    const regularPriceSek = resolveTierPrice(entity, 'DEFAULT');
+    const customerPriceSek = resolveTierPrice(entity, appliedTier);
+
+    return {
+        regularPriceSek,
+        customerPriceSek,
+        appliedTier,
+    };
+};
+
 export const PRICING_TIERS = TIERS;
