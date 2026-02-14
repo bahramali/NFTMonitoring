@@ -13,6 +13,7 @@ import {
     STOREFRONT_CART_STORAGE_KEY,
     clearPersistedStorefrontSession,
 } from '../utils/storefrontSession.js';
+import { useAuth } from './AuthContext.jsx';
 
 const defaultState = {
     cart: null,
@@ -68,6 +69,7 @@ const clearCartSession = () => {
 };
 
 export function StorefrontProvider({ children }) {
+    const { isAuthenticated, token } = useAuth();
     const [cartState, setCartState] = useState(() => readStoredCartSession());
     const [cart, setCart] = useState(null);
     const [initializing, setInitializing] = useState(true);
@@ -80,6 +82,7 @@ export function StorefrontProvider({ children }) {
     const cartRef = useRef(cart);
     const didInitRef = useRef(false);
     const cartRequestRef = useRef(null);
+    const authStateRef = useRef({ isAuthenticated, token });
 
     useEffect(() => {
         cartStateRef.current = cartState;
@@ -259,6 +262,19 @@ export function StorefrontProvider({ children }) {
         setInitializing(true);
         ensureCartSession();
     }, [ensureCartSession]);
+
+    useEffect(() => {
+        if (!didInitRef.current) {
+            authStateRef.current = { isAuthenticated, token };
+            return;
+        }
+
+        const previousAuthState = authStateRef.current;
+        authStateRef.current = { isAuthenticated, token };
+        if (isAuthenticated && token && (!previousAuthState.isAuthenticated || previousAuthState.token !== token)) {
+            ensureCartSession({ allowCreate: true, silent: true });
+        }
+    }, [ensureCartSession, isAuthenticated, token]);
 
     const refreshCart = useCallback(async () => {
         if (!cartStateRef.current.cartId) return null;

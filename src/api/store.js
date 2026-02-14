@@ -42,8 +42,9 @@ export async function fetchStoreProduct(productId, { signal, token } = {}) {
 
 export async function createStoreCart(sessionId, { signal } = {}) {
     const body = sessionId ? JSON.stringify({ sessionId }) : null;
-    const res = await fetch(`${STORE_BASE}/cart`, {
+    const res = await authFetch(`${STORE_BASE}/cart`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
             ...buildCartHeaders(null, sessionId),
@@ -56,8 +57,9 @@ export async function createStoreCart(sessionId, { signal } = {}) {
 }
 
 export async function fetchCurrentStoreCart({ signal } = {}) {
-    const res = await fetch(`${STORE_BASE}/cart`, {
+    const res = await authFetch(`${STORE_BASE}/cart`, {
         method: 'GET',
+        credentials: 'include',
         signal,
     });
 
@@ -66,7 +68,8 @@ export async function fetchCurrentStoreCart({ signal } = {}) {
 
 export async function fetchStoreCart(cartId, sessionId, { signal } = {}) {
     if (!cartId) throw new Error('Cart ID is required');
-    const res = await fetch(`${STORE_BASE}/cart/${encodeURIComponent(cartId)}`, {
+    const res = await authFetch(`${STORE_BASE}/cart/${encodeURIComponent(cartId)}`, {
+        credentials: 'include',
         headers: buildCartHeaders(cartId, sessionId),
         signal,
     });
@@ -77,8 +80,9 @@ export async function fetchStoreCart(cartId, sessionId, { signal } = {}) {
 export async function addItemToCart(cartId, sessionId, itemId, quantity = 1, { signal } = {}) {
     if (!itemId) throw new Error('Item ID is required');
 
-    const res = await fetch(`${STORE_BASE}/cart/${encodeURIComponent(cartId)}/items`, {
+    const res = await authFetch(`${STORE_BASE}/cart/${encodeURIComponent(cartId)}/items`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
             ...buildCartHeaders(cartId, sessionId),
@@ -93,8 +97,9 @@ export async function addItemToCart(cartId, sessionId, itemId, quantity = 1, { s
 export async function updateCartItem(cartId, sessionId, itemId, quantity, { signal } = {}) {
     if (!itemId) throw new Error('Line item ID is required');
 
-    const res = await fetch(`${STORE_BASE}/cart/${encodeURIComponent(cartId)}/items/${encodeURIComponent(itemId)}`, {
+    const res = await authFetch(`${STORE_BASE}/cart/${encodeURIComponent(cartId)}/items/${encodeURIComponent(itemId)}`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
             ...buildCartHeaders(cartId, sessionId),
@@ -109,8 +114,9 @@ export async function updateCartItem(cartId, sessionId, itemId, quantity, { sign
 export async function removeCartItem(cartId, sessionId, itemId, { signal } = {}) {
     if (!itemId) throw new Error('Line item ID is required');
 
-    const res = await fetch(`${STORE_BASE}/cart/${encodeURIComponent(cartId)}/items/${encodeURIComponent(itemId)}`, {
+    const res = await authFetch(`${STORE_BASE}/cart/${encodeURIComponent(cartId)}/items/${encodeURIComponent(itemId)}`, {
         method: 'DELETE',
+        credentials: 'include',
         headers: buildCartHeaders(cartId, sessionId),
         signal,
     });
