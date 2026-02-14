@@ -9,7 +9,7 @@ import styles from './Storefront.module.css';
 
 export default function Storefront() {
     const { addToCart, pendingProductId } = useStorefront();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, isBootstrapping } = useAuth();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -74,8 +74,12 @@ export default function Storefront() {
     };
 
     useEffect(() => {
+        if (isBootstrapping) {
+            return;
+        }
+
         fetchProducts();
-    }, [isAuthenticated]);
+    }, [isAuthenticated, isBootstrapping]);
 
     return (
         <div className={styles.page}>
