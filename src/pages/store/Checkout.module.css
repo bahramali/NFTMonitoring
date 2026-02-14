@@ -39,13 +39,27 @@
 }
 
 .form {
+    display: grid;
+    gap: 14px;
+}
+
+.card {
     background: #fff;
     border: 1px solid var(--border, #e6e6e6);
     border-radius: 16px;
-    padding: 18px;
+    padding: 16px;
     display: grid;
-    gap: 12px;
+    gap: 10px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+}
+
+.cardTitle {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.companyPanel {
+    background: #f8fafc;
 }
 
 .fieldGroup {
@@ -177,17 +191,11 @@
 
 
 .customerTypeFieldset {
-    border: 1px solid var(--border, #e6e6e6);
-    border-radius: 12px;
-    padding: 10px 12px;
+    border: 0;
+    margin: 0;
+    padding: 0;
     display: grid;
     gap: 8px;
-}
-
-.customerTypeFieldset legend {
-    padding: 0 4px;
-    color: var(--muted, #666);
-    font-size: 0.95rem;
 }
 
 .radioOption {
@@ -202,6 +210,29 @@
     margin: 0;
     font-size: 0.9rem;
     color: var(--muted, #666);
+}
+
+.paymentCard {
+    border-color: #d9e7ff;
+}
+
+.infoBox {
+    border: 1px solid #d7e6ff;
+    background: #f3f8ff;
+    border-radius: 12px;
+    padding: 10px 12px;
+    color: #1f2937;
+    display: grid;
+    gap: 4px;
+}
+
+.infoBox p {
+    margin: 0;
+}
+
+.mutedInfo {
+    color: var(--muted, #666);
+    font-size: 0.86rem;
 }
 
 .couponRow {
@@ -225,6 +256,18 @@
     cursor: not-allowed;
 }
 
+.badge {
+    display: inline-flex;
+    width: fit-content;
+    border-radius: 999px;
+    padding: 5px 10px;
+    background: #ecfdf3;
+    border: 1px solid #b4ebcc;
+    color: #17663a;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
 .checkboxRow {
     display: inline-flex;
     align-items: center;
@@ -241,6 +284,12 @@
     font-weight: 800;
     color: #fff;
     cursor: pointer;
+}
+
+.stickyCta {
+    position: sticky;
+    bottom: 10px;
+    z-index: 2;
 }
 
 .submitContent {
@@ -332,6 +381,11 @@
     margin-top: 6px;
 }
 
+.divider {
+    border-top: 1px solid var(--border, #e6e6e6);
+    margin-top: 4px;
+}
+
 .empty {
     padding: 20px;
     border-radius: 14px;
@@ -360,5 +414,9 @@
 
     .layout {
         grid-template-columns: 1fr;
+    }
+
+    .card {
+        padding: 14px;
     }
 }
