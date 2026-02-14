@@ -108,4 +108,52 @@ export const resolvePricingForTier = (entity, tier = 'DEFAULT') => {
     };
 };
 
+const toCents = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? Math.round(parsed) : null;
+};
+
+const sekToCents = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? Math.round(parsed * 100) : null;
+};
+
+const readEntityDefaultCents = (entity) => {
+    if (!entity || typeof entity !== 'object') return null;
+    const tierDefault = toCents(entity?.tierPrices?.DEFAULT);
+    if (tierDefault !== null) return tierDefault;
+    return toCents(entity?.priceCents) ?? sekToCents(entity?.priceSek) ?? sekToCents(entity?.price);
+};
+
+const readEntityTierCents = (entity, tier) => {
+    if (!entity || typeof entity !== 'object') return null;
+    const normalizedTier = normalizePricingTier(tier);
+    return toCents(entity?.tierPrices?.[normalizedTier]);
+};
+
+const readEntityEffectiveCents = (entity) => {
+    if (!entity || typeof entity !== 'object') return null;
+    return toCents(entity?.priceCents) ?? sekToCents(entity?.priceSek) ?? sekToCents(entity?.price);
+};
+
+export const resolveTierPricingDisplay = ({ variant, product, tier = 'DEFAULT' } = {}) => {
+    const normalizedTier = normalizePricingTier(tier);
+    const defaultCents = readEntityDefaultCents(variant) ?? readEntityDefaultCents(product);
+    const effectiveCents = readEntityEffectiveCents(variant) ?? readEntityEffectiveCents(product) ?? defaultCents;
+    const tierCents = readEntityTierCents(variant, normalizedTier) ?? readEntityTierCents(product, normalizedTier);
+
+    const showTierPrice = normalizedTier !== 'DEFAULT'
+        && Number.isFinite(tierCents)
+        && tierCents > 0
+        && Number.isFinite(defaultCents)
+        && tierCents < defaultCents;
+
+    return {
+        appliedTier: normalizedTier,
+        effectiveCents,
+        defaultCents,
+        showTierPrice,
+    };
+};
+
 export const PRICING_TIERS = TIERS;
