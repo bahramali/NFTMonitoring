@@ -16,6 +16,7 @@ import {
 import { getApiBaseUrl } from '../config/apiBase.js';
 import { configureAuth, resetRefreshAttempts } from '../api/http.js';
 import normalizeProfile from '../utils/normalizeProfile.js';
+import { clearPersistedStorefrontSession, notifyStorefrontSessionReset } from '../utils/storefrontSession.js';
 
 const API_BASE = getApiBaseUrl();
 const AUTH_BASE = `${API_BASE}/api/auth`;
@@ -405,6 +406,8 @@ export function AuthProvider({ children, initialSession }) {
         setLoadingProfile(false);
         setIsBootstrapping(false);
         authFailureHandledRef.current = false;
+        clearPersistedStorefrontSession();
+        notifyStorefrontSessionReset();
         if (clearNotice) {
             setAuthNotice(null);
         }

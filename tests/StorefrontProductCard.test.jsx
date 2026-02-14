@@ -4,6 +4,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import ProductCard from '../src/components/store/ProductCard.jsx';
 import { StorefrontProvider, useStorefront } from '../src/context/StorefrontContext.jsx';
+import { STOREFRONT_CART_RESET_EVENT, STOREFRONT_CART_STORAGE_KEY } from '../src/utils/storefrontSession.js';
 
 let mockProfile = null;
 
@@ -360,5 +361,71 @@ describe('Storefront add to cart', () => {
         const call = fetchSpy.mock.calls.find(([url]) => `${url}`.includes('/items'));
         const body = JSON.parse(call?.[1]?.body ?? '{}');
         expect(body).toMatchObject({ variantId: 'variant-1', quantity: 2 });
+    });
+
+    it('resets cart/session on logout event and forces next add to use a fresh cart', async () => {
+        let createCount = 0;
+        const fetchSpy = vi.fn(async (url, options = {}) => {
+            const requestUrl = typeof url === 'string' ? url : url?.toString();
+
+            if (requestUrl?.endsWith('/api/store/cart') && (options?.method === 'POST' || !options?.method)) {
+                if ((options?.method || 'GET') === 'GET') {
+                    return createJsonResponse({ cartId: 'cart-anon', sessionId: 'session-anon', items: [] });
+                }
+
+                createCount += 1;
+                const cartId = createCount === 1 ? 'cart-old' : 'cart-new';
+                const sessionId = createCount === 1 ? 'session-old' : 'session-new';
+                return createJsonResponse({ cartId, sessionId, items: [] });
+            }
+
+            if (requestUrl?.includes('/api/store/cart/') && requestUrl?.includes('/items') && options?.method === 'POST') {
+                const body = JSON.parse(options.body ?? '{}');
+                const isFresh = requestUrl.includes('/cart-new/');
+                return createJsonResponse({
+                    cart: {
+                        id: isFresh ? 'cart-new' : 'cart-old',
+                        sessionId: isFresh ? 'session-new' : 'session-old',
+                        items: [{ id: `item-${createCount}`, itemId: body.variantId, quantity: body.quantity, price: 29 }],
+                        totals: { currency: 'SEK', subtotal: 29, total: 29 },
+                    },
+                });
+            }
+
+            if (requestUrl?.includes('/api/store/cart/')) {
+                return createJsonResponse({ cartId: 'cart-old', sessionId: 'session-old', items: [] });
+            }
+
+            return createJsonResponse({});
+        });
+
+        vi.stubGlobal('fetch', vi.fn(async (url, options = {}) => fetchSpy(url, options)));
+        const wrapper = ({ children }) => <StorefrontProvider>{children}</StorefrontProvider>;
+        const { result } = renderHook(() => useStorefront(), { wrapper });
+
+        await act(async () => {
+            await result.current.addToCart('variant-1', 1, 'product-1');
+        });
+        expect(result.current.cartId).toBe('cart-old');
+        expect(window.localStorage.getItem(STOREFRONT_CART_STORAGE_KEY)).toContain('cart-old');
+
+        await act(async () => {
+            window.dispatchEvent(new Event(STOREFRONT_CART_RESET_EVENT));
+        });
+
+        expect(result.current.cart).toBe(null);
+        expect(result.current.cartId).toBe(null);
+        expect(window.localStorage.getItem(STOREFRONT_CART_STORAGE_KEY)).toBe(null);
+
+        await act(async () => {
+            await result.current.addToCart('variant-1', 1, 'product-1');
+        });
+
+        const itemCallUrls = fetchSpy.mock.calls
+            .map(([requestUrl]) => `${requestUrl}`)
+            .filter((requestUrl) => requestUrl.includes('/api/store/cart/') && requestUrl.includes('/items'));
+
+        expect(itemCallUrls[itemCallUrls.length - 1]).toContain('/cart-new/items');
+        expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining('/api/store/cart'), expect.objectContaining({ method: 'GET' }));
     });
 });
