@@ -204,6 +204,11 @@ export default function Checkout() {
     const summaryTax = totals.tax ?? 0;
     const summaryTotal = totals.total ?? (summarySubtotal + summaryShipping + summaryTax - summaryDiscount);
     const summaryNet = Math.max(summarySubtotal - summaryTax, 0);
+    const showVatRow = summaryTax > 0 || isB2B;
+    const showVatInvoiceHint = isB2B && summaryTax <= 0;
+    const ctaLabel = paymentMode === 'INVOICE_PAY_LATER'
+        ? `Place order & receive invoice – ${formatCurrency(summaryTotal, quoteCurrency)}`
+        : `Proceed to payment – ${formatCurrency(summaryTotal, quoteCurrency)}`;
 
     const invoiceOption = useMemo(() => {
         const invoiceDetails = activeCart?.invoice ?? activeCart?.checkout?.invoice ?? {};
@@ -589,54 +594,46 @@ export default function Checkout() {
             ) : (
                 <div className={styles.layout}>
                     <form className={styles.form} onSubmit={handleSubmit}>
-                        {isAuthenticated ? (
-                            <>
+                        <section className={styles.card}>
+                            <h2 className={styles.cardTitle}>Account / Ordering as</h2>
+                            {isAuthenticated ? (
                                 <div className={styles.accountNote}>
-                                    <span>
-                                        Ordering as {profileEmail || 'your account'}.
-                                    </span>
+                                    <span>Ordering as: {profileEmail || 'your account'}</span>
                                     <button type="button" className={styles.logoutLink} onClick={() => logout({ redirect: false })}>
                                         Log out
                                     </button>
                                 </div>
-                                <div className={styles.fieldGroup}>
-                                    <label htmlFor="email">Email</label>
-                                    <input
-                                        id="email"
-                                        name="email"
-                                        type="email"
-                                        value={profileEmail}
-                                        readOnly
-                                    />
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <div className={styles.guestIntro}>
-                                    <h2 className={styles.guestTitle}>Checkout as guest</h2>
-                                    <p className={styles.guestSubtitle}>
-                                        No account needed. Enter your email to receive order updates.
-                                    </p>
-                                    <Link className={styles.guestLink} to="/login?next=/store/checkout">
-                                        Have an account? Log in
-                                    </Link>
-                                </div>
-                                <div className={styles.fieldGroup}>
-                                    <label htmlFor="email">Email</label>
-                                    <input id="email" name="email" type="email" required value={form.email} onChange={handleChange} />
-                                </div>
-                            </>
-                        )}
-                        <div className={styles.fieldGroup}>
-                            <label htmlFor="fullName">Full name</label>
-                            <input id="fullName" name="fullName" type="text" required value={form.fullName} onChange={handleChange} />
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label htmlFor="phone">Phone</label>
-                            <input id="phone" name="phone" type="tel" value={form.phone} onChange={handleChange} />
-                        </div>
-                        {isAuthenticated ? (
+                            ) : (
+                                <>
+                                    <div className={styles.guestIntro}>
+                                        <h3 className={styles.guestTitle}>Checkout as guest</h3>
+                                        <p className={styles.guestSubtitle}>
+                                            No account needed. Enter your email to receive order updates.
+                                        </p>
+                                        <Link className={styles.guestLink} to="/login?next=/store/checkout">
+                                            Have an account? Log in
+                                        </Link>
+                                    </div>
+                                    <div className={styles.fieldGroup}>
+                                        <label htmlFor="email">Email</label>
+                                        <input id="email" name="email" type="email" required value={form.email} onChange={handleChange} />
+                                    </div>
+                                </>
+                            )}
+                        </section>
+
+                        <section className={styles.card}>
+                            <h2 className={styles.cardTitle}>Contact &amp; Delivery</h2>
                             <div className={styles.fieldGroup}>
+                                <label htmlFor="fullName">Full name</label>
+                                <input id="fullName" name="fullName" type="text" required value={form.fullName} onChange={handleChange} />
+                            </div>
+                            <div className={styles.fieldGroup}>
+                                <label htmlFor="phone">Phone</label>
+                                <input id="phone" name="phone" type="tel" value={form.phone} onChange={handleChange} />
+                            </div>
+                            {isAuthenticated ? (
+                                <div className={styles.fieldGroup}>
                                 <label htmlFor="saved-address">Saved address</label>
                                 {loadingAddresses ? (
                                     <p>Loading saved addresses…</p>
@@ -692,10 +689,10 @@ export default function Checkout() {
                                         )}
                                     </div>
                                 ) : null}
-                            </div>
-                        ) : null}
-                        {!isAuthenticated || addressMode === 'new' ? (
-                            <>
+                                </div>
+                            ) : null}
+                            {!isAuthenticated || addressMode === 'new' ? (
+                                <>
                                 <div className={styles.fieldGroup}>
                                     <label htmlFor="addressLine1">Address line 1</label>
                                     <input
@@ -761,36 +758,41 @@ export default function Checkout() {
                                         Save this address
                                     </label>
                                 ) : null}
-                            </>
-                        ) : null}
-                        <fieldset className={styles.customerTypeFieldset}>
-                            <legend>Customer type</legend>
-                            <label className={styles.radioOption} htmlFor="customerType-b2c">
-                                <input
-                                    id="customerType-b2c"
-                                    type="radio"
-                                    name="customerType"
-                                    value="B2C"
-                                    checked={form.customerType === 'B2C'}
-                                    onChange={handleChange}
-                                />
-                                Private (B2C)
-                            </label>
-                            <label className={styles.radioOption} htmlFor="customerType-b2b">
-                                <input
-                                    id="customerType-b2b"
-                                    type="radio"
-                                    name="customerType"
-                                    value="B2B"
-                                    checked={form.customerType === 'B2B'}
-                                    onChange={handleChange}
-                                />
-                                Company/Restaurant (B2B)
-                            </label>
-                        </fieldset>
+                                </>
+                            ) : null}
+                        </section>
+
+                        <section className={styles.card}>
+                            <h2 className={styles.cardTitle}>Customer Type</h2>
+                            <fieldset className={styles.customerTypeFieldset}>
+                                <label className={styles.radioOption} htmlFor="customerType-b2c">
+                                    <input
+                                        id="customerType-b2c"
+                                        type="radio"
+                                        name="customerType"
+                                        value="B2C"
+                                        checked={form.customerType === 'B2C'}
+                                        onChange={handleChange}
+                                    />
+                                    Private (B2C)
+                                </label>
+                                <label className={styles.radioOption} htmlFor="customerType-b2b">
+                                    <input
+                                        id="customerType-b2b"
+                                        type="radio"
+                                        name="customerType"
+                                        value="B2B"
+                                        checked={form.customerType === 'B2B'}
+                                        onChange={handleChange}
+                                    />
+                                    Company/Restaurant (B2B)
+                                </label>
+                            </fieldset>
+                        </section>
 
                         {isB2B ? (
-                            <>
+                            <section className={`${styles.card} ${styles.companyPanel}`}>
+                                <h2 className={styles.cardTitle}>Company Details</h2>
                                 <div className={styles.fieldGroup}>
                                     <label htmlFor="companyName">Company name</label>
                                     <input
@@ -839,15 +841,51 @@ export default function Checkout() {
                                         }}
                                     />
                                 </div>
-                            </>
+                            </section>
                         ) : null}
 
-                        <div className={styles.fieldGroup}>
-                            <label htmlFor="couponCode">Coupon code</label>
+                        <section className={`${styles.card} ${styles.paymentCard}`}>
+                            <h2 className={styles.cardTitle}>Payment Timing</h2>
+                            <fieldset className={styles.customerTypeFieldset}>
+                                <label className={styles.radioOption}>
+                                    <input
+                                        type="radio"
+                                        name="paymentMode"
+                                        value="PAY_NOW"
+                                        checked={paymentMode === 'PAY_NOW'}
+                                        onChange={() => setPaymentMode('PAY_NOW')}
+                                    />
+                                    Pay now
+                                </label>
+                                <label className={styles.radioOption}>
+                                    <input
+                                        type="radio"
+                                        name="paymentMode"
+                                        value="INVOICE_PAY_LATER"
+                                        checked={paymentMode === 'INVOICE_PAY_LATER'}
+                                        onChange={() => setPaymentMode('INVOICE_PAY_LATER')}
+                                        disabled={!invoiceOption.enabled}
+                                    />
+                                    Invoice (pay later)
+                                </label>
+                            </fieldset>
+                            {paymentMode === 'INVOICE_PAY_LATER' && isB2B ? (
+                                <div className={styles.infoBox}>
+                                    <p>You&apos;ll receive an invoice and pay later.</p>
+                                    <p>Only for approved business customers.</p>
+                                    <p className={styles.mutedInfo}>Typical terms: 14 days.</p>
+                                </div>
+                            ) : null}
+                            {!invoiceOption.enabled ? <p className={styles.error}>{invoiceOption.reason}</p> : null}
+                        </section>
+
+                        <section className={styles.card}>
+                            <h2 className={styles.cardTitle}>Coupon</h2>
                             {hasTierPricing ? (
-                                <p className={styles.status}>Your supporter price is already applied.</p>
+                                <span className={styles.badge}>Supporter price applied</span>
                             ) : (
-                                <>
+                                <div className={styles.fieldGroup}>
+                                    <label htmlFor="couponCode">Coupon code</label>
                                     <div className={styles.couponRow}>
                                         <input
                                             id="couponCode"
@@ -874,56 +912,27 @@ export default function Checkout() {
                                     </div>
                                     {couponStatus === 'success' && couponMessage ? <p className={styles.status}>{couponMessage}</p> : null}
                                     {couponStatus === 'error' && couponMessage ? <p className={styles.error}>{couponMessage}</p> : null}
-                                </>
+                                </div>
                             )}
-                        </div>
-                                <div className={styles.fieldGroup}>
-                            <fieldset className={styles.customerTypeFieldset}>
-                                <legend>Payment timing</legend>
-                                <label className={styles.radioOption}>
-                                    <input
-                                        type="radio"
-                                        name="paymentMode"
-                                        value="PAY_NOW"
-                                        checked={paymentMode === 'PAY_NOW'}
-                                        onChange={() => setPaymentMode('PAY_NOW')}
-                                    />
-                                    Pay now
-                                </label>
-                                <label className={styles.radioOption}>
-                                    <input
-                                        type="radio"
-                                        name="paymentMode"
-                                        value="INVOICE_PAY_LATER"
-                                        checked={paymentMode === 'INVOICE_PAY_LATER'}
-                                        onChange={() => setPaymentMode('INVOICE_PAY_LATER')}
-                                        disabled={!invoiceOption.enabled}
-                                    />
-                                    Invoice (pay later)
-                                </label>
-                                <p className={styles.inlineHint}>
-                                    For approved business customers. You&apos;ll receive an invoice and pay later.
-                                </p>
-                                {!invoiceOption.enabled ? <p className={styles.error}>{invoiceOption.reason}</p> : null}
-                            </fieldset>
-                        </div>
+                        </section>
 
-                        <div className={styles.fieldGroup}>
-                            <label htmlFor="notes">Notes</label>
-                            <textarea id="notes" name="notes" value={form.notes} onChange={handleChange} rows={3} />
-                        </div>
+                        <section className={styles.card}>
+                            <h2 className={styles.cardTitle}>Notes</h2>
+                            <div className={styles.fieldGroup}>
+                                <label htmlFor="notes">Notes</label>
+                                <textarea id="notes" name="notes" value={form.notes} onChange={handleChange} rows={3} />
+                            </div>
+                        </section>
                         {error ? <p className={styles.error}>{error}</p> : null}
                         {statusMessage ? <p className={styles.status}>{statusMessage}</p> : null}
-                        <button type="submit" className={styles.submit} disabled={!canSubmit || loadingProfile}>
+                        <button type="submit" className={`${styles.submit} ${styles.stickyCta}`} disabled={!canSubmit || loadingProfile}>
                             {submitting ? (
                                 <span className={styles.submitContent}>
                                     <span className={styles.spinner} aria-hidden="true" />
                                     <span>{paymentMode === 'INVOICE_PAY_LATER' ? 'Placing invoice order…' : 'Starting checkout…'}</span>
                                 </span>
                             ) : (
-                                paymentMode === 'INVOICE_PAY_LATER'
-                                    ? `Place order ${formatCurrency(summaryTotal, quoteCurrency)}`
-                                    : `Pay ${formatCurrency(summaryTotal, quoteCurrency)}`
+                                ctaLabel
                             )}
                         </button>
                     </form>
@@ -939,7 +948,6 @@ export default function Checkout() {
                                             {item.quantity ?? item.qty ?? 1}
                                             {' × '}
                                             {formatCurrency(item.discountedUnitPrice ?? item.price ?? item.unitPrice ?? 0, currency)}
-                                            {' '}incl. VAT
                                         </p>
                                     </div>
                                     <span>
@@ -968,15 +976,21 @@ export default function Checkout() {
                             <span>Shipping/Pickup fee</span>
                             <span>{formatCurrency(summaryShipping, quoteCurrency)}</span>
                         </div>
-                        <div className={styles.row}>
-                            <span>VAT (moms)</span>
-                            <span>{formatCurrency(summaryTax, quoteCurrency)}</span>
-                        </div>
+                        {showVatRow ? (
+                            <div className={styles.row}>
+                                <span>
+                                    VAT (moms)
+                                    {showVatInvoiceHint ? <span className={styles.mutedInfo}> · VAT will be calculated on invoice</span> : null}
+                                </span>
+                                <span>{formatCurrency(summaryTax, quoteCurrency)}</span>
+                            </div>
+                        ) : null}
                         <div className={styles.pickupNote}>
                             {paymentMode === 'INVOICE_PAY_LATER'
                                 ? 'Pickup confirmation is shared by email with your invoice details.'
                                 : 'Pickup confirmed after payment. We\'ll email the details.'}
                         </div>
+                        <div className={styles.divider} />
                         <div className={`${styles.row} ${styles.total}`}>
                             <span>Total (incl. VAT / Gross · {currencyLabel(quoteCurrency)})</span>
                             <span>{formatCurrency(summaryTotal, quoteCurrency)}</span>
