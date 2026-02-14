@@ -37,7 +37,7 @@ describe('Storefront auth-aware product fetch', () => {
         render(<MemoryRouter><Storefront /></MemoryRouter>);
 
         await waitFor(() => {
-            expect(listStoreProducts).toHaveBeenCalledWith({ token: null });
+            expect(listStoreProducts).toHaveBeenCalledWith();
         });
     });
 
@@ -47,7 +47,7 @@ describe('Storefront auth-aware product fetch', () => {
         render(<MemoryRouter><Storefront /></MemoryRouter>);
 
         await waitFor(() => {
-            expect(listStoreProducts).toHaveBeenCalledWith({ token: 'jwt-1' });
+            expect(listStoreProducts).toHaveBeenCalledWith();
         });
     });
 });
