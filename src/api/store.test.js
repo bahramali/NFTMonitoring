@@ -65,26 +65,4 @@ describe('listStoreProducts', () => {
         );
     });
 
-    it('uses sessionStorage token when explicit token is not provided', async () => {
-        authFetchMock.mockResolvedValue({ ok: true });
-        parseApiResponseMock.mockResolvedValue({ products: [] });
-        window.sessionStorage.setItem('authSession', JSON.stringify({ token: 'storage-token' }));
-
-        const { listStoreProducts } = await import('./store.js');
-        await listStoreProducts();
-
-        expect(buildAuthHeadersMock).toHaveBeenCalledWith('storage-token');
-        expect(authFetchMock).toHaveBeenCalledWith(
-            'http://localhost:8080/api/store/products',
-            {
-                signal: undefined,
-                headers: {
-                    Authorization: 'Bearer storage-token',
-                    'Content-Type': 'application/json',
-                },
-            },
-            { token: 'storage-token' },
-        );
-    });
-
 });

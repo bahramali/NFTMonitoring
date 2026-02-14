@@ -428,15 +428,30 @@ export function AuthProvider({ children, initialSession }) {
         [logout],
     );
 
-    useEffect(() => {
-        configureAuth({
-            getAccessToken: () => sessionRef.current.token,
-            setAccessToken: updateAccessToken,
-            refreshAccessToken,
-            onAuthFailure: handleAuthFailure,
-            maxRefreshAttempts: 2,
-        });
-    }, [handleAuthFailure, refreshAccessToken, updateAccessToken]);
+    configureAuth({
+        getAccessToken: () => {
+            if (sessionRef.current?.token) {
+                return sessionRef.current.token;
+            }
+
+            if (typeof window === 'undefined') {
+                return null;
+            }
+
+            try {
+                const raw = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+                if (!raw) return null;
+                const parsed = JSON.parse(raw);
+                return parsed?.token ?? null;
+            } catch {
+                return null;
+            }
+        },
+        setAccessToken: updateAccessToken,
+        refreshAccessToken,
+        onAuthFailure: handleAuthFailure,
+        maxRefreshAttempts: 2,
+    });
 
     useEffect(() => {
         if (import.meta.env?.MODE === 'test') {
