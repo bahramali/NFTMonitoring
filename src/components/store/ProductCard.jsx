@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import QuantityStepper from './QuantityStepper.jsx';
 import { formatCurrency } from '../../utils/currency.js';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { extractUserPricingTier, resolvePricingForTier } from '../../utils/pricingTier.js';
+import { extractUserPricingTier, resolveTierPricingDisplay } from '../../utils/pricingTier.js';
 import {
     getActiveVariants,
     getDefaultVariantId,
@@ -34,29 +34,11 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
     const { name, id, currency } = product || {};
     const activeVariant = selectedVariant;
     const pricingTier = extractUserPricingTier(profile);
-    const variantPricing = resolvePricingForTier(selectedVariant, pricingTier);
-    const productPricing = resolvePricingForTier(product, pricingTier);
-    const regularTierPriceSek = variantPricing.regularPriceSek ?? productPricing.regularPriceSek;
-    const regularPriceSek = regularTierPriceSek ?? product?.price ?? 0;
-    const appliedTier = variantPricing.appliedTier;
-    const variantHasTierDiff = variantPricing.customerPriceSek !== null
-        && variantPricing.regularPriceSek !== null
-        && variantPricing.customerPriceSek !== variantPricing.regularPriceSek;
-    const productHasTierDiff = productPricing.customerPriceSek !== null
-        && productPricing.regularPriceSek !== null
-        && productPricing.customerPriceSek !== productPricing.regularPriceSek;
-    const customerPriceSek = appliedTier === 'DEFAULT'
-        ? regularPriceSek
-        : variantHasTierDiff
-            ? variantPricing.customerPriceSek
-            : productHasTierDiff
-                ? productPricing.customerPriceSek
-                : (variantPricing.customerPriceSek ?? productPricing.customerPriceSek ?? regularPriceSek);
-    const priceValue = customerPriceSek ?? regularPriceSek;
-    const tierPriceApplied = appliedTier !== 'DEFAULT'
-        && regularTierPriceSek !== null
-        && customerPriceSek !== null
-        && customerPriceSek !== regularTierPriceSek;
+    const pricingDisplay = resolveTierPricingDisplay({ variant: selectedVariant, product, tier: pricingTier });
+    const regularPriceSek = pricingDisplay.defaultCents !== null ? pricingDisplay.defaultCents / 100 : (product?.price ?? 0);
+    const priceValue = pricingDisplay.effectiveCents !== null ? pricingDisplay.effectiveCents / 100 : regularPriceSek;
+    const appliedTier = pricingDisplay.appliedTier;
+    const tierPriceApplied = pricingDisplay.showTierPrice;
     const stockValue = selectedVariant ? getVariantStock(selectedVariant) : product?.stock;
     const isOutOfStock = stockValue !== undefined && stockValue <= 0;
     const stockLabel = useMemo(() => {
@@ -173,7 +155,7 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
                     </div>
                     <div className={styles.price}>
                         <div className={styles.priceWrap}>
-                            {tierPriceApplied ? <span className={styles.priceOldInvalid}>{formatCurrency(regularTierPriceSek, currency || 'SEK')}</span> : null}
+                            {tierPriceApplied ? <span className={styles.priceOldInvalid}>{formatCurrency(regularPriceSek, currency || 'SEK')}</span> : null}
                             <span className={`${styles.priceValue} ${tierPriceApplied ? styles.priceNewValid : ''}`}>{priceLabel}</span>
                             {tierPriceApplied && tierLabel ? <span className={styles.tierBadge}>{tierLabel}</span> : null}
                         </div>

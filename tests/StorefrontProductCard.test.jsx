@@ -170,18 +170,24 @@ describe('ProductCard', () => {
     });
 
 
-    it('shows supporter tier price when variant does not include tier map but product does', () => {
+    it('shows supporter tier pricing with struck-through default price', () => {
         mockProfile = { pricingTier: 'SUPPORTER' };
         const product = {
             id: 'p-tier-1',
             name: 'Tiered Basil',
             currency: 'SEK',
-            tierPricesSek: {
-                DEFAULT: 29.9,
-                SUPPORTER: 10,
-            },
             variants: [
-                { id: 'v-1', label: '50g', price: 29.9, stock: 4 },
+                {
+                    id: 'v-1',
+                    label: '50g',
+                    priceCents: 2000,
+                    priceSek: 20,
+                    stock: 4,
+                    tierPrices: {
+                        DEFAULT: 2990,
+                        SUPPORTER: 2000,
+                    },
+                },
             ],
         };
 
@@ -191,24 +197,32 @@ describe('ProductCard', () => {
             </MemoryRouter>,
         );
 
-        expect(screen.getByText('29,90 kr')).toBeInTheDocument();
-        expect(screen.getByText('10,00 kr')).toBeInTheDocument();
+        const regularPrice = screen.getByText('29,90 kr');
+        expect(regularPrice).toBeInTheDocument();
+        expect(regularPrice.className).toContain('priceOldInvalid');
+        expect(screen.getByText('20,00 kr')).toBeInTheDocument();
         expect(screen.getByText('Supporter price')).toBeInTheDocument();
     });
 
 
-    it('does not render tier delta UI when tier map lacks DEFAULT', () => {
-        mockProfile = { pricingTier: 'SUPPORTER' };
+    it('shows only effective price for DEFAULT tier', () => {
+        mockProfile = { pricingTier: 'DEFAULT' };
         const product = {
             id: 'p-tier-2',
             name: 'Tiered Basil Partial',
             currency: 'SEK',
-            price: 29.9,
-            tierPricesSek: {
-                SUPPORTER: 10,
-            },
             variants: [
-                { id: 'v-1', label: '50g', price: 29.9, stock: 4 },
+                {
+                    id: 'v-1',
+                    label: '50g',
+                    priceCents: 2990,
+                    priceSek: 29.9,
+                    stock: 4,
+                    tierPrices: {
+                        DEFAULT: 2990,
+                        SUPPORTER: 2000,
+                    },
+                },
             ],
         };
 
@@ -220,7 +234,73 @@ describe('ProductCard', () => {
 
         expect(screen.queryByText('Supporter price')).not.toBeInTheDocument();
         expect(screen.getByText('29,90 kr')).toBeInTheDocument();
-        expect(screen.queryByText('10,00 kr')).not.toBeInTheDocument();
+        expect(screen.queryByText('20,00 kr')).not.toBeInTheDocument();
+    });
+
+
+    it('shows only effective price when tier is non-default but tier price is missing or zero', () => {
+        mockProfile = { pricingTier: 'SUPPORTER' };
+        const product = {
+            id: 'p-tier-3',
+            name: 'Tiered Basil Invalid',
+            currency: 'SEK',
+            variants: [
+                {
+                    id: 'v-1',
+                    label: '50g',
+                    priceCents: 2990,
+                    priceSek: 29.9,
+                    stock: 4,
+                    tierPrices: {
+                        DEFAULT: 2990,
+                        SUPPORTER: 0,
+                    },
+                },
+            ],
+        };
+
+        render(
+            <MemoryRouter>
+                <ProductCard product={product} />
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByText('29,90 kr')).toBeInTheDocument();
+        expect(screen.queryByText('Supporter price')).not.toBeInTheDocument();
+        expect(screen.getByText('29,90 kr').className).not.toContain('priceOldInvalid');
+    });
+
+
+    it('shows only effective price when tier price equals default', () => {
+        mockProfile = { pricingTier: 'SUPPORTER' };
+        const product = {
+            id: 'p-tier-4',
+            name: 'Tiered Basil Equal',
+            currency: 'SEK',
+            variants: [
+                {
+                    id: 'v-1',
+                    label: '50g',
+                    priceCents: 2990,
+                    priceSek: 29.9,
+                    stock: 4,
+                    tierPrices: {
+                        DEFAULT: 2990,
+                        SUPPORTER: 2990,
+                    },
+                },
+            ],
+        };
+
+        render(
+            <MemoryRouter>
+                <ProductCard product={product} />
+            </MemoryRouter>,
+        );
+
+        expect(screen.getByText('29,90 kr')).toBeInTheDocument();
+        expect(screen.queryByText('Supporter price')).not.toBeInTheDocument();
+        expect(screen.getByText('29,90 kr').className).not.toContain('priceOldInvalid');
     });
 
     it('keeps view details link visible', () => {
