@@ -262,15 +262,31 @@ export default function CustomerOrderDetails() {
         setDocumentState({ loading: '', error: fallbackMessage });
     };
 
-    const openHtmlDocument = (html, title) => {
-        const popup = window.open('', '_blank', 'noopener,noreferrer');
-        if (!popup) {
-            setDocumentState({ loading: '', error: 'Please allow popups to view this document.' });
-            return;
+    const openHtmlDocument = (html) => {
+        const trimmedHtml = typeof html === 'string' ? html.trim() : '';
+        if (!trimmedHtml.length) {
+            if (import.meta.env.DEV) {
+                console.log('Received empty HTML document preview:', String(html).slice(0, 200));
+            }
+            setDocumentState({ loading: '', error: 'Document is empty' });
+            return false;
         }
-        popup.document.open();
-        popup.document.write(html || `<html><body><h1>${title}</h1><p>No document content.</p></body></html>`);
-        popup.document.close();
+        if (import.meta.env.DEV) {
+            const suspiciousHtml = trimmedHtml.length < 20;
+            if (suspiciousHtml) {
+                console.log('Received suspicious HTML document preview:', html.slice(0, 200));
+            }
+        }
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const url = window.URL.createObjectURL(blob);
+        const popup = window.open(url, '_blank', 'noopener,noreferrer');
+        if (!popup) {
+            window.URL.revokeObjectURL(url);
+            setDocumentState({ loading: '', error: 'Please allow popups to view this document.' });
+            return false;
+        }
+        setTimeout(() => window.URL.revokeObjectURL(url), 60 * 1000);
+        return true;
     };
 
     const handleViewReceipt = async () => {
@@ -279,8 +295,8 @@ export default function CustomerOrderDetails() {
         try {
             const html = await fetchOrderReceiptHtml(token, orderId, { onUnauthorized: redirectToLogin });
             if (html === null) return;
-            openHtmlDocument(html, 'Receipt');
-            setDocumentState({ loading: '', error: '' });
+            const opened = openHtmlDocument(html);
+            if (opened) setDocumentState({ loading: '', error: '' });
         } catch (err) {
             handleDocumentError(err, 'Could not open receipt right now.');
         }
@@ -292,8 +308,8 @@ export default function CustomerOrderDetails() {
         try {
             const html = await fetchOrderInvoiceHtml(token, orderId, { onUnauthorized: redirectToLogin });
             if (html === null) return;
-            openHtmlDocument(html, 'Invoice');
-            setDocumentState({ loading: '', error: '' });
+            const opened = openHtmlDocument(html);
+            if (opened) setDocumentState({ loading: '', error: '' });
         } catch (err) {
             handleDocumentError(err, 'Could not open invoice right now.');
         }
@@ -317,6 +333,27 @@ export default function CustomerOrderDetails() {
             setDocumentState({ loading: '', error: '' });
         } catch (err) {
             handleDocumentError(err, 'Could not download invoice PDF right now.');
+        }
+    };
+
+    const handleOpenInvoicePdf = async () => {
+        if (!token || !orderId || !invoice.available) return;
+        setDocumentState({ loading: 'invoice-pdf-open', error: '' });
+        try {
+            const result = await fetchOrderInvoicePdf(token, orderId, { onUnauthorized: redirectToLogin });
+            if (!result) return;
+            const { blob } = result;
+            const url = window.URL.createObjectURL(blob);
+            const popup = window.open(url, '_blank', 'noopener,noreferrer');
+            if (!popup) {
+                window.URL.revokeObjectURL(url);
+                setDocumentState({ loading: '', error: 'Please allow popups to open this PDF.' });
+                return;
+            }
+            setTimeout(() => window.URL.revokeObjectURL(url), 60 * 1000);
+            setDocumentState({ loading: '', error: '' });
+        } catch (err) {
+            handleDocumentError(err, 'Could not open invoice PDF right now.');
         }
     };
 
@@ -486,6 +523,14 @@ export default function CustomerOrderDetails() {
                                     disabled={!invoice.available || documentState.loading === 'invoice-pdf'}
                                 >
                                     {documentState.loading === 'invoice-pdf' ? 'Downloading PDF…' : 'Download PDF'}
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`${styles.secondaryButton} ${!invoice.available ? styles.disabled : ''}`}
+                                    onClick={handleOpenInvoicePdf}
+                                    disabled={!invoice.available || documentState.loading === 'invoice-pdf-open'}
+                                >
+                                    {documentState.loading === 'invoice-pdf-open' ? 'Opening PDF…' : 'Open PDF'}
                                 </button>
                                 <button type="button" className={styles.secondaryButton} onClick={handleEmailInvoice} disabled={!invoice.available || invoiceEmailState === 'sending'}>
                                     Email invoice
