@@ -158,9 +158,25 @@ const resolveDocument = (order, key) => {
     return { available, reason };
 };
 
+const resolveInvoiceRecipientEmail = (order, profile) => {
+    const raw = order?.raw ?? {};
+    const customer = raw.customer ?? {};
+    const recipient = raw.invoiceRecipient ?? raw.recipient ?? {};
+
+    return (
+        raw.invoiceEmail
+        ?? raw.customerEmail
+        ?? raw.email
+        ?? customer.email
+        ?? recipient.email
+        ?? profile?.email
+        ?? ''
+    );
+};
+
 export default function CustomerOrderDetails() {
     const { orderId } = useParams();
-    const { token } = useAuth();
+    const { token, profile } = useAuth();
     const redirectToLogin = useRedirectToLogin();
     const { ordersState } = useOutletContext();
     const { error: paymentError, loadingId, handleOrderPayment, resetError: resetPaymentError } = useOrderPaymentAction();
@@ -219,6 +235,7 @@ export default function CustomerOrderDetails() {
 
     const paymentInfo = resolvePaymentInfo(order);
     const effectiveStatus = paymentInfo.status || order?.status;
+    const invoiceRecipientEmail = resolveInvoiceRecipientEmail(order, profile);
 
     useEffect(() => {
         if (!orderId || !isPendingStatus(effectiveStatus)) return undefined;
@@ -538,7 +555,11 @@ export default function CustomerOrderDetails() {
                                 {!invoice.available ? <small>{invoice.reason}</small> : null}
                             </div>
                             {documentState.error ? <p className={styles.error}>{documentState.error}</p> : null}
-                            {invoiceEmailState === 'sent' ? <p className={styles.status}>Invoice email sent.</p> : null}
+                            {invoiceEmailState === 'sent' ? (
+                                <p className={styles.status}>
+                                    {invoiceRecipientEmail ? `Invoice email sent to ${invoiceRecipientEmail}.` : 'Invoice email sent.'}
+                                </p>
+                            ) : null}
                             {invoiceEmailState === 'failed' ? <p className={styles.error}>Could not email invoice right now.</p> : null}
                         </div>
 
