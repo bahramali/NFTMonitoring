@@ -96,6 +96,11 @@
 .drawerHeader { display: flex; justify-content: space-between; align-items: center; }
 .section { margin-top: 0.9rem; border-top: 1px solid #e2e8f0; padding-top: 0.8rem; }
 .section h4 { margin: 0 0 0.5rem; }
+.paymentWarning {
+  margin-top: 0.35rem;
+  color: #92400e;
+  font-size: 0.8rem;
+}
 .statusRow { display: flex; gap: 0.5rem; }
 .statusRow button {
   border: 0;

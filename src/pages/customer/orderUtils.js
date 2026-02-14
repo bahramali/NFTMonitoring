@@ -64,7 +64,8 @@ export const normalizeOrderList = (payload) => {
         updatedAt: order.updatedAt ?? order.updated ?? order.modifiedAt,
         items: (order.items ?? order.lines ?? []).map((item) => normalizeItem(item)),
         itemsCount: Number.isFinite(order.itemsCount) ? order.itemsCount : undefined,
-        paymentMethod: order.paymentMethod,
+        paymentMethod: order.paymentMethod ?? order.payment?.method ?? order.payment?.brand ?? order.payment_type ?? '',
+        paymentReference: order.paymentReference ?? order.payment?.reference ?? order.payment?.id ?? order.paymentIntentId ?? '',
         paymentUrl: extractPaymentUrl(order),
         deliveryType: order.deliveryType,
         customerNote: order.customerNote ?? order.note ?? '',
@@ -77,10 +78,13 @@ export const normalizeOrderList = (payload) => {
 export const normalizeOrder = (payload) => {
     const base = payload?.order ?? payload ?? {};
     const normalized = normalizeOrderList([base])[0] || {};
+    const payment = base.payment ?? {};
 
     return {
         ...normalized,
-        paymentStatus: base.paymentStatus ?? base.payment_state ?? base.payment?.status ?? '',
+        paymentStatus: base.paymentStatus ?? base.payment_state ?? payment.status ?? '',
+        paymentMethod: normalized.paymentMethod || payment.method || payment.brand || base.payment_type || '',
+        paymentReference: normalized.paymentReference || payment.reference || payment.id || base.paymentIntentId || '',
         deliveryStatus: base.deliveryStatus ?? base.fulfillmentStatus ?? base.fulfillment?.status ?? '',
     };
 };
