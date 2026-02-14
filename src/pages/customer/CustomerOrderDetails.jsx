@@ -31,11 +31,11 @@ const formatAddress = (value) => {
     if (typeof value === 'string') return value;
     if (typeof value === 'object') {
         const parts = [
+            value.name ?? value.fullName,
             value.line1 ?? value.address1,
             value.line2 ?? value.address2,
-            value.city,
-            value.state ?? value.province,
             value.postalCode ?? value.zip,
+            value.city,
             value.country,
         ]
             .filter(Boolean)
@@ -48,6 +48,7 @@ const formatAddress = (value) => {
 
 const resolveTotals = (order) => {
     const raw = order?.raw ?? {};
+    const normalizedTotals = order?.totals ?? {};
     const totals = raw.totals ?? raw.summary ?? raw.amounts ?? {};
     const fallbackSubtotal = Array.isArray(order?.items)
         ? order.items.reduce((sum, item) => {
@@ -58,15 +59,25 @@ const resolveTotals = (order) => {
         }, 0)
         : null;
 
-    const subtotal =
-        raw.subtotal ?? raw.subTotal ?? totals.subtotal ?? totals.subTotal ?? raw.itemsSubtotal ?? raw.itemsTotal ?? fallbackSubtotal;
-    const shipping = raw.shipping ?? raw.shippingTotal ?? totals.shipping ?? totals.shippingTotal ?? raw.deliveryFee ?? 0;
-    const tax = raw.tax ?? raw.taxTotal ?? totals.tax ?? totals.taxTotal ?? 0;
-    const discount = raw.discount ?? raw.discountTotal ?? totals.discount ?? totals.discountTotal ?? raw.promoDiscount ?? 0;
-    const total = order?.total ?? totals.total ?? raw.total ?? (subtotal != null ? subtotal + shipping + tax - discount : null);
+    const subtotal = normalizedTotals.subtotal
+        ?? raw.subtotal
+        ?? raw.subTotal
+        ?? totals.subtotal
+        ?? totals.subTotal
+        ?? raw.itemsSubtotal
+        ?? raw.itemsTotal
+        ?? fallbackSubtotal;
+    const shipping = normalizedTotals.shipping ?? raw.shipping ?? raw.shippingTotal ?? totals.shipping ?? totals.shippingTotal ?? raw.deliveryFee ?? 0;
+    const tax = normalizedTotals.tax ?? raw.tax ?? raw.taxTotal ?? totals.tax ?? totals.taxTotal ?? 0;
+    const discount = normalizedTotals.discount ?? raw.discount ?? raw.discountTotal ?? totals.discount ?? totals.discountTotal ?? raw.promoDiscount ?? 0;
+    const total = normalizedTotals.total
+        ?? order?.total
+        ?? totals.total
+        ?? raw.total
+        ?? (subtotal != null ? subtotal + shipping + tax - discount : null);
 
     return {
-        currency: order?.currency ?? totals.currency ?? raw.currency ?? 'SEK',
+        currency: order?.currency ?? normalizedTotals.currency ?? totals.currency ?? raw.currency ?? 'SEK',
         subtotal,
         shipping,
         tax,
@@ -109,14 +120,17 @@ const resolveTimeline = (order, paymentStatus) => {
     return labels.map((label, index) => ({ label, state: index <= currentIndex ? 'done' : 'pending' }));
 };
 
-const isDocumentAvailable = (order, key) => {
+const resolveDocument = (order, key) => {
     const raw = order?.raw ?? {};
-    return Boolean(
+    const status = toStatusKey(order?.paymentStatus ?? order?.status);
+    const available = Boolean(
         raw?.documents?.[key]?.available
         ?? raw?.[`${key}Available`]
         ?? raw?.payment?.[`${key}Available`]
-        ?? (key === 'receipt' && ['PAID', 'PAYMENT_SUCCEEDED'].includes(toStatusKey(order?.paymentStatus ?? order?.status))),
+        ?? (key === 'receipt' && ['PAID', 'PAYMENT_SUCCEEDED'].includes(status)),
     );
+    const reason = raw?.documents?.[key]?.reason ?? (available ? '' : 'Available after payment confirmation.');
+    return { available, reason };
 };
 
 export default function CustomerOrderDetails() {
@@ -127,7 +141,7 @@ export default function CustomerOrderDetails() {
     const { error: paymentError, loadingId, handleOrderPayment, resetError: resetPaymentError } = useOrderPaymentAction();
 
     const existingOrder = useMemo(
-        () => (ordersState?.items || []).find((order) => String(order.id) === String(orderId)),
+        () => (ordersState?.items || []).find((entry) => String(entry.id) === String(orderId)),
         [orderId, ordersState?.items],
     );
 
@@ -149,7 +163,7 @@ export default function CustomerOrderDetails() {
 
         const controller = new AbortController();
         const load = async () => {
-            setLoading((prev) => (order ? prev : true));
+            setLoading((prev) => (existingOrder ? prev : true));
             setError(null);
             try {
                 const payload = await fetchOrderDetail(token, orderId, {
@@ -175,7 +189,7 @@ export default function CustomerOrderDetails() {
 
         load();
         return () => controller.abort();
-    }, [orderId, ordersState.supported, pollStartedAt, redirectToLogin, refreshTick, token]);
+    }, [existingOrder, orderId, ordersState.supported, pollStartedAt, redirectToLogin, refreshTick, token]);
 
     const paymentInfo = resolvePaymentInfo(order);
     const effectiveStatus = paymentInfo.status || order?.status;
@@ -222,7 +236,14 @@ export default function CustomerOrderDetails() {
     }
 
     if (loading && !order) {
-        return <div className={styles.loading}>Loading order…</div>;
+        return (
+            <div className={styles.page}>
+                <div className={styles.card}>
+                    <div className={styles.skeletonBlock} />
+                    <div className={styles.skeletonBlock} />
+                </div>
+            </div>
+        );
     }
 
     if (error && !order) {
@@ -243,11 +264,10 @@ export default function CustomerOrderDetails() {
     const totals = resolveTotals(order);
     const timeline = resolveTimeline(order, effectiveStatus);
     const humanOrderNumber = order.raw?.orderNumber ?? order.raw?.displayOrderNumber ?? order.id;
-    const receiptAvailable = isDocumentAvailable(order, 'receipt');
-    const invoiceAvailable = isDocumentAvailable(order, 'invoice');
-    const docsDisabled = !receiptAvailable && !invoiceAvailable;
-    const tooltip = 'Available after payment confirmation.';
+    const receipt = resolveDocument(order, 'receipt');
+    const invoice = resolveDocument(order, 'invoice');
     const fulfillmentType = toStatusKey(order.deliveryType ?? order.raw?.deliveryType).includes('SHIP') ? 'Shipping' : 'Pickup';
+    const hasItems = Boolean(order.items?.length);
 
     return (
         <div className={styles.page}>
@@ -267,31 +287,13 @@ export default function CustomerOrderDetails() {
                         ) : null}
                     </div>
                     <div className={styles.headerActions}>
-                        <span className={`${styles.statusBadge} ${badgeClassName}`}>{statusMeta.label.toUpperCase()}</span>
+                        <span className={`${styles.statusBadge} ${badgeClassName}`}>{statusMeta.label}</span>
                         <p className={styles.microcopy}>{statusMeta.description}</p>
-                        <div className={styles.actionRow}>
-                            <a
-                                className={`${styles.primaryButton} ${docsDisabled ? styles.disabled : ''}`}
-                                href={`${API_BASE}/api/orders/${encodeURIComponent(order.id)}/receipt`}
-                                target="_blank"
-                                rel="noreferrer"
-                                aria-disabled={docsDisabled}
-                                title={docsDisabled ? tooltip : ''}
-                                onClick={(event) => docsDisabled && event.preventDefault()}
-                            >
-                                View receipt
-                            </a>
-                            <details className={styles.dropdown}>
-                                <summary>Invoice</summary>
-                                <div className={styles.dropdownMenu}>
-                                    <a href={`${API_BASE}/api/orders/${encodeURIComponent(order.id)}/invoice`} target="_blank" rel="noreferrer" onClick={(e) => !invoiceAvailable && e.preventDefault()}>View</a>
-                                    <a href={`${API_BASE}/api/orders/${encodeURIComponent(order.id)}/invoice.pdf`} target="_blank" rel="noreferrer" onClick={(e) => !invoiceAvailable && e.preventDefault()}>Download PDF</a>
-                                    <button type="button" onClick={handleEmailInvoice} disabled={!invoiceAvailable || invoiceEmailState === 'sending'}>Email me</button>
-                                    {!invoiceAvailable ? <small>{tooltip}</small> : null}
-                                </div>
-                            </details>
-                            <button type="button" className={styles.linkButton} onClick={() => window.print()}>Printable order summary</button>
-                        </div>
+                        {shouldShowPaymentAction ? (
+                            <button type="button" className={styles.primaryButton} onClick={() => handleOrderPayment(order)} disabled={loadingId === order.id}>
+                                {loadingId === order.id ? 'Opening payment…' : 'Complete payment'}
+                            </button>
+                        ) : null}
                     </div>
                 </div>
 
@@ -304,71 +306,105 @@ export default function CustomerOrderDetails() {
                     ))}
                 </div>
 
+                {!hasItems ? <p className={styles.warning}>We’re missing item details for this order.</p> : null}
+
                 <div className={styles.layout}>
                     <section className={styles.leftColumn}>
                         <div className={styles.sectionCard}>
                             <h3>Items</h3>
-                            {!order.items?.length ? <p className={styles.value}>No items recorded.</p> : (
+                            {!hasItems ? <p className={styles.value}>No items recorded.</p> : (
                                 <div className={styles.itemGrid}>
                                     {order.items.map((item, index) => {
-                                        const qty = item.quantity ?? item.qty ?? 1;
-                                        const unitPrice = item.price ?? item.unitPrice ?? item.amount ?? 0;
-                                        const discounted = item.discountedPrice ?? item.priceAfterDiscount;
+                                        const qty = Number(item.quantity ?? item.qty ?? 1) || 1;
+                                        const unitPrice = Number(item.price ?? item.unitPrice ?? item.amount ?? 0) || 0;
+                                        const lineTotal = Number(item.lineTotal ?? item.total ?? (unitPrice * qty)) || 0;
                                         return (
                                             <div key={item.id ?? item.sku ?? index} className={styles.item}>
-                                                <div className={styles.itemThumb} />
-                                                <div>
+                                                <div className={styles.itemThumb} aria-hidden="true">IMG</div>
+                                                <div className={styles.itemBody}>
                                                     <p className={styles.itemName}>{item.name ?? item.title ?? 'Item'}</p>
                                                     <p className={styles.itemMeta}>Qty: {qty}</p>
-                                                    <p className={styles.itemMeta}>
-                                                        {discounted ? <><span className={styles.strike}>{formatCurrency(unitPrice, totals.currency)}</span> {formatCurrency(discounted, totals.currency)}</> : formatCurrency(unitPrice, totals.currency)}
-                                                    </p>
+                                                    <p className={styles.itemMeta}>Unit: {formatCurrency(unitPrice, totals.currency)}</p>
                                                 </div>
+                                                <p className={styles.itemLineTotal}>{formatCurrency(lineTotal, totals.currency)}</p>
                                             </div>
                                         );
                                     })}
                                 </div>
                             )}
                         </div>
-
-                        <div className={styles.sectionCard}>
-                            <h3>Totals</h3>
-                            {loading ? <div className={styles.skeleton} /> : (
-                                <dl className={styles.totalsList}>
-                                    <div className={styles.totalsRow}><dt>Subtotal</dt><dd>{formatCurrency(totals.subtotal ?? 0, totals.currency)}</dd></div>
-                                    <div className={styles.totalsRow}><dt>Discount</dt><dd>-{formatCurrency(totals.discount ?? 0, totals.currency)}</dd></div>
-                                    <div className={styles.totalsRow}><dt>{fulfillmentType}</dt><dd>{formatCurrency(totals.shipping ?? 0, totals.currency)}</dd></div>
-                                    <div className={styles.totalsRow}><dt>Tax</dt><dd>{formatCurrency(totals.tax ?? 0, totals.currency)}</dd></div>
-                                    <div className={`${styles.totalsRow} ${styles.totalRow}`}><dt>Total</dt><dd>{formatCurrency(totals.total ?? 0, totals.currency)}</dd></div>
-                                    <div className={styles.totalsRow}><dt>Payment method</dt><dd>{paymentInfo.method || '—'}</dd></div>
-                                    <div className={styles.totalsRow}><dt>Payment reference</dt><dd>{paymentInfo.reference || '—'}</dd></div>
-                                </dl>
-                            )}
-                        </div>
                     </section>
 
                     <aside className={styles.rightColumn}>
                         <div className={styles.sectionCard}>
-                            <h3>Fulfillment</h3>
-                            <p className={styles.value}>{fulfillmentType}</p>
-                            <p className={styles.label}>{fulfillmentType === 'Pickup' ? (order.raw?.pickupLocation || 'Stockholm pickup location shared by email') : formatAddress(order.shippingAddress)}</p>
+                            <h3>Totals ({totals.currency})</h3>
+                            <dl className={styles.totalsList}>
+                                <div className={styles.totalsRow}><dt>Subtotal</dt><dd>{formatCurrency(totals.subtotal ?? 0, totals.currency)}</dd></div>
+                                <div className={styles.totalsRow}><dt>Discount</dt><dd>-{formatCurrency(totals.discount ?? 0, totals.currency)}</dd></div>
+                                <div className={styles.totalsRow}><dt>Shipping</dt><dd>{formatCurrency(totals.shipping ?? 0, totals.currency)}</dd></div>
+                                <div className={styles.totalsRow}><dt>Tax</dt><dd>{formatCurrency(totals.tax ?? 0, totals.currency)}</dd></div>
+                                <div className={`${styles.totalsRow} ${styles.totalRow}`}><dt>Total</dt><dd>{formatCurrency(totals.total ?? 0, totals.currency)}</dd></div>
+                            </dl>
                         </div>
+
                         <div className={styles.sectionCard}>
-                            <h3>Address</h3>
-                            <p className={styles.label}>Shipping: {formatAddress(order.shippingAddress)}</p>
+                            <h3>Fulfillment & address</h3>
+                            <p className={styles.value}>{fulfillmentType}</p>
+                            <p className={styles.label}>{fulfillmentType === 'Pickup' ? (order.raw?.pickupLocation || 'Pickup location shared by email') : formatAddress(order.shippingAddress)}</p>
+                            {order.raw?.trackingUrl || order.trackingUrl ? (
+                                <a className={styles.linkButton} href={order.raw?.trackingUrl ?? order.trackingUrl} target="_blank" rel="noreferrer">Track shipment</a>
+                            ) : null}
                             <p className={styles.label}>Billing: {formatAddress(order.raw?.billingAddress)}</p>
                         </div>
+
                         <div className={styles.sectionCard}>
-                            <h3>Support & actions</h3>
-                            <button type="button" className={styles.secondaryButton} onClick={handleRefreshStatus}>Refresh payment status</button>
-                            {shouldShowPaymentAction ? (
-                                <button type="button" className={styles.primaryButton} onClick={() => handleOrderPayment(order)} disabled={loadingId === order.id}>
-                                    {loadingId === order.id ? 'Opening payment…' : 'Try payment again'}
+                            <h3>Documents</h3>
+                            <div className={styles.documentRow}>
+                                <a
+                                    className={`${styles.secondaryButton} ${!receipt.available ? styles.disabled : ''}`}
+                                    href={`${API_BASE}/api/orders/${encodeURIComponent(order.id)}/receipt`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    onClick={(event) => !receipt.available && event.preventDefault()}
+                                >
+                                    View receipt
+                                </a>
+                                {!receipt.available ? <small>{receipt.reason}</small> : null}
+                            </div>
+                            <div className={styles.documentRow}>
+                                <a
+                                    className={`${styles.secondaryButton} ${!invoice.available ? styles.disabled : ''}`}
+                                    href={`${API_BASE}/api/orders/${encodeURIComponent(order.id)}/invoice`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    onClick={(event) => !invoice.available && event.preventDefault()}
+                                >
+                                    View invoice
+                                </a>
+                                <a
+                                    className={`${styles.secondaryButton} ${!invoice.available ? styles.disabled : ''}`}
+                                    href={`${API_BASE}/api/orders/${encodeURIComponent(order.id)}/invoice.pdf`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    onClick={(event) => !invoice.available && event.preventDefault()}
+                                >
+                                    Download PDF
+                                </a>
+                                <button type="button" className={styles.secondaryButton} onClick={handleEmailInvoice} disabled={!invoice.available || invoiceEmailState === 'sending'}>
+                                    Email invoice
                                 </button>
-                            ) : null}
-                            <a href="mailto:support@hydroleaf.se" className={styles.linkButton}>Need help?</a>
+                                {!invoice.available ? <small>{invoice.reason}</small> : null}
+                            </div>
                             {invoiceEmailState === 'sent' ? <p className={styles.status}>Invoice email sent.</p> : null}
                             {invoiceEmailState === 'failed' ? <p className={styles.error}>Could not email invoice right now.</p> : null}
+                        </div>
+
+                        <div className={styles.sectionCard}>
+                            <h3>Payment</h3>
+                            <p className={styles.label}>Method: {paymentInfo.method || '—'}</p>
+                            <p className={styles.label}>Reference: {paymentInfo.reference || '—'}</p>
+                            <button type="button" className={styles.secondaryButton} onClick={handleRefreshStatus}>Refresh payment status</button>
+                            <a href="mailto:support@hydroleaf.se" className={styles.linkButton}>Need help?</a>
                         </div>
                     </aside>
                 </div>
@@ -381,6 +417,7 @@ export default function CustomerOrderDetails() {
                 ) : null}
 
                 <div className={styles.actions}>
+                    <button type="button" className={styles.linkButton} onClick={() => window.print()}>Printable order summary</button>
                     <Link to="/account/orders" className={styles.secondaryButton}>Back to orders</Link>
                 </div>
             </div>
