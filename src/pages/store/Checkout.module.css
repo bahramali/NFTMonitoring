@@ -197,6 +197,13 @@
     color: var(--text, #111);
 }
 
+
+.inlineHint {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--muted, #666);
+}
+
 .couponRow {
     display: grid;
     grid-template-columns: 1fr auto;

@@ -29,7 +29,7 @@ export default function CartLineItem({ item, currency = 'SEK', onChangeQuantity,
                 </div>
                 <div>
                     <p className={styles.name}>{displayName}</p>
-                    <p className={styles.price}>{priceLabel}</p>
+                    <p className={styles.price}>{priceLabel} incl. VAT</p>
                     {item?.shortDescription ? <p className={styles.note}>{item.shortDescription}</p> : null}
                     <p className={styles.unit}>{currencyLabel(currency)}</p>
                 </div>

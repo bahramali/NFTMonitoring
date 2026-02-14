@@ -107,6 +107,10 @@ export const normalizeAdminOrder = (order = {}) => {
         paymentStatus: order?.paymentStatus ?? payment?.status ?? order?.status ?? 'PENDING',
         paymentReference: payment?.reference ?? payment?.id ?? order?.paymentReference ?? '',
         paymentMethod: payment?.method ?? order?.paymentMethod ?? '',
+        paymentMode: order?.paymentMode ?? order?.payment_mode ?? payment?.mode ?? '',
+        invoiceStatus: order?.invoiceStatus ?? order?.invoice?.status ?? payment?.invoiceStatus ?? '',
+        invoiceNumber: order?.invoiceNumber ?? order?.invoice?.number ?? payment?.invoiceNumber ?? '',
+        invoiceDueDate: order?.invoiceDueDate ?? order?.invoice?.dueDate ?? payment?.invoiceDueDate ?? '',
         customer: {
             name: customer?.name ?? customer?.fullName ?? order?.customerName ?? '',
             email: customer?.email ?? order?.email ?? '',

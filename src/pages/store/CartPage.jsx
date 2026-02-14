@@ -12,6 +12,9 @@ export default function CartPage() {
     const currency = totals.currency || cart?.currency || 'SEK';
     const hasItems = (cart?.items?.length ?? 0) > 0;
     const isCartClosed = Boolean(cart?.status && cart.status !== 'OPEN');
+    const subtotal = totals.subtotal ?? totals.total ?? 0;
+    const vat = totals.tax ?? 0;
+    const net = Math.max(subtotal - vat, 0);
 
     return (
         <div className={styles.page}>
@@ -63,8 +66,8 @@ export default function CartPage() {
                     <aside className={styles.summary}>
                         <h3>Order summary</h3>
                         <div className={styles.row}>
-                            <span>Subtotal</span>
-                            <span>{formatCurrency(totals.subtotal ?? totals.total ?? 0, currency)}</span>
+                            <span>Subtotal (excl. VAT / Net)</span>
+                            <span>{formatCurrency(net, currency)}</span>
                         </div>
                         {totals.shipping !== undefined && (
                             <div className={styles.row}>
@@ -72,8 +75,12 @@ export default function CartPage() {
                                 <span>{formatCurrency(totals.shipping, currency)}</span>
                             </div>
                         )}
+                        <div className={styles.row}>
+                            <span>VAT (moms)</span>
+                            <span>{formatCurrency(vat, currency)}</span>
+                        </div>
                         <div className={`${styles.row} ${styles.total}`}>
-                            <span>Total ({currencyLabel(currency)})</span>
+                            <span>Total (incl. VAT / Gross · {currencyLabel(currency)})</span>
                             <span>{formatCurrency(totals.total ?? totals.subtotal ?? 0, currency)}</span>
                         </div>
                         <button

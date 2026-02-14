@@ -111,18 +111,31 @@ export async function removeCartItem(cartId, sessionId, itemId, { signal } = {})
 
 export async function checkoutCart(cartId, payload = {}, { signal } = {}) {
     if (!cartId) throw new Error('Cart ID is required');
-    const { email, userId, shippingAddress } = payload ?? {};
+    const {
+        email,
+        userId,
+        shippingAddress,
+        sessionId,
+        customerType,
+        company,
+        couponCode,
+        paymentMode,
+    } = payload ?? {};
     const res = await fetch(`${STORE_BASE}/checkout`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            ...buildCartHeaders(cartId),
+            ...buildCartHeaders(cartId, sessionId),
         },
         body: JSON.stringify({
             cartId,
             email,
             userId,
             shippingAddress,
+            customerType,
+            company,
+            couponCode,
+            paymentMode,
         }),
         signal,
     });
@@ -199,7 +212,7 @@ export async function applyStoreCoupon(token, { cartId, couponCode, sessionId } 
 
 export async function createStripeCheckoutSession(
     token,
-    { cartId, email, shippingAddress, couponCode, sessionId, customerType, company } = {},
+    { cartId, email, shippingAddress, couponCode, sessionId, customerType, company, paymentMode } = {},
     { signal } = {},
 ) {
     if (!cartId) throw new Error('Cart ID is required');
@@ -218,6 +231,7 @@ export async function createStripeCheckoutSession(
                 couponCode,
                 customerType,
                 company,
+                paymentMode,
             }),
             signal,
         },

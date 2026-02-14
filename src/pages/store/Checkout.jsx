@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createCustomerAddress, fetchCustomerAddresses, setDefaultCustomerAddress } from '../../api/customerAddresses.js';
 import { fetchCustomerProfile } from '../../api/customer.js';
 import {
     applyStoreCoupon,
+    checkoutCart,
     createStripeCheckoutSession,
     fetchStoreCart,
     normalizeCartResponse,
@@ -137,6 +138,7 @@ const logCheckoutError = (error) => {
 };
 
 export default function Checkout() {
+    const navigate = useNavigate();
     const { cart, cartId, sessionId, notify, refreshCart } = useStorefront();
     const { isAuthenticated, token, logout, profile: authProfile } = useAuth();
     const redirectToLogin = useRedirectToLogin();
@@ -158,6 +160,7 @@ export default function Checkout() {
     const [couponMessage, setCouponMessage] = useState('');
     const [appliedCouponCode, setAppliedCouponCode] = useState('');
     const [pricedCart, setPricedCart] = useState(null);
+    const [paymentMode, setPaymentMode] = useState('PAY_NOW');
     const checkoutInFlight = useRef(false);
 
     const activeCart = pricedCart || cart;
@@ -200,6 +203,24 @@ export default function Checkout() {
     const summaryShipping = totals.shipping ?? 0;
     const summaryTax = totals.tax ?? 0;
     const summaryTotal = totals.total ?? (summarySubtotal + summaryShipping + summaryTax - summaryDiscount);
+    const summaryNet = Math.max(summarySubtotal - summaryTax, 0);
+
+    const invoiceOption = useMemo(() => {
+        const invoiceDetails = activeCart?.invoice ?? activeCart?.checkout?.invoice ?? {};
+        const flag = activeCart?.invoicePayLaterEligible ?? activeCart?.canPayByInvoice ?? invoiceDetails?.eligible;
+        const backendReason = activeCart?.invoicePayLaterMessage ?? activeCart?.invoiceEligibilityMessage ?? invoiceDetails?.message;
+        const enabled = typeof flag === 'boolean' ? flag : isB2B;
+        return {
+            enabled,
+            reason: enabled ? '' : (backendReason || 'Invoice payment is only available for approved business customers.'),
+        };
+    }, [activeCart, isB2B]);
+
+    useEffect(() => {
+        if (paymentMode === 'INVOICE_PAY_LATER' && !invoiceOption.enabled) {
+            setPaymentMode('PAY_NOW');
+        }
+    }, [invoiceOption.enabled, paymentMode]);
 
     const applyAddressToForm = useCallback((address) => {
         if (!address) return;
@@ -464,8 +485,6 @@ export default function Checkout() {
                     }
                 }
             }
-            notify('info', 'Starting Stripe Checkout…');
-            setStatusMessage('Requesting Stripe Checkout…');
             const shippingAddress = {
                 name: form.fullName?.trim() || '',
                 phone: form.phone?.trim() || '',
@@ -485,6 +504,40 @@ export default function Checkout() {
                 }
                 : undefined;
 
+            if (paymentMode === 'INVOICE_PAY_LATER') {
+                notify('info', 'Placing invoice order…');
+                setStatusMessage('Submitting invoice order…');
+                const response = await checkoutCart(cartId, {
+                    cartId,
+                    sessionId,
+                    email: orderEmail,
+                    shippingAddress,
+                    couponCode: hasTierPricing ? undefined : (appliedCouponCode || undefined),
+                    customerType: isB2B ? 'B2B' : 'B2C',
+                    company,
+                    paymentMode: 'INVOICE_PAY_LATER',
+                });
+                const responseOrder = response?.order ?? response;
+                const orderId = response?.orderId ?? responseOrder?.id ?? responseOrder?.orderId;
+                if (!orderId) {
+                    throw new Error('Invoice checkout did not return an order ID.');
+                }
+                const params = new URLSearchParams({
+                    order_id: String(orderId),
+                    payment_mode: 'INVOICE_PAY_LATER',
+                });
+                const invoiceNumber = responseOrder?.invoiceNumber ?? responseOrder?.invoice?.number;
+                const dueDate = responseOrder?.invoiceDueDate ?? responseOrder?.invoice?.dueDate;
+                if (invoiceNumber) params.set('invoice_number', String(invoiceNumber));
+                if (dueDate) params.set('invoice_due_date', String(dueDate));
+                notify('success', 'Order placed. Invoice issued.');
+                navigate(`/store/checkout/success?${params.toString()}`);
+                return;
+            }
+
+            notify('info', 'Starting Stripe Checkout…');
+            setStatusMessage('Requesting Stripe Checkout…');
+
             const response = await createStripeCheckoutSession(token, {
                 // Keep coupon optional; tier pricing is resolved server-side without coupon dependency.
                 cartId,
@@ -494,6 +547,7 @@ export default function Checkout() {
                 couponCode: hasTierPricing ? undefined : (appliedCouponCode || undefined),
                 customerType: isB2B ? 'B2B' : 'B2C',
                 company,
+                paymentMode: 'PAY_NOW',
             });
             setStatusMessage('Redirecting to Stripe Checkout…');
             notify('success', 'Checkout session created. Redirecting…');
@@ -823,6 +877,37 @@ export default function Checkout() {
                                 </>
                             )}
                         </div>
+                                <div className={styles.fieldGroup}>
+                            <fieldset className={styles.customerTypeFieldset}>
+                                <legend>Payment timing</legend>
+                                <label className={styles.radioOption}>
+                                    <input
+                                        type="radio"
+                                        name="paymentMode"
+                                        value="PAY_NOW"
+                                        checked={paymentMode === 'PAY_NOW'}
+                                        onChange={() => setPaymentMode('PAY_NOW')}
+                                    />
+                                    Pay now
+                                </label>
+                                <label className={styles.radioOption}>
+                                    <input
+                                        type="radio"
+                                        name="paymentMode"
+                                        value="INVOICE_PAY_LATER"
+                                        checked={paymentMode === 'INVOICE_PAY_LATER'}
+                                        onChange={() => setPaymentMode('INVOICE_PAY_LATER')}
+                                        disabled={!invoiceOption.enabled}
+                                    />
+                                    Invoice (pay later)
+                                </label>
+                                <p className={styles.inlineHint}>
+                                    For approved business customers. You&apos;ll receive an invoice and pay later.
+                                </p>
+                                {!invoiceOption.enabled ? <p className={styles.error}>{invoiceOption.reason}</p> : null}
+                            </fieldset>
+                        </div>
+
                         <div className={styles.fieldGroup}>
                             <label htmlFor="notes">Notes</label>
                             <textarea id="notes" name="notes" value={form.notes} onChange={handleChange} rows={3} />
@@ -833,10 +918,12 @@ export default function Checkout() {
                             {submitting ? (
                                 <span className={styles.submitContent}>
                                     <span className={styles.spinner} aria-hidden="true" />
-                                    <span>Starting checkout…</span>
+                                    <span>{paymentMode === 'INVOICE_PAY_LATER' ? 'Placing invoice order…' : 'Starting checkout…'}</span>
                                 </span>
                             ) : (
-                                `Pay ${formatCurrency(summaryTotal, quoteCurrency)}`
+                                paymentMode === 'INVOICE_PAY_LATER'
+                                    ? `Place order ${formatCurrency(summaryTotal, quoteCurrency)}`
+                                    : `Pay ${formatCurrency(summaryTotal, quoteCurrency)}`
                             )}
                         </button>
                     </form>
@@ -852,6 +939,7 @@ export default function Checkout() {
                                             {item.quantity ?? item.qty ?? 1}
                                             {' × '}
                                             {formatCurrency(item.discountedUnitPrice ?? item.price ?? item.unitPrice ?? 0, currency)}
+                                            {' '}incl. VAT
                                         </p>
                                     </div>
                                     <span>
@@ -867,8 +955,8 @@ export default function Checkout() {
                             ))}
                         </div>
                         <div className={styles.row}>
-                            <span>Subtotal</span>
-                            <span>{formatCurrency(summarySubtotal, quoteCurrency)}</span>
+                            <span>Subtotal (excl. VAT / Net)</span>
+                            <span>{formatCurrency(summaryNet, quoteCurrency)}</span>
                         </div>
                         {summaryDiscount > 0 ? (
                             <div className={styles.row}>
@@ -881,12 +969,16 @@ export default function Checkout() {
                             <span>{formatCurrency(summaryShipping, quoteCurrency)}</span>
                         </div>
                         <div className={styles.row}>
-                            <span>Tax</span>
+                            <span>VAT (moms)</span>
                             <span>{formatCurrency(summaryTax, quoteCurrency)}</span>
                         </div>
-                        <div className={styles.pickupNote}>Pickup confirmed after payment. We&apos;ll email the details.</div>
+                        <div className={styles.pickupNote}>
+                            {paymentMode === 'INVOICE_PAY_LATER'
+                                ? 'Pickup confirmation is shared by email with your invoice details.'
+                                : 'Pickup confirmed after payment. We\'ll email the details.'}
+                        </div>
                         <div className={`${styles.row} ${styles.total}`}>
-                            <span>Total ({currencyLabel(quoteCurrency)})</span>
+                            <span>Total (incl. VAT / Gross · {currencyLabel(quoteCurrency)})</span>
                             <span>{formatCurrency(summaryTotal, quoteCurrency)}</span>
                         </div>
                     </aside>
