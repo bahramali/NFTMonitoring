@@ -2,13 +2,18 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import {
     addItemToCart,
     createStoreCart,
+    fetchCurrentStoreCart,
     fetchStoreCart,
     normalizeCartResponse,
     removeCartItem,
     updateCartItem,
 } from '../api/store.js';
+import {
+    STOREFRONT_CART_RESET_EVENT,
+    STOREFRONT_CART_STORAGE_KEY,
+    clearPersistedStorefrontSession,
+} from '../utils/storefrontSession.js';
 
-const STORAGE_KEY = 'storefrontCartSession';
 const defaultState = {
     cart: null,
     cartId: null,
@@ -38,7 +43,7 @@ const StorefrontContext = createContext({
 
 const readStoredCartSession = () => {
     if (typeof window === 'undefined') return defaultState;
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(STOREFRONT_CART_STORAGE_KEY);
     if (!raw) return defaultState;
 
     try {
@@ -55,12 +60,11 @@ const readStoredCartSession = () => {
 const persistCartSession = (cartId, sessionId) => {
     if (typeof window === 'undefined') return;
     if (!cartId || !sessionId) return;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ cartId, sessionId }));
+    window.localStorage.setItem(STOREFRONT_CART_STORAGE_KEY, JSON.stringify({ cartId, sessionId }));
 };
 
 const clearCartSession = () => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.removeItem(STORAGE_KEY);
+    clearPersistedStorefrontSession();
 };
 
 export function StorefrontProvider({ children }) {
@@ -84,6 +88,37 @@ export function StorefrontProvider({ children }) {
     useEffect(() => {
         cartRef.current = cart;
     }, [cart]);
+
+    const resetCartState = useCallback(() => {
+        clearCartSession();
+        cartStateRef.current = defaultState;
+        cartRef.current = null;
+        cartRequestRef.current = null;
+        setCartState(defaultState);
+        setCart(null);
+        setPendingItemId(null);
+        setPendingProductId(null);
+        setIsCartOpen(false);
+    }, []);
+
+    const runLogoutRegressionGuard = useCallback(async (previousCartId) => {
+        try {
+            const cartPayload = await fetchCurrentStoreCart();
+            const anonymousCart = normalizeCartResponse(cartPayload, defaultState);
+            const nextCartId = anonymousCart?.id || anonymousCart?.cartId || null;
+            const hasNoItems = (anonymousCart?.items?.length ?? 0) === 0;
+            const hasNewCartId = Boolean(nextCartId && nextCartId !== previousCartId);
+
+            if (!hasNoItems && !hasNewCartId) {
+                console.warn('Logout cart reset guard detected stale anonymous cart state.', {
+                    previousCartId,
+                    nextCartId,
+                });
+            }
+        } catch (error) {
+            console.warn('Logout cart reset guard request failed.', error);
+        }
+    }, []);
 
     const showToast = useCallback((type, message) => {
         if (!message) return;
@@ -150,12 +185,7 @@ export function StorefrontProvider({ children }) {
                     if (existingCartId && existingSessionId) {
                         const fetched = await fetchStoreCart(existingCartId, existingSessionId);
                         if (fetched?.status && fetched.status !== 'OPEN') {
-                            clearCartSession();
-                            cartStateRef.current = defaultState;
-                            cartRef.current = null;
-                            setCart(null);
-                            setCartState(defaultState);
-                            setIsCartOpen(false);
+                            resetCartState();
 
                             const created = await createStoreCart();
                             if (!silent) {
@@ -177,7 +207,7 @@ export function StorefrontProvider({ children }) {
                     }
 
                     console.error('Failed to sync cart', error);
-                    clearCartSession();
+                    resetCartState();
                     try {
                         const created = await createStoreCart();
                         return applyCartResponse(created, silent ? { silent: true } : undefined);
@@ -195,19 +225,33 @@ export function StorefrontProvider({ children }) {
             cartRequestRef.current = request;
             return request;
         },
-        [applyCartResponse, showToast],
+        [applyCartResponse, resetCartState, showToast],
     );
 
     const recoverClosedCart = useCallback(async () => {
-        clearCartSession();
-        cartStateRef.current = defaultState;
-        cartRef.current = null;
-        setCartState(defaultState);
-        setCart(null);
-        setIsCartOpen(false);
+        resetCartState();
         await ensureCartSession({ allowCreate: true, silent: true });
         showToast('info', 'Cart expired. Please retry.');
-    }, [ensureCartSession, showToast]);
+    }, [ensureCartSession, resetCartState, showToast]);
+
+    useEffect(() => {
+        const handleStorefrontSessionReset = () => {
+            const previousCartId = cartRef.current?.id || cartStateRef.current?.cartId || null;
+            resetCartState();
+            // Regression test steps:
+            // 1) Sign in as a VIP user and add an item to cart.
+            // 2) Log out and confirm this reset handler runs.
+            // 3) Verify GET /api/store/cart returns either a new cartId or an empty anonymous cart.
+            // 4) Add the same product again and verify regular (non-VIP) pricing is shown.
+            runLogoutRegressionGuard(previousCartId);
+        };
+
+        if (typeof window === 'undefined') return undefined;
+        window.addEventListener(STOREFRONT_CART_RESET_EVENT, handleStorefrontSessionReset);
+        return () => {
+            window.removeEventListener(STOREFRONT_CART_RESET_EVENT, handleStorefrontSessionReset);
+        };
+    }, [resetCartState, runLogoutRegressionGuard]);
 
     useEffect(() => {
         if (didInitRef.current) return;
@@ -304,28 +348,20 @@ export function StorefrontProvider({ children }) {
 
     const startNewCart = useCallback(
         async () => {
-            clearCartSession();
-            cartStateRef.current = defaultState;
-            cartRef.current = null;
-            setCartState(defaultState);
-            setCart(null);
-            setIsCartOpen(false);
+            resetCartState();
 
             const created = await ensureCartSession({ allowCreate: true, silent: true });
             showToast('info', 'Started a new cart.');
             return created;
         },
-        [ensureCartSession, showToast],
+        [ensureCartSession, resetCartState, showToast],
     );
 
     const closeCart = useCallback(() => setIsCartOpen(false), []);
     const openCart = useCallback(() => setIsCartOpen(true), []);
     const clearCart = useCallback(() => {
-        clearCartSession();
-        setCart(null);
-        setCartState(defaultState);
-        setIsCartOpen(false);
-    }, []);
+        resetCartState();
+    }, [resetCartState]);
     const clearToast = useCallback(() => setToast(null), []);
     const notify = useCallback((type, message) => showToast(type, message), [showToast]);
 

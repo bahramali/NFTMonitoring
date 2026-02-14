@@ -55,6 +55,15 @@ export async function createStoreCart(sessionId, { signal } = {}) {
     return parseApiResponse(res, 'Failed to create cart');
 }
 
+export async function fetchCurrentStoreCart({ signal } = {}) {
+    const res = await fetch(`${STORE_BASE}/cart`, {
+        method: 'GET',
+        signal,
+    });
+
+    return parseApiResponse(res, 'Failed to fetch current cart');
+}
+
 export async function fetchStoreCart(cartId, sessionId, { signal } = {}) {
     if (!cartId) throw new Error('Cart ID is required');
     const res = await fetch(`${STORE_BASE}/cart/${encodeURIComponent(cartId)}`, {

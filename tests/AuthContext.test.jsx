@@ -2,6 +2,7 @@ import React from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { AuthProvider, useAuth } from '../src/context/AuthContext.jsx';
+import { STOREFRONT_CART_RESET_EVENT, STOREFRONT_CART_STORAGE_KEY } from '../src/utils/storefrontSession.js';
 
 const API_BASE = import.meta.env?.VITE_API_BASE_URL ?? 'https://api.hydroleaf.se';
 const LOGIN_URL = `${API_BASE}/api/auth/login`;
@@ -9,6 +10,7 @@ const LOGIN_URL = `${API_BASE}/api/auth/login`;
 afterEach(() => {
     vi.restoreAllMocks();
     window.localStorage.clear();
+    window.sessionStorage.clear();
 });
 
 describe('AuthContext', () => {
@@ -63,5 +65,33 @@ describe('AuthContext', () => {
         expect(response.success).toBe(false);
         expect(result.current.isAuthenticated).toBe(false);
         expect(result.current.role).toBe(null);
+    });
+
+    it('clears storefront cart/session persistence and notifies storefront on logout', async () => {
+        vi.stubGlobal('fetch', vi.fn(async () => ({
+            ok: true,
+            text: async () => JSON.stringify({}),
+            json: async () => ({}),
+            headers: { get: () => 'application/json' },
+            clone() {
+                return this;
+            },
+        })));
+
+        window.localStorage.setItem(STOREFRONT_CART_STORAGE_KEY, JSON.stringify({
+            cartId: 'cart-old',
+            sessionId: 'session-old',
+        }));
+
+        const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
+        const wrapper = ({ children }) => <AuthProvider>{children}</AuthProvider>;
+        const { result } = renderHook(() => useAuth(), { wrapper });
+
+        await act(async () => {
+            await result.current.logout({ redirect: false });
+        });
+
+        expect(window.localStorage.getItem(STOREFRONT_CART_STORAGE_KEY)).toBe(null);
+        expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({ type: STOREFRONT_CART_RESET_EVENT }));
     });
 });
