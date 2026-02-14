@@ -1,7 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
-import { emailOrderInvoice, fetchOrderDetail } from '../../api/customer.js';
-import { getApiBaseUrl } from '../../config/apiBase.js';
+import {
+    emailOrderInvoice,
+    fetchOrderDetail,
+    fetchOrderInvoiceHtml,
+    fetchOrderInvoicePdf,
+    fetchOrderReceiptHtml,
+} from '../../api/customer.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
 import useOrderPaymentAction from '../../hooks/useOrderPaymentAction.js';
@@ -10,7 +15,6 @@ import { formatCurrency } from '../../utils/currency.js';
 import { normalizeOrder } from './orderUtils.js';
 import styles from './CustomerOrderDetails.module.css';
 
-const API_BASE = getApiBaseUrl();
 const TERMINAL_STATUSES = new Set(['PAID', 'FAILED', 'REFUNDED', 'COMPLETED', 'CANCELLED', 'CANCELED']);
 const POLL_INTERVAL_MS = 4000;
 const POLL_TIMEOUT_MS = 180000;
@@ -153,6 +157,7 @@ export default function CustomerOrderDetails() {
     const [pollStartedAt, setPollStartedAt] = useState(Date.now());
     const [copyState, setCopyState] = useState('idle');
     const [invoiceEmailState, setInvoiceEmailState] = useState('idle');
+    const [documentState, setDocumentState] = useState({ loading: '', error: '' });
 
     useEffect(() => {
         if (!token || !orderId) return undefined;
@@ -221,6 +226,76 @@ export default function CustomerOrderDetails() {
             setInvoiceEmailState('sent');
         } catch {
             setInvoiceEmailState('failed');
+        }
+    };
+
+    const handleDocumentError = (err, fallbackMessage) => {
+        if (err?.status === 401) {
+            redirectToLogin();
+            return;
+        }
+        if (err?.status === 404 || err?.status === 409) {
+            setDocumentState({ loading: '', error: err?.message || fallbackMessage });
+            return;
+        }
+        setDocumentState({ loading: '', error: fallbackMessage });
+    };
+
+    const openHtmlDocument = (html, title) => {
+        const popup = window.open('', '_blank', 'noopener,noreferrer');
+        if (!popup) {
+            setDocumentState({ loading: '', error: 'Please allow popups to view this document.' });
+            return;
+        }
+        popup.document.open();
+        popup.document.write(html || `<html><body><h1>${title}</h1><p>No document content.</p></body></html>`);
+        popup.document.close();
+    };
+
+    const handleViewReceipt = async () => {
+        if (!token || !orderId || !receipt.available) return;
+        setDocumentState({ loading: 'receipt', error: '' });
+        try {
+            const html = await fetchOrderReceiptHtml(token, orderId, { onUnauthorized: redirectToLogin });
+            if (html === null) return;
+            openHtmlDocument(html, 'Receipt');
+            setDocumentState({ loading: '', error: '' });
+        } catch (err) {
+            handleDocumentError(err, 'Could not open receipt right now.');
+        }
+    };
+
+    const handleViewInvoice = async () => {
+        if (!token || !orderId || !invoice.available) return;
+        setDocumentState({ loading: 'invoice', error: '' });
+        try {
+            const html = await fetchOrderInvoiceHtml(token, orderId, { onUnauthorized: redirectToLogin });
+            if (html === null) return;
+            openHtmlDocument(html, 'Invoice');
+            setDocumentState({ loading: '', error: '' });
+        } catch (err) {
+            handleDocumentError(err, 'Could not open invoice right now.');
+        }
+    };
+
+    const handleDownloadInvoicePdf = async () => {
+        if (!token || !orderId || !invoice.available) return;
+        setDocumentState({ loading: 'invoice-pdf', error: '' });
+        try {
+            const result = await fetchOrderInvoicePdf(token, orderId, { onUnauthorized: redirectToLogin });
+            if (!result) return;
+            const { blob, fileName } = result;
+            const url = window.URL.createObjectURL(blob);
+            const link = window.document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            window.document.body.appendChild(link);
+            link.click();
+            window.document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            setDocumentState({ loading: '', error: '' });
+        } catch (err) {
+            handleDocumentError(err, 'Could not download invoice PDF right now.');
         }
     };
 
@@ -360,41 +435,39 @@ export default function CustomerOrderDetails() {
                         <div className={styles.sectionCard}>
                             <h3>Documents</h3>
                             <div className={styles.documentRow}>
-                                <a
+                                <button
+                                    type="button"
                                     className={`${styles.secondaryButton} ${!receipt.available ? styles.disabled : ''}`}
-                                    href={`${API_BASE}/api/orders/${encodeURIComponent(order.id)}/receipt`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    onClick={(event) => !receipt.available && event.preventDefault()}
+                                    onClick={handleViewReceipt}
+                                    disabled={!receipt.available || documentState.loading === 'receipt'}
                                 >
-                                    View receipt
-                                </a>
+                                    {documentState.loading === 'receipt' ? 'Opening receipt…' : 'View receipt'}
+                                </button>
                                 {!receipt.available ? <small>{receipt.reason}</small> : null}
                             </div>
                             <div className={styles.documentRow}>
-                                <a
+                                <button
+                                    type="button"
                                     className={`${styles.secondaryButton} ${!invoice.available ? styles.disabled : ''}`}
-                                    href={`${API_BASE}/api/orders/${encodeURIComponent(order.id)}/invoice`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    onClick={(event) => !invoice.available && event.preventDefault()}
+                                    onClick={handleViewInvoice}
+                                    disabled={!invoice.available || documentState.loading === 'invoice'}
                                 >
-                                    View invoice
-                                </a>
-                                <a
+                                    {documentState.loading === 'invoice' ? 'Opening invoice…' : 'View invoice'}
+                                </button>
+                                <button
+                                    type="button"
                                     className={`${styles.secondaryButton} ${!invoice.available ? styles.disabled : ''}`}
-                                    href={`${API_BASE}/api/orders/${encodeURIComponent(order.id)}/invoice.pdf`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    onClick={(event) => !invoice.available && event.preventDefault()}
+                                    onClick={handleDownloadInvoicePdf}
+                                    disabled={!invoice.available || documentState.loading === 'invoice-pdf'}
                                 >
-                                    Download PDF
-                                </a>
+                                    {documentState.loading === 'invoice-pdf' ? 'Downloading PDF…' : 'Download PDF'}
+                                </button>
                                 <button type="button" className={styles.secondaryButton} onClick={handleEmailInvoice} disabled={!invoice.available || invoiceEmailState === 'sending'}>
                                     Email invoice
                                 </button>
                                 {!invoice.available ? <small>{invoice.reason}</small> : null}
                             </div>
+                            {documentState.error ? <p className={styles.error}>{documentState.error}</p> : null}
                             {invoiceEmailState === 'sent' ? <p className={styles.status}>Invoice email sent.</p> : null}
                             {invoiceEmailState === 'failed' ? <p className={styles.error}>Could not email invoice right now.</p> : null}
                         </div>

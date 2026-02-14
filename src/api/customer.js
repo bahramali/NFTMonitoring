@@ -203,6 +203,107 @@ export async function fetchOrderReceipt(token, orderId, { signal, onUnauthorized
     }
 }
 
+const resolveDocumentError = async (response, fallbackMessage) => {
+    const contentType = response.headers?.get?.('content-type') || '';
+    try {
+        if (contentType.includes('application/json')) {
+            const payload = await response.json();
+            const message = payload?.reason || payload?.message || fallbackMessage;
+            const error = new Error(message);
+            error.status = response.status;
+            error.payload = payload;
+            throw error;
+        }
+
+        const message = (await response.text()) || fallbackMessage;
+        const error = new Error(message);
+        error.status = response.status;
+        throw error;
+    } catch (error) {
+        if (error?.status) throw error;
+        const wrapped = new Error(fallbackMessage);
+        wrapped.status = response.status;
+        throw wrapped;
+    }
+};
+
+export async function fetchOrderReceiptHtml(token, orderId, { signal, onUnauthorized } = {}) {
+    if (!token) throw new Error('Authentication is required to view a receipt');
+    if (!orderId) throw new Error('Order ID is required');
+
+    const url = `${API_BASE}/api/orders/${encodeURIComponent(orderId)}/receipt`;
+    const res = await authFetch(
+        url,
+        {
+            headers: buildAuthHeaders(token),
+            signal,
+        },
+        { token },
+    );
+
+    if (!res.ok) {
+        const unauthorized = new Error('Authentication is required to view a receipt');
+        unauthorized.status = res.status;
+        if (handleUnauthorized(unauthorized, onUnauthorized)) return null;
+        await resolveDocumentError(res, 'Failed to load receipt');
+    }
+
+    return res.text();
+}
+
+export async function fetchOrderInvoiceHtml(token, orderId, { signal, onUnauthorized } = {}) {
+    if (!token) throw new Error('Authentication is required to view an invoice');
+    if (!orderId) throw new Error('Order ID is required');
+
+    const url = `${API_BASE}/api/orders/${encodeURIComponent(orderId)}/invoice`;
+    const res = await authFetch(
+        url,
+        {
+            headers: buildAuthHeaders(token),
+            signal,
+        },
+        { token },
+    );
+
+    if (!res.ok) {
+        const unauthorized = new Error('Authentication is required to view an invoice');
+        unauthorized.status = res.status;
+        if (handleUnauthorized(unauthorized, onUnauthorized)) return null;
+        await resolveDocumentError(res, 'Failed to load invoice');
+    }
+
+    return res.text();
+}
+
+export async function fetchOrderInvoicePdf(token, orderId, { signal, onUnauthorized } = {}) {
+    if (!token) throw new Error('Authentication is required to download an invoice');
+    if (!orderId) throw new Error('Order ID is required');
+
+    const url = `${API_BASE}/api/orders/${encodeURIComponent(orderId)}/invoice.pdf`;
+    const res = await authFetch(
+        url,
+        {
+            headers: buildAuthHeaders(token),
+            signal,
+        },
+        { token },
+    );
+
+    if (!res.ok) {
+        const unauthorized = new Error('Authentication is required to download an invoice');
+        unauthorized.status = res.status;
+        if (handleUnauthorized(unauthorized, onUnauthorized)) return null;
+        await resolveDocumentError(res, 'Failed to download invoice PDF');
+    }
+
+    const contentDisposition = res.headers?.get?.('content-disposition') || '';
+    const fileNameMatch = /filename\*?=(?:UTF-8''|")?([^;"]+)/i.exec(contentDisposition);
+    const fileName = fileNameMatch?.[1] ? decodeURIComponent(fileNameMatch[1].trim()) : `invoice-${orderId}.pdf`;
+    const blob = await res.blob();
+
+    return { blob, fileName };
+}
+
 export async function emailOrderInvoice(token, orderId, { signal, onUnauthorized } = {}) {
     if (!token) throw new Error('Authentication is required to email an invoice');
     if (!orderId) throw new Error('Order ID is required');
