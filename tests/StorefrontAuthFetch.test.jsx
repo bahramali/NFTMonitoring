@@ -32,7 +32,7 @@ afterEach(() => {
 });
 
 describe('Storefront auth-aware product fetch', () => {
-    it('uses public fetch for anonymous users', async () => {
+    it('requests products through central auth layer for anonymous users', async () => {
         listStoreProducts.mockResolvedValue({ products: [] });
         render(<MemoryRouter><Storefront /></MemoryRouter>);
 
