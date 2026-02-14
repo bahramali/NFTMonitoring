@@ -93,14 +93,29 @@ const resolveTotals = (order) => {
 const resolvePaymentInfo = (order) => {
     const raw = order?.raw ?? {};
     const payment = raw.payment ?? {};
-    const method =
-        order?.paymentMethod ?? payment.method ?? payment.brand ?? payment.type ?? raw.paymentMethod ?? raw.payment_type ?? '';
+    const methodBase =
+        order?.paymentMethod
+        ?? raw.paymentMethod
+        ?? payment.method
+        ?? payment.brand
+        ?? payment.type
+        ?? raw.payment_type
+        ?? '';
     const last4 = payment.last4 ?? raw.paymentMethodLast4 ?? raw.last4 ?? '';
+    const reference =
+        order?.paymentReference
+        ?? raw.paymentReference
+        ?? payment.reference
+        ?? payment.id
+        ?? payment.intentId
+        ?? payment.transactionId
+        ?? raw.paymentIntentId
+        ?? '';
+
     return {
         status: order?.paymentStatus ?? payment.status ?? raw.paymentStatus ?? raw.payment_state ?? order?.status ?? '',
-        method: last4 ? `${method} •••• ${last4}`.trim() : method,
-        reference:
-            payment.reference ?? payment.id ?? payment.intentId ?? payment.transactionId ?? raw.paymentReference ?? raw.paymentIntentId ?? '',
+        method: last4 ? `${methodBase} •••• ${last4}`.trim() : methodBase,
+        reference,
     };
 };
 
@@ -343,6 +358,9 @@ export default function CustomerOrderDetails() {
     const invoice = resolveDocument(order, 'invoice');
     const fulfillmentType = toStatusKey(order.deliveryType ?? order.raw?.deliveryType).includes('SHIP') ? 'Shipping' : 'Pickup';
     const hasItems = Boolean(order.items?.length);
+    const paymentDetailsFallback = 'Not provided by payment provider';
+    const showMissingProviderDetailsWarning = toStatusKey(paymentInfo.status) === 'PAID'
+        && (!paymentInfo.reference || !paymentInfo.method);
 
     return (
         <div className={styles.page}>
@@ -474,8 +492,11 @@ export default function CustomerOrderDetails() {
 
                         <div className={styles.sectionCard}>
                             <h3>Payment</h3>
-                            <p className={styles.label}>Method: {paymentInfo.method || '—'}</p>
-                            <p className={styles.label}>Reference: {paymentInfo.reference || '—'}</p>
+                            <p className={styles.label}>Method: {paymentInfo.method || paymentDetailsFallback}</p>
+                            <p className={styles.label}>Reference: {paymentInfo.reference || paymentDetailsFallback}</p>
+                            {showMissingProviderDetailsWarning ? (
+                                <p className={styles.warning}>Payment confirmed, but provider details are not available yet.</p>
+                            ) : null}
                             <button type="button" className={styles.secondaryButton} onClick={handleRefreshStatus}>Refresh payment status</button>
                             <a href="mailto:support@hydroleaf.se" className={styles.linkButton}>Need help?</a>
                         </div>

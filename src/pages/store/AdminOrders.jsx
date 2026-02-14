@@ -79,6 +79,7 @@ export default function AdminOrders() {
     const [sortBy, setSortBy] = useState('newest');
 
     const hasAccess = hasPerm({ permissions }, PERMISSIONS.ORDERS_MANAGE);
+    const paymentDetailsFallback = 'Not provided by payment provider';
 
     const loadOrders = useCallback(async () => {
         if (!token) return;
@@ -278,8 +279,11 @@ export default function AdminOrders() {
                         <section className={styles.section}>
                             <h4>Payment</h4>
                             <p>Status: <strong>{normalizeKey(selectedOrder.paymentStatus)}</strong></p>
-                            <p>Reference: {selectedOrder.paymentReference || '—'}</p>
-                            <p>Method: {selectedOrder.paymentMethod || '—'}</p>
+                            <p>Reference: {selectedOrder.paymentReference || paymentDetailsFallback}</p>
+                            <p>Method: {selectedOrder.paymentMethod || paymentDetailsFallback}</p>
+                            {normalizeKey(selectedOrder.paymentStatus) === 'PAID' && (!selectedOrder.paymentReference || !selectedOrder.paymentMethod) ? (
+                                <p className={styles.paymentWarning}>Payment confirmed, but provider details are not available yet.</p>
+                            ) : null}
                         </section>
 
                         <section className={styles.section}>
