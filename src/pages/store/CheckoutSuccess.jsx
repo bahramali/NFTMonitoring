@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { fetchStoreOrderBySession } from '../../api/store.js';
+import { fetchOrderStatus, fetchStoreOrderBySession } from '../../api/store.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import { mapOrderStatus } from '../../utils/orderStatus.js';
 import styles from './CheckoutReturn.module.css';
@@ -46,6 +46,10 @@ const normalizeOrderPayload = (payload) => {
 export default function CheckoutSuccess() {
     const [searchParams] = useSearchParams();
     const sessionId = searchParams.get('session_id');
+    const orderId = searchParams.get('order_id');
+    const selectedPaymentMode = searchParams.get('payment_mode');
+    const hintedInvoiceNumber = searchParams.get('invoice_number');
+    const hintedInvoiceDueDate = searchParams.get('invoice_due_date');
     const { clearCart } = useStorefront();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -58,9 +62,13 @@ export default function CheckoutSuccess() {
     const orderRef = useRef(null);
 
     useEffect(() => {
-        if (!sessionId) return;
-        console.info('Checkout success session observed.', { sessionId });
-    }, [sessionId]);
+        if (sessionId) {
+            console.info('Checkout success session observed.', { sessionId });
+        }
+        if (orderId) {
+            console.info('Checkout success order observed.', { orderId });
+        }
+    }, [orderId, sessionId]);
 
     useEffect(() => {
         if (!referenceId) return;
@@ -68,7 +76,7 @@ export default function CheckoutSuccess() {
     }, [referenceId]);
 
     useEffect(() => {
-        if (!sessionId) return;
+        if (!sessionId && !orderId) return;
         let isMounted = true;
         const controller = new AbortController();
         const startedAt = Date.now();
@@ -84,7 +92,10 @@ export default function CheckoutSuccess() {
             setLoading(true);
             let latestOrder = null;
             try {
-                const { data, correlationId } = await fetchStoreOrderBySession(sessionId, { signal: controller.signal });
+                const response = sessionId
+                    ? await fetchStoreOrderBySession(sessionId, { signal: controller.signal })
+                    : await fetchOrderStatus(orderId, { signal: controller.signal });
+                const { data, correlationId } = response;
                 if (!isMounted) return;
                 latestOrder = normalizeOrderPayload(data);
                 setOrder(latestOrder);
@@ -134,40 +145,54 @@ export default function CheckoutSuccess() {
                 clearTimeout(timeoutRef.current);
             }
         };
-    }, [sessionId]);
+    }, [orderId, sessionId]);
 
     const status = useMemo(() => resolveOrderStatus(order), [order]);
+    const resolvedPaymentMode = (
+        order?.paymentMode
+        ?? order?.payment_mode
+        ?? order?.invoice?.paymentMode
+        ?? selectedPaymentMode
+        ?? ''
+    );
+    const isInvoiceFlow = `${resolvedPaymentMode}`.toUpperCase() === 'INVOICE_PAY_LATER';
+    const invoiceNumber = order?.invoiceNumber ?? order?.invoice?.number ?? hintedInvoiceNumber;
+    const invoiceDueDate = order?.invoiceDueDate ?? order?.invoice?.dueDate ?? hintedInvoiceDueDate;
     const isPaid = isPaidStatus(status);
     const isFailed = isFailedStatus(status);
     const isPending = isPendingStatus(status) || notFound;
     const statusLabel = mapOrderStatus(status).label;
-    const title = isPaid
+    const title = isInvoiceFlow
+        ? 'Order placed. Invoice issued.'
+        : isPaid
         ? 'Order confirmed'
         : isFailed
             ? 'Payment failed'
             : 'Payment received / processing';
-    const subtitle = isPaid
+    const subtitle = isInvoiceFlow
+        ? 'Your order was placed with invoice payment terms.'
+        : isPaid
         ? 'Payment confirmed. A receipt has been sent to your email.'
         : isFailed
             ? 'Your payment did not complete. Please contact support if the issue persists, or return to your cart to try again.'
             : 'Thanks for your order! We are confirming your payment with Stripe and will update your order shortly.';
 
     useEffect(() => {
-        if (!isPaid) return;
+        if (!isPaid && !isInvoiceFlow) return;
         clearCart();
-    }, [clearCart, isPaid]);
+    }, [clearCart, isInvoiceFlow, isPaid]);
 
     return (
         <div className={styles.page}>
             <div className={styles.card}>
-                <p className={styles.kicker}>Payment received</p>
+                <p className={styles.kicker}>{isInvoiceFlow ? 'Invoice order placed' : 'Payment received'}</p>
                 <h1 className={styles.title}>{title}</h1>
                 <p className={styles.subtitle}>{subtitle}</p>
 
                 <div className={styles.statusCard}>
                     <div className={styles.statusRow}>
-                        <span className={styles.statusLabel}>Checkout session</span>
-                        <span className={styles.statusValue}>{sessionId || 'Pending'}</span>
+                        <span className={styles.statusLabel}>{sessionId ? 'Checkout session' : 'Order'}</span>
+                        <span className={styles.statusValue}>{sessionId || orderId || 'Pending'}</span>
                     </div>
                     {referenceId ? (
                         <div className={styles.statusRow}>
@@ -181,6 +206,18 @@ export default function CheckoutSuccess() {
                             {loading ? 'Loading…' : isPending ? 'Processing' : statusLabel}
                         </span>
                     </div>
+                    {isInvoiceFlow && invoiceNumber ? (
+                        <div className={styles.statusRow}>
+                            <span className={styles.statusLabel}>Invoice number</span>
+                            <span className={styles.statusValue}>{invoiceNumber}</span>
+                        </div>
+                    ) : null}
+                    {isInvoiceFlow && invoiceDueDate ? (
+                        <div className={styles.statusRow}>
+                            <span className={styles.statusLabel}>Due date</span>
+                            <span className={styles.statusValue}>{new Date(invoiceDueDate).toLocaleDateString()}</span>
+                        </div>
+                    ) : null}
                     {loading ? <p className={styles.statusMessage}>Fetching latest status…</p> : null}
                     {isPending && !loading ? (
                         <p className={styles.statusMessage}>

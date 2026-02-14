@@ -247,6 +247,7 @@ export default function AdminOrders() {
                                     <div className={styles.total}>{formatCurrency(order.totals?.total || 0, order.totals?.currency || 'SEK')}</div>
                                     <div className={styles.badges}>
                                         <span className={`${styles.badge} ${paymentColorClass(order.paymentStatus)}`}>{normalizeKey(order.paymentStatus)}</span>
+                                        <span className={styles.badge}>{order.paymentMode || 'PAY_NOW'}</span>
                                         <span className={styles.badge}>{isPickupOrder(order) ? 'PICKUP' : 'SHIPPING'}</span>
                                     </div>
                                     <div className={styles.muted}>{summarizeAddress(order)}</div>
@@ -287,6 +288,8 @@ export default function AdminOrders() {
                         <section className={styles.section}>
                             <h4>Payment</h4>
                             <p>Status: <strong>{normalizeKey(selectedOrder.paymentStatus)}</strong></p>
+                            <p><strong>Payment mode:</strong> {selectedOrder.paymentMode || 'PAY_NOW'}</p>
+                            <p><strong>Invoice status:</strong> {selectedOrder.invoiceStatus || '—'}</p>
                             <p><strong>Payment Method:</strong> {paymentMethod}</p>
                             <p><strong>Reference:</strong> {paymentReference}</p>
                             {normalizeKey(selectedOrder.paymentStatus) === 'PAID' && (!selectedOrder.paymentReference || !selectedOrder.paymentMethod) ? (
@@ -315,10 +318,10 @@ export default function AdminOrders() {
                                     <span>{formatCurrency(item.lineTotal, selectedOrder.totals?.currency || 'SEK')}</span>
                                 </div>
                             ))}
-                            <div className={styles.lineItem}><span>Subtotal</span><span>{formatCurrency(selectedOrder.totals?.subtotal || 0, selectedOrder.totals?.currency || 'SEK')}</span></div>
+                            <div className={styles.lineItem}><span>Subtotal (excl. VAT / Net)</span><span>{formatCurrency(Math.max((selectedOrder.totals?.subtotal || 0) - (selectedOrder.totals?.tax || 0), 0), selectedOrder.totals?.currency || 'SEK')}</span></div>
                             <div className={styles.lineItem}><span>Shipping</span><span>{formatCurrency(selectedOrder.totals?.shipping || 0, selectedOrder.totals?.currency || 'SEK')}</span></div>
-                            <div className={styles.lineItem}><span>Tax</span><span>{formatCurrency(selectedOrder.totals?.tax || 0, selectedOrder.totals?.currency || 'SEK')}</span></div>
-                            <div className={styles.lineItem}><span>Total</span><span>{formatCurrency(selectedOrder.totals?.total || 0, selectedOrder.totals?.currency || 'SEK')}</span></div>
+                            <div className={styles.lineItem}><span>VAT (moms)</span><span>{formatCurrency(selectedOrder.totals?.tax || 0, selectedOrder.totals?.currency || 'SEK')}</span></div>
+                            <div className={styles.lineItem}><span>Total (incl. VAT / Gross)</span><span>{formatCurrency(selectedOrder.totals?.total || 0, selectedOrder.totals?.currency || 'SEK')}</span></div>
                         </section>
 
                         <section className={styles.section}>

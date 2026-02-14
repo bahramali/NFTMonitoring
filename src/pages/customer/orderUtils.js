@@ -68,6 +68,7 @@ export const normalizeOrderList = (payload) => {
         paymentReference: order.paymentReference ?? order.payment?.reference ?? order.payment?.id ?? order.paymentIntentId ?? '',
         paymentUrl: extractPaymentUrl(order),
         deliveryType: order.deliveryType,
+        paymentMode: order.paymentMode ?? order.payment_mode ?? order.payment?.mode ?? '',
         customerNote: order.customerNote ?? order.note ?? '',
         shippingAddress: order.shippingAddress ?? order.address ?? null,
         totals: normalizeTotals(order),
@@ -86,5 +87,9 @@ export const normalizeOrder = (payload) => {
         paymentMethod: normalized.paymentMethod || payment.method || payment.brand || base.payment_type || '',
         paymentReference: normalized.paymentReference || payment.reference || payment.id || base.paymentIntentId || '',
         deliveryStatus: base.deliveryStatus ?? base.fulfillmentStatus ?? base.fulfillment?.status ?? '',
+        paymentMode: normalized.paymentMode || base.paymentMode || base.payment_mode || payment.mode || '',
+        invoiceNumber: base.invoiceNumber ?? base.invoice?.number ?? payment.invoiceNumber ?? '',
+        invoiceStatus: base.invoiceStatus ?? base.invoice?.status ?? payment.invoiceStatus ?? '',
+        invoiceDueDate: base.invoiceDueDate ?? base.invoice?.dueDate ?? payment.invoiceDueDate ?? '',
     };
 };

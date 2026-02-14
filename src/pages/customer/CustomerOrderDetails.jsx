@@ -30,6 +30,11 @@ const statusVariantStyles = {
 const toStatusKey = (value) => String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
 const isPendingStatus = (value) => !TERMINAL_STATUSES.has(toStatusKey(value));
 
+const isInvoicePaymentMode = (order) => {
+    const mode = order?.paymentMode ?? order?.raw?.paymentMode ?? order?.raw?.payment_mode ?? order?.raw?.payment?.mode;
+    return toStatusKey(mode) === 'INVOICE_PAY_LATER';
+};
+
 const formatAddress = (value) => {
     if (!value) return '—';
     if (typeof value === 'string') return value;
@@ -148,11 +153,22 @@ const resolveTimeline = (order, paymentStatus) => {
 const resolveDocument = (order, key) => {
     const raw = order?.raw ?? {};
     const status = toStatusKey(order?.paymentStatus ?? order?.status);
+    const invoiceMode = isInvoicePaymentMode(order);
+    const isPaid = ['PAID', 'PAYMENT_SUCCEEDED'].includes(status);
+
+    if (invoiceMode && key === 'receipt' && !isPaid) {
+        return { available: false, reason: 'Receipt available after payment' };
+    }
+
+    if (invoiceMode && key === 'invoice') {
+        return { available: true, reason: '' };
+    }
+
     const available = Boolean(
         raw?.documents?.[key]?.available
         ?? raw?.[`${key}Available`]
         ?? raw?.payment?.[`${key}Available`]
-        ?? (key === 'receipt' && ['PAID', 'PAYMENT_SUCCEEDED'].includes(status)),
+        ?? (key === 'receipt' && isPaid),
     );
     const reason = raw?.documents?.[key]?.reason ?? (available ? '' : 'Available after payment confirmation.');
     return { available, reason };
@@ -493,11 +509,11 @@ export default function CustomerOrderDetails() {
                         <div className={styles.sectionCard}>
                             <h3>Totals ({totals.currency})</h3>
                             <dl className={styles.totalsList}>
-                                <div className={styles.totalsRow}><dt>Subtotal</dt><dd>{formatCurrency(totals.subtotal ?? 0, totals.currency)}</dd></div>
+                                <div className={styles.totalsRow}><dt>Subtotal (excl. VAT / Net)</dt><dd>{formatCurrency(Math.max((totals.subtotal ?? 0) - (totals.tax ?? 0), 0), totals.currency)}</dd></div>
                                 <div className={styles.totalsRow}><dt>Discount</dt><dd>-{formatCurrency(totals.discount ?? 0, totals.currency)}</dd></div>
                                 <div className={styles.totalsRow}><dt>Shipping</dt><dd>{formatCurrency(totals.shipping ?? 0, totals.currency)}</dd></div>
-                                <div className={styles.totalsRow}><dt>Tax</dt><dd>{formatCurrency(totals.tax ?? 0, totals.currency)}</dd></div>
-                                <div className={`${styles.totalsRow} ${styles.totalRow}`}><dt>Total</dt><dd>{formatCurrency(totals.total ?? 0, totals.currency)}</dd></div>
+                                <div className={styles.totalsRow}><dt>VAT (moms)</dt><dd>{formatCurrency(totals.tax ?? 0, totals.currency)}</dd></div>
+                                <div className={`${styles.totalsRow} ${styles.totalRow}`}><dt>Total (incl. VAT / Gross)</dt><dd>{formatCurrency(totals.total ?? 0, totals.currency)}</dd></div>
                             </dl>
                         </div>
 
@@ -566,7 +582,15 @@ export default function CustomerOrderDetails() {
                         <div className={styles.sectionCard}>
                             <h3>Payment</h3>
                             <p className={styles.label}><strong>Payment Method:</strong> {paymentMethodDisplay}</p>
+                            <p className={styles.label}><strong>Payment mode:</strong> {order.paymentMode || 'PAY_NOW'}</p>
                             <p className={styles.label}><strong>Reference:</strong> {paymentReferenceDisplay}</p>
+                            {isInvoicePaymentMode(order) ? (
+                                <>
+                                    <p className={styles.label}><strong>Invoice number:</strong> {order.invoiceNumber || '—'}</p>
+                                    <p className={styles.label}><strong>Invoice status:</strong> {order.invoiceStatus || 'Pending'}</p>
+                                    <p className={styles.label}><strong>Due date:</strong> {order.invoiceDueDate ? new Date(order.invoiceDueDate).toLocaleDateString() : '—'}</p>
+                                </>
+                            ) : null}
                             {showMissingProviderDetailsWarning ? (
                                 <p className={styles.warning}>Payment confirmed, but provider details are not available yet.</p>
                             ) : null}
