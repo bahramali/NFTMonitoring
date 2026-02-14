@@ -66,3 +66,55 @@ describe('listStoreProducts', () => {
     });
 
 });
+
+describe('cart API auth behavior', () => {
+    beforeEach(() => {
+        authFetchMock.mockReset();
+        parseApiResponseMock.mockReset();
+    });
+
+    it('fetches current cart with authFetch so JWT can be attached', async () => {
+        const fakeResponse = { ok: true };
+        const apiPayload = { id: 'cart-1', items: [] };
+        authFetchMock.mockResolvedValue(fakeResponse);
+        parseApiResponseMock.mockResolvedValue(apiPayload);
+
+        const { fetchCurrentStoreCart } = await import('./store.js');
+        const result = await fetchCurrentStoreCart();
+
+        expect(authFetchMock).toHaveBeenCalledWith(
+            'http://localhost:8080/api/store/cart',
+            {
+                method: 'GET',
+                credentials: 'include',
+                signal: undefined,
+            },
+        );
+        expect(parseApiResponseMock).toHaveBeenCalledWith(fakeResponse, 'Failed to fetch current cart');
+        expect(result).toEqual(apiPayload);
+    });
+
+    it('adds cart item via authFetch with cart headers', async () => {
+        const fakeResponse = { ok: true };
+        authFetchMock.mockResolvedValue(fakeResponse);
+        parseApiResponseMock.mockResolvedValue({ id: 'cart-1' });
+
+        const { addItemToCart } = await import('./store.js');
+        await addItemToCart('cart-1', 'session-1', 'variant-7', 3);
+
+        expect(authFetchMock).toHaveBeenCalledWith(
+            'http://localhost:8080/api/store/cart/cart-1/items',
+            {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Cart-Id': 'cart-1',
+                    'X-Session-Id': 'session-1',
+                },
+                body: JSON.stringify({ variantId: 'variant-7', quantity: 3 }),
+                signal: undefined,
+            },
+        );
+    });
+});
