@@ -119,6 +119,12 @@ const resolvePaymentInfo = (order) => {
     };
 };
 
+const displayPaymentValue = (value) => {
+    if (value == null) return 'Unknown';
+    const normalized = String(value).trim();
+    return normalized || 'Unknown';
+};
+
 const resolveTimeline = (order, paymentStatus) => {
     const statusKey = toStatusKey(paymentStatus || order?.status);
     const deliveryType = toStatusKey(order?.deliveryType ?? order?.raw?.deliveryType ?? 'PICKUP');
@@ -358,7 +364,8 @@ export default function CustomerOrderDetails() {
     const invoice = resolveDocument(order, 'invoice');
     const fulfillmentType = toStatusKey(order.deliveryType ?? order.raw?.deliveryType).includes('SHIP') ? 'Shipping' : 'Pickup';
     const hasItems = Boolean(order.items?.length);
-    const paymentDetailsFallback = 'Not provided by payment provider';
+    const paymentMethodDisplay = displayPaymentValue(paymentInfo.method);
+    const paymentReferenceDisplay = displayPaymentValue(paymentInfo.reference);
     const showMissingProviderDetailsWarning = toStatusKey(paymentInfo.status) === 'PAID'
         && (!paymentInfo.reference || !paymentInfo.method);
 
@@ -492,8 +499,8 @@ export default function CustomerOrderDetails() {
 
                         <div className={styles.sectionCard}>
                             <h3>Payment</h3>
-                            <p className={styles.label}>Method: {paymentInfo.method || paymentDetailsFallback}</p>
-                            <p className={styles.label}>Reference: {paymentInfo.reference || paymentDetailsFallback}</p>
+                            <p className={styles.label}><strong>Payment Method:</strong> {paymentMethodDisplay}</p>
+                            <p className={styles.label}><strong>Reference:</strong> {paymentReferenceDisplay}</p>
                             {showMissingProviderDetailsWarning ? (
                                 <p className={styles.warning}>Payment confirmed, but provider details are not available yet.</p>
                             ) : null}

@@ -62,6 +62,12 @@ const ALLOWED_TRANSITIONS = {
     DELIVERED: [],
 };
 
+const displayPaymentValue = (value) => {
+    if (value == null) return 'Unknown';
+    const normalized = String(value).trim();
+    return normalized || 'Unknown';
+};
+
 export default function AdminOrders() {
     const { token, permissions } = useAuth();
     const [orders, setOrders] = useState([]);
@@ -79,7 +85,6 @@ export default function AdminOrders() {
     const [sortBy, setSortBy] = useState('newest');
 
     const hasAccess = hasPerm({ permissions }, PERMISSIONS.ORDERS_MANAGE);
-    const paymentDetailsFallback = 'Not provided by payment provider';
 
     const loadOrders = useCallback(async () => {
         if (!token) return;
@@ -100,6 +105,9 @@ export default function AdminOrders() {
     }, [loadOrders]);
 
     const selectedOrder = useMemo(() => orders.find((item) => String(item.id) === String(selectedId)) || null, [orders, selectedId]);
+    const selectedOrderPayment = selectedOrder?.raw?.payment ?? {};
+    const paymentMethod = displayPaymentValue(selectedOrder?.paymentMethod ?? selectedOrderPayment?.method);
+    const paymentReference = displayPaymentValue(selectedOrder?.paymentReference ?? selectedOrderPayment?.reference);
 
     useEffect(() => {
         if (!selectedOrder) return;
@@ -279,8 +287,8 @@ export default function AdminOrders() {
                         <section className={styles.section}>
                             <h4>Payment</h4>
                             <p>Status: <strong>{normalizeKey(selectedOrder.paymentStatus)}</strong></p>
-                            <p>Reference: {selectedOrder.paymentReference || paymentDetailsFallback}</p>
-                            <p>Method: {selectedOrder.paymentMethod || paymentDetailsFallback}</p>
+                            <p><strong>Payment Method:</strong> {paymentMethod}</p>
+                            <p><strong>Reference:</strong> {paymentReference}</p>
                             {normalizeKey(selectedOrder.paymentStatus) === 'PAID' && (!selectedOrder.paymentReference || !selectedOrder.paymentMethod) ? (
                                 <p className={styles.paymentWarning}>Payment confirmed, but provider details are not available yet.</p>
                             ) : null}
