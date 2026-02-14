@@ -4,6 +4,20 @@ import { getApiBaseUrl } from '../config/apiBase.js';
 
 const API_BASE = getApiBaseUrl();
 const STORE_BASE = `${API_BASE}/api/store`;
+
+const AUTH_SESSION_STORAGE_KEY = 'authSession';
+const resolveStoreRequestToken = (token) => {
+    if (token) return token;
+    if (typeof window === 'undefined' || !window.sessionStorage) return null;
+    try {
+        const rawSession = window.sessionStorage.getItem(AUTH_SESSION_STORAGE_KEY);
+        if (!rawSession) return null;
+        const parsed = JSON.parse(rawSession);
+        return parsed?.token || null;
+    } catch {
+        return null;
+    }
+};
 const buildCartHeaders = (cartId, sessionId) => {
     const headers = {};
     if (cartId) headers['X-Cart-Id'] = cartId;
@@ -12,13 +26,14 @@ const buildCartHeaders = (cartId, sessionId) => {
 };
 
 export async function listStoreProducts({ signal, token } = {}) {
+    const resolvedToken = resolveStoreRequestToken(token);
     const res = await authFetch(
         `${STORE_BASE}/products`,
         {
             signal,
-            headers: token ? buildAuthHeaders(token) : undefined,
+            headers: resolvedToken ? buildAuthHeaders(resolvedToken) : undefined,
         },
-        { token },
+        { token: resolvedToken },
     );
     return parseApiResponse(res, 'Failed to load products');
 }
@@ -26,13 +41,14 @@ export async function listStoreProducts({ signal, token } = {}) {
 export async function fetchStoreProduct(productId, { signal, token } = {}) {
     if (!productId) throw new Error('Product ID is required');
     const requestUrl = `${STORE_BASE}/products/${encodeURIComponent(productId)}`;
+    const resolvedToken = resolveStoreRequestToken(token);
     const res = await authFetch(
         requestUrl,
         {
             signal,
-            headers: token ? buildAuthHeaders(token) : undefined,
+            headers: resolvedToken ? buildAuthHeaders(resolvedToken) : undefined,
         },
-        { token },
+        { token: resolvedToken },
     );
     return parseApiResponse(res, 'Failed to load product');
 }
