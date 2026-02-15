@@ -51,6 +51,7 @@ import ProductAdmin from './pages/ProductAdmin.jsx';
 import CustomersList from './pages/store/CustomersList.jsx';
 import CustomerDetails from './pages/store/CustomerDetails.jsx';
 import AdminOrders from './pages/store/AdminOrders.jsx';
+import AdminStoreBannersPage from './pages/store/AdminStoreBannersPage.jsx';
 import Contact from './pages/store/Contact.jsx';
 import About from './pages/store/About.jsx';
 import FAQ from './pages/store/FAQ.jsx';
@@ -185,6 +186,14 @@ function AppRoutes() {
                             element={(
                                 <ProtectedRoute requiredPermissions={[PERMISSIONS.ORDERS_MANAGE]}>
                                     <AdminOrders />
+                                </ProtectedRoute>
+                            )}
+                        />
+                        <Route
+                            path="admin/banners"
+                            element={(
+                                <ProtectedRoute requiredPermissions={[PERMISSIONS.PRODUCTS_MANAGE]}>
+                                    <AdminStoreBannersPage />
                                 </ProtectedRoute>
                             )}
                         />

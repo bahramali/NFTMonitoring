@@ -25,6 +25,15 @@ export async function listStoreProducts({ signal, token } = {}) {
     return parseApiResponse(res, 'Failed to load products');
 }
 
+export async function listStoreBanners({ signal } = {}) {
+    const res = await authFetch(`${STORE_BASE}/banners`, {
+        method: 'GET',
+        signal,
+    });
+
+    return parseApiResponse(res, 'Failed to load banners');
+}
+
 export async function fetchStoreProduct(productId, { signal, token } = {}) {
     if (!productId) throw new Error('Product ID is required');
     const requestUrl = `${STORE_BASE}/products/${encodeURIComponent(productId)}`;
