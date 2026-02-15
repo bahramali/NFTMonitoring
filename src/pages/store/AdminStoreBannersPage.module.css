@@ -43,11 +43,18 @@
 .modal input,
 .modal select,
 .modal textarea {
+    box-sizing: border-box;
     width: 100%;
+    max-width: 100%;
     border: 1px solid #dbe1e8;
     border-radius: 10px;
     padding: 9px 10px;
     font: inherit;
+}
+
+.toolbar > *,
+.modal > * {
+    min-width: 0;
 }
 
 .tableWrap {
@@ -126,6 +133,7 @@
     padding: 16px;
     display: grid;
     gap: 10px;
+    overflow-x: hidden;
 }
 
 .modal h2 {
@@ -136,12 +144,18 @@
     display: grid;
     gap: 6px;
     font-size: 14px;
+    min-width: 0;
 }
 
 .grid2,
 .grid3 {
     display: grid;
     gap: 10px;
+}
+
+.grid2 > *,
+.grid3 > * {
+    min-width: 0;
 }
 
 .grid2 {
