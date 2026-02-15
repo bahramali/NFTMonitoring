@@ -30,6 +30,11 @@ const ADMIN_MENU = [
         label: 'Customers',
         permissions: [PERMISSIONS.CUSTOMERS_VIEW],
     },
+    {
+        path: '/store/admin/banners',
+        label: 'Banners',
+        permissions: [PERMISSIONS.PRODUCTS_MANAGE],
+    },
     { path: '/admin/tools', label: 'Super Admin Tools', roles: ['SUPER_ADMIN'] },
     { path: '/admin/directory', label: 'Admin Directory', roles: ['SUPER_ADMIN'] },
 ];

@@ -1,0 +1,79 @@
+.hero {
+    position: relative;
+    min-height: clamp(260px, 34vw, 320px);
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    overflow: hidden;
+    background:
+        linear-gradient(120deg, rgba(19, 56, 36, 0.93) 0%, rgba(45, 92, 59, 0.83) 55%, rgba(63, 118, 80, 0.56) 100%),
+        var(--hero-image, none),
+        #1f5133;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+}
+
+.overlay {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at right, rgba(255, 255, 255, 0.12), transparent 58%);
+}
+
+.content {
+    position: relative;
+    z-index: 1;
+    color: #f8fff8;
+    width: min(620px, 100%);
+    padding: clamp(20px, 3.5vw, 34px);
+    display: grid;
+    gap: 12px;
+}
+
+.kicker {
+    margin: 0;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.9;
+}
+
+.content h1 {
+    margin: 0;
+    font-size: clamp(24px, 3.2vw, 34px);
+    line-height: 1.15;
+}
+
+.subtitle {
+    margin: 0;
+    font-size: clamp(14px, 1.7vw, 16px);
+    line-height: 1.5;
+    max-width: 58ch;
+    color: rgba(248, 255, 248, 0.92);
+}
+
+.cta {
+    width: fit-content;
+    text-decoration: none;
+    color: #174228;
+    background: #f4f8f4;
+    font-weight: 700;
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.cta:hover {
+    transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+    .hero {
+        border-radius: 14px;
+    }
+
+    .content {
+        padding: 18px;
+        gap: 10px;
+    }
+}

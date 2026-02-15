@@ -1,21 +1,53 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { listStoreProducts } from '../../api/store.js';
+import { listStoreBanners, listStoreProducts } from '../../api/store.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import ProductCard from '../../components/store/ProductCard.jsx';
+import StoreHeroBanner from '../../components/store/StoreHeroBanner.jsx';
+import StoreBannerRow from '../../components/store/StoreBannerRow.jsx';
 import { getProductSortPrice, isProductInStock } from '../../utils/storeVariants.js';
 import styles from './Storefront.module.css';
+
+const normalizeBanners = (payload) => {
+    const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.banners)
+            ? payload.banners
+            : [];
+
+    return list
+        .map((banner) => ({
+            ...banner,
+            id: banner?.id ?? banner?.bannerId ?? banner?._id ?? '',
+            type: String(banner?.type ?? 'PROMO').toUpperCase(),
+            active: banner?.active !== false,
+            position: Number.isFinite(Number(banner?.position)) ? Number(banner.position) : 0,
+        }))
+        .filter((banner) => banner.active)
+        .sort((a, b) => a.position - b.position);
+};
 
 export default function Storefront() {
     const { addToCart, pendingProductId } = useStorefront();
     const { isAuthenticated, isBootstrapping } = useAuth();
     const [products, setProducts] = useState([]);
+    const [banners, setBanners] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [sortBy, setSortBy] = useState('name');
     const [availability, setAvailability] = useState('all');
     const [tagFilter, setTagFilter] = useState('all');
+
+    const heroBanner = useMemo(
+        () => banners.find((banner) => banner.type === 'HERO') || null,
+        [banners],
+    );
+
+    const secondaryBanners = useMemo(
+        () => banners.filter((banner) => banner.type !== 'HERO'),
+        [banners],
+    );
 
     const sortedProducts = useMemo(() => {
         const list = Array.isArray(products) ? [...products] : [];
@@ -59,15 +91,19 @@ export default function Storefront() {
         [filteredProducts],
     );
 
-    const fetchProducts = async () => {
+    const fetchStoreData = async () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await listStoreProducts();
-            const list = response?.products ?? response ?? [];
+            const [productsResponse, bannersResponse] = await Promise.all([
+                listStoreProducts(),
+                listStoreBanners(),
+            ]);
+            const list = productsResponse?.products ?? productsResponse ?? [];
             setProducts(Array.isArray(list) ? list : []);
+            setBanners(normalizeBanners(bannersResponse));
         } catch (err) {
-            setError(err?.message || 'Unable to load products.');
+            setError(err?.message || 'Unable to load store data.');
         } finally {
             setLoading(false);
         }
@@ -78,19 +114,18 @@ export default function Storefront() {
             return;
         }
 
-        fetchProducts();
+        fetchStoreData();
     }, [isAuthenticated, isBootstrapping]);
 
     return (
         <div className={styles.page}>
-            <section className={styles.intro} aria-label="Store introduction">
-                <p>Welcome to the HydroLeaf Store — explore our latest products and order directly online.</p>
-            </section>
+            {heroBanner ? <StoreHeroBanner banner={heroBanner} /> : null}
+            {secondaryBanners.length > 0 ? <StoreBannerRow banners={secondaryBanners} /> : null}
 
             {error && (
                 <div className={styles.alert} role="alert">
                     <span>{error}</span>
-                    <button type="button" onClick={fetchProducts}>Retry</button>
+                    <button type="button" onClick={fetchStoreData}>Retry</button>
                 </div>
             )}
 
