@@ -7,611 +7,268 @@ import {
     fetchOrderInvoicePdf,
     fetchOrderReceiptHtml,
 } from '../../api/customer.js';
+import DocumentActions from '../../components/orders/DocumentActions.jsx';
+import OrderStatusPill from '../../components/orders/OrderStatusPill.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
-import useOrderPaymentAction from '../../hooks/useOrderPaymentAction.js';
-import { mapOrderStatus, resolveOrderPrimaryAction } from '../../utils/orderStatus.js';
 import { formatCurrency } from '../../utils/currency.js';
 import { normalizeOrder } from './orderUtils.js';
 import styles from './CustomerOrderDetails.module.css';
 
-const TERMINAL_STATUSES = new Set(['PAID', 'FAILED', 'REFUNDED', 'COMPLETED', 'CANCELLED', 'CANCELED']);
-const POLL_INTERVAL_MS = 4000;
-const POLL_TIMEOUT_MS = 180000;
-
-const statusVariantStyles = {
-    success: styles.statusSuccess,
-    warning: styles.statusWarning,
-    info: styles.statusInfo,
-    danger: styles.statusDanger,
-    neutral: styles.statusNeutral,
-};
-
 const toStatusKey = (value) => String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
-const isPendingStatus = (value) => !TERMINAL_STATUSES.has(toStatusKey(value));
-
-const isInvoicePaymentMode = (order) => {
-    const mode = order?.paymentMode ?? order?.raw?.paymentMode ?? order?.raw?.payment_mode ?? order?.raw?.payment?.mode;
-    return toStatusKey(mode) === 'INVOICE_PAY_LATER';
-};
+const isInvoicePaymentMode = (order) => toStatusKey(order?.paymentMode ?? order?.raw?.paymentMode) === 'INVOICE_PAY_LATER';
 
 const formatAddress = (value) => {
     if (!value) return '—';
     if (typeof value === 'string') return value;
-    if (typeof value === 'object') {
-        const parts = [
-            value.name ?? value.fullName,
-            value.line1 ?? value.address1,
-            value.line2 ?? value.address2,
-            value.postalCode ?? value.zip,
-            value.city,
-            value.country,
-        ]
-            .filter(Boolean)
-            .map((part) => String(part).trim())
-            .filter(Boolean);
-        if (parts.length) return parts.join(', ');
-    }
-    return '—';
-};
-
-const resolveTotals = (order) => {
-    const raw = order?.raw ?? {};
-    const normalizedTotals = order?.totals ?? {};
-    const totals = raw.totals ?? raw.summary ?? raw.amounts ?? {};
-    const fallbackSubtotal = Array.isArray(order?.items)
-        ? order.items.reduce((sum, item) => {
-            const quantity = Number(item?.quantity ?? item?.qty ?? 1) || 1;
-            const unitPrice = Number(item?.price ?? item?.unitPrice ?? item?.amount ?? 0) || 0;
-            const lineTotal = item?.lineTotal ?? item?.total;
-            return sum + (lineTotal != null ? Number(lineTotal) || 0 : quantity * unitPrice);
-        }, 0)
-        : null;
-
-    const subtotal = normalizedTotals.subtotal
-        ?? raw.subtotal
-        ?? raw.subTotal
-        ?? totals.subtotal
-        ?? totals.subTotal
-        ?? raw.itemsSubtotal
-        ?? raw.itemsTotal
-        ?? fallbackSubtotal;
-    const shipping = normalizedTotals.shipping ?? raw.shipping ?? raw.shippingTotal ?? totals.shipping ?? totals.shippingTotal ?? raw.deliveryFee ?? 0;
-    const tax = normalizedTotals.tax ?? raw.tax ?? raw.taxTotal ?? totals.tax ?? totals.taxTotal ?? 0;
-    const discount = normalizedTotals.discount ?? raw.discount ?? raw.discountTotal ?? totals.discount ?? totals.discountTotal ?? raw.promoDiscount ?? 0;
-    const total = normalizedTotals.total
-        ?? order?.total
-        ?? totals.total
-        ?? raw.total
-        ?? (subtotal != null ? subtotal + shipping + tax - discount : null);
-
-    return {
-        currency: order?.currency ?? normalizedTotals.currency ?? totals.currency ?? raw.currency ?? 'SEK',
-        subtotal,
-        shipping,
-        tax,
-        discount,
-        total,
-    };
-};
-
-const resolvePaymentInfo = (order) => {
-    const raw = order?.raw ?? {};
-    const payment = raw.payment ?? {};
-    const methodBase =
-        order?.paymentMethod
-        ?? raw.paymentMethod
-        ?? payment.method
-        ?? payment.brand
-        ?? payment.type
-        ?? raw.payment_type
-        ?? '';
-    const last4 = payment.last4 ?? raw.paymentMethodLast4 ?? raw.last4 ?? '';
-    const reference =
-        order?.paymentReference
-        ?? raw.paymentReference
-        ?? payment.reference
-        ?? payment.id
-        ?? payment.intentId
-        ?? payment.transactionId
-        ?? raw.paymentIntentId
-        ?? '';
-
-    return {
-        status: order?.paymentStatus ?? payment.status ?? raw.paymentStatus ?? raw.payment_state ?? order?.status ?? '',
-        method: last4 ? `${methodBase} •••• ${last4}`.trim() : methodBase,
-        reference,
-    };
-};
-
-const displayPaymentValue = (value) => {
-    if (value == null) return 'Unknown';
-    const normalized = String(value).trim();
-    return normalized || 'Unknown';
-};
-
-const resolveTimeline = (order, paymentStatus) => {
-    const statusKey = toStatusKey(paymentStatus || order?.status);
-    const deliveryType = toStatusKey(order?.deliveryType ?? order?.raw?.deliveryType ?? 'PICKUP');
-    const labels = [
-        'Order placed',
-        'Payment confirmed',
-        'Preparing',
-        deliveryType === 'SHIPPING' ? 'Shipped' : 'Ready for pickup',
-        'Completed',
-    ];
-
-    let currentIndex = 0;
-    if (['PAID', 'PAYMENT_SUCCEEDED'].includes(statusKey)) currentIndex = 1;
-    if (['PROCESSING'].includes(statusKey)) currentIndex = 2;
-    if (['SHIPPED', 'READY_FOR_PICKUP'].includes(statusKey)) currentIndex = 3;
-    if (['DELIVERED', 'COMPLETED'].includes(statusKey)) currentIndex = 4;
-
-    return labels.map((label, index) => ({ label, state: index <= currentIndex ? 'done' : 'pending' }));
-};
-
-const resolveDocument = (order, key) => {
-    const raw = order?.raw ?? {};
-    const status = toStatusKey(order?.paymentStatus ?? order?.status);
-    const invoiceMode = isInvoicePaymentMode(order);
-    const isPaid = ['PAID', 'PAYMENT_SUCCEEDED'].includes(status);
-
-    if (invoiceMode && key === 'receipt' && !isPaid) {
-        return { available: false, reason: 'Receipt available after payment' };
-    }
-
-    if (invoiceMode && key === 'invoice') {
-        return { available: true, reason: '' };
-    }
-
-    const available = Boolean(
-        raw?.documents?.[key]?.available
-        ?? raw?.[`${key}Available`]
-        ?? raw?.payment?.[`${key}Available`]
-        ?? (key === 'receipt' && isPaid),
-    );
-    const reason = raw?.documents?.[key]?.reason ?? (available ? '' : 'Available after payment confirmation.');
-    return { available, reason };
-};
-
-const resolveInvoiceRecipientEmail = (order, profile) => {
-    const raw = order?.raw ?? {};
-    const customer = raw.customer ?? {};
-    const recipient = raw.invoiceRecipient ?? raw.recipient ?? {};
-
-    return (
-        raw.invoiceEmail
-        ?? raw.customerEmail
-        ?? raw.email
-        ?? customer.email
-        ?? recipient.email
-        ?? profile?.email
-        ?? ''
-    );
+    const parts = [value.name ?? value.fullName, value.line1 ?? value.address1, value.line2 ?? value.address2, value.postalCode ?? value.zip, value.city, value.country]
+        .filter(Boolean)
+        .map((part) => String(part).trim());
+    return parts.join(', ') || '—';
 };
 
 export default function CustomerOrderDetails() {
     const { orderId } = useParams();
-    const { token, profile } = useAuth();
-    const redirectToLogin = useRedirectToLogin();
+    const { token } = useAuth();
     const { ordersState } = useOutletContext();
-    const { error: paymentError, loadingId, handleOrderPayment, resetError: resetPaymentError } = useOrderPaymentAction();
+    const redirectToLogin = useRedirectToLogin();
+    const [order, setOrder] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [documentState, setDocumentState] = useState({ loading: '', error: '', retryKey: '' });
 
     const existingOrder = useMemo(
         () => (ordersState?.items || []).find((entry) => String(entry.id) === String(orderId)),
         [orderId, ordersState?.items],
     );
 
-    const [order, setOrder] = useState(existingOrder || null);
-    const [loading, setLoading] = useState(!existingOrder);
-    const [error, setError] = useState(null);
-    const [unsupported, setUnsupported] = useState(ordersState?.supported === false);
-    const [refreshTick, setRefreshTick] = useState(0);
-    const [pollStartedAt, setPollStartedAt] = useState(Date.now());
-    const [copyState, setCopyState] = useState('idle');
-    const [invoiceEmailState, setInvoiceEmailState] = useState('idle');
-    const [documentState, setDocumentState] = useState({ loading: '', error: '' });
-
     useEffect(() => {
         if (!token || !orderId) return undefined;
-        if (ordersState.supported === false) {
-            setUnsupported(true);
-            return undefined;
-        }
-
         const controller = new AbortController();
-        const load = async () => {
-            setLoading((prev) => (existingOrder ? prev : true));
-            setError(null);
-            try {
-                const payload = await fetchOrderDetail(token, orderId, {
-                    signal: controller.signal,
-                    onUnauthorized: redirectToLogin,
-                });
+        setLoading(true);
+        setError('');
+        fetchOrderDetail(token, orderId, { signal: controller.signal, onUnauthorized: redirectToLogin })
+            .then((payload) => {
                 if (payload === null) return;
                 setOrder(normalizeOrder(payload));
-            } catch (err) {
+            })
+            .catch((err) => {
                 if (err?.name === 'AbortError') return;
                 if (err?.isUnsupported) {
-                    setUnsupported(true);
+                    setError('Order details are not available for this account.');
                     return;
                 }
-                if (err?.status === 404 && Date.now() - pollStartedAt < POLL_TIMEOUT_MS) {
-                    return;
-                }
-                setError(err?.message || 'Failed to load order');
-            } finally {
-                setLoading(false);
-            }
-        };
+                setError(err?.message || 'Failed to load order details');
+                if (existingOrder) setOrder(existingOrder);
+            })
+            .finally(() => setLoading(false));
 
-        load();
         return () => controller.abort();
-    }, [existingOrder, orderId, ordersState.supported, pollStartedAt, redirectToLogin, refreshTick, token]);
+    }, [existingOrder, orderId, redirectToLogin, token]);
 
-    const paymentInfo = resolvePaymentInfo(order);
-    const effectiveStatus = paymentInfo.status || order?.status;
-    const invoiceRecipientEmail = resolveInvoiceRecipientEmail(order, profile);
+    const activeOrder = order || existingOrder;
+    const paymentStatus = toStatusKey(activeOrder?.paymentStatus || activeOrder?.status);
+    const paymentFinalized = ['PAID', 'PAYMENT_SUCCEEDED', 'COMPLETED', 'PROCESSING'].includes(paymentStatus);
+    const invoiceMode = isInvoicePaymentMode(activeOrder);
 
-    useEffect(() => {
-        if (!orderId || !isPendingStatus(effectiveStatus)) return undefined;
-        if (Date.now() - pollStartedAt > POLL_TIMEOUT_MS) return undefined;
-        const timer = setTimeout(() => setRefreshTick((prev) => prev + 1), POLL_INTERVAL_MS);
-        return () => clearTimeout(timer);
-    }, [effectiveStatus, orderId, pollStartedAt]);
+    const totals = activeOrder?.totals || {};
+    const subtotal = totals.subtotal ?? 0;
+    const shipping = totals.shipping ?? 0;
+    const tax = totals.tax ?? 0;
+    const discount = totals.discount ?? 0;
+    const total = totals.total ?? activeOrder?.total ?? 0;
 
-    const handleCopyReference = async () => {
-        if (!paymentInfo.reference || !navigator?.clipboard?.writeText) return;
-        await navigator.clipboard.writeText(paymentInfo.reference);
-        setCopyState('copied');
-        setTimeout(() => setCopyState('idle'), 1200);
-    };
-
-    const handleRefreshStatus = () => {
-        setPollStartedAt(Date.now());
-        setRefreshTick((prev) => prev + 1);
-    };
-
-    const handleEmailInvoice = async () => {
-        if (!token || !orderId) return;
-        setInvoiceEmailState('sending');
-        try {
-            await emailOrderInvoice(token, orderId, { onUnauthorized: redirectToLogin });
-            setInvoiceEmailState('sent');
-        } catch {
-            setInvoiceEmailState('failed');
-        }
-    };
-
-    const handleDocumentError = (err, fallbackMessage) => {
-        if (err?.status === 401) {
-            redirectToLogin();
-            return;
-        }
-        if (err?.status === 404 || err?.status === 409) {
-            setDocumentState({ loading: '', error: err?.message || fallbackMessage });
-            return;
-        }
-        setDocumentState({ loading: '', error: fallbackMessage });
-    };
-
-    const openHtmlDocument = (html) => {
-        const trimmedHtml = typeof html === 'string' ? html.trim() : '';
-        if (!trimmedHtml.length) {
-            if (import.meta.env.DEV) {
-                console.log('Received empty HTML document preview:', String(html).slice(0, 200));
-            }
-            setDocumentState({ loading: '', error: 'Document is empty' });
-            return false;
-        }
-        if (import.meta.env.DEV) {
-            const suspiciousHtml = trimmedHtml.length < 20;
-            if (suspiciousHtml) {
-                console.log('Received suspicious HTML document preview:', html.slice(0, 200));
-            }
-        }
+    const openHtml = (html) => {
         const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
         const url = window.URL.createObjectURL(blob);
         const popup = window.open(url, '_blank', 'noopener,noreferrer');
         if (!popup) {
             window.URL.revokeObjectURL(url);
-            setDocumentState({ loading: '', error: 'Please allow popups to view this document.' });
-            return false;
+            throw new Error('Please allow popups to view this document.');
         }
-        setTimeout(() => window.URL.revokeObjectURL(url), 60 * 1000);
-        return true;
+        setTimeout(() => window.URL.revokeObjectURL(url), 60000);
     };
 
-    const handleViewReceipt = async () => {
-        if (!token || !orderId || !receipt.available) return;
-        setDocumentState({ loading: 'receipt', error: '' });
-        try {
-            const html = await fetchOrderReceiptHtml(token, orderId, { onUnauthorized: redirectToLogin });
-            if (html === null) return;
-            const opened = openHtmlDocument(html);
-            if (opened) setDocumentState({ loading: '', error: '' });
-        } catch (err) {
-            handleDocumentError(err, 'Could not open receipt right now.');
+    const handleDocumentError = (err, key, fallback) => {
+        if (err?.status === 401) {
+            redirectToLogin();
+            return;
         }
+        const shouldBanner = [403, 404, 500].includes(err?.status);
+        setDocumentState({
+            loading: '',
+            retryKey: key,
+            error: shouldBanner ? err?.message || `Could not load this document (${err.status}).` : fallback,
+        });
     };
 
-    const handleViewInvoice = async () => {
-        if (!token || !orderId || !invoice.available) return;
-        setDocumentState({ loading: 'invoice', error: '' });
+    const runDocumentAction = async (key) => {
+        if (!token || !orderId) return;
+        setDocumentState({ loading: key, error: '', retryKey: key });
         try {
-            const html = await fetchOrderInvoiceHtml(token, orderId, { onUnauthorized: redirectToLogin });
-            if (html === null) return;
-            const opened = openHtmlDocument(html);
-            if (opened) setDocumentState({ loading: '', error: '' });
-        } catch (err) {
-            handleDocumentError(err, 'Could not open invoice right now.');
-        }
-    };
-
-    const handleDownloadInvoicePdf = async () => {
-        if (!token || !orderId || !invoice.available) return;
-        setDocumentState({ loading: 'invoice-pdf', error: '' });
-        try {
-            const result = await fetchOrderInvoicePdf(token, orderId, { onUnauthorized: redirectToLogin });
-            if (!result) return;
-            const { blob, fileName } = result;
-            const url = window.URL.createObjectURL(blob);
-            const link = window.document.createElement('a');
-            link.href = url;
-            link.download = fileName;
-            window.document.body.appendChild(link);
-            link.click();
-            window.document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-            setDocumentState({ loading: '', error: '' });
-        } catch (err) {
-            handleDocumentError(err, 'Could not download invoice PDF right now.');
-        }
-    };
-
-    const handleOpenInvoicePdf = async () => {
-        if (!token || !orderId || !invoice.available) return;
-        setDocumentState({ loading: 'invoice-pdf-open', error: '' });
-        try {
-            const result = await fetchOrderInvoicePdf(token, orderId, { onUnauthorized: redirectToLogin });
-            if (!result) return;
-            const { blob } = result;
-            const url = window.URL.createObjectURL(blob);
-            const popup = window.open(url, '_blank', 'noopener,noreferrer');
-            if (!popup) {
-                window.URL.revokeObjectURL(url);
-                setDocumentState({ loading: '', error: 'Please allow popups to open this PDF.' });
-                return;
+            if (key === 'receipt') {
+                const html = await fetchOrderReceiptHtml(token, orderId, { onUnauthorized: redirectToLogin });
+                if (html) openHtml(html);
             }
-            setTimeout(() => window.URL.revokeObjectURL(url), 60 * 1000);
-            setDocumentState({ loading: '', error: '' });
+            if (key === 'invoice') {
+                const html = await fetchOrderInvoiceHtml(token, orderId, { onUnauthorized: redirectToLogin });
+                if (html) openHtml(html);
+            }
+            if (key === 'download-pdf' || key === 'open-pdf') {
+                const result = await fetchOrderInvoicePdf(token, orderId, { onUnauthorized: redirectToLogin });
+                if (result) {
+                    const { blob, fileName } = result;
+                    const url = window.URL.createObjectURL(blob);
+                    if (key === 'download-pdf') {
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = fileName;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(url);
+                    } else {
+                        const popup = window.open(url, '_blank', 'noopener,noreferrer');
+                        if (!popup) throw new Error('Please allow popups to open this PDF.');
+                        setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+                    }
+                }
+            }
+            if (key === 'email-invoice') {
+                await emailOrderInvoice(token, orderId, { onUnauthorized: redirectToLogin });
+            }
+            setDocumentState({ loading: '', error: '', retryKey: '' });
         } catch (err) {
-            handleDocumentError(err, 'Could not open invoice PDF right now.');
+            handleDocumentError(err, key, 'Could not complete this document action right now.');
         }
     };
 
-    if (unsupported) {
-        return (
-            <div className={styles.card}>
-                <p className={styles.kicker}>Order</p>
-                <h1>Order details unavailable</h1>
-                <p className={styles.subtitle}>Order details are not available for this account.</p>
-                <Link to="/account" className={styles.primaryButton}>Back</Link>
-            </div>
-        );
-    }
+    if (loading && !activeOrder) return <div className={styles.card}>Loading order details…</div>;
+    if (error && !activeOrder) return <div className={styles.card}><p className={styles.error}>{error}</p><Link to="/account/orders">Back</Link></div>;
 
-    if (loading && !order) {
-        return (
-            <div className={styles.page}>
-                <div className={styles.card}>
-                    <div className={styles.skeletonBlock} />
-                    <div className={styles.skeletonBlock} />
-                </div>
-            </div>
-        );
-    }
-
-    if (error && !order) {
-        return (
-            <div className={styles.card}>
-                <p className={styles.error} role="alert">{error}</p>
-                <Link to="/account/orders" className={styles.secondaryButton}>Back</Link>
-            </div>
-        );
-    }
-
-    if (!order) return null;
-
-    const statusMeta = mapOrderStatus(effectiveStatus);
-    const badgeClassName = statusVariantStyles[statusMeta.badgeVariant] ?? styles.statusNeutral;
-    const primaryAction = resolveOrderPrimaryAction(effectiveStatus, { hasTracking: Boolean(order?.trackingUrl) });
-    const shouldShowPaymentAction = ['continue-payment', 'retry-payment'].includes(primaryAction.type);
-    const totals = resolveTotals(order);
-    const timeline = resolveTimeline(order, effectiveStatus);
-    const humanOrderNumber = order.raw?.orderNumber ?? order.raw?.displayOrderNumber ?? order.id;
-    const receipt = resolveDocument(order, 'receipt');
-    const invoice = resolveDocument(order, 'invoice');
-    const fulfillmentType = toStatusKey(order.deliveryType ?? order.raw?.deliveryType).includes('SHIP') ? 'Shipping' : 'Pickup';
-    const hasItems = Boolean(order.items?.length);
-    const paymentMethodDisplay = displayPaymentValue(paymentInfo.method);
-    const paymentReferenceDisplay = displayPaymentValue(paymentInfo.reference);
-    const showMissingProviderDetailsWarning = toStatusKey(paymentInfo.status) === 'PAID'
-        && (!paymentInfo.reference || !paymentInfo.method);
+    const documentActions = [
+        {
+            key: 'receipt',
+            label: 'Receipt',
+            helper: 'Opens in a new tab.',
+            disabled: !paymentFinalized || (invoiceMode && paymentStatus !== 'PAID'),
+            reason: !paymentFinalized ? 'Available after payment confirmation.' : 'Available after invoice payment is completed.',
+            loading: documentState.loading === 'receipt',
+            onClick: () => runDocumentAction('receipt'),
+        },
+        {
+            key: 'invoice',
+            label: 'View invoice',
+            helper: 'HTML invoice opens in a new tab.',
+            disabled: !invoiceMode && !paymentFinalized,
+            reason: !invoiceMode && !paymentFinalized ? 'Available after payment confirmation.' : '',
+            loading: documentState.loading === 'invoice',
+            onClick: () => runDocumentAction('invoice'),
+        },
+        {
+            key: 'download-pdf',
+            label: 'Download PDF',
+            helper: 'Downloads to your device.',
+            disabled: !paymentFinalized,
+            reason: 'Available after payment confirmation.',
+            loading: documentState.loading === 'download-pdf',
+            onClick: () => runDocumentAction('download-pdf'),
+        },
+        {
+            key: 'open-pdf',
+            label: 'Open PDF',
+            helper: 'PDF opens in a new tab.',
+            disabled: !paymentFinalized,
+            reason: 'Available after payment confirmation.',
+            loading: documentState.loading === 'open-pdf',
+            onClick: () => runDocumentAction('open-pdf'),
+        },
+        {
+            key: 'email-invoice',
+            label: 'Email invoice',
+            helper: 'Sends invoice to your account email.',
+            disabled: !invoiceMode && !paymentFinalized,
+            reason: !invoiceMode && !paymentFinalized ? 'Available after payment confirmation.' : '',
+            loading: documentState.loading === 'email-invoice',
+            onClick: () => runDocumentAction('email-invoice'),
+        },
+    ];
 
     return (
         <div className={styles.page}>
-            <div className={styles.card}>
-                <div className={styles.headerCard}>
-                    <div>
-                        <p className={styles.kicker}>Order details</p>
-                        <h1>Order #{humanOrderNumber}</h1>
-                        <p className={styles.subtitle}>Placed on {order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}</p>
-                        {paymentInfo.reference ? (
-                            <p className={styles.referenceRow}>
-                                Reference: {paymentInfo.reference}
-                                <button type="button" className={styles.copyButton} onClick={handleCopyReference}>
-                                    {copyState === 'copied' ? 'Copied' : 'Copy'}
-                                </button>
-                            </p>
-                        ) : null}
-                    </div>
-                    <div className={styles.headerActions}>
-                        <span className={`${styles.statusBadge} ${badgeClassName}`}>{statusMeta.label}</span>
-                        <p className={styles.microcopy}>{statusMeta.description}</p>
-                        {shouldShowPaymentAction ? (
-                            <button type="button" className={styles.primaryButton} onClick={() => handleOrderPayment(order)} disabled={loadingId === order.id}>
-                                {loadingId === order.id ? 'Opening payment…' : 'Complete payment'}
-                            </button>
-                        ) : null}
-                    </div>
+            <div className={styles.summaryHeader}>
+                <div>
+                    <h1>Order #{activeOrder?.id}</h1>
+                    <p>Placed {activeOrder?.createdAt ? new Date(activeOrder.createdAt).toLocaleString() : '—'}</p>
                 </div>
-
-                <div className={styles.progressTimeline}>
-                    {timeline.map((step) => (
-                        <div key={step.label} className={styles.timelineStep}>
-                            <span className={`${styles.timelineDot} ${step.state === 'done' ? styles.timelineDone : ''}`} />
-                            <span>{step.label}</span>
-                        </div>
-                    ))}
+                <OrderStatusPill status={activeOrder?.status} />
+                <div className={styles.totalBlock}>
+                    <span>Total</span>
+                    <strong>{formatCurrency(total, activeOrder?.currency)}</strong>
                 </div>
-
-                {!hasItems ? <p className={styles.warning}>We’re missing item details for this order.</p> : null}
-
-                <div className={styles.layout}>
-                    <section className={styles.leftColumn}>
-                        <div className={styles.sectionCard}>
-                            <h3>Items</h3>
-                            {!hasItems ? <p className={styles.value}>No items recorded.</p> : (
-                                <div className={styles.itemGrid}>
-                                    {order.items.map((item, index) => {
-                                        const qty = Number(item.quantity ?? item.qty ?? 1) || 1;
-                                        const unitPrice = Number(item.price ?? item.unitPrice ?? item.amount ?? 0) || 0;
-                                        const lineTotal = Number(item.lineTotal ?? item.total ?? (unitPrice * qty)) || 0;
-                                        return (
-                                            <div key={item.id ?? item.sku ?? index} className={styles.item}>
-                                                <div className={styles.itemThumb} aria-hidden="true">IMG</div>
-                                                <div className={styles.itemBody}>
-                                                    <p className={styles.itemName}>{item.name ?? item.title ?? 'Item'}</p>
-                                                    <p className={styles.itemMeta}>Qty: {qty}</p>
-                                                    <p className={styles.itemMeta}>Unit: {formatCurrency(unitPrice, totals.currency)}</p>
-                                                </div>
-                                                <p className={styles.itemLineTotal}>{formatCurrency(lineTotal, totals.currency)}</p>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    </section>
-
-                    <aside className={styles.rightColumn}>
-                        <div className={styles.sectionCard}>
-                            <h3>Totals ({totals.currency})</h3>
-                            <dl className={styles.totalsList}>
-                                <div className={styles.totalsRow}><dt>Subtotal (excl. VAT / Net)</dt><dd>{formatCurrency(Math.max((totals.subtotal ?? 0) - (totals.tax ?? 0), 0), totals.currency)}</dd></div>
-                                <div className={styles.totalsRow}><dt>Discount</dt><dd>-{formatCurrency(totals.discount ?? 0, totals.currency)}</dd></div>
-                                <div className={styles.totalsRow}><dt>Shipping</dt><dd>{formatCurrency(totals.shipping ?? 0, totals.currency)}</dd></div>
-                                <div className={styles.totalsRow}><dt>VAT (moms)</dt><dd>{formatCurrency(totals.tax ?? 0, totals.currency)}</dd></div>
-                                <div className={`${styles.totalsRow} ${styles.totalRow}`}><dt>Total (incl. VAT / Gross)</dt><dd>{formatCurrency(totals.total ?? 0, totals.currency)}</dd></div>
-                            </dl>
-                        </div>
-
-                        <div className={styles.sectionCard}>
-                            <h3>Fulfillment & address</h3>
-                            <p className={styles.value}>{fulfillmentType}</p>
-                            <p className={styles.label}>{fulfillmentType === 'Pickup' ? (order.raw?.pickupLocation || 'Pickup location shared by email') : formatAddress(order.shippingAddress)}</p>
-                            {order.raw?.trackingUrl || order.trackingUrl ? (
-                                <a className={styles.linkButton} href={order.raw?.trackingUrl ?? order.trackingUrl} target="_blank" rel="noreferrer">Track shipment</a>
-                            ) : null}
-                            <p className={styles.label}>Billing: {formatAddress(order.raw?.billingAddress)}</p>
-                        </div>
-
-                        <div className={styles.sectionCard}>
-                            <h3>Documents</h3>
-                            <div className={styles.documentRow}>
-                                <button
-                                    type="button"
-                                    className={`${styles.secondaryButton} ${!receipt.available ? styles.disabled : ''}`}
-                                    onClick={handleViewReceipt}
-                                    disabled={!receipt.available || documentState.loading === 'receipt'}
-                                >
-                                    {documentState.loading === 'receipt' ? 'Opening receipt…' : 'View receipt'}
-                                </button>
-                                {!receipt.available ? <small>{receipt.reason}</small> : null}
-                            </div>
-                            <div className={styles.documentRow}>
-                                <button
-                                    type="button"
-                                    className={`${styles.secondaryButton} ${!invoice.available ? styles.disabled : ''}`}
-                                    onClick={handleViewInvoice}
-                                    disabled={!invoice.available || documentState.loading === 'invoice'}
-                                >
-                                    {documentState.loading === 'invoice' ? 'Opening invoice…' : 'View invoice'}
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`${styles.secondaryButton} ${!invoice.available ? styles.disabled : ''}`}
-                                    onClick={handleDownloadInvoicePdf}
-                                    disabled={!invoice.available || documentState.loading === 'invoice-pdf'}
-                                >
-                                    {documentState.loading === 'invoice-pdf' ? 'Downloading PDF…' : 'Download PDF'}
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`${styles.secondaryButton} ${!invoice.available ? styles.disabled : ''}`}
-                                    onClick={handleOpenInvoicePdf}
-                                    disabled={!invoice.available || documentState.loading === 'invoice-pdf-open'}
-                                >
-                                    {documentState.loading === 'invoice-pdf-open' ? 'Opening PDF…' : 'Open PDF'}
-                                </button>
-                                <button type="button" className={styles.secondaryButton} onClick={handleEmailInvoice} disabled={!invoice.available || invoiceEmailState === 'sending'}>
-                                    Email invoice
-                                </button>
-                                {!invoice.available ? <small>{invoice.reason}</small> : null}
-                            </div>
-                            {documentState.error ? <p className={styles.error}>{documentState.error}</p> : null}
-                            {invoiceEmailState === 'sent' ? (
-                                <p className={styles.status}>
-                                    {invoiceRecipientEmail ? `Invoice email sent to ${invoiceRecipientEmail}.` : 'Invoice email sent.'}
-                                </p>
-                            ) : null}
-                            {invoiceEmailState === 'failed' ? <p className={styles.error}>Could not email invoice right now.</p> : null}
-                        </div>
-
-                        <div className={styles.sectionCard}>
-                            <h3>Payment</h3>
-                            <p className={styles.label}><strong>Payment Method:</strong> {paymentMethodDisplay}</p>
-                            <p className={styles.label}><strong>Payment mode:</strong> {order.paymentMode || 'PAY_NOW'}</p>
-                            <p className={styles.label}><strong>Reference:</strong> {paymentReferenceDisplay}</p>
-                            {isInvoicePaymentMode(order) ? (
-                                <>
-                                    <p className={styles.label}><strong>Invoice number:</strong> {order.invoiceNumber || '—'}</p>
-                                    <p className={styles.label}><strong>Invoice status:</strong> {order.invoiceStatus || 'Pending'}</p>
-                                    <p className={styles.label}><strong>Due date:</strong> {order.invoiceDueDate ? new Date(order.invoiceDueDate).toLocaleDateString() : '—'}</p>
-                                </>
-                            ) : null}
-                            {showMissingProviderDetailsWarning ? (
-                                <p className={styles.warning}>Payment confirmed, but provider details are not available yet.</p>
-                            ) : null}
-                            <button type="button" className={styles.secondaryButton} onClick={handleRefreshStatus}>Refresh payment status</button>
-                            <a href="mailto:support@hydroleaf.se" className={styles.linkButton}>Need help?</a>
-                        </div>
-                    </aside>
-                </div>
-
-                {paymentError ? (
-                    <div className={styles.error} role="alert">
-                        <p>{paymentError}</p>
-                        <button type="button" className={styles.secondaryButton} onClick={resetPaymentError}>Dismiss</button>
-                    </div>
-                ) : null}
-
-                <div className={styles.actions}>
-                    <button type="button" className={styles.linkButton} onClick={() => window.print()}>Printable order summary</button>
-                    <Link to="/account/orders" className={styles.secondaryButton}>Back to orders</Link>
+                <div className={styles.metaBlock}>
+                    <p><strong>Payment:</strong> {activeOrder?.paymentMethod || '—'}</p>
+                    <p><strong>Reference:</strong> {activeOrder?.paymentReference || '—'}</p>
+                    <p><strong>Delivery:</strong> {activeOrder?.deliveryType || 'Pickup'}</p>
                 </div>
             </div>
+
+            <div className={styles.layout}>
+                <main className={styles.left}>
+                    <section className={styles.card}>
+                        <h2>Items</h2>
+                        <div className={styles.items}>
+                            {(activeOrder?.items || []).map((item, index) => (
+                                <article key={`${item.name}-${index}`} className={styles.itemRow}>
+                                    <div className={styles.thumb}>Image</div>
+                                    <div>
+                                        <p className={styles.itemName}>{item.name}</p>
+                                        <p className={styles.muted}>Qty {item.quantity} · {formatCurrency(item.price, activeOrder?.currency)} each</p>
+                                    </div>
+                                    <strong>{formatCurrency(item.lineTotal, activeOrder?.currency)}</strong>
+                                </article>
+                            ))}
+                        </div>
+                    </section>
+                    {activeOrder?.customerNote ? <section className={styles.card}><h2>Notes</h2><p>{activeOrder.customerNote}</p></section> : null}
+                </main>
+
+                <aside className={styles.right}>
+                    <section className={styles.card}>
+                        <h3>Totals</h3>
+                        <p>Subtotal <strong>{formatCurrency(subtotal, activeOrder?.currency)}</strong></p>
+                        <p>VAT <strong>{formatCurrency(tax, activeOrder?.currency)}</strong></p>
+                        <p>Shipping <strong>{formatCurrency(shipping, activeOrder?.currency)}</strong></p>
+                        <p>Discount <strong>-{formatCurrency(discount, activeOrder?.currency)}</strong></p>
+                        <p className={styles.totalRow}>Total <strong>{formatCurrency(total, activeOrder?.currency)}</strong></p>
+                    </section>
+
+                    <section className={styles.card}>
+                        <h3>Delivery</h3>
+                        <p>{formatAddress(activeOrder?.shippingAddress)}</p>
+                    </section>
+
+                    <section className={styles.card}>
+                        <h3>Documents</h3>
+                        <DocumentActions
+                            actions={documentActions}
+                            error={documentState.error}
+                            onRetry={() => runDocumentAction(documentState.retryKey)}
+                        />
+                    </section>
+
+                    <section className={styles.card}>
+                        <h3>Payment</h3>
+                        <p><strong>Method:</strong> {activeOrder?.paymentMethod || '—'}</p>
+                        <p><strong>Mode:</strong> {activeOrder?.paymentMode || 'PAY_NOW'}</p>
+                        <p><strong>Reference:</strong> {activeOrder?.paymentReference || '—'}</p>
+                        {!activeOrder?.raw?.payment ? <p className={styles.neutral}>Payment confirmed but provider details not available yet.</p> : null}
+                    </section>
+                </aside>
+            </div>
+
+            {error ? <p className={styles.error}>{error}</p> : null}
+            <Link to="/account/orders" className={styles.backButton}>Back to orders</Link>
         </div>
     );
 }

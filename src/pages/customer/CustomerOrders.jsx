@@ -1,13 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
-import OrderCard from '../../components/orders/OrderCard.jsx';
-import useOrderPaymentAction from '../../hooks/useOrderPaymentAction.js';
+import OrderRow from '../../components/orders/OrderRow.jsx';
 import styles from './CustomerOrders.module.css';
+
+const toStatusKey = (value) => String(value || '').trim().toUpperCase().replace(/\s+/g, '_');
 
 export default function CustomerOrders() {
     const { ordersState, loadOrders } = useOutletContext();
     const [localError, setLocalError] = useState(null);
-    const { error: paymentError, loadingId, handleOrderPayment, resetError } = useOrderPaymentAction();
+    const [statusFilter, setStatusFilter] = useState('ALL');
+    const [search, setSearch] = useState('');
+    const [sort, setSort] = useState('newest');
 
     const handleLoadOrders = useCallback(
         (options = {}) =>
@@ -21,102 +24,67 @@ export default function CustomerOrders() {
     useEffect(() => {
         if (ordersState.supported === false || ordersState.rateLimited || ordersState.hasFetched) return undefined;
         const controller = new AbortController();
-        setLocalError(null);
         handleLoadOrders({ signal: controller.signal });
         return () => controller.abort();
-    }, []);
+    }, [handleLoadOrders, ordersState.hasFetched, ordersState.rateLimited, ordersState.supported]);
 
-    const handleRetry = () => {
-        setLocalError(null);
-        handleLoadOrders();
-    };
-
-    const sortedOrders = useMemo(
-        () =>
-            [...(ordersState.items || [])].sort((a, b) => {
-                const left = Date.parse(a.createdAt || 0);
-                const right = Date.parse(b.createdAt || 0);
-                return right - left;
-            }),
-        [ordersState.items],
-    );
+    const sortedOrders = useMemo(() => {
+        let list = [...(ordersState.items || [])];
+        if (statusFilter !== 'ALL') {
+            list = list.filter((order) => toStatusKey(order.status) === statusFilter);
+        }
+        if (search.trim()) {
+            const q = search.trim().toLowerCase();
+            list = list.filter((order) => String(order.id || '').toLowerCase().includes(q));
+        }
+        list.sort((a, b) => {
+            const delta = Date.parse(a.createdAt || 0) - Date.parse(b.createdAt || 0);
+            return sort === 'oldest' ? delta : -delta;
+        });
+        return list;
+    }, [ordersState.items, search, sort, statusFilter]);
 
     if (ordersState.supported === false) {
-        return (
-            <div className={styles.card}>
-                <div className={styles.header}>
-                    <div>
-                        <p className={styles.kicker}>Orders</p>
-                        <h1>Orders unavailable</h1>
-                        <p className={styles.subtitle}>Order history is not enabled for this account.</p>
-                    </div>
-                </div>
-                <Link to="/account" className={styles.primaryButton}>Back to account</Link>
-            </div>
-        );
+        return <div className={styles.card}><h1>Orders unavailable</h1><Link to="/account">Back to account</Link></div>;
     }
 
     return (
         <div className={styles.card}>
-            <div className={styles.header}>
-                <div>
-                    <p className={styles.kicker}>Orders</p>
-                    <h1>My orders</h1>
-                    <p className={styles.subtitle}>Recent orders placed in the store</p>
-                </div>
+            <div className={styles.header}><h1>My orders</h1></div>
+            <div className={styles.filters}>
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                    <option value="ALL">All statuses</option>
+                    <option value="PAID">Paid</option>
+                    <option value="PROCESSING">Processing</option>
+                    <option value="COMPLETED">Completed</option>
+                </select>
+                <input
+                    type="search"
+                    placeholder="Search by order number"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                />
+                <select value={sort} onChange={(e) => setSort(e.target.value)}>
+                    <option value="newest">Newest first</option>
+                    <option value="oldest">Oldest first</option>
+                </select>
             </div>
 
-            {ordersState.loading ? (
-                <div className={styles.loading} aria-live="polite" aria-label="Loading orders">
-                    {[...Array(3)].map((_, index) => (
-                        <div key={`skeleton-${index}`} className={styles.skeletonCard}>
-                            <div className={styles.skeletonRow} />
-                            <div className={styles.skeletonRowShort} />
-                        </div>
-                    ))}
-                </div>
-            ) : null}
+            {(localError || ordersState.error) ? <p className={styles.error}>{localError || ordersState.error}</p> : null}
 
-            {!ordersState.loading && (localError || ordersState.error) ? (
-                <div className={styles.error} role="alert">
-                    <p className={styles.errorMessage}>{localError || ordersState.error}</p>
-                    {!ordersState.rateLimited ? (
-                        <button type="button" className={styles.retryButton} onClick={handleRetry}>
-                            Retry
-                        </button>
-                    ) : null}
-                </div>
-            ) : null}
-            {!ordersState.loading && paymentError ? (
-                <div className={styles.error} role="alert">
-                    <p className={styles.errorMessage}>{paymentError}</p>
-                    <button type="button" className={styles.retryButton} onClick={resetError}>
-                        Dismiss
-                    </button>
-                </div>
-            ) : null}
-
-            {!ordersState.loading && sortedOrders.length === 0 && !localError && !ordersState.error ? (
-                <div className={styles.empty}>
-                    <p>You haven’t placed any orders yet</p>
-                    <Link className={styles.primaryButton} to="/store">Go to Store</Link>
-                </div>
-            ) : null}
-
+            <div className={styles.tableHeader}>
+                <span>Order</span><span>Placed</span><span>Status</span><span>Payment</span><span>Delivery</span><span>Total</span><span>Actions</span>
+            </div>
             <div className={styles.list}>
-                {sortedOrders.map((order) => {
-                    const orderLink = `/account/orders/${encodeURIComponent(order.id)}`;
-                    return (
-                        <OrderCard
-                            key={order.id}
-                            order={order}
-                            primaryActionTo={orderLink}
-                            detailsTo={orderLink}
-                            onPrimaryAction={handleOrderPayment}
-                            primaryActionLoading={loadingId === order.id}
-                        />
-                    );
-                })}
+                {!ordersState.loading && sortedOrders.length === 0 ? <p className={styles.empty}>No orders found.</p> : null}
+                {sortedOrders.map((order) => (
+                    <OrderRow
+                        key={order.id}
+                        order={order}
+                        detailsTo={`/account/orders/${encodeURIComponent(order.id)}`}
+                        receiptAvailable={['PAID', 'COMPLETED'].includes(toStatusKey(order.status))}
+                    />
+                ))}
             </div>
         </div>
     );
