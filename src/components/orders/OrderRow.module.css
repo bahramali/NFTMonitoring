@@ -1,0 +1,25 @@
+.row {
+    display: grid;
+    grid-template-columns: minmax(120px, 1.2fr) 1fr 1fr 1fr 1fr 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0;
+    border-top: 1px solid #e2e8f0;
+    font-size: 14px;
+}
+
+.orderLink { color: #0369a1; text-decoration: none; font-weight: 700; }
+.orderLink:hover { text-decoration: underline; }
+.actions { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.viewButton { background: #0ea5e9; color: #fff; text-decoration: none; border-radius: 8px; padding: 6px 10px; font-weight: 700; font-size: 13px; }
+.receiptLabel { color: #0369a1; font-weight: 600; }
+.dim { color: #94a3b8; }
+
+.mobileRow { display: none; }
+.compactRow { display: grid; gap: 8px; border-top: 1px solid #e2e8f0; padding: 10px 0; }
+.mobileTop, .mobileBottom { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+
+@media (max-width: 900px) {
+    .row { display: none; }
+    .mobileRow { display: grid; gap: 8px; border-top: 1px solid #e2e8f0; padding: 10px 0; }
+}

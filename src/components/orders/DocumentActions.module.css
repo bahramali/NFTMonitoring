@@ -1,0 +1,7 @@
+.wrap { display: grid; gap: 8px; }
+.actionItem { display: grid; gap: 3px; }
+.button { border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; padding: 9px 10px; text-align: left; font-weight: 700; }
+.button:disabled { opacity: 0.55; cursor: not-allowed; }
+.actionItem small { color: #64748b; }
+.errorBanner { border: 1px solid #fecaca; background: #fff1f2; border-radius: 8px; padding: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; color: #9f1239; }
+.errorBanner button { border: none; background: #e11d48; color: #fff; border-radius: 999px; padding: 6px 12px; }
