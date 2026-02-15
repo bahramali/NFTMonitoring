@@ -50,8 +50,9 @@
 
 .filters {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: minmax(260px, 2fr) repeat(3, minmax(170px, 1fr));
     gap: 16px;
+    align-items: end;
 }
 
 .filters label {
@@ -85,11 +86,37 @@
     border: 1px solid #e5e7eb;
     padding: 4px 16px 16px;
     overflow-x: auto;
+    overflow-y: hidden;
 }
 
 .tableWrapper table {
     width: 100%;
+    min-width: 920px;
     border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.colCustomer {
+    width: 29%;
+}
+
+.colStatus,
+.colType {
+    width: 9%;
+}
+
+.colUserId,
+.colLastLogin {
+    width: 13%;
+}
+
+.colLastOrder,
+.colTotalSpent {
+    width: 12%;
+}
+
+.colAction {
+    width: 102px;
 }
 
 .tableWrapper th {
@@ -98,14 +125,40 @@
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: #6b7280;
-    padding: 16px 8px 12px;
+    padding: 12px 16px;
+    white-space: nowrap;
+    background: #fff;
 }
 
 .tableWrapper td {
-    padding: 14px 8px;
+    padding: 12px 16px;
     border-top: 1px solid #f3f4f6;
     font-size: 0.95rem;
     color: #111827;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    vertical-align: middle;
+}
+
+.stickyColumn {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: #fff;
+}
+
+.tableWrapper tbody .stickyColumn {
+    box-shadow: 8px 0 12px -12px rgba(15, 23, 42, 0.32);
+}
+
+.numericCell {
+    text-align: right;
+}
+
+.actionHeader,
+.actionCell {
+    text-align: right;
 }
 
 .customerCell {
@@ -116,6 +169,8 @@
 
 .customerName {
     font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .customerNameRow {
@@ -142,6 +197,8 @@
 .customerEmail {
     font-size: 0.85rem;
     color: #6b7280;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .monoText {
@@ -219,6 +276,14 @@
 }
 
 @media (max-width: 700px) {
+    .filters {
+        grid-template-columns: 1fr;
+    }
+
+    .tableWrapper {
+        padding: 4px 8px 12px;
+    }
+
     .summary {
         width: 100%;
     }

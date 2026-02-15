@@ -262,16 +262,26 @@ export default function CustomersList() {
                 {error && <div className={styles.emptyState}>{error}</div>}
                 {loading && <div className={styles.emptyState}>Loading customers…</div>}
                 <table>
+                    <colgroup>
+                        <col className={styles.colCustomer} />
+                        <col className={styles.colStatus} />
+                        <col className={styles.colType} />
+                        <col className={styles.colUserId} />
+                        <col className={styles.colLastLogin} />
+                        <col className={styles.colLastOrder} />
+                        <col className={styles.colTotalSpent} />
+                        <col className={styles.colAction} />
+                    </colgroup>
                     <thead>
                         <tr>
-                            <th>Customer</th>
+                            <th className={styles.stickyColumn}>Customer</th>
                             <th>Status</th>
                             <th>Type</th>
                             <th>User ID</th>
                             <th>Last login</th>
-                            <th>Last order</th>
-                            <th>Total spent</th>
-                            <th />
+                            <th className={styles.numericCell}>Last order</th>
+                            <th className={styles.numericCell}>Total spent</th>
+                            <th className={styles.actionHeader}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -283,7 +293,7 @@ export default function CustomersList() {
                             const rowKey = customer.id || `customer-row-${index}`;
                             return (
                                 <tr key={rowKey}>
-                                    <td>
+                                    <td className={styles.stickyColumn}>
                                         <div className={styles.customerCell}>
                                             <div className={styles.customerNameRow}>
                                                 <div className={styles.customerName}>{customer.name}</div>
@@ -300,9 +310,9 @@ export default function CustomersList() {
                                     <td>{customer.type || '—'}</td>
                                     <td className={styles.monoText}>{customer.userId || '—'}</td>
                                     <td>{formatDate(customer.lastLoginAt, { includeTime: true })}</td>
-                                    <td>{formatDate(customer.lastOrderDate)}</td>
-                                    <td>{formatCurrency(customer.totalSpent, customer.currency || 'SEK')}</td>
-                                    <td>
+                                    <td className={styles.numericCell}>{formatDate(customer.lastOrderDate)}</td>
+                                    <td className={styles.numericCell}>{formatCurrency(customer.totalSpent, customer.currency || 'SEK')}</td>
+                                    <td className={styles.actionCell}>
                                         <Link to={`/store/admin/customers/${routeCustomerId}`} className={styles.detailLink}>
                                             View details
                                         </Link>
