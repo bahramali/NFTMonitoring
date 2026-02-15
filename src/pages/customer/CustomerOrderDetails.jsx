@@ -35,7 +35,7 @@ export default function CustomerOrderDetails() {
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [documentState, setDocumentState] = useState({ loading: '', error: '', retryKey: '' });
+    const [documentState, setDocumentState] = useState({ loading: '', error: '', warning: '', success: '', retryKey: '' });
 
     const existingOrder = useMemo(
         () => (ordersState?.items || []).find((entry) => String(entry.id) === String(orderId)),
@@ -84,9 +84,10 @@ export default function CustomerOrderDetails() {
         const popup = window.open(url, '_blank', 'noopener,noreferrer');
         if (!popup) {
             window.URL.revokeObjectURL(url);
-            throw new Error('Please allow popups to view this document.');
+            return false;
         }
         setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+        return true;
     };
 
     const handleDocumentError = (err, key, fallback) => {
@@ -94,25 +95,45 @@ export default function CustomerOrderDetails() {
             redirectToLogin();
             return;
         }
-        const shouldBanner = [403, 404, 500].includes(err?.status);
-        setDocumentState({
+        setDocumentState((previous) => ({
+            ...previous,
             loading: '',
+            success: '',
+            warning: '',
             retryKey: key,
-            error: shouldBanner ? err?.message || `Could not load this document (${err.status}).` : fallback,
-        });
+            error: err?.message || fallback,
+        }));
     };
 
     const runDocumentAction = async (key) => {
         if (!token || !orderId) return;
-        setDocumentState({ loading: key, error: '', retryKey: key });
+        setDocumentState({ loading: key, error: '', warning: '', success: '', retryKey: key });
         try {
             if (key === 'receipt') {
                 const html = await fetchOrderReceiptHtml(token, orderId, { onUnauthorized: redirectToLogin });
-                if (html) openHtml(html);
+                if (html && !openHtml(html)) {
+                    setDocumentState({
+                        loading: '',
+                        error: '',
+                        warning: 'Please allow popups to view this document.',
+                        success: '',
+                        retryKey: key,
+                    });
+                    return;
+                }
             }
             if (key === 'invoice') {
                 const html = await fetchOrderInvoiceHtml(token, orderId, { onUnauthorized: redirectToLogin });
-                if (html) openHtml(html);
+                if (html && !openHtml(html)) {
+                    setDocumentState({
+                        loading: '',
+                        error: '',
+                        warning: 'Please allow popups to view this document.',
+                        success: '',
+                        retryKey: key,
+                    });
+                    return;
+                }
             }
             if (key === 'download-pdf' || key === 'open-pdf') {
                 const result = await fetchOrderInvoicePdf(token, orderId, { onUnauthorized: redirectToLogin });
@@ -129,15 +150,27 @@ export default function CustomerOrderDetails() {
                         window.URL.revokeObjectURL(url);
                     } else {
                         const popup = window.open(url, '_blank', 'noopener,noreferrer');
-                        if (!popup) throw new Error('Please allow popups to open this PDF.');
+                        if (!popup) {
+                            window.URL.revokeObjectURL(url);
+                            setDocumentState({
+                                loading: '',
+                                error: '',
+                                warning: 'Please allow popups to open this PDF.',
+                                success: '',
+                                retryKey: key,
+                            });
+                            return;
+                        }
                         setTimeout(() => window.URL.revokeObjectURL(url), 60000);
                     }
                 }
             }
             if (key === 'email-invoice') {
                 await emailOrderInvoice(token, orderId, { onUnauthorized: redirectToLogin });
+                setDocumentState({ loading: '', error: '', warning: '', success: 'Invoice email sent.', retryKey: '' });
+                return;
             }
-            setDocumentState({ loading: '', error: '', retryKey: '' });
+            setDocumentState({ loading: '', error: '', warning: '', success: '', retryKey: '' });
         } catch (err) {
             handleDocumentError(err, key, 'Could not complete this document action right now.');
         }
@@ -149,11 +182,12 @@ export default function CustomerOrderDetails() {
     const documentActions = [
         {
             key: 'receipt',
-            label: 'Receipt',
+            label: 'View receipt',
             helper: 'Opens in a new tab.',
             disabled: !paymentFinalized || (invoiceMode && paymentStatus !== 'PAID'),
             reason: !paymentFinalized ? 'Available after payment confirmation.' : 'Available after invoice payment is completed.',
             loading: documentState.loading === 'receipt',
+            variant: 'primary',
             onClick: () => runDocumentAction('receipt'),
         },
         {
@@ -163,6 +197,7 @@ export default function CustomerOrderDetails() {
             disabled: !invoiceMode && !paymentFinalized,
             reason: !invoiceMode && !paymentFinalized ? 'Available after payment confirmation.' : '',
             loading: documentState.loading === 'invoice',
+            variant: 'primary',
             onClick: () => runDocumentAction('invoice'),
         },
         {
@@ -172,6 +207,7 @@ export default function CustomerOrderDetails() {
             disabled: !paymentFinalized,
             reason: 'Available after payment confirmation.',
             loading: documentState.loading === 'download-pdf',
+            variant: 'secondary',
             onClick: () => runDocumentAction('download-pdf'),
         },
         {
@@ -181,6 +217,7 @@ export default function CustomerOrderDetails() {
             disabled: !paymentFinalized,
             reason: 'Available after payment confirmation.',
             loading: documentState.loading === 'open-pdf',
+            variant: 'secondary',
             onClick: () => runDocumentAction('open-pdf'),
         },
         {
@@ -190,6 +227,7 @@ export default function CustomerOrderDetails() {
             disabled: !invoiceMode && !paymentFinalized,
             reason: !invoiceMode && !paymentFinalized ? 'Available after payment confirmation.' : '',
             loading: documentState.loading === 'email-invoice',
+            variant: 'outline',
             onClick: () => runDocumentAction('email-invoice'),
         },
     ];
@@ -244,17 +282,19 @@ export default function CustomerOrderDetails() {
                     </section>
 
                     <section className={styles.card}>
-                        <h3>Delivery</h3>
-                        <p>{formatAddress(activeOrder?.shippingAddress)}</p>
-                    </section>
-
-                    <section className={styles.card}>
                         <h3>Documents</h3>
                         <DocumentActions
                             actions={documentActions}
                             error={documentState.error}
+                            warning={documentState.warning}
+                            success={documentState.success}
                             onRetry={() => runDocumentAction(documentState.retryKey)}
                         />
+                    </section>
+
+                    <section className={styles.card}>
+                        <h3>Delivery</h3>
+                        <p>{formatAddress(activeOrder?.shippingAddress)}</p>
                     </section>
 
                     <section className={styles.card}>

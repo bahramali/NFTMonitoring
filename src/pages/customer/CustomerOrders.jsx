@@ -73,7 +73,7 @@ export default function CustomerOrders() {
             {(localError || ordersState.error) ? <p className={styles.error}>{localError || ordersState.error}</p> : null}
 
             <div className={styles.tableHeader}>
-                <span>Order</span><span>Placed</span><span>Status</span><span>Payment</span><span>Delivery</span><span>Total</span><span>Actions</span>
+                <span>Order</span><span>Total</span><span>Status</span><span>Actions</span>
             </div>
             <div className={styles.list}>
                 {!ordersState.loading && sortedOrders.length === 0 ? <p className={styles.empty}>No orders found.</p> : null}

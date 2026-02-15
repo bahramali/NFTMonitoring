@@ -1,7 +1,33 @@
-.wrap { display: grid; gap: 8px; }
-.actionItem { display: grid; gap: 3px; }
-.button { border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; padding: 9px 10px; text-align: left; font-weight: 700; }
+.wrap { display: grid; gap: 10px; }
+.buttonGrid { display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.actionItem { display: grid; gap: 4px; }
+.button { border: 1px solid #cbd5e1; border-radius: 8px; padding: 9px 10px; text-align: left; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .button:disabled { opacity: 0.55; cursor: not-allowed; }
+.button:not(:disabled) { cursor: pointer; }
+.primary { background: #0ea5e9; border-color: #0284c7; color: #fff; }
+.secondary { background: #f8fafc; color: #0f172a; }
+.outline { background: #fff; color: #0f172a; border-color: #94a3b8; }
 .actionItem small { color: #64748b; }
-.errorBanner { border: 1px solid #fecaca; background: #fff1f2; border-radius: 8px; padding: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; color: #9f1239; }
+
+.spinner {
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    animation: spin 0.8s linear infinite;
+}
+
+.banner { border-radius: 8px; padding: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.errorBanner { border: 1px solid #fecaca; background: #fff1f2; color: #9f1239; }
+.warningBanner { border: 1px solid #fde68a; background: #fffbeb; color: #92400e; }
+.successBanner { border: 1px solid #bbf7d0; background: #f0fdf4; color: #166534; }
 .errorBanner button { border: none; background: #e11d48; color: #fff; border-radius: 999px; padding: 6px 12px; }
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 640px) {
+    .buttonGrid { grid-template-columns: 1fr; }
+}

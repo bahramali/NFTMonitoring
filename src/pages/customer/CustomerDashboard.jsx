@@ -6,6 +6,7 @@ import { fetchCustomerAddresses } from '../../api/customerAddresses.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import usePasswordReset from '../../hooks/usePasswordReset.js';
 import { extractAddressList, formatAddressLine, normalizeAddress } from './addressUtils.js';
+import { formatCurrency } from '../../utils/currency.js';
 import styles from './CustomerDashboard.module.css';
 
 export default function CustomerDashboard() {
@@ -42,6 +43,7 @@ export default function CustomerDashboard() {
         [ordersState.items],
     );
 
+    const latestOrder = sortedOrders[0] || null;
     const accountName = loadingProfile ? 'Loading…' : profile?.fullName || profile?.displayName || '—';
     const accountEmail = loadingProfile ? 'Loading…' : profile?.email || '—';
     const accountPhone = loadingProfile ? 'Loading…' : profile?.phoneNumber || '—';
@@ -49,7 +51,7 @@ export default function CustomerDashboard() {
 
     return (
         <div className={styles.dashboardGrid}>
-            <div className={styles.primaryColumn}>
+            <div className={styles.topRow}>
                 <AccountCard
                     title="Profile"
                     subtitle="Your core account information"
@@ -65,7 +67,7 @@ export default function CustomerDashboard() {
                 <AccountCard
                     title="Default address"
                     subtitle="Where your orders are delivered"
-                    action={<Link to="/account/addresses" className={styles.primaryButton}>Manage addresses</Link>}
+                    action={<Link to="/account/addresses" className={styles.primaryButton}>Manage</Link>}
                 >
                     {addressesState.loading ? <p className={styles.muted}>Loading address…</p> : null}
                     {addressesState.error ? <p className={styles.error}>{addressesState.error}</p> : null}
@@ -73,41 +75,59 @@ export default function CustomerDashboard() {
                         <p className={styles.facts}>{defaultAddress ? formatAddressLine(defaultAddress) : 'No default address yet.'}</p>
                     ) : null}
                 </AccountCard>
-
-                <AccountCard
-                    title="Security"
-                    subtitle="Keep your account protected"
-                    action={
-                        <button type="button" className={styles.primaryButton} onClick={handlePasswordReset} disabled={resetDisabled}>
-                            {resetState.status === 'sending' ? 'Sending…' : 'Change password'}
-                        </button>
-                    }
-                >
-                    <p className={styles.muted}>Password last updated: Not available</p>
-                    {resetState.status === 'sent' ? <p className={styles.success}>{resetState.message}</p> : null}
-                    {resetError ? <p className={styles.error}>{resetError}</p> : null}
-                </AccountCard>
             </div>
 
-            <div className={styles.secondaryColumn}>
-                <AccountCard title="Recent orders" subtitle="Last orders and next steps">
-                    {ordersState.loading ? <p className={styles.muted}>Loading orders…</p> : null}
-                    {ordersState.error ? <p className={styles.error}>{ordersState.error}</p> : null}
-                    {!ordersState.loading && !ordersState.error && sortedOrders.length === 0 ? (
-                        <p className={styles.muted}>No orders yet. <Link to="/store">Browse store</Link></p>
-                    ) : null}
-                    <div className={styles.orderRows}>
-                        {sortedOrders.slice(0, 5).map((order) => (
-                            <OrderRow
-                                key={order.id}
-                                order={order}
-                                detailsTo={`/account/orders/${encodeURIComponent(order.id)}`}
-                                compact
-                            />
-                        ))}
-                    </div>
-                    <Link to="/account/orders" className={styles.secondaryLink}>View all orders</Link>
-                </AccountCard>
+            <div className={styles.mainRow}>
+                <div className={styles.mainColumn}>
+                    <AccountCard title="Orders" subtitle="Track status and open documents quickly">
+                        {ordersState.loading ? <p className={styles.muted}>Loading orders…</p> : null}
+                        {ordersState.error ? <p className={styles.error}>{ordersState.error}</p> : null}
+                        {!ordersState.loading && !ordersState.error && sortedOrders.length === 0 ? (
+                            <p className={styles.muted}>No orders yet. <Link to="/store">Browse store</Link></p>
+                        ) : null}
+                        <div className={styles.orderRows}>
+                            {sortedOrders.slice(0, 5).map((order) => (
+                                <OrderRow
+                                    key={order.id}
+                                    order={order}
+                                    detailsTo={`/account/orders/${encodeURIComponent(order.id)}`}
+                                    receiptAvailable={['PAID', 'COMPLETED'].includes(String(order?.status || '').toUpperCase())}
+                                    compact
+                                />
+                            ))}
+                        </div>
+                        <Link to="/account/orders" className={styles.secondaryLink}>View all orders</Link>
+                    </AccountCard>
+                </div>
+
+                <div className={styles.sideColumn}>
+                    <AccountCard title="Recent order" subtitle="Quick actions">
+                        {latestOrder ? (
+                            <div className={styles.recentOrder}>
+                                <p><strong>Order #{latestOrder.id}</strong></p>
+                                <p>{new Date(latestOrder.createdAt || Date.now()).toLocaleDateString()}</p>
+                                <p>Total: <strong>{formatCurrency(latestOrder.total, latestOrder.currency)}</strong></p>
+                                <Link to={`/account/orders/${encodeURIComponent(latestOrder.id)}`} className={styles.primaryButton}>View</Link>
+                            </div>
+                        ) : (
+                            <p className={styles.muted}>No recent orders yet.</p>
+                        )}
+                    </AccountCard>
+
+                    <AccountCard
+                        title="Security"
+                        subtitle="Keep your account protected"
+                        action={
+                            <button type="button" className={styles.primaryButton} onClick={handlePasswordReset} disabled={resetDisabled}>
+                                {resetState.status === 'sending' ? 'Sending…' : 'Change password'}
+                            </button>
+                        }
+                    >
+                        <p className={styles.muted}>Password last updated: Not available</p>
+                        {resetState.status === 'sent' ? <p className={styles.success}>{resetState.message}</p> : null}
+                        {resetError ? <p className={styles.error}>{resetError}</p> : null}
+                    </AccountCard>
+                </div>
             </div>
         </div>
     );

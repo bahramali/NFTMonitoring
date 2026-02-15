@@ -3,18 +3,22 @@
     min-height: 100vh;
 }
 
+.shell {
+    width: min(1100px, calc(100% - 32px));
+    margin: 24px auto 48px;
+}
+
 .hero {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    padding: 24px 28px;
+    padding: 22px 24px;
     border-radius: 16px;
     background: linear-gradient(120deg, #0f172a, #0b2545);
     color: #f8fbff;
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
-    margin: 24px 24px 0;
 }
 
 .title {
@@ -30,8 +34,8 @@
 }
 
 .banner {
-    margin: 18px 24px 0;
-    padding: 14px 16px;
+    margin-top: 16px;
+    padding: 12px 14px;
     border-radius: 12px;
     border: 1px solid #cbd5e1;
     background: #fff;
@@ -57,11 +61,11 @@
 }
 
 .content {
-    margin: 24px 24px 48px;
+    margin-top: 18px;
 }
 
 .subnav {
-    margin: 18px 24px 0;
+    margin-top: 16px;
     position: sticky;
     top: 72px;
     z-index: 4;
@@ -128,14 +132,15 @@
 }
 
 @media (max-width: 768px) {
-    .page {
-        min-height: 100vh;
+    .shell {
+        width: calc(100% - 24px);
+        margin: 16px auto 32px;
     }
 
     .hero {
         flex-direction: column;
         gap: 8px;
-        margin: 20px 16px 0;
+        padding: 18px;
     }
 
     .heroMeta {
@@ -144,7 +149,6 @@
     }
 
     .subnav {
-        margin: 16px;
         position: static;
     }
 
@@ -171,13 +175,5 @@
 
     .subnavLink {
         border-radius: 10px;
-    }
-
-    .banner {
-        margin: 16px;
-    }
-
-    .content {
-        margin: 20px 16px 32px;
     }
 }

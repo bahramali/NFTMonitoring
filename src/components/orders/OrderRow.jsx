@@ -12,20 +12,24 @@ const formatDate = (value) => {
 };
 
 export default function OrderRow({ order, detailsTo, receiptAvailable = false, compact = false }) {
-    const paymentMethod = order?.paymentMethod || order?.raw?.payment?.method || order?.raw?.payment_type || '—';
-    const deliveryMethod = order?.deliveryType || order?.raw?.deliveryType || order?.raw?.shippingMethod || '—';
+    const receiptTo = `${detailsTo}?document=receipt`;
 
     if (compact) {
         return (
             <div className={styles.compactRow}>
                 <div className={styles.mobileTop}>
-                    <Link to={detailsTo} className={styles.orderLink}>#{order?.id}</Link>
+                    <div>
+                        <Link to={detailsTo} className={styles.orderLink}>#{order?.id}</Link>
+                        <p className={styles.meta}>{formatDate(order?.createdAt)}</p>
+                    </div>
                     <OrderStatusPill status={order?.status} />
                 </div>
                 <div className={styles.mobileBottom}>
-                    <span>{formatCurrency(order?.total, order?.currency)}</span>
-                    <span>{formatDate(order?.createdAt)}</span>
-                    <Link to={detailsTo} className={styles.viewButton}>View</Link>
+                    <strong>{formatCurrency(order?.total, order?.currency)}</strong>
+                    <div className={styles.actions}>
+                        <Link to={detailsTo} className={styles.viewButton}>View details</Link>
+                        {receiptAvailable ? <Link to={receiptTo} className={styles.receiptAction}>Receipt</Link> : null}
+                    </div>
                 </div>
             </div>
         );
@@ -34,26 +38,31 @@ export default function OrderRow({ order, detailsTo, receiptAvailable = false, c
     return (
         <>
             <div className={styles.row}>
-                <Link to={detailsTo} className={styles.orderLink}>#{order?.id}</Link>
-                <span>{formatDate(order?.createdAt)}</span>
-                <OrderStatusPill status={order?.status} />
-                <span>{paymentMethod}</span>
-                <span>{deliveryMethod}</span>
+                <div>
+                    <Link to={detailsTo} className={styles.orderLink}>#{order?.id}</Link>
+                    <p className={styles.meta}>{formatDate(order?.createdAt)}</p>
+                </div>
                 <strong>{formatCurrency(order?.total, order?.currency)}</strong>
+                <OrderStatusPill status={order?.status} />
                 <div className={styles.actions}>
                     <Link to={detailsTo} className={styles.viewButton}>View details</Link>
-                    {receiptAvailable ? <span className={styles.receiptLabel}>Receipt</span> : <span className={styles.dim}>Receipt</span>}
+                    {receiptAvailable ? <Link to={receiptTo} className={styles.receiptAction}>Receipt</Link> : <span className={styles.dim}>Receipt</span>}
                 </div>
             </div>
             <div className={styles.mobileRow}>
                 <div className={styles.mobileTop}>
-                    <Link to={detailsTo} className={styles.orderLink}>#{order?.id}</Link>
+                    <div>
+                        <Link to={detailsTo} className={styles.orderLink}>#{order?.id}</Link>
+                        <p className={styles.meta}>{formatDate(order?.createdAt)}</p>
+                    </div>
                     <OrderStatusPill status={order?.status} />
                 </div>
                 <div className={styles.mobileBottom}>
-                    <span>{formatCurrency(order?.total, order?.currency)}</span>
-                    <span>{formatDate(order?.createdAt)}</span>
-                    <Link to={detailsTo} className={styles.viewButton}>View details</Link>
+                    <strong>{formatCurrency(order?.total, order?.currency)}</strong>
+                    <div className={styles.actions}>
+                        <Link to={detailsTo} className={styles.viewButton}>View details</Link>
+                        {receiptAvailable ? <Link to={receiptTo} className={styles.receiptAction}>Receipt</Link> : null}
+                    </div>
                 </div>
             </div>
         </>
