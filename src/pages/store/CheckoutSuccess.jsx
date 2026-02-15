@@ -32,7 +32,20 @@ const isPendingStatus = (status) => {
 };
 
 const POLL_INTERVAL_MS = 2000;
-const MAX_POLL_DURATION_MS = 180000;
+const MAX_POLL_DURATION_MS = 60000;
+const MAX_SERVER_ERROR_ATTEMPTS = 3;
+
+const isTerminalClientError = (error) => {
+    const status = Number(error?.status);
+    if (!Number.isFinite(status) || status < 400 || status >= 500) return false;
+    const message = `${error?.message || ''}`.toLowerCase();
+    const code = `${error?.code || error?.payload?.code || error?.payload?.error?.code || ''}`.toUpperCase();
+    return code === 'CART_CLOSED'
+        || message.includes('cart is no longer open')
+        || message.includes('no longer open')
+        || status === 404
+        || status === 409;
+};
 
 const normalizeOrderPayload = (payload) => {
     if (!payload) return null;
@@ -56,10 +69,14 @@ export default function CheckoutSuccess() {
     const [error, setError] = useState(null);
     const [notFound, setNotFound] = useState(false);
     const [timedOut, setTimedOut] = useState(false);
+    const [pollingStopped, setPollingStopped] = useState(false);
+    const [isRetrying, setIsRetrying] = useState(false);
+    const [httpStatus, setHttpStatus] = useState(null);
     const [referenceId, setReferenceId] = useState(null);
-    const startTimeRef = useRef(null);
     const timeoutRef = useRef(null);
+    const requestControllerRef = useRef(null);
     const orderRef = useRef(null);
+    const [retrySeed, setRetrySeed] = useState(0);
 
     useEffect(() => {
         if (sessionId) {
@@ -75,47 +92,84 @@ export default function CheckoutSuccess() {
         console.info('Checkout status request correlation id received.', { correlationId: referenceId });
     }, [referenceId]);
 
+    const handleRetry = () => {
+        setIsRetrying(true);
+        setRetrySeed((value) => value + 1);
+    };
+
     useEffect(() => {
         if (!sessionId && !orderId) return;
         let isMounted = true;
-        const controller = new AbortController();
         const startedAt = Date.now();
-        startTimeRef.current = startedAt;
+        let serverErrorCount = 0;
         setTimedOut(false);
+        setPollingStopped(false);
+        setHttpStatus(null);
         setError(null);
         setNotFound(false);
         setOrder(null);
         orderRef.current = null;
+        setIsRetrying(false);
+
+        const stopPolling = () => {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+                timeoutRef.current = null;
+            }
+            if (requestControllerRef.current) {
+                requestControllerRef.current.abort();
+                requestControllerRef.current = null;
+            }
+            setPollingStopped(true);
+        };
 
         const poll = async () => {
             if (!isMounted) return;
+            requestControllerRef.current = new AbortController();
             setLoading(true);
             let latestOrder = null;
             try {
                 const response = sessionId
-                    ? await fetchStoreOrderBySession(sessionId, { signal: controller.signal })
-                    : await fetchOrderStatus(orderId, { signal: controller.signal });
-                const { data, correlationId } = response;
+                    ? await fetchStoreOrderBySession(sessionId, { signal: requestControllerRef.current.signal })
+                    : await fetchOrderStatus(orderId, { signal: requestControllerRef.current.signal });
+                const { data, correlationId, status: responseStatus } = response;
                 if (!isMounted) return;
+                setHttpStatus(responseStatus ?? 200);
                 latestOrder = normalizeOrderPayload(data);
                 setOrder(latestOrder);
                 orderRef.current = latestOrder;
                 setError(null);
                 setNotFound(false);
+                serverErrorCount = 0;
                 if (correlationId) {
                     setReferenceId((prev) => (prev === correlationId ? prev : correlationId));
                 }
             } catch (err) {
                 if (!isMounted || err?.name === 'AbortError') return;
+                setHttpStatus(err?.status ?? null);
                 if (err?.status === 404) {
                     setNotFound(true);
-                } else {
-                    setError(err?.message || 'Unable to load order status.');
                 }
                 if (err?.correlationId) {
                     setReferenceId((prev) => (prev === err.correlationId ? prev : err.correlationId));
                 }
+
+                if (isTerminalClientError(err)) {
+                    setError(err?.status === 404 ? null : (err?.message || 'Your cart has been checked out.'));
+                    stopPolling();
+                    return;
+                }
+
+                if (err?.status >= 500) {
+                    serverErrorCount += 1;
+                    if (serverErrorCount >= MAX_SERVER_ERROR_ATTEMPTS) {
+                        setError('Unable to confirm payment right now. Please try again.');
+                        stopPolling();
+                        return;
+                    }
+                }
             } finally {
+                requestControllerRef.current = null;
                 if (isMounted) {
                     setLoading(false);
                 }
@@ -133,6 +187,10 @@ export default function CheckoutSuccess() {
                 return;
             } else if (elapsed >= MAX_POLL_DURATION_MS) {
                 setTimedOut(true);
+                setError('We are still processing your payment. Please retry in a moment.');
+                stopPolling();
+            } else {
+                stopPolling();
             }
         };
 
@@ -140,12 +198,16 @@ export default function CheckoutSuccess() {
 
         return () => {
             isMounted = false;
-            controller.abort();
+            if (requestControllerRef.current) {
+                requestControllerRef.current.abort();
+                requestControllerRef.current = null;
+            }
             if (timeoutRef.current) {
                 clearTimeout(timeoutRef.current);
+                timeoutRef.current = null;
             }
         };
-    }, [orderId, sessionId]);
+    }, [orderId, retrySeed, sessionId]);
 
     const status = useMemo(() => resolveOrderStatus(order), [order]);
     const resolvedPaymentMode = (
@@ -160,7 +222,7 @@ export default function CheckoutSuccess() {
     const invoiceDueDate = order?.invoiceDueDate ?? order?.invoice?.dueDate ?? hintedInvoiceDueDate;
     const isPaid = isPaidStatus(status);
     const isFailed = isFailedStatus(status);
-    const isPending = isPendingStatus(status) || notFound;
+    const isPending = (isPendingStatus(status) || notFound || httpStatus === 202) && !isFailed && !isPaid;
     const statusLabel = mapOrderStatus(status).label;
     const title = isInvoiceFlow
         ? 'Order placed. Invoice issued.'
@@ -229,7 +291,15 @@ export default function CheckoutSuccess() {
                             Confirmation pending; you&apos;ll receive an email once confirmed.
                         </p>
                     ) : null}
+                    {isPaid || isInvoiceFlow ? (
+                        <p className={styles.statusMessage}>Your cart has been checked out.</p>
+                    ) : null}
                     {error ? <p className={styles.errorMessage}>{error}</p> : null}
+                    {pollingStopped && error ? (
+                        <button type="button" className={styles.retryButton} onClick={handleRetry}>
+                            {isRetrying ? 'Retrying…' : 'Retry'}
+                        </button>
+                    ) : null}
                 </div>
 
                 <div className={styles.actions}>

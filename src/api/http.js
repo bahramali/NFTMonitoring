@@ -90,7 +90,7 @@ export async function parseApiResponseWithMeta(response, defaultError = 'Request
         throw error;
     }
 
-    return { data, correlationId };
+    return { data, correlationId, status: response.status };
 }
 
 let authConfig = {
