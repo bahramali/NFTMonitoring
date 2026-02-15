@@ -103,7 +103,7 @@ export default function CustomerLayout() {
             ordersState,
             loadOrders,
         }),
-        [loadOrders, loadingProfile, ordersState, profile, profileError, redirectToLogin],
+        [loadOrders, loadingProfile, ordersState, profile, profileError, redirectToLogin, refreshProfile],
     );
 
     const headline = 'My Account';
@@ -122,55 +122,57 @@ export default function CustomerLayout() {
     return (
         <div className={styles.page}>
             <Navbar />
-            <div className={styles.hero}>
-                <div>
-                    <h1 className={styles.title}>{headline}</h1>
-                    <p className={styles.subtitle}>{subhead}</p>
-                </div>
-            </div>
-
-            <div className={styles.subnav}>
-                <div className={styles.subnavInner}>
-                    <button
-                        type="button"
-                        className={styles.subnavToggle}
-                        onClick={() => setIsSubnavOpen((prev) => !prev)}
-                        aria-expanded={isSubnavOpen}
-                    >
-                        {activeLabel}
-                        <span className={styles.subnavCaret} aria-hidden="true" />
-                    </button>
-                    <div className={`${styles.subnavList} ${isSubnavOpen ? styles.subnavListOpen : ''}`}>
-                        {navItems.map((item) => (
-                            <NavLink
-                                key={item.to}
-                                to={item.to}
-                                end={item.end}
-                                className={({ isActive }) =>
-                                    `${styles.subnavLink} ${isActive ? styles.subnavLinkActive : ''}`
-                                }
-                            >
-                                {item.label}
-                            </NavLink>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {profileError && (
-                <div className={`${styles.banner} ${styles.bannerError}`} role="alert">
+            <div className={styles.shell}>
+                <div className={styles.hero}>
                     <div>
-                        <strong>Failed to load account</strong>
-                        <div>{profileError}</div>
+                        <h1 className={styles.title}>{headline}</h1>
+                        <p className={styles.subtitle}>{subhead}</p>
                     </div>
-                    <button type="button" className={styles.bannerAction} onClick={() => loadProfile()}>
-                        Retry
-                    </button>
                 </div>
-            )}
 
-            <div className={styles.content}>
-                <Outlet context={contextValue} />
+                <div className={styles.subnav}>
+                    <div className={styles.subnavInner}>
+                        <button
+                            type="button"
+                            className={styles.subnavToggle}
+                            onClick={() => setIsSubnavOpen((prev) => !prev)}
+                            aria-expanded={isSubnavOpen}
+                        >
+                            {activeLabel}
+                            <span className={styles.subnavCaret} aria-hidden="true" />
+                        </button>
+                        <div className={`${styles.subnavList} ${isSubnavOpen ? styles.subnavListOpen : ''}`}>
+                            {navItems.map((item) => (
+                                <NavLink
+                                    key={item.to}
+                                    to={item.to}
+                                    end={item.end}
+                                    className={({ isActive }) =>
+                                        `${styles.subnavLink} ${isActive ? styles.subnavLinkActive : ''}`
+                                    }
+                                >
+                                    {item.label}
+                                </NavLink>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {profileError && (
+                    <div className={`${styles.banner} ${styles.bannerError}`} role="alert">
+                        <div>
+                            <strong>Failed to load account</strong>
+                            <div>{profileError}</div>
+                        </div>
+                        <button type="button" className={styles.bannerAction} onClick={() => refreshProfile?.()}>
+                            Retry
+                        </button>
+                    </div>
+                )}
+
+                <div className={styles.content}>
+                    <Outlet context={contextValue} />
+                </div>
             </div>
         </div>
     );

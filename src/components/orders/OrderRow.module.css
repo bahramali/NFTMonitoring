@@ -1,8 +1,8 @@
 .row {
     display: grid;
-    grid-template-columns: minmax(120px, 1.2fr) 1fr 1fr 1fr 1fr 1fr auto;
+    grid-template-columns: minmax(170px, 1.3fr) minmax(120px, auto) auto minmax(200px, auto);
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     padding: 10px 0;
     border-top: 1px solid #e2e8f0;
     font-size: 14px;
@@ -10,9 +10,11 @@
 
 .orderLink { color: #0369a1; text-decoration: none; font-weight: 700; }
 .orderLink:hover { text-decoration: underline; }
+.meta { margin: 3px 0 0; color: #64748b; font-size: 12px; }
 .actions { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
 .viewButton { background: #0ea5e9; color: #fff; text-decoration: none; border-radius: 8px; padding: 6px 10px; font-weight: 700; font-size: 13px; }
-.receiptLabel { color: #0369a1; font-weight: 600; }
+.receiptAction { color: #0369a1; font-weight: 600; text-decoration: none; }
+.receiptAction:hover { text-decoration: underline; }
 .dim { color: #94a3b8; }
 
 .mobileRow { display: none; }
