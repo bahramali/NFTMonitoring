@@ -2,15 +2,15 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import CartLineItem from '../../components/store/CartLineItem.jsx';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
-import { useAuth } from '../../context/AuthContext.jsx';
 import { currencyLabel, formatCurrency } from '../../utils/currency.js';
-import { hasBusinessProfile, resolveTotalsBreakdown } from '../../utils/storePricingDisplay.js';
+import { displayPrice, getPriceDisplaySuffix, resolveTotalsBreakdown } from '../../utils/storePricingDisplay.js';
+import { usePricingDisplay } from '../../context/PricingDisplayContext.jsx';
 import styles from './CartPage.module.css';
 
 export default function CartPage() {
     const navigate = useNavigate();
     const { cart, pendingItemId, updateItemQuantity, removeItem, startNewCart } = useStorefront();
-    const { profile } = useAuth();
+    const { customerType, priceDisplayMode, vatRate } = usePricingDisplay();
     const totals = cart?.totals || {};
     const currency = totals.currency || cart?.currency || 'SEK';
     const hasItems = (cart?.items?.length ?? 0) > 0;
@@ -19,7 +19,9 @@ export default function CartPage() {
     const vat = pricingBreakdown.vat;
     const net = pricingBreakdown.net;
     const gross = pricingBreakdown.gross;
-    const isB2B = hasBusinessProfile(profile);
+    const isB2B = customerType === 'B2B';
+    const priceModeSuffix = getPriceDisplaySuffix(priceDisplayMode);
+    const payableTotal = displayPrice(gross, vatRate, priceDisplayMode);
 
     return (
         <div className={styles.page}>
@@ -80,21 +82,15 @@ export default function CartPage() {
                                 <span>{formatCurrency(totals.shipping, currency)}</span>
                             </div>
                         )}
-                        {(vat > 0 || isB2B) ? (
+                        {isB2B ? (
                             <div className={styles.row}>
                                 <span>Moms</span>
                                 <span>{formatCurrency(vat, currency)}</span>
                             </div>
                         ) : null}
-                        {isB2B ? (
-                            <div className={styles.row}>
-                                <span>Brutto (inkl. moms)</span>
-                                <span>{formatCurrency(gross, currency)}</span>
-                            </div>
-                        ) : null}
                         <div className={`${styles.row} ${styles.total}`}>
-                            <span>Att betala (inkl. moms · {currencyLabel(currency)})</span>
-                            <span>{formatCurrency(gross, currency)}</span>
+                            <span>Att betala ({priceModeSuffix} · {currencyLabel(currency)})</span>
+                            <span>{formatCurrency(payableTotal, currency)}</span>
                         </div>
                         <button
                             type="button"

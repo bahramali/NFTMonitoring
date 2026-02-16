@@ -5,6 +5,7 @@ import './index.css';
 import { enableFetchLogging } from './utils/logFetch.js';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { StorefrontProvider } from './context/StorefrontContext.jsx';
+import { PricingDisplayProvider } from './context/PricingDisplayContext.jsx';
 
 const shouldEnableFetchLogs = import.meta.env.VITE_ENABLE_FETCH_LOGS === 'true';
 if (shouldEnableFetchLogs) {
@@ -15,7 +16,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
         <AuthProvider>
             <StorefrontProvider>
-                <App />
+                <PricingDisplayProvider>
+                    <App />
+                </PricingDisplayProvider>
             </StorefrontProvider>
         </AuthProvider>
     </React.StrictMode>,

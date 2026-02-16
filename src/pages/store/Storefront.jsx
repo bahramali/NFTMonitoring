@@ -7,6 +7,8 @@ import ProductCard from '../../components/store/ProductCard.jsx';
 import StoreHeroBanner from '../../components/store/StoreHeroBanner.jsx';
 import StoreBannerRow from '../../components/store/StoreBannerRow.jsx';
 import { getProductSortPrice, isProductInStock } from '../../utils/storeVariants.js';
+import { usePricingDisplay } from '../../context/PricingDisplayContext.jsx';
+import { getPriceDisplaySuffix } from '../../utils/storePricingDisplay.js';
 import styles from './Storefront.module.css';
 
 const normalizeBanners = (payload) => {
@@ -30,6 +32,7 @@ const normalizeBanners = (payload) => {
 
 export default function Storefront() {
     const { addToCart, pendingProductId } = useStorefront();
+    const { priceDisplayMode } = usePricingDisplay();
     const { isAuthenticated, isBootstrapping } = useAuth();
     const [products, setProducts] = useState([]);
     const [banners, setBanners] = useState([]);
@@ -174,7 +177,7 @@ export default function Storefront() {
                         </div>
                         <div className={styles.note}>
                             <span className={styles.noteText}>
-                                Prices in SEK · Stock updated in real time
+                                Prices in SEK ({getPriceDisplaySuffix(priceDisplayMode)}) · Stock updated in real time
                             </span>
                         </div>
                     </div>

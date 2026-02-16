@@ -3,17 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import CartLineItem from './CartLineItem.jsx';
 import { currencyLabel, formatCurrency } from '../../utils/currency.js';
+import { usePricingDisplay } from '../../context/PricingDisplayContext.jsx';
+import { displayPrice, getPriceDisplaySuffix } from '../../utils/storePricingDisplay.js';
 import styles from './CartDrawer.module.css';
 
 export default function CartDrawer({ open, onClose }) {
     const navigate = useNavigate();
     const { cart, pendingItemId, updateItemQuantity, removeItem, startNewCart } = useStorefront();
+    const { priceDisplayMode, vatRate } = usePricingDisplay();
 
     const totals = cart?.totals || {};
     const currency = totals.currency || cart?.currency || 'SEK';
     const hasItems = (cart?.items?.length ?? 0) > 0;
     const isCartClosed = Boolean(cart?.status && cart.status !== 'OPEN');
     const canMutateCart = open && cart?.status === 'OPEN';
+    const subtotalDisplay = displayPrice(totals.subtotal ?? totals.total ?? 0, vatRate, priceDisplayMode);
+    const totalDisplay = displayPrice(totals.total ?? totals.subtotal ?? 0, vatRate, priceDisplayMode);
 
     const handleQuantityChange = (itemId, qty) => {
         if (!canMutateCart) return;
@@ -72,8 +77,8 @@ export default function CartDrawer({ open, onClose }) {
 
                     <div className={styles.footer}>
                         <div className={styles.summaryRow}>
-                            <span>Subtotal</span>
-                            <span className={styles.value}>{formatCurrency(totals.subtotal ?? totals.total ?? 0, currency)}</span>
+                            <span>Subtotal ({getPriceDisplaySuffix(priceDisplayMode)})</span>
+                            <span className={styles.value}>{formatCurrency(subtotalDisplay, currency)}</span>
                         </div>
                         {totals.shipping !== undefined && (
                             <div className={styles.summaryRow}>
@@ -82,8 +87,8 @@ export default function CartDrawer({ open, onClose }) {
                             </div>
                         )}
                         <div className={`${styles.summaryRow} ${styles.totalRow}`}>
-                            <span>Total ({currencyLabel(currency)})</span>
-                            <span className={styles.total}>{formatCurrency(totals.total ?? totals.subtotal ?? 0, currency)}</span>
+                            <span>Total ({getPriceDisplaySuffix(priceDisplayMode)} · {currencyLabel(currency)})</span>
+                            <span className={styles.total}>{formatCurrency(totalDisplay, currency)}</span>
                         </div>
 
                         <button
@@ -97,7 +102,7 @@ export default function CartDrawer({ open, onClose }) {
                         >
                             Go to checkout
                         </button>
-                        <p className={styles.meta}>Secure checkout · Prices in SEK</p>
+                        <p className={styles.meta}>Secure checkout · Prices in SEK ({getPriceDisplaySuffix(priceDisplayMode)})</p>
                     </div>
                 </div>
             </aside>

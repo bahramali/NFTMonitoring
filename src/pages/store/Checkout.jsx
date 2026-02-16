@@ -11,9 +11,10 @@ import {
 } from '../../api/store.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { extractUserPricingTier } from '../../utils/pricingTier.js';
-import { hasBusinessProfile, resolveTotalsBreakdown } from '../../utils/storePricingDisplay.js';
+import { displayPrice, getPriceDisplaySuffix, hasBusinessProfile, resolveTotalsBreakdown } from '../../utils/storePricingDisplay.js';
 import { normalizeSwedishOrgNumber, validateSwedishOrgNumber } from '../../utils/swedishOrgNumber.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
+import { usePricingDisplay } from '../../context/PricingDisplayContext.jsx';
 import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
 import { extractAddressList, formatAddressLine, normalizeAddress } from '../customer/addressUtils.js';
 import { currencyLabel, formatCurrency } from '../../utils/currency.js';
@@ -143,6 +144,7 @@ export default function Checkout() {
     const navigate = useNavigate();
     const { cart, cartId, sessionId, notify, refreshCart } = useStorefront();
     const { isAuthenticated, token, logout, profile: authProfile } = useAuth();
+    const { customerType, priceDisplayMode, vatRate, setCustomerType, setCompanyProfile } = usePricingDisplay();
     const redirectToLogin = useRedirectToLogin();
     const [form, setForm] = useState(initialForm);
     const [submitting, setSubmitting] = useState(false);
@@ -163,7 +165,6 @@ export default function Checkout() {
     const [appliedCouponCode, setAppliedCouponCode] = useState('');
     const [pricedCart, setPricedCart] = useState(null);
     const [paymentMode, setPaymentMode] = useState('PAY_NOW');
-    const [priceDisplayMode, setPriceDisplayMode] = useState('INCL_MOMS');
     const checkoutInFlight = useRef(false);
 
     const activeCart = pricedCart || cart;
@@ -176,7 +177,7 @@ export default function Checkout() {
     const orderEmail = isAuthenticated ? profileEmail : form.email;
     const hasBusinessAccount = hasBusinessProfile(authProfile);
     const isB2BSelected = form.customerType === 'B2B';
-    const isB2B = isB2BSelected || hasBusinessAccount;
+    const isB2B = customerType === 'B2B' || isB2BSelected || hasBusinessAccount;
     const trimmedCompanyName = form.companyName.trim();
     const trimmedOrgNumber = form.orgNumber.trim();
     const orgNumberValidation = useMemo(
@@ -214,11 +215,13 @@ export default function Checkout() {
     const summaryTax = summaryTotals.vat;
     const summaryTotal = summaryTotals.gross;
     const summaryNet = summaryTotals.net;
+    const displayedSummaryTotal = displayPrice(summaryTotal, vatRate, priceDisplayMode);
+    const priceModeSuffix = getPriceDisplaySuffix(priceDisplayMode);
     const showVatRow = true;
     const showVatInvoiceHint = isB2B && summaryTax <= 0;
     const ctaLabel = paymentMode === 'INVOICE_PAY_LATER'
-        ? `Place order & receive invoice – ${formatCurrency(summaryTotal, quoteCurrency)}`
-        : `Proceed to payment – ${formatCurrency(summaryTotal, quoteCurrency)}`;
+        ? `Place order & receive invoice – ${formatCurrency(displayedSummaryTotal, quoteCurrency)}`
+        : `Proceed to payment – ${formatCurrency(displayedSummaryTotal, quoteCurrency)}`;
 
     const invoiceOption = useMemo(() => {
         const invoiceDetails = activeCart?.invoice ?? activeCart?.checkout?.invoice ?? {};
@@ -244,10 +247,9 @@ export default function Checkout() {
     }, [hasBusinessAccount]);
 
     useEffect(() => {
-        if (!isB2B) {
-            setPriceDisplayMode('INCL_MOMS');
-        }
-    }, [isB2B]);
+        setForm((prev) => (prev.customerType === customerType ? prev : { ...prev, customerType }));
+    }, [customerType]);
+
 
     const applyAddressToForm = useCallback((address) => {
         if (!address) return;
@@ -357,6 +359,15 @@ export default function Checkout() {
     const handleChange = (event) => {
         const { name, value } = event.target;
         setForm((prev) => ({ ...prev, [name]: value }));
+
+        if (name === 'customerType') {
+            setCustomerType(value, { persistProfile: isAuthenticated });
+            return;
+        }
+
+        if (['companyName', 'orgNumber', 'vatNumber', 'invoiceEmail'].includes(name)) {
+            setCompanyProfile({ [name]: value }, { persistProfile: false });
+        }
     };
 
     const handleAddressSelection = (event) => {
@@ -536,6 +547,14 @@ export default function Checkout() {
                     invoiceEmail: trimmedInvoiceEmail || orderEmail,
                 }
                 : undefined;
+
+            await setCustomerType(isB2BSelected ? 'B2B' : 'B2C', {
+                persistProfile: isAuthenticated,
+                companyProfile: company,
+            });
+            if (company) {
+                await setCompanyProfile(company, { persistProfile: isAuthenticated });
+            }
 
             if (paymentMode === 'INVOICE_PAY_LATER') {
                 notify('info', 'Placing invoice order…');
@@ -1001,15 +1020,19 @@ export default function Checkout() {
                                         <p className={styles.itemMeta}>
                                             {item.quantity ?? item.qty ?? 1}
                                             {' × '}
-                                            {formatCurrency(item.discountedUnitPrice ?? item.price ?? item.unitPrice ?? 0, currency)}
+                                            {formatCurrency(displayPrice(item.discountedUnitPrice ?? item.price ?? item.unitPrice ?? 0, vatRate, priceDisplayMode), currency)}
                                         </p>
                                     </div>
                                     <span>
                                         {formatCurrency(
-                                            item.discountedLineTotal
-                                            ?? item.total
-                                            ?? item.lineTotal
-                                            ?? (item.quantity ?? item.qty ?? 1) * (item.discountedUnitPrice ?? item.price ?? item.unitPrice ?? 0),
+                                            displayPrice(
+                                                item.discountedLineTotal
+                                                ?? item.total
+                                                ?? item.lineTotal
+                                                ?? (item.quantity ?? item.qty ?? 1) * (item.discountedUnitPrice ?? item.price ?? item.unitPrice ?? 0),
+                                                vatRate,
+                                                priceDisplayMode,
+                                            ),
                                             currency,
                                         )}
                                     </span>
@@ -1026,7 +1049,7 @@ export default function Checkout() {
                                             name="priceDisplayMode"
                                             value="EXKL_MOMS"
                                             checked={priceDisplayMode === 'EXKL_MOMS'}
-                                            onChange={() => setPriceDisplayMode('EXKL_MOMS')}
+                                            onChange={() => setCustomerType('B2B', { persistProfile: isAuthenticated })}
                                         />
                                         Visa priser exkl. moms
                                     </label>
@@ -1036,7 +1059,7 @@ export default function Checkout() {
                                             name="priceDisplayMode"
                                             value="INCL_MOMS"
                                             checked={priceDisplayMode === 'INCL_MOMS'}
-                                            onChange={() => setPriceDisplayMode('INCL_MOMS')}
+                                            onChange={() => setCustomerType('B2C', { persistProfile: isAuthenticated })}
                                         />
                                         Visa priser inkl. moms
                                     </label>
@@ -1044,13 +1067,11 @@ export default function Checkout() {
                             </div>
                         ) : null}
                         <p className={styles.mutedInfo}>
-                            {isB2B && priceDisplayMode === 'EXKL_MOMS'
-                                ? 'Price mode: exkl. moms (net) for business checkout.'
-                                : 'Price mode: inkl. moms (gross).'}
+                            Price mode: {priceModeSuffix}.
                         </p>
                         <div className={styles.row}>
                             <span>Net subtotal (excl. VAT)</span>
-                            <span>{formatCurrency(summaryNet, quoteCurrency)}</span>
+                            <span>{formatCurrency(priceDisplayMode === 'EXKL_MOMS' ? summaryNet : summaryTotal, quoteCurrency)}</span>
                         </div>
                         {summaryDiscount > 0 ? (
                             <div className={styles.row}>
@@ -1062,7 +1083,7 @@ export default function Checkout() {
                             <span>Shipping/Pickup fee</span>
                             <span>{formatCurrency(summaryShipping, quoteCurrency)}</span>
                         </div>
-                        {showVatRow ? (
+                        {showVatRow && priceDisplayMode === 'EXKL_MOMS' ? (
                             <div className={styles.row}>
                                 <span>
                                     VAT
@@ -1087,7 +1108,7 @@ export default function Checkout() {
                                     ? `Att betala (exkl. moms · ${currencyLabel(quoteCurrency)})`
                                     : `Att betala (inkl. moms · ${currencyLabel(quoteCurrency)})`}
                             </span>
-                            <span>{formatCurrency(isB2B && priceDisplayMode === 'EXKL_MOMS' ? summaryNet : summaryTotal, quoteCurrency)}</span>
+                            <span>{formatCurrency(displayedSummaryTotal, quoteCurrency)}</span>
                         </div>
                     </aside>
                 </div>

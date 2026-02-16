@@ -3,10 +3,12 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { fetchStoreProduct } from '../../api/store.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { usePricingDisplay } from '../../context/PricingDisplayContext.jsx';
 import QuantityStepper from '../../components/store/QuantityStepper.jsx';
 import { currencyLabel, formatCurrency } from '../../utils/currency.js';
 import { getPriceContext, getProductFacts } from '../../utils/productCopy.js';
 import { extractUserPricingTier, resolveTierPricingDisplay } from '../../utils/pricingTier.js';
+import { displayPrice, getPriceDisplaySuffix } from '../../utils/storePricingDisplay.js';
 import {
     getActiveVariants,
     getDefaultVariantId,
@@ -21,6 +23,7 @@ export default function ProductDetail() {
     const navigate = useNavigate();
     const { addToCart, pendingProductId } = useStorefront();
     const { profile, isAuthenticated } = useAuth();
+    const { priceDisplayMode, vatRate } = usePricingDisplay();
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -72,12 +75,15 @@ export default function ProductDetail() {
     const currency = product?.currency || selectedVariant?.currency || 'SEK';
     const pricingTier = extractUserPricingTier(profile);
     const pricingDisplay = resolveTierPricingDisplay({ variant: selectedVariant, product, tier: pricingTier });
-    const regularPriceSek = pricingDisplay.defaultCents !== null ? pricingDisplay.defaultCents / 100 : (product?.price ?? 0);
-    const priceValue = pricingDisplay.effectiveCents !== null ? pricingDisplay.effectiveCents / 100 : regularPriceSek;
+    const regularGrossPrice = pricingDisplay.defaultCents !== null ? pricingDisplay.defaultCents / 100 : (product?.price ?? 0);
+    const grossPriceValue = pricingDisplay.effectiveCents !== null ? pricingDisplay.effectiveCents / 100 : regularGrossPrice;
+    const regularPrice = displayPrice(regularGrossPrice, vatRate, priceDisplayMode);
+    const priceValue = displayPrice(grossPriceValue, vatRate, priceDisplayMode);
     const appliedTier = pricingDisplay.appliedTier;
     const tierPriceApplied = pricingDisplay.showTierPrice;
     const priceLabel = formatCurrency(priceValue, currency);
     const priceContext = getPriceContext(selectedVariant ?? product);
+    const priceModeSuffix = getPriceDisplaySuffix(priceDisplayMode);
     const productFacts = getProductFacts(selectedVariant ?? product);
     const tierLabel = useMemo(() => {
         const labels = {
@@ -160,12 +166,12 @@ export default function ProductDetail() {
                         <p className={styles.subtitle}>Product details</p>
                         <div className={styles.priceBlock}>
                             <div className={styles.priceWrap}>
-                                {tierPriceApplied ? <span className={styles.priceOldInvalid}>{formatCurrency(regularPriceSek, currency)}</span> : null}
+                                {tierPriceApplied ? <span className={styles.priceOldInvalid}>{formatCurrency(regularPrice, currency)}</span> : null}
                                 <span className={`${styles.price} ${tierPriceApplied ? styles.priceNewValid : ''}`}>{priceLabel}</span>
                                 <span className={styles.currency}>{currencyLabel(currency)}</span>
                                 {tierPriceApplied && tierLabel ? <span className={styles.tierBadge}>{tierLabel}</span> : null}
                             </div>
-                            <span className={styles.priceMeta}>{tierPriceApplied ? tierLabel : priceContext}</span>
+                            <span className={styles.priceMeta}>{tierPriceApplied ? tierLabel : `${priceContext} · ${priceModeSuffix}`}</span>
                             {stockValue !== undefined && (
                                 <span className={`${styles.badge} ${isOutOfStock ? styles.badgeMuted : styles.badgePositive}`}>
                                     {isOutOfStock ? 'Out of stock' : `${stockValue} in stock`}

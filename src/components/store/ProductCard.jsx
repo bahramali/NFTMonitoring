@@ -2,8 +2,13 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import QuantityStepper from './QuantityStepper.jsx';
 import { formatCurrency } from '../../utils/currency.js';
+import { usePricingDisplay } from '../../context/PricingDisplayContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { extractUserPricingTier, resolveTierPricingDisplay } from '../../utils/pricingTier.js';
+import {
+    displayPrice,
+    getPriceDisplaySuffix,
+} from '../../utils/storePricingDisplay.js';
 import {
     getActiveVariants,
     getDefaultVariantId,
@@ -30,13 +35,16 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
     const defaultVariantId = useMemo(() => getDefaultVariantId(variants), [variants]);
     const [selectedVariantId, setSelectedVariantId] = useState(defaultVariantId);
     const [selectedVariant, setSelectedVariant] = useState(null);
+    const { priceDisplayMode, vatRate } = usePricingDisplay();
 
     const { name, id, currency } = product || {};
     const activeVariant = selectedVariant;
     const pricingTier = extractUserPricingTier(profile);
     const pricingDisplay = resolveTierPricingDisplay({ variant: selectedVariant, product, tier: pricingTier });
-    const regularPriceSek = pricingDisplay.defaultCents !== null ? pricingDisplay.defaultCents / 100 : (product?.price ?? 0);
-    const priceValue = pricingDisplay.effectiveCents !== null ? pricingDisplay.effectiveCents / 100 : regularPriceSek;
+    const regularGrossPrice = pricingDisplay.defaultCents !== null ? pricingDisplay.defaultCents / 100 : (product?.price ?? 0);
+    const grossPriceValue = pricingDisplay.effectiveCents !== null ? pricingDisplay.effectiveCents / 100 : regularGrossPrice;
+    const regularPrice = displayPrice(regularGrossPrice, vatRate, priceDisplayMode);
+    const priceValue = displayPrice(grossPriceValue, vatRate, priceDisplayMode);
     const appliedTier = pricingDisplay.appliedTier;
     const tierPriceApplied = pricingDisplay.showTierPrice;
     const stockValue = selectedVariant ? getVariantStock(selectedVariant) : product?.stock;
@@ -48,6 +56,7 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
         return 'In stock';
     }, [stockValue]);
     const priceLabel = useMemo(() => formatCurrency(priceValue, currency || 'SEK'), [currency, priceValue]);
+    const priceModeSuffix = getPriceDisplaySuffix(priceDisplayMode);
     const tierLabel = useMemo(() => {
         const labels = {
             VIP: 'VIP price',
@@ -155,9 +164,10 @@ export default function ProductCard({ product, onAdd, pending = false, layout = 
                     </div>
                     <div className={styles.price}>
                         <div className={styles.priceWrap}>
-                            {tierPriceApplied ? <span className={styles.priceOldInvalid}>{formatCurrency(regularPriceSek, currency || 'SEK')}</span> : null}
+                            {tierPriceApplied ? <span className={styles.priceOldInvalid}>{formatCurrency(regularPrice, currency || 'SEK')}</span> : null}
                             <span className={`${styles.priceValue} ${tierPriceApplied ? styles.priceNewValid : ''}`}>{priceLabel}</span>
                             {tierPriceApplied && tierLabel ? <span className={styles.tierBadge}>{tierLabel}</span> : null}
+                            <span className={styles.tierBadge}>{priceModeSuffix}</span>
                         </div>
                     </div>
                 </div>
