@@ -72,6 +72,7 @@
 }
 
 .fieldGroup input,
+.fieldGroup select,
 .fieldGroup textarea {
     width: 100%;
     padding: 10px 12px;
@@ -79,6 +80,11 @@
     border: 1px solid var(--border, #e6e6e6);
     background: #fff;
     color: var(--text, #111);
+}
+
+.subsectionTitle {
+    margin: 0;
+    font-size: 0.95rem;
 }
 
 .fieldGroup input[readonly] {
