@@ -2,19 +2,24 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import CartLineItem from '../../components/store/CartLineItem.jsx';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { currencyLabel, formatCurrency } from '../../utils/currency.js';
+import { hasBusinessProfile, resolveTotalsBreakdown } from '../../utils/storePricingDisplay.js';
 import styles from './CartPage.module.css';
 
 export default function CartPage() {
     const navigate = useNavigate();
     const { cart, pendingItemId, updateItemQuantity, removeItem, startNewCart } = useStorefront();
+    const { profile } = useAuth();
     const totals = cart?.totals || {};
     const currency = totals.currency || cart?.currency || 'SEK';
     const hasItems = (cart?.items?.length ?? 0) > 0;
     const isCartClosed = Boolean(cart?.status && cart.status !== 'OPEN');
-    const subtotal = totals.subtotal ?? totals.total ?? 0;
-    const vat = totals.tax ?? 0;
-    const net = Math.max(subtotal - vat, 0);
+    const pricingBreakdown = resolveTotalsBreakdown(totals);
+    const vat = pricingBreakdown.vat;
+    const net = pricingBreakdown.net;
+    const gross = pricingBreakdown.gross;
+    const isB2B = hasBusinessProfile(profile);
 
     return (
         <div className={styles.page}>
@@ -66,22 +71,30 @@ export default function CartPage() {
                     <aside className={styles.summary}>
                         <h3>Order summary</h3>
                         <div className={styles.row}>
-                            <span>Subtotal (excl. VAT / Net)</span>
-                            <span>{formatCurrency(net, currency)}</span>
+                            <span>{isB2B ? 'Netto (exkl. moms)' : 'Delsumma (inkl. moms)'}</span>
+                            <span>{formatCurrency(isB2B ? net : gross, currency)}</span>
                         </div>
                         {totals.shipping !== undefined && (
                             <div className={styles.row}>
-                                <span>Shipping</span>
+                                <span>Frakt</span>
                                 <span>{formatCurrency(totals.shipping, currency)}</span>
                             </div>
                         )}
-                        <div className={styles.row}>
-                            <span>VAT (moms)</span>
-                            <span>{formatCurrency(vat, currency)}</span>
-                        </div>
+                        {(vat > 0 || isB2B) ? (
+                            <div className={styles.row}>
+                                <span>Moms</span>
+                                <span>{formatCurrency(vat, currency)}</span>
+                            </div>
+                        ) : null}
+                        {isB2B ? (
+                            <div className={styles.row}>
+                                <span>Brutto (inkl. moms)</span>
+                                <span>{formatCurrency(gross, currency)}</span>
+                            </div>
+                        ) : null}
                         <div className={`${styles.row} ${styles.total}`}>
-                            <span>Total (incl. VAT / Gross · {currencyLabel(currency)})</span>
-                            <span>{formatCurrency(totals.total ?? totals.subtotal ?? 0, currency)}</span>
+                            <span>Att betala (inkl. moms · {currencyLabel(currency)})</span>
+                            <span>{formatCurrency(gross, currency)}</span>
                         </div>
                         <button
                             type="button"
