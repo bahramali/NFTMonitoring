@@ -28,7 +28,7 @@ export default function OrderRow({ order, detailsTo, receiptAvailable = false, c
                     <strong>{formatCurrency(order?.total, order?.currency)}</strong>
                     <div className={styles.actions}>
                         <Link to={detailsTo} className={styles.viewButton}>View details</Link>
-                        {receiptAvailable ? <Link to={receiptTo} className={styles.receiptAction}>Receipt</Link> : null}
+                        {receiptAvailable ? <Link to={receiptTo} className={styles.receiptAction}>View receipt</Link> : null}
                     </div>
                 </div>
             </div>
@@ -46,7 +46,7 @@ export default function OrderRow({ order, detailsTo, receiptAvailable = false, c
                 <OrderStatusPill status={order?.status} />
                 <div className={styles.actions}>
                     <Link to={detailsTo} className={styles.viewButton}>View details</Link>
-                    {receiptAvailable ? <Link to={receiptTo} className={styles.receiptAction}>Receipt</Link> : <span className={styles.dim}>Receipt</span>}
+                    {receiptAvailable ? <Link to={receiptTo} className={styles.receiptAction}>View receipt</Link> : <span className={styles.dim}>View receipt</span>}
                 </div>
             </div>
             <div className={styles.mobileRow}>
@@ -61,7 +61,7 @@ export default function OrderRow({ order, detailsTo, receiptAvailable = false, c
                     <strong>{formatCurrency(order?.total, order?.currency)}</strong>
                     <div className={styles.actions}>
                         <Link to={detailsTo} className={styles.viewButton}>View details</Link>
-                        {receiptAvailable ? <Link to={receiptTo} className={styles.receiptAction}>Receipt</Link> : null}
+                        {receiptAvailable ? <Link to={receiptTo} className={styles.receiptAction}>View receipt</Link> : null}
                     </div>
                 </div>
             </div>
