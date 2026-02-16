@@ -28,6 +28,7 @@ const PricingDisplayContext = createContext({
     setCustomerType: () => {},
     setCompanyProfile: () => {},
     setVatRate: () => {},
+    refreshPricingProfile: async () => {},
 });
 
 const readStoredState = () => {
@@ -75,6 +76,26 @@ export function PricingDisplayProvider({ children }) {
     const { isAuthenticated, token, profile } = useAuth();
     const [state, setState] = useState(() => readStoredState());
 
+    const refreshPricingProfile = useCallback(async ({ authToken = token, signal } = {}) => {
+        if (!isAuthenticated || !authToken) return null;
+        const payload = await fetchCustomerProfile(authToken, { signal });
+        if (!payload) return null;
+        const normalized = normalizeMeProfile(payload);
+        setState((prev) => {
+            const customerType = normalized.customerType;
+            return {
+                ...prev,
+                customerType,
+                priceDisplayMode: resolvePriceDisplayMode(customerType),
+                companyProfile: {
+                    ...prev.companyProfile,
+                    ...normalized.companyProfile,
+                },
+            };
+        });
+        return normalized;
+    }, [isAuthenticated, token]);
+
     useEffect(() => {
         persistState(state);
     }, [state]);
@@ -94,27 +115,11 @@ export function PricingDisplayProvider({ children }) {
     useEffect(() => {
         if (!isAuthenticated || !token) return;
         const controller = new AbortController();
-        fetchCustomerProfile(token, { signal: controller.signal })
-            .then((payload) => {
-                if (!payload) return;
-                const normalized = normalizeMeProfile(payload);
-                setState((prev) => {
-                    const customerType = normalized.customerType;
-                    return {
-                        ...prev,
-                        customerType,
-                        priceDisplayMode: resolvePriceDisplayMode(customerType),
-                        companyProfile: {
-                            ...prev.companyProfile,
-                            ...normalized.companyProfile,
-                        },
-                    };
-                });
-            })
+        refreshPricingProfile({ authToken: token, signal: controller.signal })
             .catch(() => {});
 
         return () => controller.abort();
-    }, [isAuthenticated, token]);
+    }, [isAuthenticated, refreshPricingProfile, token]);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -187,7 +192,8 @@ export function PricingDisplayProvider({ children }) {
         setCustomerType,
         setCompanyProfile,
         setVatRate,
-    }), [setCompanyProfile, setCustomerType, setVatRate, state]);
+        refreshPricingProfile,
+    }), [refreshPricingProfile, setCompanyProfile, setCustomerType, setVatRate, state]);
 
     return <PricingDisplayContext.Provider value={value}>{children}</PricingDisplayContext.Provider>;
 }

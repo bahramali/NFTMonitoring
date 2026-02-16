@@ -189,12 +189,14 @@ export default function Checkout() {
     const pricingTier = extractUserPricingTier(authProfile);
     const hasTierPricing = pricingTier !== 'DEFAULT';
     const isApplyingCoupon = couponStatus === 'loading';
+    const requiresCompanyLogin = isB2BSelected && !isAuthenticated;
     const canSubmit =
         hasItems
         && !submitting
         && !isApplyingCoupon
         && !totalsRefreshing
         && (!isAuthenticated || Boolean(orderEmail))
+        && !requiresCompanyLogin
         && (!isB2BSelected || (Boolean(trimmedCompanyName) && Boolean(trimmedOrgNumber) && (orgNumberValidation?.isValid ?? false)));
     const selectedAddress = useMemo(
         () => addresses.find((address) => String(address.id) === String(selectedAddressId)),
@@ -216,6 +218,10 @@ export default function Checkout() {
     const summaryTotal = summaryTotals.gross;
     const summaryNet = summaryTotals.net;
     const displayedSummaryTotal = displayPrice(summaryTotal, vatRate, priceDisplayMode);
+    const displayedSummaryNet = displayPrice(summaryNet, vatRate, priceDisplayMode);
+    const displayedSummaryShipping = displayPrice(summaryShipping, vatRate, priceDisplayMode);
+    const displayedSummaryDiscount = displayPrice(summaryDiscount, vatRate, priceDisplayMode);
+    const displayedSummaryTax = summaryTax;
     const priceModeSuffix = getPriceDisplaySuffix(priceDisplayMode);
     const showVatRow = true;
     const showVatInvoiceHint = isB2B && summaryTax <= 0;
@@ -483,6 +489,12 @@ export default function Checkout() {
             checkoutInFlight.current = false;
             return;
         }
+        if (requiresCompanyLogin) {
+            setError('Please log in to buy as a company.');
+            setSubmitting(false);
+            checkoutInFlight.current = false;
+            return;
+        }
         if (isB2BSelected && !(orgNumberValidation?.isValid)) {
             setError(orgNumberValidation?.message || 'Please enter a valid organization number.');
             setSubmitting(false);
@@ -622,6 +634,11 @@ export default function Checkout() {
         }
     };
 
+    const handleCompanyLoginRedirect = () => {
+        const returnTo = `${window.location.pathname}${window.location.search}`;
+        redirectToLogin(returnTo);
+    };
+
     return (
         <div className={styles.page}>
             <header className={styles.header}>
@@ -707,6 +724,14 @@ export default function Checkout() {
                                         Company / Restaurant (B2B)
                                     </label>
                                 </fieldset>
+                                {requiresCompanyLogin ? (
+                                    <div className={styles.companyLoginPrompt} role="status">
+                                        <p>Please log in to buy as a company.</p>
+                                        <button type="button" className={styles.guestLink} onClick={handleCompanyLoginRedirect}>
+                                            Log in and continue
+                                        </button>
+                                    </div>
+                                ) : null}
                             </div>
                         </section>
 
@@ -1039,49 +1064,22 @@ export default function Checkout() {
                                 </div>
                             ))}
                         </div>
-                        {isB2B ? (
-                            <div className={styles.priceModeRow}>
-                                <span className={styles.priceModeLabel}>Prisvisning</span>
-                                <fieldset className={styles.priceModeToggle}>
-                                    <label>
-                                        <input
-                                            type="radio"
-                                            name="priceDisplayMode"
-                                            value="EXKL_MOMS"
-                                            checked={priceDisplayMode === 'EXKL_MOMS'}
-                                            onChange={() => setCustomerType('B2B', { persistProfile: isAuthenticated })}
-                                        />
-                                        Visa priser exkl. moms
-                                    </label>
-                                    <label>
-                                        <input
-                                            type="radio"
-                                            name="priceDisplayMode"
-                                            value="INCL_MOMS"
-                                            checked={priceDisplayMode === 'INCL_MOMS'}
-                                            onChange={() => setCustomerType('B2C', { persistProfile: isAuthenticated })}
-                                        />
-                                        Visa priser inkl. moms
-                                    </label>
-                                </fieldset>
-                            </div>
-                        ) : null}
                         <p className={styles.mutedInfo}>
                             Price mode: {priceModeSuffix}.
                         </p>
                         <div className={styles.row}>
                             <span>Net subtotal (excl. VAT)</span>
-                            <span>{formatCurrency(priceDisplayMode === 'EXKL_MOMS' ? summaryNet : summaryTotal, quoteCurrency)}</span>
+                            <span>{formatCurrency(displayedSummaryNet, quoteCurrency)}</span>
                         </div>
                         {summaryDiscount > 0 ? (
                             <div className={styles.row}>
                                 <span>{hasTierPricing ? 'You saved' : 'Discount'}</span>
-                                <span>-{formatCurrency(summaryDiscount, quoteCurrency)}</span>
+                                <span>-{formatCurrency(displayedSummaryDiscount, quoteCurrency)}</span>
                             </div>
                         ) : null}
                         <div className={styles.row}>
                             <span>Shipping/Pickup fee</span>
-                            <span>{formatCurrency(summaryShipping, quoteCurrency)}</span>
+                            <span>{formatCurrency(displayedSummaryShipping, quoteCurrency)}</span>
                         </div>
                         {showVatRow && priceDisplayMode === 'EXKL_MOMS' ? (
                             <div className={styles.row}>
@@ -1089,7 +1087,7 @@ export default function Checkout() {
                                     VAT
                                     {showVatInvoiceHint ? <span className={styles.mutedInfo}> · VAT will be calculated on invoice</span> : null}
                                 </span>
-                                <span>{formatCurrency(summaryTax, quoteCurrency)}</span>
+                                <span>{formatCurrency(displayedSummaryTax, quoteCurrency)}</span>
                             </div>
                         ) : null}
                         <div className={styles.row}>

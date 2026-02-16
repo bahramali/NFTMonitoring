@@ -22,6 +22,7 @@ export default function CartPage() {
     const isB2B = customerType === 'B2B';
     const priceModeSuffix = getPriceDisplaySuffix(priceDisplayMode);
     const payableTotal = displayPrice(gross, vatRate, priceDisplayMode);
+    const displayedShipping = displayPrice(totals.shipping ?? 0, vatRate, priceDisplayMode);
 
     return (
         <div className={styles.page}>
@@ -79,7 +80,7 @@ export default function CartPage() {
                         {totals.shipping !== undefined && (
                             <div className={styles.row}>
                                 <span>Frakt</span>
-                                <span>{formatCurrency(totals.shipping, currency)}</span>
+                                <span>{formatCurrency(displayedShipping, currency)}</span>
                             </div>
                         )}
                         {isB2B ? (
