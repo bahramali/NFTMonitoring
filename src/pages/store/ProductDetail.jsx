@@ -75,10 +75,10 @@ export default function ProductDetail() {
     const currency = product?.currency || selectedVariant?.currency || 'SEK';
     const pricingTier = extractUserPricingTier(profile);
     const pricingDisplay = resolveTierPricingDisplay({ variant: selectedVariant, product, tier: pricingTier });
-    const regularGrossPrice = pricingDisplay.defaultCents !== null ? pricingDisplay.defaultCents / 100 : (product?.price ?? 0);
-    const grossPriceValue = pricingDisplay.effectiveCents !== null ? pricingDisplay.effectiveCents / 100 : regularGrossPrice;
-    const regularPrice = displayPrice(regularGrossPrice, vatRate, priceDisplayMode);
-    const priceValue = displayPrice(grossPriceValue, vatRate, priceDisplayMode);
+    const regularNetPrice = pricingDisplay.defaultCents !== null ? pricingDisplay.defaultCents / 100 : (product?.price ?? 0);
+    const netPriceValue = pricingDisplay.effectiveCents !== null ? pricingDisplay.effectiveCents / 100 : regularNetPrice;
+    const regularPrice = displayPrice(regularNetPrice, vatRate, priceDisplayMode);
+    const priceValue = displayPrice(netPriceValue, vatRate, priceDisplayMode);
     const appliedTier = pricingDisplay.appliedTier;
     const tierPriceApplied = pricingDisplay.showTierPrice;
     const priceLabel = formatCurrency(priceValue, currency);

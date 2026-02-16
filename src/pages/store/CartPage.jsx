@@ -18,10 +18,9 @@ export default function CartPage() {
     const pricingBreakdown = resolveTotalsBreakdown(totals);
     const vat = pricingBreakdown.vat;
     const net = pricingBreakdown.net;
-    const gross = pricingBreakdown.gross;
     const isB2B = customerType === 'B2B';
     const priceModeSuffix = getPriceDisplaySuffix(priceDisplayMode);
-    const payableTotal = displayPrice(gross, vatRate, priceDisplayMode);
+    const payableTotal = displayPrice(net, vatRate, priceDisplayMode);
     const displayedShipping = displayPrice(totals.shipping ?? 0, vatRate, priceDisplayMode);
 
     return (
@@ -75,7 +74,7 @@ export default function CartPage() {
                         <h3>Order summary</h3>
                         <div className={styles.row}>
                             <span>{isB2B ? 'Netto (exkl. moms)' : 'Delsumma (inkl. moms)'}</span>
-                            <span>{formatCurrency(isB2B ? net : gross, currency)}</span>
+                            <span>{formatCurrency(displayPrice(net, vatRate, priceDisplayMode), currency)}</span>
                         </div>
                         {totals.shipping !== undefined && (
                             <div className={styles.row}>
