@@ -247,8 +247,8 @@ export default function Checkout() {
         if (!address) return;
         setForm((prev) => ({
             ...prev,
-            fullName: address.fullName || prev.fullName,
-            phone: address.phone || prev.phone,
+            fullName: prev.fullName || address.fullName,
+            phone: prev.phone || address.phone,
             addressLine1: address.line1 || '',
             addressLine2: address.line2 || '',
             postalCode: address.postalCode || '',
