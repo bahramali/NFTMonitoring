@@ -61,6 +61,15 @@ export async function listStoreBanners({ signal } = {}) {
     return parseApiResponse(res, 'Failed to load banners');
 }
 
+export async function fetchStoreConfig({ signal } = {}) {
+    const res = await authFetch(`${STORE_BASE}/config`, {
+        method: 'GET',
+        signal,
+    });
+
+    return parseApiResponse(res, 'Failed to load store config');
+}
+
 export async function fetchStoreProduct(productId, { signal, token } = {}) {
     if (!productId) throw new Error('Product ID is required');
     const requestUrl = `${STORE_BASE}/products/${encodeURIComponent(productId)}`;

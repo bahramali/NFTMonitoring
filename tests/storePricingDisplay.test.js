@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { hasBusinessProfile, resolveTotalsBreakdown } from '../src/utils/storePricingDisplay.js';
+import { displayPrice, hasBusinessProfile, normalizeVatRateDecimal, resolveTotalsBreakdown } from '../src/utils/storePricingDisplay.js';
 
 describe('storePricingDisplay', () => {
+
+    it('converts gross prices to net in EXKL_MOMS mode', () => {
+        expect(displayPrice(125, 0.25, 'EXKL_MOMS')).toBeCloseTo(100);
+        expect(displayPrice(125, 25, 'EXKL_MOMS')).toBeCloseTo(100);
+        expect(displayPrice(125, 0.25, 'INCL_MOMS')).toBe(125);
+    });
+
+    it('normalizes vat rate values from config payloads', () => {
+        expect(normalizeVatRateDecimal(0.12)).toBeCloseTo(0.12);
+        expect(normalizeVatRateDecimal(12)).toBeCloseTo(0.12);
+    });
     it('detects B2B profile based on tier and customer type flags', () => {
         expect(hasBusinessProfile({ pricingTier: 'B2B' })).toBe(true);
         expect(hasBusinessProfile({ customerType: 'company' })).toBe(true);
