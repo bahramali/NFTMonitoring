@@ -146,6 +146,26 @@
     transform: translateX(18px);
 }
 
+.customerTypeFieldset {
+    border: 0;
+    margin: 0 0 16px;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+}
+
+.radioOption {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #0f172a;
+}
+
+.radioOption input[type='radio'] {
+    width: auto;
+    margin: 0;
+}
+
 .actionRow {
     display: flex;
     align-items: center;
