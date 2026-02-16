@@ -47,7 +47,11 @@ const normalizeTotals = (order = {}) => {
             ['subtotalCents', 'subTotalCents', 'itemsSubtotalCents', 'itemsTotalCents'],
         ),
         shipping: pickAmount(totals, ['shipping', 'shippingTotal', 'deliveryFee'], ['shippingCents', 'shippingTotalCents', 'deliveryFeeCents']),
-        tax: pickAmount(totals, ['tax', 'taxTotal'], ['taxCents', 'taxTotalCents']),
+        tax: pickAmount(
+            totals,
+            ['tax', 'taxTotal', 'vat', 'vatTotal', 'moms', 'momsTotal'],
+            ['taxCents', 'taxTotalCents', 'vatCents', 'vatTotalCents', 'momsCents', 'momsTotalCents'],
+        ),
         discount: pickAmount(totals, ['discount', 'discountTotal', 'promoDiscount'], ['discountCents', 'discountTotalCents', 'promoDiscountCents']),
         total: pickAmount(totals, ['total'], ['totalCents', 'totalAmountCents']),
     };

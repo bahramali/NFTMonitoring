@@ -17,6 +17,19 @@ import styles from './CustomerOrderDetails.module.css';
 
 const toStatusKey = (value) => String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
 const isInvoicePaymentMode = (order) => toStatusKey(order?.paymentMode ?? order?.raw?.paymentMode) === 'INVOICE_PAY_LATER';
+const isBusinessOrder = (order) => {
+    const customerType = toStatusKey(order?.customerType ?? order?.raw?.customerType);
+    if (customerType === 'B2B' || customerType === 'BUSINESS' || customerType === 'COMPANY') return true;
+
+    return Boolean(
+        order?.companyName
+        || order?.organizationNumber
+        || order?.vatNumber
+        || order?.raw?.company?.name
+        || order?.raw?.company?.organizationNumber
+        || order?.raw?.company?.vatNumber,
+    );
+};
 
 const formatAddress = (value) => {
     if (!value) return '—';
@@ -70,6 +83,7 @@ export default function CustomerOrderDetails() {
     const paymentStatus = toStatusKey(activeOrder?.paymentStatus || activeOrder?.status);
     const paymentFinalized = ['PAID', 'PAYMENT_SUCCEEDED', 'COMPLETED', 'PROCESSING'].includes(paymentStatus);
     const invoiceMode = isInvoicePaymentMode(activeOrder);
+    const businessOrder = isBusinessOrder(activeOrder);
 
     const totals = activeOrder?.totals || {};
     const subtotal = totals.subtotal ?? 0;
@@ -77,6 +91,8 @@ export default function CustomerOrderDetails() {
     const tax = totals.tax ?? 0;
     const discount = totals.discount ?? 0;
     const total = totals.total ?? activeOrder?.total ?? 0;
+    const shouldShowVatRow = tax > 0 || businessOrder;
+    const shouldShowVatHint = businessOrder && tax <= 0;
 
     const openHtml = (html) => {
         const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
@@ -275,7 +291,12 @@ export default function CustomerOrderDetails() {
                     <section className={styles.card}>
                         <h3>Totals</h3>
                         <p>Subtotal <strong>{formatCurrency(subtotal, activeOrder?.currency)}</strong></p>
-                        <p>VAT <strong>{formatCurrency(tax, activeOrder?.currency)}</strong></p>
+                        {shouldShowVatRow ? (
+                            <p>
+                                VAT (moms) <strong>{formatCurrency(tax, activeOrder?.currency)}</strong>
+                                {shouldShowVatHint ? <span className={styles.neutral}> · VAT will be shown on invoice</span> : null}
+                            </p>
+                        ) : null}
                         <p>Shipping <strong>{formatCurrency(shipping, activeOrder?.currency)}</strong></p>
                         <p>Discount <strong>-{formatCurrency(discount, activeOrder?.currency)}</strong></p>
                         <p className={styles.totalRow}>Total <strong>{formatCurrency(total, activeOrder?.currency)}</strong></p>

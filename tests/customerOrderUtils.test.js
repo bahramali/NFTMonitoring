@@ -30,3 +30,29 @@ describe('normalizeOrder payment fields', () => {
         expect(order.paymentReference).toBe('txn_789');
     });
 });
+
+describe('normalizeOrder totals', () => {
+    it('reads VAT from moms totals fields', () => {
+        const order = normalizeOrder({
+            id: 'ord-moms',
+            totals: {
+                total: 125,
+                moms: 25,
+            },
+        });
+
+        expect(order.totals.tax).toBe(25);
+    });
+
+    it('reads VAT from vat cents totals fields', () => {
+        const order = normalizeOrder({
+            id: 'ord-vat',
+            totals: {
+                totalCents: 12500,
+                vatCents: 2500,
+            },
+        });
+
+        expect(order.totals.tax).toBe(25);
+    });
+});
