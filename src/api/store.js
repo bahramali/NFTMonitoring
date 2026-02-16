@@ -5,6 +5,33 @@ import { getApiBaseUrl } from '../config/apiBase.js';
 const API_BASE = getApiBaseUrl();
 const STORE_BASE = `${API_BASE}/api/store`;
 
+
+const normalizeVatRate = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 0) return null;
+    return parsed <= 1 ? parsed * 100 : parsed;
+};
+
+const resolveItemVatRate = (item = {}) => {
+    const rate = normalizeVatRate(
+        item?.vatRate
+        ?? item?.vat_rate
+        ?? item?.momsRate
+        ?? item?.taxRate
+        ?? item?.tax_rate,
+    );
+    return rate;
+};
+
+const estimateVatFromGrossLine = (grossLineAmount, vatRatePercent) => {
+    const gross = Number(grossLineAmount);
+    const rate = Number(vatRatePercent);
+    if (!Number.isFinite(gross) || gross <= 0 || !Number.isFinite(rate) || rate <= 0) return 0;
+    const factor = rate / 100;
+    return gross - (gross / (1 + factor));
+};
+
 const buildCartHeaders = (cartId, sessionId) => {
     const headers = {};
     if (cartId) headers['X-Cart-Id'] = cartId;
@@ -315,6 +342,7 @@ export function normalizeCartResponse(payload, fallback = {}) {
             lineTotal,
             discountedLineTotal,
             lineDiscount,
+            vatRate: resolveItemVatRate(item),
         };
     });
 
@@ -343,7 +371,18 @@ export function normalizeCartResponse(payload, fallback = {}) {
     const subtotal = subtotalFromTotals ?? subtotalFromCart ?? subtotalComputed;
     const discount = discountFromTotals ?? discountFromCart ?? 0;
     const shipping = shippingFromTotals ?? shippingFromCart ?? 0;
-    const tax = taxFromTotals ?? taxFromCart ?? 0;
+    const taxFromItems = mappedItems.reduce((sum, item) => {
+        const lineGross = item?.discountedLineTotal ?? item?.lineTotal;
+        if (lineGross !== undefined && lineGross !== null) {
+            return sum + estimateVatFromGrossLine(lineGross, item?.vatRate);
+        }
+
+        const quantity = safeNumber(item?.quantity ?? item?.qty ?? 1);
+        const unitGross = safeNumber(item?.discountedUnitPrice ?? item?.unitPrice ?? item?.price ?? 0);
+        return sum + estimateVatFromGrossLine(unitGross * quantity, item?.vatRate);
+    }, 0);
+
+    const tax = taxFromTotals ?? taxFromCart ?? taxFromItems ?? 0;
     const totalComputed = subtotal + shipping + tax - discount;
     const total = totalFromTotals ?? totalFromCart ?? totalComputed;
 

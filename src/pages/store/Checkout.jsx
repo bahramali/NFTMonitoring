@@ -12,6 +12,7 @@ import {
 import { useAuth } from '../../context/AuthContext.jsx';
 import { extractUserPricingTier } from '../../utils/pricingTier.js';
 import { hasBusinessProfile, resolveTotalsBreakdown } from '../../utils/storePricingDisplay.js';
+import { normalizeSwedishOrgNumber, validateSwedishOrgNumber } from '../../utils/swedishOrgNumber.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
 import { extractAddressList, formatAddressLine, normalizeAddress } from '../customer/addressUtils.js';
@@ -178,6 +179,11 @@ export default function Checkout() {
     const isB2B = isB2BSelected || hasBusinessAccount;
     const trimmedCompanyName = form.companyName.trim();
     const trimmedOrgNumber = form.orgNumber.trim();
+    const orgNumberValidation = useMemo(
+        () => (isB2BSelected && trimmedOrgNumber ? validateSwedishOrgNumber(trimmedOrgNumber) : null),
+        [isB2BSelected, trimmedOrgNumber],
+    );
+    const normalizedOrgNumber = orgNumberValidation?.normalized ?? normalizeSwedishOrgNumber(trimmedOrgNumber);
     const trimmedInvoiceEmail = form.invoiceEmail.trim();
     const pricingTier = extractUserPricingTier(authProfile);
     const hasTierPricing = pricingTier !== 'DEFAULT';
@@ -188,7 +194,7 @@ export default function Checkout() {
         && !isApplyingCoupon
         && !totalsRefreshing
         && (!isAuthenticated || Boolean(orderEmail))
-        && (!isB2BSelected || (Boolean(trimmedCompanyName) && Boolean(trimmedOrgNumber)));
+        && (!isB2BSelected || (Boolean(trimmedCompanyName) && Boolean(trimmedOrgNumber) && (orgNumberValidation?.isValid ?? false)));
     const selectedAddress = useMemo(
         () => addresses.find((address) => String(address.id) === String(selectedAddressId)),
         [addresses, selectedAddressId],
@@ -466,6 +472,12 @@ export default function Checkout() {
             checkoutInFlight.current = false;
             return;
         }
+        if (isB2BSelected && !(orgNumberValidation?.isValid)) {
+            setError(orgNumberValidation?.message || 'Please enter a valid organization number.');
+            setSubmitting(false);
+            checkoutInFlight.current = false;
+            return;
+        }
         try {
             if (isAuthenticated && token && addressMode === 'new' && saveNewAddress) {
                 try {
@@ -519,7 +531,7 @@ export default function Checkout() {
             const company = isB2BSelected
                 ? {
                     companyName: trimmedCompanyName,
-                    orgNumber: trimmedOrgNumber,
+                    orgNumber: normalizedOrgNumber || trimmedOrgNumber,
                     vatNumber: form.vatNumber.trim() || undefined,
                     invoiceEmail: trimmedInvoiceEmail || orderEmail,
                 }
@@ -849,8 +861,15 @@ export default function Checkout() {
                                         type="text"
                                         required={isB2B}
                                         value={form.orgNumber}
+                                        inputMode="numeric"
+                                        placeholder="556677-8899"
                                         onChange={handleChange}
                                     />
+                                    {isB2BSelected && trimmedOrgNumber && !(orgNumberValidation?.isValid) ? (
+                                        <p className={styles.error} role="alert">
+                                            {orgNumberValidation?.message}
+                                        </p>
+                                    ) : null}
                                 </div>
                                 <div className={styles.fieldGroup}>
                                     <label htmlFor="vatNumber">VAT number (optional)</label>
