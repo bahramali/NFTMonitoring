@@ -420,3 +420,31 @@
         padding: 14px;
     }
 }
+
+
+.priceModeRow {
+    display: grid;
+    gap: 6px;
+}
+
+.priceModeLabel {
+    color: var(--muted, #666);
+    font-size: 0.9rem;
+}
+
+.priceModeToggle {
+    border: 0;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.priceModeToggle label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text, #111);
+    font-size: 0.9rem;
+}
