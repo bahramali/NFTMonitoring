@@ -809,6 +809,10 @@ export default function Checkout() {
                         {isB2B ? (
                             <section className={`${styles.card} ${styles.companyPanel}`}>
                                 <h2 className={styles.cardTitle}>Company Details</h2>
+                                <div className={styles.infoBox}>
+                                    <p>Company invoice details will be included on your invoice.</p>
+                                    <p className={styles.mutedInfo}>Please make sure company data and invoice email are correct before placing your order.</p>
+                                </div>
                                 <div className={styles.fieldGroup}>
                                     <label htmlFor="companyName">Company name</label>
                                     <input
@@ -842,11 +846,12 @@ export default function Checkout() {
                                     />
                                 </div>
                                 <div className={styles.fieldGroup}>
-                                    <label htmlFor="invoiceEmail">Invoice email (optional)</label>
+                                    <label htmlFor="invoiceEmail">Invoice email</label>
                                     <input
                                         id="invoiceEmail"
                                         name="invoiceEmail"
                                         type="email"
+                                        required={isB2B}
                                         value={form.invoiceEmail}
                                         placeholder={orderEmail || 'Defaults to contact email'}
                                         onChange={handleChange}
@@ -1005,6 +1010,11 @@ export default function Checkout() {
                                 </fieldset>
                             </div>
                         ) : null}
+                        <p className={styles.mutedInfo}>
+                            {isB2B
+                                ? 'Prices shown: incl moms. Ex moms view is also available for company checkout.'
+                                : 'Prices shown: incl moms.'}
+                        </p>
                         <div className={styles.row}>
                             <span>{isB2B ? 'Netto (exkl. moms)' : 'Delsumma (inkl. moms)'}</span>
                             <span>{formatCurrency(isB2B ? summaryNet : summaryTotal, quoteCurrency)}</span>
