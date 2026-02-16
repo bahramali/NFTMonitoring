@@ -84,6 +84,8 @@ export default function CustomerOrderDetails() {
     const paymentFinalized = ['PAID', 'PAYMENT_SUCCEEDED', 'COMPLETED', 'PROCESSING'].includes(paymentStatus);
     const invoiceMode = isInvoicePaymentMode(activeOrder);
     const businessOrder = isBusinessOrder(activeOrder);
+    const paymentMethodLabel = activeOrder?.paymentMethod || 'Not available yet';
+    const paymentReferenceLabel = activeOrder?.paymentReference || 'Not available yet';
 
     const totals = activeOrder?.totals || {};
     const subtotal = totals.subtotal ?? 0;
@@ -208,10 +210,10 @@ export default function CustomerOrderDetails() {
         },
         {
             key: 'invoice',
-            label: 'View invoice',
-            helper: 'HTML invoice opens in a new tab.',
+            label: invoiceMode ? 'View invoice' : 'Invoice document',
+            helper: invoiceMode ? 'HTML invoice opens in a new tab.' : 'Invoice is available for invoice/pay-later orders.',
             disabled: !invoiceMode && !paymentFinalized,
-            reason: !invoiceMode && !paymentFinalized ? 'Available after payment confirmation.' : '',
+            reason: !invoiceMode && !paymentFinalized ? 'Available after payment confirmation if an invoice document exists.' : '',
             loading: documentState.loading === 'invoice',
             variant: 'primary',
             onClick: () => runDocumentAction('invoice'),
@@ -261,8 +263,8 @@ export default function CustomerOrderDetails() {
                     <strong>{formatCurrency(total, activeOrder?.currency)}</strong>
                 </div>
                 <div className={styles.metaBlock}>
-                    <p><strong>Payment:</strong> {activeOrder?.paymentMethod || '—'}</p>
-                    <p><strong>Reference:</strong> {activeOrder?.paymentReference || '—'}</p>
+                    <p><strong>Payment:</strong> {paymentMethodLabel}</p>
+                    <p><strong>Reference:</strong> {paymentReferenceLabel}</p>
                     <p><strong>Delivery:</strong> {activeOrder?.deliveryType || 'Pickup'}</p>
                 </div>
             </div>
@@ -320,9 +322,9 @@ export default function CustomerOrderDetails() {
 
                     <section className={styles.card}>
                         <h3>Payment</h3>
-                        <p><strong>Method:</strong> {activeOrder?.paymentMethod || '—'}</p>
+                        <p><strong>Method:</strong> {paymentMethodLabel}</p>
                         <p><strong>Mode:</strong> {activeOrder?.paymentMode || 'PAY_NOW'}</p>
-                        <p><strong>Reference:</strong> {activeOrder?.paymentReference || '—'}</p>
+                        <p><strong>Reference:</strong> {paymentReferenceLabel}</p>
                         {!activeOrder?.raw?.payment ? <p className={styles.neutral}>Payment confirmed but provider details not available yet.</p> : null}
                     </section>
                 </aside>
