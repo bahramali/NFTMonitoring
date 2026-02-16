@@ -40,6 +40,7 @@ const mockProducts = [
         category: 'Basil',
         imageUrl: '',
         active: true,
+        vatRate: 12,
         updatedAt: mockUpdatedAt(),
         variants: [
             {
@@ -71,6 +72,7 @@ const mockProducts = [
         category: 'Packaging',
         imageUrl: '',
         active: false,
+        vatRate: 25,
         updatedAt: mockUpdatedAt(),
         variants: [],
     },

@@ -36,6 +36,7 @@ const emptyForm = {
   imageUrl: "",
   sku: "",
   active: true,
+  vatRate: "12",
 };
 const emptyVariant = () => ({
   id: null,
@@ -400,6 +401,7 @@ export default function ProductAdmin() {
           imageUrl: formState.imageUrl?.trim() || "",
           sku: formState.sku?.trim() || "",
           active: formState.active !== false,
+          vatRate: parseDecimalInput(formState.vatRate),
         };
         const product = id
           ? await updateProduct(id, payload, token)
@@ -772,6 +774,18 @@ export default function ProductAdmin() {
                     </option>
                   ))}
                 </select>
+              </label>
+              <label>
+                VAT rate (%)
+                <input
+                  className={styles.input}
+                  inputMode="decimal"
+                  value={formState.vatRate ?? ""}
+                  onChange={(e) => {
+                    if (!DECIMAL_INPUT_PATTERN.test(e.target.value)) return;
+                    setFormState((p) => ({ ...p, vatRate: e.target.value }));
+                  }}
+                />
               </label>
               <label>
                 Description
