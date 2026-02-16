@@ -100,7 +100,7 @@ describe('ProductCard', () => {
 
         expect(await screen.findByText('Out of stock')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
-        expect(screen.getByText(/39/)).toBeInTheDocument();
+        expect(screen.getByText('48,75 kr')).toBeInTheDocument();
     });
 
 
@@ -198,10 +198,10 @@ describe('ProductCard', () => {
             </MemoryRouter>,
         );
 
-        const regularPrice = screen.getByText('29,90 kr');
+        const regularPrice = screen.getByText('37,38 kr');
         expect(regularPrice).toBeInTheDocument();
         expect(regularPrice.className).toContain('priceOldInvalid');
-        expect(screen.getByText('20,00 kr')).toBeInTheDocument();
+        expect(screen.getByText('25,00 kr')).toBeInTheDocument();
         expect(screen.getByText('Supporter price')).toBeInTheDocument();
     });
 
@@ -234,8 +234,8 @@ describe('ProductCard', () => {
         );
 
         expect(screen.queryByText('Supporter price')).not.toBeInTheDocument();
-        expect(screen.getByText('29,90 kr')).toBeInTheDocument();
-        expect(screen.queryByText('20,00 kr')).not.toBeInTheDocument();
+        expect(screen.getByText('37,38 kr')).toBeInTheDocument();
+        expect(screen.queryByText('25,00 kr')).not.toBeInTheDocument();
     });
 
 
@@ -266,9 +266,9 @@ describe('ProductCard', () => {
             </MemoryRouter>,
         );
 
-        expect(screen.getByText('29,90 kr')).toBeInTheDocument();
+        expect(screen.getByText('37,38 kr')).toBeInTheDocument();
         expect(screen.queryByText('Supporter price')).not.toBeInTheDocument();
-        expect(screen.getByText('29,90 kr').className).not.toContain('priceOldInvalid');
+        expect(screen.getByText('37,38 kr').className).not.toContain('priceOldInvalid');
     });
 
 
@@ -299,9 +299,9 @@ describe('ProductCard', () => {
             </MemoryRouter>,
         );
 
-        expect(screen.getByText('29,90 kr')).toBeInTheDocument();
+        expect(screen.getByText('37,38 kr')).toBeInTheDocument();
         expect(screen.queryByText('Supporter price')).not.toBeInTheDocument();
-        expect(screen.getByText('29,90 kr').className).not.toContain('priceOldInvalid');
+        expect(screen.getByText('37,38 kr').className).not.toContain('priceOldInvalid');
     });
 
     it('keeps view details link visible', () => {
