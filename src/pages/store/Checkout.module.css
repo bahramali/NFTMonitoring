@@ -71,7 +71,7 @@
     color: var(--muted, #666);
 }
 
-.fieldGroup input,
+.fieldGroup input:not([type='radio']):not([type='checkbox']),
 .fieldGroup select,
 .fieldGroup textarea {
     width: 100%;
@@ -80,6 +80,12 @@
     border: 1px solid var(--border, #e6e6e6);
     background: #fff;
     color: var(--text, #111);
+}
+
+.radioOption input[type='radio'] {
+    width: auto;
+    padding: 0;
+    border: 0;
 }
 
 .subsectionTitle {
