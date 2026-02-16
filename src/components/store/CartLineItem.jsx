@@ -3,7 +3,7 @@ import QuantityStepper from './QuantityStepper.jsx';
 import { currencyLabel, formatCurrency } from '../../utils/currency.js';
 import { getCartItemDisplayName } from '../../utils/storeVariants.js';
 import { usePricingDisplay } from '../../context/PricingDisplayContext.jsx';
-import { displayPrice, getPriceDisplaySuffix } from '../../utils/storePricingDisplay.js';
+import { displayLineTotal, displayPrice, getPriceDisplaySuffix } from '../../utils/storePricingDisplay.js';
 import styles from './CartLineItem.module.css';
 
 export default function CartLineItem({ item, currency = 'SEK', onChangeQuantity, onRemove, pending, disabled = false }) {
@@ -12,10 +12,12 @@ export default function CartLineItem({ item, currency = 'SEK', onChangeQuantity,
     const unitPrice = item?.discountedUnitPrice ?? item?.unitPrice ?? item?.price ?? 0;
     const lineTotal = item?.discountedLineTotal ?? item?.lineTotal ?? item?.total ?? null;
     const displayUnitPrice = displayPrice(unitPrice, vatRate, priceDisplayMode);
-    const rawLineTotal = lineTotal !== null ? lineTotal : unitPrice * quantity;
-    const displayLineTotal = displayPrice(rawLineTotal, vatRate, priceDisplayMode);
+    const fallbackLineTotal = displayLineTotal(unitPrice, quantity, vatRate, priceDisplayMode);
+    const resolvedLineTotal = lineTotal !== null
+        ? displayPrice(lineTotal, vatRate, priceDisplayMode)
+        : fallbackLineTotal;
     const priceLabel = formatCurrency(displayUnitPrice, currency);
-    const totalLabel = formatCurrency(displayLineTotal, currency);
+    const totalLabel = formatCurrency(resolvedLineTotal, currency);
     const priceModeSuffix = getPriceDisplaySuffix(priceDisplayMode);
     const maxQuantity = item?.stock ?? item?.availableStock ?? item?.product?.stock;
     const displayName = getCartItemDisplayName(item);

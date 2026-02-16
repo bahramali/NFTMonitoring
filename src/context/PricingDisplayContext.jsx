@@ -13,7 +13,7 @@ const STORAGE_KEY = 'storePricingDisplay';
 
 const defaultState = {
     customerType: 'B2C',
-    priceDisplayMode: 'INCL_MOMS',
+    priceDisplayMode: 'INKL_MOMS',
     vatRate: 0.25,
     companyProfile: {
         companyName: '',
