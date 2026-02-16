@@ -44,7 +44,7 @@ vi.mock('../../context/StorefrontContext.jsx', () => ({
 vi.mock('../../context/PricingDisplayContext.jsx', () => ({
     usePricingDisplay: () => ({
         customerType: 'B2C',
-        priceDisplayMode: 'INCL_MOMS',
+        priceDisplayMode: 'INKL_MOMS',
         vatRate: 0.25,
         setCustomerType: vi.fn(),
         setCompanyProfile: vi.fn(),

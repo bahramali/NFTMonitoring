@@ -21,18 +21,21 @@ export const normalizeVatRateDecimal = (value, fallback = 0.25) => {
     return parsed > 1 ? parsed / 100 : parsed;
 };
 
-export const resolvePriceDisplayMode = (customerType) => (customerType === 'B2B' ? 'EXKL_MOMS' : 'INCL_MOMS');
+export const resolvePriceDisplayMode = (customerType) => (customerType === 'B2B' ? 'EXKL_MOMS' : 'INKL_MOMS');
 
-export const displayPrice = (grossPrice, vatRate, mode = 'INCL_MOMS') => {
-    const gross = Number(grossPrice);
-    if (!Number.isFinite(gross)) return 0;
-    if (mode === 'EXKL_MOMS') {
-        const vat = normalizeVatRateDecimal(vatRate, 0);
-        const divisor = 1 + vat;
-        if (divisor <= 0) return gross;
-        return gross / divisor;
-    }
-    return gross;
+export const displayPrice = (netPrice, vatRate, mode = 'INKL_MOMS') => {
+    const net = Number(netPrice);
+    if (!Number.isFinite(net)) return 0;
+    if (mode === 'EXKL_MOMS') return net;
+    const vat = normalizeVatRateDecimal(vatRate, 0);
+    return net * (1 + vat);
+};
+
+export const displayLineTotal = (netUnitPrice, quantity, vatRate, mode = 'INKL_MOMS') => {
+    const unitNet = Number(netUnitPrice);
+    const qty = Number(quantity);
+    if (!Number.isFinite(unitNet) || !Number.isFinite(qty)) return 0;
+    return displayPrice(unitNet * qty, vatRate, mode);
 };
 
 export const getPriceDisplaySuffix = (mode) => (mode === 'EXKL_MOMS' ? 'exkl. moms' : 'inkl. moms');

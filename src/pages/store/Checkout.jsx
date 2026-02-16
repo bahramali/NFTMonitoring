@@ -11,7 +11,7 @@ import {
 } from '../../api/store.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { extractUserPricingTier } from '../../utils/pricingTier.js';
-import { displayPrice, getPriceDisplaySuffix, hasBusinessProfile, resolveTotalsBreakdown } from '../../utils/storePricingDisplay.js';
+import { displayLineTotal, displayPrice, getPriceDisplaySuffix, hasBusinessProfile, resolveTotalsBreakdown } from '../../utils/storePricingDisplay.js';
 import { normalizeSwedishOrgNumber, validateSwedishOrgNumber } from '../../utils/swedishOrgNumber.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
 import { usePricingDisplay } from '../../context/PricingDisplayContext.jsx';
@@ -215,13 +215,13 @@ export default function Checkout() {
     const summaryShipping = totals.shipping ?? 0;
     const summaryTotals = useMemo(() => resolveTotalsBreakdown(totals), [totals]);
     const summaryTax = summaryTotals.vat;
-    const summaryTotal = summaryTotals.gross;
     const summaryNet = summaryTotals.net;
-    const displayedSummaryTotal = displayPrice(summaryTotal, vatRate, priceDisplayMode);
-    const displayedSummaryNet = displayPrice(summaryNet, vatRate, priceDisplayMode);
+    const displayedSummaryTotal = displayPrice(summaryNet, vatRate, priceDisplayMode);
+    const displayedSummaryNet = summaryNet;
     const displayedSummaryShipping = displayPrice(summaryShipping, vatRate, priceDisplayMode);
     const displayedSummaryDiscount = displayPrice(summaryDiscount, vatRate, priceDisplayMode);
     const displayedSummaryTax = summaryTax;
+    const displayedSummaryGross = displayPrice(summaryNet, vatRate, "INKL_MOMS");
     const priceModeSuffix = getPriceDisplaySuffix(priceDisplayMode);
     const showVatRow = true;
     const showVatInvoiceHint = isB2B && summaryTax <= 0;
@@ -1050,14 +1050,18 @@ export default function Checkout() {
                                     </div>
                                     <span>
                                         {formatCurrency(
-                                            displayPrice(
-                                                item.discountedLineTotal
-                                                ?? item.total
-                                                ?? item.lineTotal
-                                                ?? (item.quantity ?? item.qty ?? 1) * (item.discountedUnitPrice ?? item.price ?? item.unitPrice ?? 0),
-                                                vatRate,
-                                                priceDisplayMode,
-                                            ),
+                                            item.discountedLineTotal !== undefined && item.discountedLineTotal !== null
+                                                ? displayPrice(item.discountedLineTotal, vatRate, priceDisplayMode)
+                                                : item.total !== undefined && item.total !== null
+                                                    ? displayPrice(item.total, vatRate, priceDisplayMode)
+                                                    : item.lineTotal !== undefined && item.lineTotal !== null
+                                                        ? displayPrice(item.lineTotal, vatRate, priceDisplayMode)
+                                                        : displayLineTotal(
+                                                            item.discountedUnitPrice ?? item.price ?? item.unitPrice ?? 0,
+                                                            item.quantity ?? item.qty ?? 1,
+                                                            vatRate,
+                                                            priceDisplayMode,
+                                                        ),
                                             currency,
                                         )}
                                     </span>
@@ -1081,7 +1085,7 @@ export default function Checkout() {
                             <span>Shipping/Pickup fee</span>
                             <span>{formatCurrency(displayedSummaryShipping, quoteCurrency)}</span>
                         </div>
-                        {showVatRow && priceDisplayMode === 'EXKL_MOMS' ? (
+                        {showVatRow ? (
                             <div className={styles.row}>
                                 <span>
                                     VAT
@@ -1092,7 +1096,7 @@ export default function Checkout() {
                         ) : null}
                         <div className={styles.row}>
                             <span>Gross total (incl. VAT)</span>
-                            <span>{formatCurrency(summaryTotal, quoteCurrency)}</span>
+                            <span>{formatCurrency(displayedSummaryGross, quoteCurrency)}</span>
                         </div>
                         <div className={styles.pickupNote}>
                             {paymentMode === 'INVOICE_PAY_LATER'

@@ -4,7 +4,7 @@ import { useStorefront } from '../../context/StorefrontContext.jsx';
 import CartLineItem from './CartLineItem.jsx';
 import { currencyLabel, formatCurrency } from '../../utils/currency.js';
 import { usePricingDisplay } from '../../context/PricingDisplayContext.jsx';
-import { displayPrice, getPriceDisplaySuffix } from '../../utils/storePricingDisplay.js';
+import { displayPrice, getPriceDisplaySuffix, resolveTotalsBreakdown } from '../../utils/storePricingDisplay.js';
 import styles from './CartDrawer.module.css';
 
 export default function CartDrawer({ open, onClose }) {
@@ -17,8 +17,10 @@ export default function CartDrawer({ open, onClose }) {
     const hasItems = (cart?.items?.length ?? 0) > 0;
     const isCartClosed = Boolean(cart?.status && cart.status !== 'OPEN');
     const canMutateCart = open && cart?.status === 'OPEN';
-    const subtotalDisplay = displayPrice(totals.subtotal ?? totals.total ?? 0, vatRate, priceDisplayMode);
-    const totalDisplay = displayPrice(totals.total ?? totals.subtotal ?? 0, vatRate, priceDisplayMode);
+    const { net } = resolveTotalsBreakdown(totals);
+    const subtotalDisplay = displayPrice(net, vatRate, priceDisplayMode);
+    const totalDisplay = displayPrice(net, vatRate, priceDisplayMode);
+    const shippingDisplay = displayPrice(totals.shipping ?? 0, vatRate, priceDisplayMode);
 
     const handleQuantityChange = (itemId, qty) => {
         if (!canMutateCart) return;
@@ -83,7 +85,7 @@ export default function CartDrawer({ open, onClose }) {
                         {totals.shipping !== undefined && (
                             <div className={styles.summaryRow}>
                                 <span>Shipping estimate</span>
-                                <span className={styles.value}>{formatCurrency(totals.shipping, currency)}</span>
+                                <span className={styles.value}>{formatCurrency(shippingDisplay, currency)}</span>
                             </div>
                         )}
                         <div className={`${styles.summaryRow} ${styles.totalRow}`}>
