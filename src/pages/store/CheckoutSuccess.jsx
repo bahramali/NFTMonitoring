@@ -34,6 +34,14 @@ const isPendingStatus = (status) => {
 const POLL_INTERVAL_MS = 2000;
 const MAX_POLL_DURATION_MS = 60000;
 const MAX_SERVER_ERROR_ATTEMPTS = 3;
+const MAX_POLL_BACKOFF_MS = 10000;
+
+const resolveRetryAfterMs = (payload) => {
+    const candidate = payload?.retryAfter ?? payload?.retry_after ?? payload?.pollAfterMs ?? payload?.poll_after_ms;
+    const value = Number(candidate);
+    if (!Number.isFinite(value) || value <= 0) return null;
+    return value >= 1000 ? value : value * 1000;
+};
 
 const isTerminalClientError = (error) => {
     const status = Number(error?.status);
@@ -78,6 +86,7 @@ export default function CheckoutSuccess() {
     const timeoutRef = useRef(null);
     const requestControllerRef = useRef(null);
     const orderRef = useRef(null);
+    const retryCountRef = useRef(0);
     const [retrySeed, setRetrySeed] = useState(0);
 
     useEffect(() => {
@@ -111,6 +120,7 @@ export default function CheckoutSuccess() {
         setNotFound(false);
         setOrder(null);
         orderRef.current = null;
+        retryCountRef.current = 0;
         setIsRetrying(false);
 
         const stopPolling = () => {
@@ -130,12 +140,14 @@ export default function CheckoutSuccess() {
             requestControllerRef.current = new AbortController();
             setLoading(true);
             let latestOrder = null;
+            let latestHttpStatus = null;
             try {
                 const response = sessionId
                     ? await fetchStoreOrderBySession(sessionId, { signal: requestControllerRef.current.signal })
                     : await fetchOrderStatus(orderId, { signal: requestControllerRef.current.signal });
                 const { data, correlationId, status: responseStatus } = response;
                 if (!isMounted) return;
+                latestHttpStatus = responseStatus ?? 200;
                 setHttpStatus(responseStatus ?? 200);
                 latestOrder = normalizeOrderPayload(data);
                 setOrder(latestOrder);
@@ -154,6 +166,7 @@ export default function CheckoutSuccess() {
                 }
             } catch (err) {
                 if (!isMounted || err?.name === 'AbortError') return;
+                latestHttpStatus = err?.status ?? null;
                 setHttpStatus(err?.status ?? null);
                 if (err?.status === 404) {
                     setNotFound(true);
@@ -194,7 +207,14 @@ export default function CheckoutSuccess() {
                 && !isFailedStatus(status);
 
             if (shouldContinue) {
-                timeoutRef.current = setTimeout(poll, POLL_INTERVAL_MS);
+                const baseDelay = POLL_INTERVAL_MS;
+                const retryAfterMs = latestHttpStatus === 202 ? resolveRetryAfterMs(latestOrder ?? orderRef.current) : null;
+                const backoffDelay = latestHttpStatus === 202
+                    ? Math.min(baseDelay * (2 ** retryCountRef.current), MAX_POLL_BACKOFF_MS)
+                    : baseDelay;
+                const pollDelay = retryAfterMs ?? backoffDelay;
+                timeoutRef.current = setTimeout(poll, pollDelay);
+                retryCountRef.current = latestHttpStatus === 202 ? retryCountRef.current + 1 : 0;
             } else if (!isMounted) {
                 return;
             } else if (elapsed >= MAX_POLL_DURATION_MS) {
