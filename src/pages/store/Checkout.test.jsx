@@ -1,10 +1,18 @@
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Checkout from './Checkout.jsx';
+import { fetchCustomerProfile } from '../../api/customer.js';
+import { fetchCustomerAddresses } from '../../api/customerAddresses.js';
 
 const redirectToLoginMock = vi.fn();
+const authState = {
+    isAuthenticated: false,
+    token: null,
+    logout: vi.fn(),
+    profile: {},
+};
 
 vi.mock('../../api/customerAddresses.js', () => ({
     createCustomerAddress: vi.fn(),
@@ -22,12 +30,7 @@ vi.mock('../../api/store.js', () => ({
     normalizeCartResponse: (payload) => payload,
 }));
 vi.mock('../../context/AuthContext.jsx', () => ({
-    useAuth: () => ({
-        isAuthenticated: false,
-        token: null,
-        logout: vi.fn(),
-        profile: {},
-    }),
+    useAuth: () => authState,
 }));
 vi.mock('../../context/StorefrontContext.jsx', () => ({
     useStorefront: () => ({
@@ -56,7 +59,14 @@ vi.mock('../../hooks/useRedirectToLogin.js', () => ({
 
 describe('Checkout B2B login enforcement', () => {
     beforeEach(() => {
+        authState.isAuthenticated = false;
+        authState.token = null;
+        authState.profile = {};
         redirectToLoginMock.mockReset();
+        vi.mocked(fetchCustomerProfile).mockReset();
+        vi.mocked(fetchCustomerProfile).mockResolvedValue(null);
+        vi.mocked(fetchCustomerAddresses).mockReset();
+        vi.mocked(fetchCustomerAddresses).mockResolvedValue([]);
     });
 
     it('prompts guest users to log in when company purchase is selected', async () => {
@@ -73,5 +83,40 @@ describe('Checkout B2B login enforcement', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Log in and continue' }));
 
         expect(redirectToLoginMock).toHaveBeenCalled();
+    });
+
+    it('prefills business purchase fields from profile without overwriting typed values', async () => {
+        authState.isAuthenticated = true;
+        authState.token = 'token-1';
+        vi.mocked(fetchCustomerProfile).mockResolvedValue({
+            user: {
+                email: 'buyer@example.com',
+                companyName: 'Acme AB',
+                organizationNumber: '556677-8899',
+                vatNumber: 'SE556677889901',
+                invoiceEmail: 'billing@acme.se',
+            },
+        });
+
+        render(
+            <MemoryRouter>
+                <Checkout />
+            </MemoryRouter>,
+        );
+
+        fireEvent.click(screen.getByLabelText('Company / Restaurant (B2B)'));
+
+        await waitFor(() => {
+            expect(screen.getByLabelText('Company name')).toHaveValue('Acme AB');
+            expect(screen.getByLabelText('Organization number')).toHaveValue('556677-8899');
+            expect(screen.getByLabelText('VAT number (optional)')).toHaveValue('SE556677889901');
+            expect(screen.getByLabelText('Invoice email (optional)')).toHaveValue('billing@acme.se');
+        });
+
+        fireEvent.change(screen.getByLabelText('Company name'), { target: { value: 'Typed Company' } });
+
+        await waitFor(() => {
+            expect(screen.getByLabelText('Company name')).toHaveValue('Typed Company');
+        });
     });
 });
