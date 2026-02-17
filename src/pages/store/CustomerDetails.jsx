@@ -9,6 +9,7 @@ import {
     renewCustomerCoupon,
     deleteCustomerCoupon,
     updateAdminCustomerPricingTier,
+    updateAdminCustomerInvoiceEligibility,
 } from '../../api/adminCustomers.js';
 import { listAdminProducts } from '../../api/products.js';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -135,6 +136,9 @@ export default function CustomerDetails() {
     const [selectedPricingTier, setSelectedPricingTier] = useState('DEFAULT');
     const [savingPricingTier, setSavingPricingTier] = useState(false);
     const [pricingTierFeedback, setPricingTierFeedback] = useState(null);
+    const [invoiceEligible, setInvoiceEligible] = useState(false);
+    const [savingInvoiceEligibility, setSavingInvoiceEligibility] = useState(false);
+    const [invoiceEligibilityFeedback, setInvoiceEligibilityFeedback] = useState(null);
     const [generatedCode, setGeneratedCode] = useState('');
     const [copyState, setCopyState] = useState('idle');
 
@@ -163,6 +167,7 @@ export default function CustomerDetails() {
                 const payload = await fetchAdminCustomer(normalizedCustomerId, token, { signal: controller.signal });
                 setCustomer(payload);
                 setSelectedPricingTier(payload?.pricingTier || 'DEFAULT');
+                setInvoiceEligible(Boolean(payload?.invoiceEligible));
             } catch (loadError) {
                 console.error('Failed to load customer details', loadError);
                 setError(getErrorMessage(loadError, 'Unable to load customer details right now.'));
@@ -256,6 +261,27 @@ export default function CustomerDetails() {
             });
         } finally {
             setSavingPricingTier(false);
+        }
+    };
+
+    const handleSaveInvoiceEligibility = async () => {
+        if (!customer?.id) return;
+        setSavingInvoiceEligibility(true);
+        setInvoiceEligibilityFeedback(null);
+        try {
+            const updated = await updateAdminCustomerInvoiceEligibility(customer.id, invoiceEligible, token);
+            if (updated) {
+                setCustomer(updated);
+                setInvoiceEligible(Boolean(updated.invoiceEligible));
+            }
+            setInvoiceEligibilityFeedback({ type: 'success', message: 'Saved' });
+        } catch (invoiceError) {
+            setInvoiceEligibilityFeedback({
+                type: 'error',
+                message: getErrorMessage(invoiceError, 'Unable to update invoice eligibility.'),
+            });
+        } finally {
+            setSavingInvoiceEligibility(false);
         }
     };
 
@@ -623,6 +649,43 @@ export default function CustomerDetails() {
                                             role="status"
                                         >
                                             {pricingTierFeedback.message}
+                                        </span>
+                                    ) : null}
+                                </div>
+                            </dd>
+                        </div>
+                        <div>
+                            <dt>Invoice payment eligible</dt>
+                            <dd>
+                                <div className={styles.tierRow}>
+                                    <label className={styles.toggleLabel}>
+                                        <input
+                                            type="checkbox"
+                                            checked={invoiceEligible}
+                                            onChange={(event) => {
+                                                setInvoiceEligible(event.target.checked);
+                                                setInvoiceEligibilityFeedback(null);
+                                            }}
+                                        />
+                                        <span>{invoiceEligible ? 'Enabled' : 'Disabled'}</span>
+                                    </label>
+                                    <button
+                                        type="button"
+                                        onClick={handleSaveInvoiceEligibility}
+                                        disabled={savingInvoiceEligibility}
+                                    >
+                                        {savingInvoiceEligibility ? 'Saving…' : 'Save'}
+                                    </button>
+                                    {invoiceEligibilityFeedback ? (
+                                        <span
+                                            className={
+                                                invoiceEligibilityFeedback.type === 'error'
+                                                    ? styles.tierFeedbackError
+                                                    : styles.tierFeedbackSuccess
+                                            }
+                                            role="status"
+                                        >
+                                            {invoiceEligibilityFeedback.message}
                                         </span>
                                     ) : null}
                                 </div>
