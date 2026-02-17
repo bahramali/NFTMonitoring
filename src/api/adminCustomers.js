@@ -181,11 +181,6 @@ const normalizeCustomer = (customer) => {
         currency: customer?.currency ?? customer?.totalCurrency ?? customer?.spendCurrency ?? '',
         orders,
         pricingTier: normalizePricingTier(customer?.pricingTier ?? customer?.tier ?? customer?.customerTier),
-        invoiceEligible: Boolean(
-            customer?.invoiceEligible
-            ?? customer?.invoicePaymentEligible
-            ?? customer?.isInvoiceEligible,
-        ),
     };
 };
 
@@ -478,24 +473,5 @@ export async function updateAdminCustomerPricingTier(customerId, tier, token, { 
     );
 
     const payload = await parseApiResponse(res, 'Failed to update customer tier');
-    return normalizeCustomer(payload?.customer ?? payload?.data ?? payload);
-}
-
-export async function updateAdminCustomerInvoiceEligibility(customerId, invoiceEligible, token, { signal } = {}) {
-    if (!token) throw new Error('Authentication is required to update invoice eligibility');
-    const normalizedCustomerId = assertValidCustomerId(customerId);
-
-    const res = await authFetch(
-        `${ADMIN_CUSTOMERS_URL}/${encodeURIComponent(normalizedCustomerId)}/invoice-eligibility`,
-        {
-            method: 'PATCH',
-            headers: buildAuthHeaders(token),
-            signal,
-            body: JSON.stringify({ invoiceEligible: Boolean(invoiceEligible) }),
-        },
-        { token },
-    );
-
-    const payload = await parseApiResponse(res, 'Failed to update invoice eligibility');
     return normalizeCustomer(payload?.customer ?? payload?.data ?? payload);
 }

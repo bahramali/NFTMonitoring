@@ -465,13 +465,6 @@
     align-items: center;
 }
 
-.toggleLabel {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    font-size: 0.9rem;
-}
-
 .tierFeedbackSuccess {
     color: #15803d;
     font-size: 0.85rem;
