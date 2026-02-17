@@ -303,7 +303,10 @@ export async function createStripeCheckoutSession(
 
 export async function fetchOrderStatus(orderId, { signal } = {}) {
     if (!orderId) throw new Error('Order ID is required');
-    const res = await fetch(`${API_BASE}/api/orders/${encodeURIComponent(orderId)}`, { signal });
+    const res = await authFetch(`${API_BASE}/api/orders/${encodeURIComponent(orderId)}`, {
+        signal,
+        credentials: 'include',
+    });
     return parseApiResponseWithMeta(res, 'Failed to load order status');
 }
 
