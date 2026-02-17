@@ -161,7 +161,7 @@ export async function fetchOrderDetail(token, orderId, { signal, onUnauthorized 
     if (!token) throw new Error('Authentication is required to load an order');
     if (!orderId) throw new Error('Order ID is required');
 
-    const url = `${API_BASE}/api/store/orders/${encodeURIComponent(orderId)}`;
+    const url = `${API_BASE}/api/me/orders/${encodeURIComponent(orderId)}`;
     const res = await authFetch(
         url,
         {
