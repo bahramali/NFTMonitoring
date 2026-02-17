@@ -61,6 +61,7 @@ export const normalizeOrderList = (payload) => {
     const list = Array.isArray(payload) ? payload : Array.isArray(payload?.orders) ? payload.orders : [];
     return list.map((order) => ({
         id: order.orderId ?? order.id ?? order.orderNumber ?? order.reference ?? '',
+        orderNumber: order.orderNumber ?? order.reference ?? order.orderId ?? order.id ?? '',
         status: order.displayStatus ?? order.orderStatus ?? order.mappedStatus ?? order.status ?? order.state ?? 'PENDING',
         total: pickAmount(order, ['totalAmount', 'total', 'amount'], ['totalCents', 'totalAmountCents']),
         currency: order.currency ?? order.totalCurrency ?? 'SEK',

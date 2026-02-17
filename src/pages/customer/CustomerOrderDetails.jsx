@@ -254,7 +254,7 @@ export default function CustomerOrderDetails() {
         <div className={styles.page}>
             <div className={styles.summaryHeader}>
                 <div>
-                    <h1>Order #{activeOrder?.id}</h1>
+                    <h1>Order #{activeOrder?.orderNumber || activeOrder?.id}</h1>
                     <p>Placed {activeOrder?.createdAt ? new Date(activeOrder.createdAt).toLocaleString() : '—'}</p>
                 </div>
                 <OrderStatusPill status={activeOrder?.status} />
