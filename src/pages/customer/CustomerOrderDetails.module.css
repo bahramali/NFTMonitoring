@@ -96,3 +96,15 @@
     opacity: 0.6;
     cursor: wait;
 }
+
+.toast {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    background: #166534;
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.24);
+    z-index: 1100;
+}
