@@ -143,6 +143,12 @@ export default function CheckoutSuccess() {
                 setError(null);
                 setNotFound(false);
                 serverErrorCount = 0;
+                const paymentMode = `${latestOrder?.paymentMode ?? latestOrder?.payment_mode ?? selectedPaymentMode ?? ''}`.toUpperCase();
+                const isInvoiceFlow = paymentMode === 'INVOICE_PAY_LATER';
+                if (isInvoiceFlow) {
+                    stopPolling();
+                    return;
+                }
                 if (correlationId) {
                     setReferenceId((prev) => (prev === correlationId ? prev : correlationId));
                 }
@@ -213,7 +219,7 @@ export default function CheckoutSuccess() {
                 timeoutRef.current = null;
             }
         };
-    }, [orderId, retrySeed, sessionId]);
+    }, [orderId, retrySeed, selectedPaymentMode, sessionId]);
 
     const status = useMemo(() => resolveOrderStatus(order), [order]);
     const resolvedPaymentMode = (
