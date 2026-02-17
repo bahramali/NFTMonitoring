@@ -104,7 +104,7 @@ export const normalizeOrder = (payload) => {
     };
 
     if (result.paymentMode === 'INVOICE_PAY_LATER') {
-        result.paymentMethod = result.paymentMethod || 'Invoice';
+        result.paymentMethod = result.paymentMethod || 'Invoice (pay later)';
         result.paymentReference = result.paymentReference || result.invoiceNumber || '';
         result.paymentStatus = result.paymentStatus || 'UNPAID';
     }
