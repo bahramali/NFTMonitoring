@@ -7,6 +7,12 @@ import { fetchCustomerProfile } from '../../api/customer.js';
 import { fetchCustomerAddresses } from '../../api/customerAddresses.js';
 
 const redirectToLoginMock = vi.fn();
+const storefrontState = {
+    cart: {
+        items: [{ id: 'item-1', name: 'Leaf', quantity: 1, unitPrice: 100 }],
+        totals: { gross: 100, net: 80, vat: 20, shipping: 0, currency: 'SEK' },
+    },
+};
 const authState = {
     isAuthenticated: false,
     token: null,
@@ -34,10 +40,7 @@ vi.mock('../../context/AuthContext.jsx', () => ({
 }));
 vi.mock('../../context/StorefrontContext.jsx', () => ({
     useStorefront: () => ({
-        cart: {
-            items: [{ id: 'item-1', name: 'Leaf', quantity: 1, unitPrice: 100 }],
-            totals: { gross: 100, net: 80, vat: 20, shipping: 0, currency: 'SEK' },
-        },
+        cart: storefrontState.cart,
         cartId: 'cart-1',
         sessionId: 'session-1',
         notify: vi.fn(),
@@ -59,6 +62,10 @@ vi.mock('../../hooks/useRedirectToLogin.js', () => ({
 
 describe('Checkout B2B login enforcement', () => {
     beforeEach(() => {
+        storefrontState.cart = {
+            items: [{ id: 'item-1', name: 'Leaf', quantity: 1, unitPrice: 100 }],
+            totals: { gross: 100, net: 80, vat: 20, shipping: 0, currency: 'SEK' },
+        };
         authState.isAuthenticated = false;
         authState.token = null;
         authState.profile = {};
@@ -118,5 +125,48 @@ describe('Checkout B2B login enforcement', () => {
         await waitFor(() => {
             expect(screen.getByLabelText('Company name')).toHaveValue('Typed Company');
         });
+    });
+
+    it('disables invoice pay later when invoice eligibility is false and shows helper text', async () => {
+        authState.isAuthenticated = true;
+        authState.token = 'token-1';
+        storefrontState.cart = {
+            ...storefrontState.cart,
+            invoicePayLaterEligible: false,
+        };
+
+        render(
+            <MemoryRouter>
+                <Checkout />
+            </MemoryRouter>,
+        );
+
+        fireEvent.click(screen.getByLabelText('Company / Restaurant (B2B)'));
+
+        const invoiceOption = await screen.findByLabelText('Invoice (pay later)');
+        expect(invoiceOption).toBeDisabled();
+        expect(screen.getByText('Invoice is available only for approved business customers.')).toBeInTheDocument();
+    });
+
+    it('allows selecting invoice pay later when invoice eligibility is true', async () => {
+        authState.isAuthenticated = true;
+        authState.token = 'token-1';
+        storefrontState.cart = {
+            ...storefrontState.cart,
+            invoicePayLaterEligible: true,
+        };
+
+        render(
+            <MemoryRouter>
+                <Checkout />
+            </MemoryRouter>,
+        );
+
+        fireEvent.click(screen.getByLabelText('Company / Restaurant (B2B)'));
+        const invoiceOption = await screen.findByLabelText('Invoice (pay later)');
+
+        fireEvent.click(invoiceOption);
+        expect(invoiceOption).toBeChecked();
+        expect(screen.queryByText('Invoice is available only for approved business customers.')).not.toBeInTheDocument();
     });
 });

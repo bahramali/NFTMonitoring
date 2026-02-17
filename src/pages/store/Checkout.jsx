@@ -248,7 +248,7 @@ export default function Checkout() {
         const enabled = typeof flag === 'boolean' ? flag : isB2B;
         return {
             enabled,
-            reason: enabled ? '' : (backendReason || 'Invoice payment is only available for approved business customers.'),
+            reason: enabled ? '' : (backendReason || 'Invoice is available only for approved business customers.'),
         };
     }, [activeCart, isB2B]);
 
