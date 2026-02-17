@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
 import {
+    cancelMyOrder,
     emailOrderInvoice,
     fetchOrderDetail,
     fetchOrderInvoiceHtml,
@@ -54,6 +55,7 @@ export default function CustomerOrderDetails() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [documentState, setDocumentState] = useState({ loading: '', error: '', warning: '', success: '', retryKey: '' });
+    const [cancelState, setCancelState] = useState({ open: false, loading: false, error: '', success: '' });
 
     const existingOrder = useMemo(
         () => (ordersState?.items || []).find((entry) => String(entry.id) === String(orderId)),
@@ -85,6 +87,7 @@ export default function CustomerOrderDetails() {
     }, [existingOrder, orderId, redirectToLogin, token]);
 
     const activeOrder = order || existingOrder;
+    const canCancelOrder = toStatusKey(activeOrder?.status) === 'PENDING_CONFIRMATION';
     const paymentStatus = toStatusKey(activeOrder?.paymentStatus || activeOrder?.status);
     const paymentFinalized = ['PAID', 'PAYMENT_SUCCEEDED', 'COMPLETED', 'PROCESSING'].includes(paymentStatus);
     const invoiceMode = isInvoicePaymentMode(activeOrder);
@@ -205,6 +208,26 @@ export default function CustomerOrderDetails() {
             setDocumentState({ loading: '', error: '', warning: '', success: '', retryKey: '' });
         } catch (err) {
             handleDocumentError(err, key, 'Could not complete this document action right now.');
+        }
+    };
+
+    const handleCancelOrder = async () => {
+        if (!token || !orderId || !canCancelOrder || cancelState.loading) return;
+        setCancelState((prev) => ({ ...prev, loading: true, error: '', success: '' }));
+        try {
+            const payload = await cancelMyOrder(token, orderId, { onUnauthorized: redirectToLogin });
+            if (payload) {
+                setOrder(normalizeOrder(payload));
+            } else {
+                setOrder((prev) => (prev ? { ...prev, status: 'CANCELLED' } : prev));
+            }
+            setCancelState({ open: false, loading: false, error: '', success: 'Order cancelled.' });
+        } catch (err) {
+            setCancelState((prev) => ({
+                ...prev,
+                loading: false,
+                error: err?.message || 'Could not cancel the order right now.',
+            }));
         }
     };
 
@@ -353,7 +376,50 @@ export default function CustomerOrderDetails() {
             </div>
 
             {error ? <p className={styles.error}>{error}</p> : null}
+            {cancelState.error ? <p className={styles.error}>{cancelState.error}</p> : null}
+            {cancelState.success ? <p className={styles.success}>{cancelState.success}</p> : null}
+            {canCancelOrder ? (
+                <button
+                    type="button"
+                    className={styles.cancelButton}
+                    onClick={() => setCancelState((prev) => ({ ...prev, open: true, error: '', success: '' }))}
+                >
+                    Cancel order
+                </button>
+            ) : null}
             <Link to="/account/orders" className={styles.backButton}>Back to orders</Link>
+
+            {cancelState.open ? (
+                <div className={styles.modalBackdrop} role="presentation" onClick={() => setCancelState((prev) => ({ ...prev, open: false }))}>
+                    <div
+                        className={styles.modalPanel}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="cancel-order-title"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <h3 id="cancel-order-title">Cancel order?</h3>
+                        <p>This cannot be undone.</p>
+                        <div className={styles.modalActions}>
+                            <button
+                                type="button"
+                                className={styles.modalSecondary}
+                                onClick={() => setCancelState((prev) => ({ ...prev, open: false }))}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.modalDanger}
+                                onClick={handleCancelOrder}
+                                disabled={cancelState.loading}
+                            >
+                                {cancelState.loading ? 'Cancelling…' : 'Confirm cancellation'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
         </div>
     );
 }
