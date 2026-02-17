@@ -43,6 +43,8 @@ const isTerminalClientError = (error) => {
     return code === 'CART_CLOSED'
         || message.includes('cart is no longer open')
         || message.includes('no longer open')
+        || status === 401
+        || status === 403
         || status === 404
         || status === 409;
 };
@@ -155,7 +157,11 @@ export default function CheckoutSuccess() {
                 }
 
                 if (isTerminalClientError(err)) {
-                    setError(err?.status === 404 ? null : (err?.message || 'Your cart has been checked out.'));
+                    if (err?.status === 401 || err?.status === 403) {
+                        setError('Please sign in again to view your order status.');
+                    } else {
+                        setError(err?.status === 404 ? null : (err?.message || 'Unable to load order status.'));
+                    }
                     stopPolling();
                     return;
                 }
