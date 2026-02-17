@@ -107,6 +107,39 @@
     cursor: pointer;
 }
 
+.paymentDetailsCard {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.75rem;
+}
+
+.paymentDetailsTitle {
+    margin: 0 0 0.6rem;
+    color: #0f172a;
+    font-size: 1.1rem;
+}
+
+.statusValueWithAction {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.copyButton {
+    border: 1px solid #94a3b8;
+    background: #fff;
+    color: #0f172a;
+    padding: 0.25rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
 @media (max-width: 700px) {
     .card {
         padding: 1.75rem;
