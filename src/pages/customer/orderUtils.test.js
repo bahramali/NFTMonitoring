@@ -16,7 +16,7 @@ describe('normalizeOrder invoice mode details', () => {
         });
 
         expect(order.paymentMode).toBe('INVOICE_PAY_LATER');
-        expect(order.paymentMethod).toBe('Invoice (pay later)');
+        expect(order.paymentMethod).toBe('Invoice');
         expect(order.paymentStatus).toBe('UNPAID');
         expect(order.bankgiro).toBe('5555-1234');
         expect(order.invoiceOcr).toBe('1234567890');

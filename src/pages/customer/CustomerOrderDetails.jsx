@@ -84,7 +84,9 @@ export default function CustomerOrderDetails() {
     const paymentFinalized = ['PAID', 'PAYMENT_SUCCEEDED', 'COMPLETED', 'PROCESSING'].includes(paymentStatus);
     const invoiceMode = isInvoicePaymentMode(activeOrder);
     const businessOrder = isBusinessOrder(activeOrder);
-    const paymentMethodLabel = activeOrder?.paymentMethod || 'Not available yet';
+    const paymentMethodLabel = invoiceMode
+        ? 'Invoice (pay later)'
+        : (activeOrder?.paymentMethod || 'Not available yet');
     const paymentReferenceLabel = activeOrder?.paymentReference || 'Not available yet';
     const resolvedPaymentMode = activeOrder?.paymentMode || activeOrder?.raw?.paymentMode || '—';
     const paymentStatusLabel = invoiceMode && paymentStatus !== 'PAID' ? 'UNPAID' : (paymentStatus || 'UNKNOWN');
