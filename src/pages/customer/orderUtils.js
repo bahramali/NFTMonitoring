@@ -99,11 +99,14 @@ export const normalizeOrder = (payload) => {
         invoiceNumber: base.invoiceNumber ?? base.invoice?.number ?? payment.invoiceNumber ?? '',
         invoiceStatus: base.invoiceStatus ?? base.invoice?.status ?? payment.invoiceStatus ?? '',
         invoiceDueDate: base.invoiceDueDate ?? base.invoice?.dueDate ?? payment.invoiceDueDate ?? '',
+        bankgiro: base.bankgiro ?? base.invoice?.bankgiro ?? payment.bankgiro ?? '',
+        invoiceOcr: base.invoiceOcr ?? base.invoice?.ocr ?? payment.invoiceOcr ?? '',
     };
 
     if (result.paymentMode === 'INVOICE_PAY_LATER') {
         result.paymentMethod = result.paymentMethod || 'Invoice';
         result.paymentReference = result.paymentReference || result.invoiceNumber || '';
+        result.paymentStatus = result.paymentStatus || 'UNPAID';
     }
 
     return result;
