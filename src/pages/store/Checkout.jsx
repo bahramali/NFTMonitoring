@@ -41,14 +41,23 @@ const initialForm = {
 
 const normalizeProfile = (payload) => {
     const source = payload?.user ?? payload ?? {};
+    const company = source?.company ?? source?.business ?? source?.organization ?? {};
     const email = source.email ?? source.username ?? '';
     const fullName = source.fullName ?? source.name ?? source.displayName ?? '';
     const phone = source.phone ?? source.phoneNumber ?? '';
+    const companyName = source?.companyName ?? company?.name ?? '';
+    const orgNumber = source?.orgNumber ?? source?.organizationNumber ?? company?.orgNumber ?? company?.organizationNumber ?? '';
+    const vatNumber = source?.vatNumber ?? company?.vatNumber ?? '';
+    const invoiceEmail = source?.invoiceEmail ?? company?.invoiceEmail ?? '';
 
     return {
         email,
         fullName,
         phone,
+        companyName,
+        orgNumber,
+        vatNumber,
+        invoiceEmail,
     };
 };
 
@@ -304,6 +313,10 @@ export default function Checkout() {
                     ...prev,
                     fullName: prev.fullName || normalized.fullName,
                     phone: prev.phone || normalized.phone,
+                    companyName: prev.companyName || normalized.companyName || '',
+                    orgNumber: prev.orgNumber || normalized.orgNumber || '',
+                    vatNumber: prev.vatNumber || normalized.vatNumber || '',
+                    invoiceEmail: prev.invoiceEmail || normalized.invoiceEmail || '',
                 }));
             })
             .catch((err) => {
