@@ -606,6 +606,7 @@ export default function Checkout() {
                     order_id: String(orderId),
                     payment_mode: 'INVOICE_PAY_LATER',
                 });
+                if (sessionId) params.set('session_id', String(sessionId));
                 const invoiceNumber = responseOrder?.invoiceNumber ?? responseOrder?.invoice?.number;
                 const dueDate = responseOrder?.invoiceDueDate ?? responseOrder?.invoice?.dueDate;
                 if (invoiceNumber) params.set('invoice_number', String(invoiceNumber));
