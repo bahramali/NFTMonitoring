@@ -17,6 +17,11 @@ import styles from './CustomerOrderDetails.module.css';
 
 const toStatusKey = (value) => String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
 const isInvoicePaymentMode = (order) => toStatusKey(order?.paymentMode ?? order?.raw?.paymentMode) === 'INVOICE_PAY_LATER';
+const hasIssuedInvoice = (order) => {
+    const invoiceNumber = order?.invoiceNumber ?? order?.raw?.invoiceNumber ?? order?.raw?.invoice?.number;
+    const invoiceStatus = toStatusKey(order?.invoiceStatus ?? order?.raw?.invoiceStatus ?? order?.raw?.invoice?.status);
+    return Boolean(invoiceNumber) || ['ISSUED', 'SENT', 'AVAILABLE'].includes(invoiceStatus);
+};
 const isBusinessOrder = (order) => {
     const customerType = toStatusKey(order?.customerType ?? order?.raw?.customerType);
     if (customerType === 'B2B' || customerType === 'BUSINESS' || customerType === 'COMPANY') return true;
@@ -83,6 +88,8 @@ export default function CustomerOrderDetails() {
     const paymentStatus = toStatusKey(activeOrder?.paymentStatus || activeOrder?.status);
     const paymentFinalized = ['PAID', 'PAYMENT_SUCCEEDED', 'COMPLETED', 'PROCESSING'].includes(paymentStatus);
     const invoiceMode = isInvoicePaymentMode(activeOrder);
+    const invoiceIssued = hasIssuedInvoice(activeOrder);
+    const invoicePdfAvailable = invoiceMode ? invoiceIssued : paymentFinalized;
     const businessOrder = isBusinessOrder(activeOrder);
     const paymentMethodLabel = invoiceMode
         ? 'Invoice (pay later)'
@@ -229,8 +236,8 @@ export default function CustomerOrderDetails() {
             key: 'download-pdf',
             label: 'Download PDF',
             helper: 'Downloads to your device.',
-            disabled: !paymentFinalized,
-            reason: 'Available after payment confirmation.',
+            disabled: !invoicePdfAvailable,
+            reason: invoiceMode ? 'Available once the invoice is issued.' : 'Available after payment confirmation.',
             loading: documentState.loading === 'download-pdf',
             variant: 'secondary',
             onClick: () => runDocumentAction('download-pdf'),
@@ -239,8 +246,8 @@ export default function CustomerOrderDetails() {
             key: 'open-pdf',
             label: 'Open PDF',
             helper: 'PDF opens in a new tab.',
-            disabled: !paymentFinalized,
-            reason: 'Available after payment confirmation.',
+            disabled: !invoicePdfAvailable,
+            reason: invoiceMode ? 'Available once the invoice is issued.' : 'Available after payment confirmation.',
             loading: documentState.loading === 'open-pdf',
             variant: 'secondary',
             onClick: () => runDocumentAction('open-pdf'),
