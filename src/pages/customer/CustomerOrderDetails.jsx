@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
 import {
     cancelMyOrder,
@@ -49,29 +49,35 @@ const formatAddress = (value) => {
 export default function CustomerOrderDetails() {
     const { orderId } = useParams();
     const { token } = useAuth();
-    const { ordersState } = useOutletContext();
+    const { ordersState, loadOrders } = useOutletContext();
     const redirectToLogin = useRedirectToLogin();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [documentState, setDocumentState] = useState({ loading: '', error: '', warning: '', success: '', retryKey: '' });
-    const [cancelState, setCancelState] = useState({ open: false, loading: false, error: '', success: '' });
+    const [cancelState, setCancelState] = useState({ open: false, loading: false, error: '' });
+    const [toastMessage, setToastMessage] = useState('');
 
     const existingOrder = useMemo(
         () => (ordersState?.items || []).find((entry) => String(entry.id) === String(orderId)),
         [orderId, ordersState?.items],
     );
 
+    const loadOrderDetails = useCallback(async (signal) => {
+        if (!token || !orderId) return null;
+        const payload = await fetchOrderDetail(token, orderId, { signal, onUnauthorized: redirectToLogin });
+        if (payload === null) return null;
+        const normalizedOrder = normalizeOrder(payload);
+        setOrder(normalizedOrder);
+        return normalizedOrder;
+    }, [orderId, redirectToLogin, token]);
+
     useEffect(() => {
         if (!token || !orderId) return undefined;
         const controller = new AbortController();
         setLoading(true);
         setError('');
-        fetchOrderDetail(token, orderId, { signal: controller.signal, onUnauthorized: redirectToLogin })
-            .then((payload) => {
-                if (payload === null) return;
-                setOrder(normalizeOrder(payload));
-            })
+        loadOrderDetails(controller.signal)
             .catch((err) => {
                 if (err?.name === 'AbortError') return;
                 if (err?.isUnsupported) {
@@ -84,7 +90,13 @@ export default function CustomerOrderDetails() {
             .finally(() => setLoading(false));
 
         return () => controller.abort();
-    }, [existingOrder, orderId, redirectToLogin, token]);
+    }, [existingOrder, loadOrderDetails, orderId, token]);
+
+    useEffect(() => {
+        if (!toastMessage) return undefined;
+        const timeoutId = window.setTimeout(() => setToastMessage(''), 3500);
+        return () => window.clearTimeout(timeoutId);
+    }, [toastMessage]);
 
     const activeOrder = order || existingOrder;
     const canCancelOrder = toStatusKey(activeOrder?.status) === 'PENDING_CONFIRMATION';
@@ -213,7 +225,7 @@ export default function CustomerOrderDetails() {
 
     const handleCancelOrder = async () => {
         if (!token || !orderId || !canCancelOrder || cancelState.loading) return;
-        setCancelState((prev) => ({ ...prev, loading: true, error: '', success: '' }));
+        setCancelState((prev) => ({ ...prev, loading: true, error: '' }));
         try {
             const payload = await cancelMyOrder(token, orderId, { onUnauthorized: redirectToLogin });
             if (payload) {
@@ -221,12 +233,17 @@ export default function CustomerOrderDetails() {
             } else {
                 setOrder((prev) => (prev ? { ...prev, status: 'CANCELLED' } : prev));
             }
-            setCancelState({ open: false, loading: false, error: '', success: 'Order cancelled.' });
+            await loadOrderDetails();
+            await loadOrders?.({ silent: true });
+            setToastMessage('Order cancelled.');
+            setCancelState({ open: false, loading: false, error: '' });
         } catch (err) {
             setCancelState((prev) => ({
                 ...prev,
                 loading: false,
-                error: err?.message || 'Could not cancel the order right now.',
+                error: err?.status === 409
+                    ? (err?.message || 'Could not cancel the order right now.')
+                    : 'Could not cancel the order right now.',
             }));
         }
     };
@@ -377,12 +394,16 @@ export default function CustomerOrderDetails() {
 
             {error ? <p className={styles.error}>{error}</p> : null}
             {cancelState.error ? <p className={styles.error}>{cancelState.error}</p> : null}
-            {cancelState.success ? <p className={styles.success}>{cancelState.success}</p> : null}
+            {toastMessage ? (
+                <div className={styles.toast} role="status" aria-live="polite">
+                    {toastMessage}
+                </div>
+            ) : null}
             {canCancelOrder ? (
                 <button
                     type="button"
                     className={styles.cancelButton}
-                    onClick={() => setCancelState((prev) => ({ ...prev, open: true, error: '', success: '' }))}
+                    onClick={() => setCancelState((prev) => ({ ...prev, open: true, error: '' }))}
                 >
                     Cancel order
                 </button>
