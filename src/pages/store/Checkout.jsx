@@ -225,9 +225,12 @@ export default function Checkout() {
     const priceModeSuffix = getPriceDisplaySuffix(priceDisplayMode);
     const showVatRow = true;
     const showVatInvoiceHint = isB2B && summaryTax <= 0;
+    const payableTotal = showVatInvoiceHint
+        ? displayedSummaryTotal
+        : displayedSummaryGross;
     const ctaLabel = paymentMode === 'INVOICE_PAY_LATER'
-        ? `Place order & receive invoice – ${formatCurrency(displayedSummaryTotal, quoteCurrency)}`
-        : `Proceed to payment – ${formatCurrency(displayedSummaryTotal, quoteCurrency)}`;
+        ? `Place order & receive invoice – ${formatCurrency(payableTotal, quoteCurrency)}`
+        : `Proceed to payment – ${formatCurrency(payableTotal, quoteCurrency)}`;
 
     const invoiceOption = useMemo(() => {
         const invoiceDetails = activeCart?.invoice ?? activeCart?.checkout?.invoice ?? {};
@@ -1106,11 +1109,11 @@ export default function Checkout() {
                         <div className={styles.divider} />
                         <div className={`${styles.row} ${styles.total}`}>
                             <span>
-                                {isB2B && priceDisplayMode === 'EXKL_MOMS'
+                                {showVatInvoiceHint
                                     ? `Att betala (exkl. moms · ${currencyLabel(quoteCurrency)})`
                                     : `Att betala (inkl. moms · ${currencyLabel(quoteCurrency)})`}
                             </span>
-                            <span>{formatCurrency(displayedSummaryTotal, quoteCurrency)}</span>
+                            <span>{formatCurrency(payableTotal, quoteCurrency)}</span>
                         </div>
                     </aside>
                 </div>
