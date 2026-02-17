@@ -1,5 +1,7 @@
 import { extractPaymentUrl } from '../../utils/payment.js';
 
+const toStatusKey = (value) => String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+
 const toNumber = (value) => {
     if (value == null || value === '') return null;
     const parsed = Number(value);
@@ -85,16 +87,24 @@ export const normalizeOrder = (payload) => {
     const base = payload?.order ?? payload ?? {};
     const normalized = normalizeOrderList([base])[0] || {};
     const payment = base.payment ?? {};
+    const paymentMode = toStatusKey(normalized.paymentMode || base.paymentMode || base.payment_mode || payment.mode || '');
 
-    return {
+    const result = {
         ...normalized,
         paymentStatus: base.paymentStatus ?? base.payment_state ?? payment.status ?? '',
         paymentMethod: normalized.paymentMethod || payment.method || payment.brand || base.payment_type || '',
         paymentReference: normalized.paymentReference || payment.reference || payment.id || base.paymentIntentId || '',
         deliveryStatus: base.deliveryStatus ?? base.fulfillmentStatus ?? base.fulfillment?.status ?? '',
-        paymentMode: normalized.paymentMode || base.paymentMode || base.payment_mode || payment.mode || '',
+        paymentMode,
         invoiceNumber: base.invoiceNumber ?? base.invoice?.number ?? payment.invoiceNumber ?? '',
         invoiceStatus: base.invoiceStatus ?? base.invoice?.status ?? payment.invoiceStatus ?? '',
         invoiceDueDate: base.invoiceDueDate ?? base.invoice?.dueDate ?? payment.invoiceDueDate ?? '',
     };
+
+    if (result.paymentMode === 'INVOICE_PAY_LATER') {
+        result.paymentMethod = result.paymentMethod || 'Invoice';
+        result.paymentReference = result.paymentReference || result.invoiceNumber || '';
+    }
+
+    return result;
 };
