@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { fetchOrderStatus, fetchStoreOrderBySession } from '../../api/store.js';
 import { useStorefront } from '../../context/StorefrontContext.jsx';
+import { formatCurrency } from '../../utils/currency.js';
 import { mapOrderStatus } from '../../utils/orderStatus.js';
 import styles from './CheckoutReturn.module.css';
 
@@ -83,6 +84,7 @@ export default function CheckoutSuccess() {
     const [isRetrying, setIsRetrying] = useState(false);
     const [httpStatus, setHttpStatus] = useState(null);
     const [referenceId, setReferenceId] = useState(null);
+    const [copiedField, setCopiedField] = useState('');
     const timeoutRef = useRef(null);
     const requestControllerRef = useRef(null);
     const orderRef = useRef(null);
@@ -106,6 +108,19 @@ export default function CheckoutSuccess() {
     const handleRetry = () => {
         setIsRetrying(true);
         setRetrySeed((value) => value + 1);
+    };
+
+    const handleCopy = async (label, value) => {
+        if (!value || !navigator?.clipboard?.writeText) return;
+        try {
+            await navigator.clipboard.writeText(`${value}`);
+            setCopiedField(label);
+            window.setTimeout(() => {
+                setCopiedField((currentLabel) => (currentLabel === label ? '' : currentLabel));
+            }, 1500);
+        } catch (copyError) {
+            console.error(`Failed to copy ${label}.`, copyError);
+        }
     };
 
     useEffect(() => {
@@ -252,6 +267,10 @@ export default function CheckoutSuccess() {
     const isInvoiceFlow = `${resolvedPaymentMode}`.toUpperCase() === 'INVOICE_PAY_LATER';
     const invoiceNumber = order?.invoiceNumber ?? order?.invoice?.number ?? hintedInvoiceNumber;
     const invoiceDueDate = order?.invoiceDueDate ?? order?.invoice?.dueDate ?? hintedInvoiceDueDate;
+    const bankgiro = order?.bankgiro ?? order?.invoice?.bankgiro ?? null;
+    const invoiceOcr = order?.invoiceOcr ?? order?.invoice?.ocr ?? null;
+    const grossTotal = order?.totals?.grossTotal ?? order?.totals?.gross ?? order?.totals?.total ?? null;
+    const orderCurrency = order?.totals?.currency ?? order?.currency ?? 'SEK';
     const isPaid = isPaidStatus(status);
     const isFailed = isFailedStatus(status);
     const isPending = (isPendingStatus(status) || notFound || httpStatus === 202) && !isFailed && !isPaid;
@@ -333,6 +352,42 @@ export default function CheckoutSuccess() {
                         </button>
                     ) : null}
                 </div>
+
+                {isInvoiceFlow ? (
+                    <div className={styles.paymentDetailsCard}>
+                        <h2 className={styles.paymentDetailsTitle}>Pay by bank transfer</h2>
+                        <div className={styles.statusRow}>
+                            <span className={styles.statusLabel}>Bankgiro</span>
+                            <span className={styles.statusValueWithAction}>
+                                <span>{bankgiro || 'Pending'}</span>
+                                {bankgiro ? (
+                                    <button type="button" className={styles.copyButton} onClick={() => handleCopy('bankgiro', bankgiro)}>
+                                        {copiedField === 'bankgiro' ? 'Copied' : 'Copy'}
+                                    </button>
+                                ) : null}
+                            </span>
+                        </div>
+                        <div className={styles.statusRow}>
+                            <span className={styles.statusLabel}>OCR</span>
+                            <span className={styles.statusValueWithAction}>
+                                <span>{invoiceOcr || 'Pending'}</span>
+                                {invoiceOcr ? (
+                                    <button type="button" className={styles.copyButton} onClick={() => handleCopy('ocr', invoiceOcr)}>
+                                        {copiedField === 'ocr' ? 'Copied' : 'Copy'}
+                                    </button>
+                                ) : null}
+                            </span>
+                        </div>
+                        <div className={styles.statusRow}>
+                            <span className={styles.statusLabel}>Due date</span>
+                            <span className={styles.statusValue}>{invoiceDueDate ? new Date(invoiceDueDate).toLocaleDateString() : 'Pending'}</span>
+                        </div>
+                        <div className={styles.statusRow}>
+                            <span className={styles.statusLabel}>Amount</span>
+                            <span className={styles.statusValue}>{grossTotal != null ? formatCurrency(grossTotal, orderCurrency) : 'Pending'}</span>
+                        </div>
+                    </div>
+                ) : null}
 
                 <div className={styles.actions}>
                     {isFailed ? (
