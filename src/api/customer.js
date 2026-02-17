@@ -180,6 +180,30 @@ export async function fetchOrderDetail(token, orderId, { signal, onUnauthorized 
     }
 }
 
+export async function cancelMyOrder(token, orderId, { signal, onUnauthorized } = {}) {
+    if (!token) throw new Error('Authentication is required to cancel an order');
+    if (!orderId) throw new Error('Order ID is required');
+
+    const url = `${API_BASE}/api/me/orders/${encodeURIComponent(orderId)}/cancel`;
+    const res = await authFetch(
+        url,
+        {
+            method: 'POST',
+            headers: buildAuthHeaders(token),
+            signal,
+        },
+        { token },
+    );
+
+    try {
+        return await parseApiResponse(res, 'Failed to cancel order');
+    } catch (error) {
+        if (handleUnauthorized(error, onUnauthorized)) return null;
+        markUnsupported(error);
+        throw error;
+    }
+}
+
 
 export async function fetchOrderReceipt(token, orderId, { signal, onUnauthorized } = {}) {
     if (!token) throw new Error('Authentication is required to load a receipt');
