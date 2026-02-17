@@ -86,6 +86,11 @@ export default function CustomerOrderDetails() {
     const businessOrder = isBusinessOrder(activeOrder);
     const paymentMethodLabel = activeOrder?.paymentMethod || 'Not available yet';
     const paymentReferenceLabel = activeOrder?.paymentReference || 'Not available yet';
+    const resolvedPaymentMode = activeOrder?.paymentMode || activeOrder?.raw?.paymentMode || '—';
+    const paymentStatusLabel = invoiceMode && paymentStatus !== 'PAID' ? 'UNPAID' : (paymentStatus || 'UNKNOWN');
+    const invoiceDueDate = activeOrder?.invoiceDueDate || activeOrder?.raw?.invoiceDueDate || activeOrder?.raw?.invoice?.dueDate || '';
+    const bankgiro = activeOrder?.bankgiro || activeOrder?.raw?.bankgiro || activeOrder?.raw?.invoice?.bankgiro || '';
+    const invoiceOcr = activeOrder?.invoiceOcr || activeOrder?.raw?.invoiceOcr || activeOrder?.raw?.invoice?.ocr || '';
 
     const totals = activeOrder?.totals || {};
     const subtotal = totals.subtotal ?? 0;
@@ -323,8 +328,16 @@ export default function CustomerOrderDetails() {
                     <section className={styles.card}>
                         <h3>Payment</h3>
                         <p><strong>Method:</strong> {paymentMethodLabel}</p>
-                        <p><strong>Mode:</strong> {activeOrder?.paymentMode || 'PAY_NOW'}</p>
+                        <p><strong>Mode:</strong> {resolvedPaymentMode}</p>
+                        <p><strong>Payment status:</strong> {paymentStatusLabel}</p>
                         <p><strong>Reference:</strong> {paymentReferenceLabel}</p>
+                        {invoiceMode ? (
+                            <>
+                                <p><strong>Bankgiro:</strong> {bankgiro || 'Pending'}</p>
+                                <p><strong>OCR:</strong> {invoiceOcr || 'Pending'}</p>
+                                <p><strong>Due date:</strong> {invoiceDueDate ? new Date(invoiceDueDate).toLocaleDateString() : 'Pending'}</p>
+                            </>
+                        ) : null}
                         {!activeOrder?.raw?.payment ? <p className={styles.neutral}>Payment confirmed but provider details not available yet.</p> : null}
                     </section>
                 </aside>
