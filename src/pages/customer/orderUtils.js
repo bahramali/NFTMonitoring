@@ -2,6 +2,16 @@ import { extractPaymentUrl } from '../../utils/payment.js';
 
 const toStatusKey = (value) => String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
 
+export const CANCELLABLE_ORDER_STATUSES = new Set([
+    'PENDING_CONFIRMATION',
+    'PENDING_PAYMENT',
+    'PENDING',
+    'AWAITING_PAYMENT_CONFIRMATION',
+    'PROCESSING',
+]);
+
+export const canCancelOrder = (status) => CANCELLABLE_ORDER_STATUSES.has(toStatusKey(status));
+
 const toNumber = (value) => {
     if (value == null || value === '') return null;
     const parsed = Number(value);

@@ -13,17 +13,10 @@ import OrderStatusPill from '../../components/orders/OrderStatusPill.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
 import { formatCurrency } from '../../utils/currency.js';
-import { normalizeOrder } from './orderUtils.js';
+import { canCancelOrder, normalizeOrder } from './orderUtils.js';
 import styles from './CustomerOrderDetails.module.css';
 
 const toStatusKey = (value) => String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
-const CANCELLABLE_ORDER_STATUSES = new Set([
-    'PENDING_CONFIRMATION',
-    'PENDING_PAYMENT',
-    'PENDING',
-    'AWAITING_PAYMENT_CONFIRMATION',
-    'PROCESSING',
-]);
 const isInvoicePaymentMode = (order) => toStatusKey(order?.paymentMode ?? order?.raw?.paymentMode) === 'INVOICE_PAY_LATER';
 const hasIssuedInvoice = (order) => {
     const invoiceNumber = order?.invoiceNumber ?? order?.raw?.invoiceNumber ?? order?.raw?.invoice?.number;
@@ -108,7 +101,7 @@ export default function CustomerOrderDetails() {
     const activeOrder = order || existingOrder;
     const orderStatusKey = toStatusKey(activeOrder?.status);
     const isCancelledByCustomer = orderStatusKey === 'CANCELLED_BY_CUSTOMER';
-    const canCancelOrder = CANCELLABLE_ORDER_STATUSES.has(orderStatusKey);
+    const canCancelCurrentOrder = canCancelOrder(orderStatusKey);
     const paymentStatus = toStatusKey(activeOrder?.paymentStatus || activeOrder?.status);
     const paymentFinalized = ['PAID', 'PAYMENT_SUCCEEDED', 'COMPLETED', 'PROCESSING'].includes(paymentStatus);
     const invoiceMode = isInvoicePaymentMode(activeOrder);
@@ -233,7 +226,7 @@ export default function CustomerOrderDetails() {
     };
 
     const handleCancelOrder = async () => {
-        if (!token || !orderId || !canCancelOrder || cancelState.loading) return;
+        if (!token || !orderId || !canCancelCurrentOrder || cancelState.loading) return;
         setCancelState((prev) => ({ ...prev, loading: true, error: '' }));
         try {
             const payload = await cancelMyOrder(token, orderId, { onUnauthorized: redirectToLogin });
@@ -333,7 +326,7 @@ export default function CustomerOrderDetails() {
                     <p><strong>Reference:</strong> {paymentReferenceLabel}</p>
                     <p><strong>Delivery:</strong> {activeOrder?.deliveryType || 'Pickup'}</p>
                 </div>
-                {canCancelOrder ? (
+                {canCancelCurrentOrder ? (
                     <div className={styles.headerActions}>
                         <button
                             type="button"
