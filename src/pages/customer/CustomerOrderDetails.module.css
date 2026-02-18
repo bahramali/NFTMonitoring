@@ -5,7 +5,7 @@
 .totalBlock span { color: #64748b; display: block; font-size: 13px; }
 .totalBlock strong { font-size: 18px; }
 .metaBlock p { margin: 0; font-size: 13px; }
-.headerActions { justify-self: end; }
+.headerActions { justify-self: end; display: grid; gap: 6px; justify-items: end; }
 
 .layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); gap: 12px; }
 .left, .right { display: grid; gap: 10px; align-content: start; }
@@ -37,6 +37,29 @@
     color: #b91c1c;
     font-weight: 700;
     cursor: pointer;
+}
+
+.cancelButton:disabled {
+    border-color: #cbd5e1;
+    color: #64748b;
+    cursor: not-allowed;
+    background: #f8fafc;
+}
+
+.cancelHint {
+    margin: 0;
+    max-width: 260px;
+    text-align: right;
+    color: #475569;
+    font-size: 12px;
+}
+
+.debugHint {
+    margin: 0;
+    max-width: 260px;
+    text-align: right;
+    color: #64748b;
+    font-size: 11px;
 }
 
 .modalBackdrop {

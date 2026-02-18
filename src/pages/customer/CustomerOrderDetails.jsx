@@ -99,6 +99,8 @@ export default function CustomerOrderDetails() {
     }, [toastMessage]);
 
     const activeOrder = order || existingOrder;
+    const statusValue = activeOrder?.status;
+    const orderStatusValue = activeOrder?.orderStatus;
     const orderStatusKey = toStatusKey(activeOrder?.orderStatus || activeOrder?.status);
     const isCancelledByCustomer = orderStatusKey === 'CANCELLED_BY_CUSTOMER';
     const canCancelCurrentOrder = canCancelOrder(orderStatusKey);
@@ -126,6 +128,16 @@ export default function CustomerOrderDetails() {
     const total = totals.total ?? activeOrder?.total ?? 0;
     const shouldShowVatRow = tax > 0 || businessOrder;
     const shouldShowVatHint = businessOrder && tax <= 0;
+
+    useEffect(() => {
+        if (!import.meta.env.DEV) return;
+        if (!activeOrder) return;
+        console.debug('[CustomerOrderDetails] order status payload', {
+            status: statusValue,
+            orderStatus: orderStatusValue,
+            normalizedOrderStatus: orderStatusKey,
+        });
+    }, [activeOrder, orderStatusKey, orderStatusValue, statusValue]);
 
     const openHtml = (html) => {
         const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
@@ -326,17 +338,25 @@ export default function CustomerOrderDetails() {
                     <p><strong>Reference:</strong> {paymentReferenceLabel}</p>
                     <p><strong>Delivery:</strong> {activeOrder?.deliveryType || 'Pickup'}</p>
                 </div>
-                {canCancelCurrentOrder ? (
-                    <div className={styles.headerActions}>
-                        <button
-                            type="button"
-                            className={styles.cancelButton}
-                            onClick={() => setCancelState((prev) => ({ ...prev, open: true, error: '' }))}
-                        >
-                            Cancel order
-                        </button>
-                    </div>
-                ) : null}
+                <div className={styles.headerActions}>
+                    <button
+                        type="button"
+                        className={styles.cancelButton}
+                        onClick={() => setCancelState((prev) => ({ ...prev, open: true, error: '' }))}
+                        disabled={!canCancelCurrentOrder}
+                        aria-describedby={!canCancelCurrentOrder ? 'cancel-order-hint' : undefined}
+                    >
+                        Cancel order
+                    </button>
+                    {!canCancelCurrentOrder ? (
+                        <p id="cancel-order-hint" className={styles.cancelHint}>
+                            Cancellation is only available while the order is pending confirmation.
+                        </p>
+                    ) : null}
+                    {import.meta.env.DEV ? (
+                        <p className={styles.debugHint}>Debug: status={String(statusValue || '—')} · orderStatus={String(orderStatusValue || '—')}</p>
+                    ) : null}
+                </div>
             </div>
 
             <div className={styles.layout}>
