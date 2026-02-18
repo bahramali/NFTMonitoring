@@ -10,6 +10,9 @@ const resolveSessionPaymentUrl = (payload) =>
     ?? extractPaymentUrl(payload?.session)
     ?? null;
 
+const toStatusKey = (value) => String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+const isCancelledByCustomerOrder = (order) => toStatusKey(order?.status) === 'CANCELLED_BY_CUSTOMER';
+
 export default function useOrderPaymentAction() {
     const { token } = useAuth();
     const redirectToLogin = useRedirectToLogin();
@@ -18,6 +21,11 @@ export default function useOrderPaymentAction() {
     const handleOrderPayment = useCallback(
         async (order) => {
             if (!order) return;
+            if (isCancelledByCustomerOrder(order)) {
+                setState({ loadingId: null, error: 'Cancelled orders are read-only.' });
+                return;
+            }
+
             if (!token) {
                 redirectToLogin();
                 return;
