@@ -240,7 +240,7 @@ export default function CustomerOrderDetails() {
             if (payload) {
                 setOrder(normalizeOrder(payload));
             } else {
-                setOrder((prev) => (prev ? { ...prev, status: 'CANCELLED' } : prev));
+                setOrder((prev) => (prev ? { ...prev, status: 'CANCELLED_BY_CUSTOMER' } : prev));
             }
             await loadOrderDetails();
             await loadOrders?.({ silent: true });
