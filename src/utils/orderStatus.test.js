@@ -14,4 +14,11 @@ describe('orderStatus utilities', () => {
         expect(action.type).toBe('view-order');
         expect(action.label).toBe('View order');
     });
+
+    it('maps RECEIVED to a dedicated status instead of fallback', () => {
+        const meta = mapOrderStatus('RECEIVED');
+        expect(meta.label).toBe('Received');
+        expect(meta.label).not.toBe('Pending confirmation');
+        expect(meta.primaryActionType).toBe('view-order');
+    });
 });

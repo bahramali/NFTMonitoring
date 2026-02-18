@@ -347,7 +347,7 @@ export default function CustomerOrderDetails() {
                     </button>
                     {!canCancelCurrentOrder ? (
                         <p id="cancel-order-hint" className={styles.cancelHint}>
-                            Cancellation is only available while the order is pending confirmation.
+                            Cancellation is available while the order is pending confirmation or received.
                         </p>
                     ) : null}
                     {import.meta.env.DEV ? (
