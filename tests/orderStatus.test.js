@@ -22,6 +22,11 @@ describe('mapOrderStatus', () => {
             badgeVariant: 'info',
             primaryActionType: 'track-order',
         });
+        expect(mapOrderStatus('RECEIVED')).toMatchObject({
+            label: 'Received',
+            badgeVariant: 'info',
+            primaryActionType: 'view-order',
+        });
     });
 
     test('normalizes input and handles fallback', () => {
@@ -45,5 +50,6 @@ describe('mapOrderStatus', () => {
             badgeVariant: 'warning',
             primaryActionType: 'view-order',
         });
+        expect(mapOrderStatus('RECEIVED').label).not.toBe('Pending confirmation');
     });
 });

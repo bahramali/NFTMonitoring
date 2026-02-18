@@ -17,6 +17,12 @@ const STATUS_VARIANTS = {
         badgeVariant: 'warning',
         primaryActionType: 'view-order',
     },
+    RECEIVED: {
+        label: 'Received',
+        description: 'We’ve received your order. You can still cancel it until we start preparing it.',
+        badgeVariant: 'info',
+        primaryActionType: 'view-order',
+    },
     PAYMENT_FAILED: {
         label: 'Failed',
         description: 'Payment did not complete. Please retry to place the order.',
