@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '../../utils/currency.js';
 import OrderStatusPill from './OrderStatusPill.jsx';
@@ -11,8 +11,50 @@ const formatDate = (value) => {
     return date.toLocaleDateString();
 };
 
-export default function OrderRow({ order, detailsTo, receiptAvailable = false, compact = false }) {
+export default function OrderRow({
+    order,
+    detailsTo,
+    receiptAvailable = false,
+    compact = false,
+    canCancel = false,
+    cancelLoading = false,
+    onCancel,
+}) {
     const receiptTo = `${detailsTo}?document=receipt`;
+    const [confirmOpen, setConfirmOpen] = useState(false);
+
+    useEffect(() => {
+        if (!canCancel) {
+            setConfirmOpen(false);
+        }
+    }, [canCancel]);
+
+    const handleCancel = () => {
+        if (!canCancel || !onCancel || cancelLoading) return;
+        onCancel(order);
+    };
+
+    const cancelAction = canCancel ? (
+        confirmOpen ? (
+            <>
+                <button type="button" className={styles.cancelConfirm} onClick={handleCancel} disabled={cancelLoading}>
+                    {cancelLoading ? 'Cancelling…' : 'Confirm'}
+                </button>
+                <button
+                    type="button"
+                    className={styles.cancelDismiss}
+                    onClick={() => setConfirmOpen(false)}
+                    disabled={cancelLoading}
+                >
+                    Keep
+                </button>
+            </>
+        ) : (
+            <button type="button" className={styles.cancelAction} onClick={() => setConfirmOpen(true)}>
+                Cancel
+            </button>
+        )
+    ) : null;
 
     if (compact) {
         return (
@@ -29,6 +71,7 @@ export default function OrderRow({ order, detailsTo, receiptAvailable = false, c
                     <div className={styles.actions}>
                         <Link to={detailsTo} className={styles.viewButton}>View details</Link>
                         {receiptAvailable ? <Link to={receiptTo} className={styles.receiptAction}>View receipt</Link> : null}
+                        {cancelAction}
                     </div>
                 </div>
             </div>
@@ -47,6 +90,7 @@ export default function OrderRow({ order, detailsTo, receiptAvailable = false, c
                 <div className={styles.actions}>
                     <Link to={detailsTo} className={styles.viewButton}>View details</Link>
                     {receiptAvailable ? <Link to={receiptTo} className={styles.receiptAction}>View receipt</Link> : <span className={styles.dim}>View receipt</span>}
+                    {cancelAction}
                 </div>
             </div>
             <div className={styles.mobileRow}>
@@ -62,6 +106,7 @@ export default function OrderRow({ order, detailsTo, receiptAvailable = false, c
                     <div className={styles.actions}>
                         <Link to={detailsTo} className={styles.viewButton}>View details</Link>
                         {receiptAvailable ? <Link to={receiptTo} className={styles.receiptAction}>View receipt</Link> : null}
+                        {cancelAction}
                     </div>
                 </div>
             </div>

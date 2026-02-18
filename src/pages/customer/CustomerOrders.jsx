@@ -1,16 +1,23 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
+import { cancelMyOrder } from '../../api/customer.js';
 import OrderRow from '../../components/orders/OrderRow.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
+import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
+import { canCancelOrder } from './orderUtils.js';
 import styles from './CustomerOrders.module.css';
 
 const toStatusKey = (value) => String(value || '').trim().toUpperCase().replace(/\s+/g, '_');
 
 export default function CustomerOrders() {
+    const { token } = useAuth();
+    const redirectToLogin = useRedirectToLogin();
     const { ordersState, loadOrders } = useOutletContext();
     const [localError, setLocalError] = useState(null);
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [search, setSearch] = useState('');
     const [sort, setSort] = useState('newest');
+    const [cancelState, setCancelState] = useState({ loadingOrderId: '', error: '', success: '' });
 
     const handleLoadOrders = useCallback(
         (options = {}) =>
@@ -27,6 +34,22 @@ export default function CustomerOrders() {
         handleLoadOrders({ signal: controller.signal });
         return () => controller.abort();
     }, [handleLoadOrders, ordersState.hasFetched, ordersState.rateLimited, ordersState.supported]);
+
+    const handleCancelOrder = useCallback(async (order) => {
+        if (!token || !order?.id) return;
+        setCancelState({ loadingOrderId: String(order.id), error: '', success: '' });
+        try {
+            await cancelMyOrder(token, order.id, { onUnauthorized: redirectToLogin });
+            await handleLoadOrders({ silent: true });
+            setCancelState({ loadingOrderId: '', error: '', success: `Order #${order.id} cancelled.` });
+        } catch (error) {
+            setCancelState({
+                loadingOrderId: '',
+                error: error?.message || 'Could not cancel the order right now.',
+                success: '',
+            });
+        }
+    }, [handleLoadOrders, redirectToLogin, token]);
 
     const sortedOrders = useMemo(() => {
         let list = [...(ordersState.items || [])];
@@ -70,7 +93,10 @@ export default function CustomerOrders() {
                 </select>
             </div>
 
-            {(localError || ordersState.error) ? <p className={styles.error}>{localError || ordersState.error}</p> : null}
+            {(localError || ordersState.error || cancelState.error) ? (
+                <p className={styles.error}>{localError || ordersState.error || cancelState.error}</p>
+            ) : null}
+            {cancelState.success ? <p className={styles.success}>{cancelState.success}</p> : null}
 
             <div className={styles.tableHeader}>
                 <span>Order</span><span>Total</span><span>Status</span><span>Actions</span>
@@ -83,6 +109,9 @@ export default function CustomerOrders() {
                         order={order}
                         detailsTo={`/account/orders/${encodeURIComponent(order.id)}`}
                         receiptAvailable={['PAID', 'COMPLETED'].includes(toStatusKey(order.status))}
+                        canCancel={canCancelOrder(order.status)}
+                        cancelLoading={cancelState.loadingOrderId === String(order.id)}
+                        onCancel={handleCancelOrder}
                     />
                 ))}
             </div>

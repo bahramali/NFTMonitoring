@@ -15,6 +15,24 @@
 .viewButton { background: #0ea5e9; color: #fff; text-decoration: none; border-radius: 8px; padding: 6px 10px; font-weight: 700; font-size: 13px; }
 .receiptAction { color: #0369a1; font-weight: 600; text-decoration: none; }
 .receiptAction:hover { text-decoration: underline; }
+.cancelAction, .cancelDismiss, .cancelConfirm {
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-weight: 700;
+    font-size: 13px;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+.cancelAction, .cancelDismiss {
+    background: #fff;
+    color: #334155;
+    border-color: #cbd5e1;
+}
+.cancelConfirm {
+    background: #ef4444;
+    color: #fff;
+}
+.cancelAction:disabled, .cancelDismiss:disabled, .cancelConfirm:disabled { opacity: .6; cursor: not-allowed; }
 .dim { color: #94a3b8; }
 
 .mobileRow { display: none; }

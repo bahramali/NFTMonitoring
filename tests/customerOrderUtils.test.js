@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeOrder } from '../src/pages/customer/orderUtils.js';
+import { canCancelOrder, normalizeOrder } from '../src/pages/customer/orderUtils.js';
 
 describe('normalizeOrder payment fields', () => {
     it('reads payment method/reference from flat fields', () => {
@@ -66,5 +66,17 @@ describe('normalizeOrder totals', () => {
         });
 
         expect(order.totals.tax).toBe(25);
+    });
+});
+
+describe('canCancelOrder', () => {
+    it('returns true for pending orders', () => {
+        expect(canCancelOrder('pending payment')).toBe(true);
+        expect(canCancelOrder('PROCESSING')).toBe(true);
+    });
+
+    it('returns false for final states', () => {
+        expect(canCancelOrder('completed')).toBe(false);
+        expect(canCancelOrder('CANCELLED_BY_CUSTOMER')).toBe(false);
     });
 });
