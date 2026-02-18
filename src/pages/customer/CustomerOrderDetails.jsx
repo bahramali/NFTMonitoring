@@ -241,14 +241,11 @@ export default function CustomerOrderDetails() {
         if (!token || !orderId || !canCancelCurrentOrder || cancelState.loading) return;
         setCancelState((prev) => ({ ...prev, loading: true, error: '' }));
         try {
-            const payload = await cancelMyOrder(token, orderId, { onUnauthorized: redirectToLogin });
-            if (payload) {
-                setOrder(normalizeOrder(payload));
-            } else {
-                setOrder((prev) => (prev ? { ...prev, status: 'CANCELLED_BY_CUSTOMER' } : prev));
-            }
-            await loadOrderDetails();
-            await loadOrders?.({ silent: true });
+            await cancelMyOrder(token, orderId, { onUnauthorized: redirectToLogin });
+            await Promise.all([
+                loadOrderDetails(),
+                loadOrders?.({ silent: true }),
+            ]);
             setToastMessage('Order cancelled.');
             setCancelState({ open: false, loading: false, error: '' });
         } catch (err) {

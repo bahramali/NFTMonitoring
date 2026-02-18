@@ -41,7 +41,7 @@ export default function CustomerOrders() {
         try {
             await cancelMyOrder(token, order.id, { onUnauthorized: redirectToLogin });
             await handleLoadOrders({ silent: true });
-            setCancelState({ loadingOrderId: '', error: '', success: `Order #${order.id} cancelled.` });
+            setCancelState({ loadingOrderId: '', error: '', success: 'Order cancelled.' });
         } catch (error) {
             setCancelState({
                 loadingOrderId: '',
