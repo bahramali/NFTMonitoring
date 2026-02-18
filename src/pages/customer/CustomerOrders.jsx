@@ -108,8 +108,8 @@ export default function CustomerOrders() {
                         key={order.id}
                         order={order}
                         detailsTo={`/account/orders/${encodeURIComponent(order.id)}`}
-                        receiptAvailable={['PAID', 'COMPLETED'].includes(toStatusKey(order.status))}
-                        canCancel={canCancelOrder(order.status)}
+                        receiptAvailable={['PAID', 'COMPLETED'].includes(toStatusKey(order.orderStatus || order.status))}
+                        canCancel={canCancelOrder(order.orderStatus || order.status)}
                         cancelLoading={cancelState.loadingOrderId === String(order.id)}
                         onCancel={handleCancelOrder}
                     />

@@ -99,10 +99,10 @@ export default function CustomerOrderDetails() {
     }, [toastMessage]);
 
     const activeOrder = order || existingOrder;
-    const orderStatusKey = toStatusKey(activeOrder?.status);
+    const orderStatusKey = toStatusKey(activeOrder?.orderStatus || activeOrder?.status);
     const isCancelledByCustomer = orderStatusKey === 'CANCELLED_BY_CUSTOMER';
     const canCancelCurrentOrder = canCancelOrder(orderStatusKey);
-    const paymentStatus = toStatusKey(activeOrder?.paymentStatus || activeOrder?.status);
+    const paymentStatus = toStatusKey(activeOrder?.paymentStatus || activeOrder?.orderStatus || activeOrder?.status);
     const paymentFinalized = ['PAID', 'PAYMENT_SUCCEEDED', 'COMPLETED', 'PROCESSING'].includes(paymentStatus);
     const invoiceMode = isInvoicePaymentMode(activeOrder);
     const invoiceIssued = hasIssuedInvoice(activeOrder);
