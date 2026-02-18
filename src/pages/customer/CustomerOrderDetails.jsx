@@ -326,6 +326,17 @@ export default function CustomerOrderDetails() {
                     <p><strong>Reference:</strong> {paymentReferenceLabel}</p>
                     <p><strong>Delivery:</strong> {activeOrder?.deliveryType || 'Pickup'}</p>
                 </div>
+                {canCancelOrder ? (
+                    <div className={styles.headerActions}>
+                        <button
+                            type="button"
+                            className={styles.cancelButton}
+                            onClick={() => setCancelState((prev) => ({ ...prev, open: true, error: '' }))}
+                        >
+                            Cancel order
+                        </button>
+                    </div>
+                ) : null}
             </div>
 
             <div className={styles.layout}>
@@ -404,15 +415,6 @@ export default function CustomerOrderDetails() {
                 <div className={styles.toast} role="status" aria-live="polite">
                     {toastMessage}
                 </div>
-            ) : null}
-            {canCancelOrder ? (
-                <button
-                    type="button"
-                    className={styles.cancelButton}
-                    onClick={() => setCancelState((prev) => ({ ...prev, open: true, error: '' }))}
-                >
-                    Cancel order
-                </button>
             ) : null}
             <Link to="/account/orders" className={styles.backButton}>Back to orders</Link>
 
