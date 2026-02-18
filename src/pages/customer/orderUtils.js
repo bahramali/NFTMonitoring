@@ -98,9 +98,11 @@ export const normalizeOrder = (payload) => {
     const normalized = normalizeOrderList([base])[0] || {};
     const payment = base.payment ?? {};
     const paymentMode = toStatusKey(normalized.paymentMode || base.paymentMode || base.payment_mode || payment.mode || '');
+    const orderStatus = base.orderStatus ?? payload?.orderStatus ?? payload?.summary?.orderStatus ?? base.summary?.orderStatus ?? null;
 
     const result = {
         ...normalized,
+        orderStatus,
         paymentStatus: base.paymentStatus ?? base.payment_state ?? payment.status ?? '',
         paymentMethod: normalized.paymentMethod || payment.method || payment.brand || base.payment_type || '',
         paymentReference: normalized.paymentReference || payment.reference || payment.id || base.paymentIntentId || '',
