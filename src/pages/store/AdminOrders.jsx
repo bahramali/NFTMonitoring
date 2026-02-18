@@ -19,6 +19,7 @@ const statusToColumn = (status) => {
 };
 
 const isPickupOrder = (order) => normalizeKey(order?.fulfillmentType).includes('PICKUP');
+const isCancelledByCustomer = (order) => normalizeKey(order?.status) === 'CANCELLED_BY_CUSTOMER';
 
 const columnLabel = (key, order) => {
     if (key === 'IN_TRANSIT') return isPickupOrder(order) ? 'Ready for pickup' : 'Shipping';
@@ -106,6 +107,7 @@ export default function AdminOrders() {
 
     const selectedOrder = useMemo(() => orders.find((item) => String(item.id) === String(selectedId)) || null, [orders, selectedId]);
     const selectedOrderPayment = selectedOrder?.raw?.payment ?? {};
+    const selectedOrderReadOnly = isCancelledByCustomer(selectedOrder);
     const paymentMethod = displayPaymentValue(selectedOrder?.paymentMethod ?? selectedOrderPayment?.method);
     const paymentReference = displayPaymentValue(selectedOrder?.paymentReference ?? selectedOrderPayment?.reference);
 
@@ -171,7 +173,7 @@ export default function AdminOrders() {
     };
 
     const handleSaveStatus = async () => {
-        if (!selectedOrder || !drawerStatus) return;
+        if (!selectedOrder || !drawerStatus || selectedOrderReadOnly) return;
         const previous = selectedOrder;
         if (!canTransition(previous.status, drawerStatus, selectedOrder)) {
             showToast('error', 'Invalid status transition for this order.');
@@ -198,6 +200,8 @@ export default function AdminOrders() {
             setSaving(false);
         }
     };
+
+    const readOnlyMessage = selectedOrderReadOnly ? 'This order was cancelled by the customer and is read-only.' : '';
 
     if (!hasAccess) {
         return <div className={styles.noAccess}>You need Orders Manage permission to view this page.</div>;
@@ -270,7 +274,7 @@ export default function AdminOrders() {
                         <section className={styles.section}>
                             <h4>Status</h4>
                             <div className={styles.statusRow}>
-                                <select value={drawerStatus} onChange={(event) => setDrawerStatus(event.target.value)}>
+                                <select value={drawerStatus} onChange={(event) => setDrawerStatus(event.target.value)} disabled={selectedOrderReadOnly || saving}>
                                     {STATUS_OPTIONS.map((status) => (
                                         <option
                                             key={status}
@@ -281,9 +285,11 @@ export default function AdminOrders() {
                                         </option>
                                     ))}
                                 </select>
-                                <button type="button" onClick={handleSaveStatus} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+                                <button type="button" onClick={handleSaveStatus} disabled={selectedOrderReadOnly || saving}>{saving ? 'Saving…' : 'Save'}</button>
                             </div>
                         </section>
+
+                        {readOnlyMessage ? <p className={styles.muted}>{readOnlyMessage}</p> : null}
 
                         <section className={styles.section}>
                             <h4>Payment</h4>
@@ -326,7 +332,7 @@ export default function AdminOrders() {
 
                         <section className={styles.section}>
                             <h4>Internal notes</h4>
-                            <textarea value={drawerNote} onChange={(event) => setDrawerNote(event.target.value)} rows={4} />
+                            <textarea value={drawerNote} onChange={(event) => setDrawerNote(event.target.value)} rows={4} disabled={selectedOrderReadOnly} />
                         </section>
                     </>
                 ) : (

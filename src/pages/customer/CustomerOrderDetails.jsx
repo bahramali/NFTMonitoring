@@ -99,7 +99,9 @@ export default function CustomerOrderDetails() {
     }, [toastMessage]);
 
     const activeOrder = order || existingOrder;
-    const canCancelOrder = toStatusKey(activeOrder?.status) === 'PENDING_CONFIRMATION';
+    const orderStatusKey = toStatusKey(activeOrder?.status);
+    const isCancelledByCustomer = orderStatusKey === 'CANCELLED_BY_CUSTOMER';
+    const canCancelOrder = orderStatusKey === 'PENDING_CONFIRMATION';
     const paymentStatus = toStatusKey(activeOrder?.paymentStatus || activeOrder?.status);
     const paymentFinalized = ['PAID', 'PAYMENT_SUCCEEDED', 'COMPLETED', 'PROCESSING'].includes(paymentStatus);
     const invoiceMode = isInvoicePaymentMode(activeOrder);
@@ -302,7 +304,10 @@ export default function CustomerOrderDetails() {
             variant: 'outline',
             onClick: () => runDocumentAction('email-invoice'),
         },
-    ];
+    ].filter((action) => {
+        if (!isCancelledByCustomer) return true;
+        return !['invoice', 'email-invoice'].includes(action.key);
+    });
 
     return (
         <div className={styles.page}>
@@ -360,6 +365,7 @@ export default function CustomerOrderDetails() {
 
                     <section className={styles.card}>
                         <h3>Documents</h3>
+                        {isCancelledByCustomer ? <p className={styles.neutral}>Cancelled orders are read-only.</p> : null}
                         <DocumentActions
                             actions={documentActions}
                             error={documentState.error}

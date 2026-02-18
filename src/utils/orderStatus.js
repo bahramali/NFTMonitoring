@@ -89,6 +89,12 @@ const STATUS_VARIANTS = {
         badgeVariant: 'neutral',
         primaryActionType: 'view-order',
     },
+    CANCELLED_BY_CUSTOMER: {
+        label: 'Cancelled',
+        description: 'This order was cancelled by the customer and is now read-only.',
+        badgeVariant: 'neutral',
+        primaryActionType: 'view-order',
+    },
 };
 
 const FALLBACK_STATUS = {
