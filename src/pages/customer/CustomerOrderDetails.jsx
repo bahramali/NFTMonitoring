@@ -101,9 +101,10 @@ export default function CustomerOrderDetails() {
     const activeOrder = order || existingOrder;
     const statusValue = activeOrder?.status;
     const orderStatusValue = activeOrder?.orderStatus;
-    const orderStatusKey = toStatusKey(activeOrder?.orderStatus || activeOrder?.status);
+    const effectiveStatus = activeOrder?.orderStatus ?? activeOrder?.status;
+    const orderStatusKey = toStatusKey(effectiveStatus);
     const isCancelledByCustomer = orderStatusKey === 'CANCELLED_BY_CUSTOMER';
-    const canCancelCurrentOrder = canCancelOrder(orderStatusKey);
+    const canCancelCurrentOrder = canCancelOrder(effectiveStatus);
     const paymentStatus = toStatusKey(activeOrder?.paymentStatus || activeOrder?.orderStatus || activeOrder?.status);
     const paymentFinalized = ['PAID', 'PAYMENT_SUCCEEDED', 'COMPLETED', 'PROCESSING'].includes(paymentStatus);
     const invoiceMode = isInvoicePaymentMode(activeOrder);
@@ -325,7 +326,7 @@ export default function CustomerOrderDetails() {
                     <h1>Order #{activeOrder?.orderNumber || activeOrder?.id}</h1>
                     <p>Placed {activeOrder?.createdAt ? new Date(activeOrder.createdAt).toLocaleString() : '—'}</p>
                 </div>
-                <OrderStatusPill status={activeOrder?.status} />
+                <OrderStatusPill status={activeOrder?.orderStatus ?? activeOrder?.status} />
                 <div className={styles.totalBlock}>
                     <span>Total</span>
                     <strong>{formatCurrency(total, activeOrder?.currency)}</strong>
