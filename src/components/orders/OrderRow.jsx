@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '../../utils/currency.js';
+import { getOrderDisplayNumber } from '../../pages/customer/orderUtils.js';
 import OrderStatusPill from './OrderStatusPill.jsx';
 import styles from './OrderRow.module.css';
 
@@ -21,6 +22,7 @@ export default function OrderRow({
     onCancel,
 }) {
     const receiptTo = `${detailsTo}?document=receipt`;
+    const displayOrderNumber = getOrderDisplayNumber(order);
     const [confirmOpen, setConfirmOpen] = useState(false);
 
     useEffect(() => {
@@ -61,7 +63,7 @@ export default function OrderRow({
             <div className={styles.compactRow}>
                 <div className={styles.mobileTop}>
                     <div>
-                        <Link to={detailsTo} className={styles.orderLink}>#{order?.id}</Link>
+                        <Link to={detailsTo} className={styles.orderLink}>{displayOrderNumber}</Link>
                         <p className={styles.meta}>{formatDate(order?.createdAt)}</p>
                     </div>
                     <OrderStatusPill status={order?.status} />
@@ -82,7 +84,7 @@ export default function OrderRow({
         <>
             <div className={styles.row}>
                 <div>
-                    <Link to={detailsTo} className={styles.orderLink}>#{order?.id}</Link>
+                    <Link to={detailsTo} className={styles.orderLink}>{displayOrderNumber}</Link>
                     <p className={styles.meta}>{formatDate(order?.createdAt)}</p>
                 </div>
                 <strong>{formatCurrency(order?.total, order?.currency)}</strong>
@@ -96,7 +98,7 @@ export default function OrderRow({
             <div className={styles.mobileRow}>
                 <div className={styles.mobileTop}>
                     <div>
-                        <Link to={detailsTo} className={styles.orderLink}>#{order?.id}</Link>
+                        <Link to={detailsTo} className={styles.orderLink}>{displayOrderNumber}</Link>
                         <p className={styles.meta}>{formatDate(order?.createdAt)}</p>
                     </div>
                     <OrderStatusPill status={order?.status} />
