@@ -6,7 +6,7 @@ import { PERMISSIONS, hasPerm, hasStoreAdminAccess } from "../../../utils/permis
 import styles from "./Sidebar.module.css";
 
 const DEFAULT_VIEWPORT_WIDTH = 1024;
-const BREAKPOINTS = { mobile: 768, collapse: 1024 };
+const BREAKPOINTS = { mobile: 768, collapse: 1440 };
 
 const getWindowWidth = () => (typeof window === "undefined" ? DEFAULT_VIEWPORT_WIDTH : window.innerWidth);
 
