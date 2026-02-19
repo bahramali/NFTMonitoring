@@ -288,6 +288,7 @@ export default function Sidebar() {
                                     <NavLink key={to} to={to} className={linkClass}>
                                         <span className={styles.icon}>{icon}</span>
                                         {!collapsed && <span className={styles.text}>{label}</span>}
+                                        {collapsed && <span className={styles.srOnlyLabel}>{label}</span>}
                                     </NavLink>
                                 );
                             })}
