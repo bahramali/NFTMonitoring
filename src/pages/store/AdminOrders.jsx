@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { listAdminOrders, updateAdminOrderStatus } from '../../api/adminOrders.js';
+import { getAdminOrderDetails, listAdminOrders, updateAdminOrderStatus } from '../../api/adminOrders.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { formatCurrency } from '../../utils/currency.js';
 import { PERMISSIONS, hasPerm } from '../../utils/permissions.js';
@@ -11,6 +11,11 @@ const DENSITY_STORAGE_KEY = 'admin-orders-board-density';
 const COMPACT_STAGES_STORAGE_KEY = 'admin-orders-compact-stages';
 
 const normalizeKey = (value) => String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+const toDisplayValue = (value) => {
+    if (value == null) return '—';
+    const normalized = String(value).trim();
+    return normalized || '—';
+};
 
 const isPickupOrder = (order) => normalizeKey(order?.fulfillmentType).includes('PICKUP');
 const isCancelledStatus = (value) => ['CANCELLED_BY_CUSTOMER', 'CANCELLED'].includes(normalizeKey(value));
@@ -64,14 +69,11 @@ const paymentColorClass = (paymentLabel) => {
 };
 
 const deliveryColorClass = (order) => (isPickupOrder(order) ? styles.badgePurple : styles.badgeBlue);
-
-const summarizeAddress = (order) => {
-    if (isPickupOrder(order)) {
-        return `Pickup: ${order?.pickupLocation || 'Stockholm'}`;
-    }
-    const addr = order?.shippingAddress;
-    const pieces = [addr?.city, addr?.postalCode].filter(Boolean);
-    return pieces.join(' ') || 'Shipping address unavailable';
+const displayOrderNumber = (order) => order?.formattedOrderNumber || toDisplayValue(order?.orderNumber);
+const toAddressLines = (address) => {
+    if (!address) return [];
+    const cityLine = [address.postalCode, address.city].filter(Boolean).join(' ');
+    return [address.line1, address.line2, cityLine, address.state, address.country].filter(Boolean);
 };
 
 const filterDateRange = (orderDate, range) => {
@@ -93,18 +95,15 @@ const ALLOWED_TRANSITIONS = {
     DELIVERED: [],
 };
 
-const displayPaymentValue = (value) => {
-    if (value == null) return 'Unknown';
-    const normalized = String(value).trim();
-    return normalized || 'Unknown';
-};
-
 export default function AdminOrders() {
     const { token, permissions } = useAuth();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [selectedId, setSelectedId] = useState(null);
+    const [selectedDetails, setSelectedDetails] = useState(null);
+    const [detailsLoading, setDetailsLoading] = useState(false);
+    const [detailsError, setDetailsError] = useState('');
     const [drawerStatus, setDrawerStatus] = useState('');
     const [drawerNote, setDrawerNote] = useState('');
     const [saving, setSaving] = useState(false);
@@ -127,6 +126,11 @@ export default function AdminOrders() {
     });
 
     const hasAccess = hasPerm({ permissions }, PERMISSIONS.ORDERS_MANAGE);
+
+    const showToast = (type, message) => {
+        setToast({ type, message, id: Date.now() });
+        setTimeout(() => setToast(null), 2600);
+    };
 
     const loadOrders = useCallback(async () => {
         if (!token) return;
@@ -155,15 +159,32 @@ export default function AdminOrders() {
         }
     }, [dateRange.from, dateRange.to, paymentFilter, search, showCancelled, sortBy, statusFilter, token]);
 
+    const loadOrderDetails = useCallback(async (orderId) => {
+        if (!token || !orderId) return;
+        setDetailsLoading(true);
+        setDetailsError('');
+        try {
+            const details = await getAdminOrderDetails(token, orderId);
+            setSelectedDetails(details);
+            setOrders((prev) => prev.map((item) => (String(item.id) === String(details.id) ? { ...item, ...details } : item)));
+        } catch (err) {
+            setDetailsError(err?.message || 'Failed to load order details');
+            setSelectedDetails(null);
+        } finally {
+            setDetailsLoading(false);
+        }
+    }, [token]);
+
     useEffect(() => {
         loadOrders();
     }, [loadOrders]);
 
-    const selectedOrder = useMemo(() => orders.find((item) => String(item.id) === String(selectedId)) || null, [orders, selectedId]);
+    const selectedSummary = useMemo(() => orders.find((item) => String(item.id) === String(selectedId)) || null, [orders, selectedId]);
+    const selectedOrder = selectedDetails && String(selectedDetails.id) === String(selectedId)
+        ? selectedDetails
+        : selectedSummary;
     const selectedOrderPayment = selectedOrder?.raw?.payment ?? {};
     const selectedOrderReadOnly = isCancelledByCustomer(selectedOrder);
-    const paymentMethod = displayPaymentValue(selectedOrder?.paymentMethod ?? selectedOrderPayment?.method);
-    const paymentReference = displayPaymentValue(selectedOrder?.paymentReference ?? selectedOrderPayment?.reference);
 
     useEffect(() => {
         if (!selectedOrder) return;
@@ -171,13 +192,21 @@ export default function AdminOrders() {
         setDrawerNote(selectedOrder.internalNotes || '');
     }, [selectedOrder]);
 
+    useEffect(() => {
+        window.localStorage.setItem(DENSITY_STORAGE_KEY, density);
+    }, [density]);
+
+    useEffect(() => {
+        window.localStorage.setItem(COMPACT_STAGES_STORAGE_KEY, compactStages ? 'on' : 'off');
+    }, [compactStages]);
+
     const filteredOrders = useMemo(() => {
         const query = search.trim().toLowerCase();
         let list = [...orders];
 
         if (query) {
             list = list.filter((order) => {
-                const fields = [order.orderNumber, order.customer?.name, order.customer?.email].map((value) => `${value || ''}`.toLowerCase());
+                const fields = [displayOrderNumber(order), order.customer?.name, order.customer?.email].map((value) => `${value || ''}`.toLowerCase());
                 return fields.some((value) => value.includes(query));
             });
         }
@@ -211,14 +240,6 @@ export default function AdminOrders() {
         return list;
     }, [dateRange, orders, paymentFilter, search, showCancelled, sortBy, statusFilter]);
 
-    useEffect(() => {
-        window.localStorage.setItem(DENSITY_STORAGE_KEY, density);
-    }, [density]);
-
-    useEffect(() => {
-        window.localStorage.setItem(COMPACT_STAGES_STORAGE_KEY, compactStages ? 'on' : 'off');
-    }, [compactStages]);
-
     const ordersByStatus = useMemo(() => {
         const groups = STATUS_OPTIONS.reduce((acc, status) => ({ ...acc, [status]: [] }), {});
         filteredOrders.forEach((order) => {
@@ -233,11 +254,7 @@ export default function AdminOrders() {
     const boardColumns = useMemo(() => {
         if (compactStages) {
             return [
-                {
-                    key: 'RECEIVED',
-                    label: 'Received',
-                    orders: ordersByStatus.RECEIVED || [],
-                },
+                { key: 'RECEIVED', label: 'Received', orders: ordersByStatus.RECEIVED || [] },
                 {
                     key: 'IN_PROGRESS',
                     label: 'In progress',
@@ -265,11 +282,6 @@ export default function AdminOrders() {
         }));
     }, [compactStages, ordersByStatus]);
 
-    const showToast = (type, message) => {
-        setToast({ type, message, id: Date.now() });
-        setTimeout(() => setToast(null), 2600);
-    };
-
     const canTransition = (from, to, order) => {
         const fromKey = normalizeKey(from);
         const toKey = normalizeKey(to);
@@ -279,6 +291,32 @@ export default function AdminOrders() {
             return allowed.includes(toKey);
         }
         return (ALLOWED_TRANSITIONS[fromKey] || []).includes(toKey);
+    };
+
+    const handleOpenOrder = (orderId) => {
+        setSelectedId(orderId);
+        setSelectedDetails(null);
+        setDetailsError('');
+        loadOrderDetails(orderId);
+    };
+
+    const handleRetryDetails = () => {
+        if (!selectedId) return;
+        loadOrderDetails(selectedId);
+    };
+
+    const handleCopy = async (value, label) => {
+        try {
+            const text = String(value || '').trim();
+            if (!text) {
+                showToast('error', `No ${label} to copy.`);
+                return;
+            }
+            await navigator.clipboard.writeText(text);
+            showToast('success', `${label} copied.`);
+        } catch {
+            showToast('error', 'Clipboard is unavailable.');
+        }
     };
 
     const handleSaveStatus = async () => {
@@ -296,14 +334,17 @@ export default function AdminOrders() {
         }
 
         const optimistic = { ...selectedOrder, status: drawerStatus, internalNotes: drawerNote };
-        setOrders((prev) => prev.map((item) => (item.id === optimistic.id ? optimistic : item)));
+        setOrders((prev) => prev.map((item) => (String(item.id) === String(optimistic.id) ? optimistic : item)));
+        setSelectedDetails((prev) => (prev && String(prev.id) === String(optimistic.id) ? optimistic : prev));
         setSaving(true);
         try {
             const persisted = await updateAdminOrderStatus(token, selectedOrder.id, drawerStatus, { note: drawerNote });
-            setOrders((prev) => prev.map((item) => (item.id === persisted.id ? { ...item, ...persisted } : item)));
+            setOrders((prev) => prev.map((item) => (String(item.id) === String(persisted.id) ? { ...item, ...persisted } : item)));
+            setSelectedDetails((prev) => (prev && String(prev.id) === String(persisted.id) ? { ...prev, ...persisted } : prev));
             showToast('success', 'Order status updated.');
         } catch (err) {
-            setOrders((prev) => prev.map((item) => (item.id === previous.id ? previous : item)));
+            setOrders((prev) => prev.map((item) => (String(item.id) === String(previous.id) ? previous : item)));
+            setSelectedDetails((prev) => (prev && String(prev.id) === String(previous.id) ? previous : prev));
             showToast('error', err?.message || 'Failed to update order status.');
         } finally {
             setSaving(false);
@@ -347,36 +388,18 @@ export default function AdminOrders() {
                     Show cancelled orders
                 </label>
                 <div className={styles.densityToggle} role="group" aria-label="Card density">
-                    <button
-                        type="button"
-                        className={`${styles.densityBtn} ${!isCompact ? styles.densityBtnActive : ''}`}
-                        onClick={() => setDensity('comfortable')}
-                    >
-                        Comfortable
-                    </button>
-                    <button
-                        type="button"
-                        className={`${styles.densityBtn} ${isCompact ? styles.densityBtnActive : ''}`}
-                        onClick={() => setDensity('compact')}
-                    >
-                        Compact
-                    </button>
+                    <button type="button" className={`${styles.densityBtn} ${!isCompact ? styles.densityBtnActive : ''}`} onClick={() => setDensity('comfortable')}>Comfortable</button>
+                    <button type="button" className={`${styles.densityBtn} ${isCompact ? styles.densityBtnActive : ''}`} onClick={() => setDensity('compact')}>Compact</button>
                 </div>
                 <label className={styles.toggleLabel}>
-                    <input
-                        type="checkbox"
-                        checked={compactStages}
-                        onChange={(event) => setCompactStages(event.target.checked)}
-                    />
+                    <input type="checkbox" checked={compactStages} onChange={(event) => setCompactStages(event.target.checked)} />
                     Compact stages
                 </label>
             </section>
 
             {error ? <div className={styles.error}>{error}</div> : null}
 
-            <div
-                className={`${styles.boardWrap} ${compactStages ? styles.boardWrapCompact : ''} ${selectedOrder ? styles.boardWrapWithDrawer : ''}`}
-            >
+            <div className={`${styles.boardWrap} ${compactStages ? styles.boardWrapCompact : ''} ${selectedOrder ? styles.boardWrapWithDrawer : ''}`}>
                 <div className={`${styles.board} ${compactStages ? styles.boardCompact : ''}`}>
                     {boardColumns.map((column) => {
                         const columnOrders = column.orders || [];
@@ -388,28 +411,23 @@ export default function AdminOrders() {
                                 </header>
                                 <div className={styles.columnContent}>
                                     {loading ? (
-                                        Array.from({ length: 4 }, (_, index) => (
-                                            <div key={`${column.key}-loading-${index}`} className={styles.skeletonCard} />
-                                        ))
+                                        Array.from({ length: 4 }, (_, index) => <div key={`${column.key}-loading-${index}`} className={styles.skeletonCard} />)
                                     ) : columnOrders.length === 0 ? (
                                         <p className={styles.empty}>No orders</p>
                                     ) : columnOrders.map((order) => {
                                         const paymentLabel = paymentBadgeText(order);
                                         return (
-                                            <article
-                                                key={order.id}
-                                                className={`${styles.orderCard} ${isCompact ? styles.orderCardCompact : ''} ${isCancelledByCustomer(order) ? styles.rowCancelled : ''}`}
-                                            >
-                                            <p className={styles.cardOrder}>#{order.orderNumber}</p>
-                                            <p className={styles.cardCustomer} title={order.customer?.name || 'Unknown'}>{order.customer?.name || 'Unknown'}</p>
-                                            <p className={styles.cardTotal}>{formatCurrency(order.totals?.total || 0, order.totals?.currency || 'SEK')}</p>
-                                            <div className={styles.cardBadges}>
-                                                <span className={`${styles.badge} ${statusBadgeClass(order.status)}`}>Status: {formatStatusBadge(order.status)}</span>
-                                                <span className={`${styles.badge} ${paymentColorClass(paymentLabel)}`}>Payment: {paymentLabel}</span>
-                                                {!isCompact ? <span className={`${styles.badge} ${deliveryColorClass(order)}`}>Delivery: {deliveryBadgeText(order)}</span> : null}
-                                            </div>
-                                            {!isCompact ? <p className={styles.muted}>{order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}</p> : null}
-                                            <button type="button" onClick={() => setSelectedId(order.id)} className={styles.openBtn}>Open</button>
+                                            <article key={order.id} className={`${styles.orderCard} ${isCompact ? styles.orderCardCompact : ''} ${isCancelledByCustomer(order) ? styles.rowCancelled : ''}`}>
+                                                <p className={styles.cardOrder}>#{displayOrderNumber(order)}</p>
+                                                <p className={styles.cardCustomer} title={toDisplayValue(order.customer?.name)}>{toDisplayValue(order.customer?.name)}</p>
+                                                <p className={styles.cardTotal}>{formatCurrency(order.totals?.total || 0, order.totals?.currency || 'SEK')}</p>
+                                                <div className={styles.cardBadges}>
+                                                    <span className={`${styles.badge} ${statusBadgeClass(order.status)}`}>Status: {formatStatusBadge(order.status)}</span>
+                                                    <span className={`${styles.badge} ${paymentColorClass(paymentLabel)}`}>Payment: {paymentLabel}</span>
+                                                    {!isCompact ? <span className={`${styles.badge} ${deliveryColorClass(order)}`}>Delivery: {deliveryBadgeText(order)}</span> : null}
+                                                </div>
+                                                {!isCompact ? <p className={styles.muted}>{order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}</p> : null}
+                                                <button type="button" onClick={() => handleOpenOrder(order.id)} className={styles.openBtn}>Open</button>
                                             </article>
                                         );
                                     })}
@@ -424,73 +442,102 @@ export default function AdminOrders() {
                 {selectedOrder ? (
                     <>
                         <div className={styles.drawerHeader}>
-                            <h2>Order #{selectedOrder.orderNumber}</h2>
+                            <h2>Order #{displayOrderNumber(selectedOrder)}</h2>
                             <button type="button" onClick={() => setSelectedId(null)}>Close</button>
                         </div>
 
-                        <section className={styles.section}>
-                            <h4>Status</h4>
-                            <div className={styles.statusRow}>
-                                <select value={drawerStatus} onChange={(event) => setDrawerStatus(event.target.value)} disabled={selectedOrderReadOnly || saving}>
-                                    {STATUS_OPTIONS.map((status) => (
-                                        <option
-                                            key={status}
-                                            value={status}
-                                            disabled={!canTransition(selectedOrder.status, status, selectedOrder)}
-                                        >
-                                            {status.replaceAll('_', ' ')}
-                                        </option>
-                                    ))}
-                                </select>
-                                <button type="button" onClick={handleSaveStatus} disabled={selectedOrderReadOnly || saving}>{saving ? 'Saving…' : 'Save'}</button>
-                            </div>
-                        </section>
-
-                        {readOnlyMessage ? <p className={styles.cancelledWarning}>{readOnlyMessage}</p> : null}
-
-                        <section className={styles.section}>
-                            <h4>Payment</h4>
-                            <p>Status: <strong>{normalizeKey(selectedOrder.paymentStatus)}</strong></p>
-                            <p><strong>Payment mode:</strong> {selectedOrder.paymentMode || 'PAY_NOW'}</p>
-                            <p><strong>Invoice status:</strong> {selectedOrder.invoiceStatus || '—'}</p>
-                            <p><strong>Payment Method:</strong> {paymentMethod}</p>
-                            <p><strong>Reference:</strong> {paymentReference}</p>
-                            {normalizeKey(selectedOrder.paymentStatus) === 'PAID' && (!selectedOrder.paymentReference || !selectedOrder.paymentMethod) ? (
-                                <p className={styles.paymentWarning}>Payment confirmed, but provider details are not available yet.</p>
-                            ) : null}
-                        </section>
-
-                        <section className={styles.section}>
-                            <h4>Customer</h4>
-                            <p>{selectedOrder.customer?.name || '—'}</p>
-                            <p>{selectedOrder.customer?.email || '—'}</p>
-                            <p>{selectedOrder.customer?.phone || '—'}</p>
-                        </section>
-
-                        <section className={styles.section}>
-                            <h4>Fulfillment</h4>
-                            <p>{isPickupOrder(selectedOrder) ? 'Pickup' : 'Shipping'}</p>
-                            <p>{summarizeAddress(selectedOrder)}</p>
-                        </section>
-
-                        <section className={styles.section}>
-                            <h4>Items</h4>
-                            {selectedOrder.items.map((item) => (
-                                <div key={item.id} className={styles.lineItem}>
-                                    <span>{item.name} × {item.quantity}</span>
-                                    <span>{formatCurrency(item.lineTotal, selectedOrder.totals?.currency || 'SEK')}</span>
+                        <div className={styles.drawerContent}>
+                            {detailsError ? (
+                                <div className={styles.detailsErrorBox}>
+                                    <p>Failed to load order details.</p>
+                                    <button type="button" onClick={handleRetryDetails}>Retry</button>
                                 </div>
-                            ))}
-                            <div className={styles.lineItem}><span>Subtotal (excl. VAT / Net)</span><span>{formatCurrency(Math.max((selectedOrder.totals?.subtotal || 0) - (selectedOrder.totals?.tax || 0), 0), selectedOrder.totals?.currency || 'SEK')}</span></div>
-                            <div className={styles.lineItem}><span>Shipping</span><span>{formatCurrency(selectedOrder.totals?.shipping || 0, selectedOrder.totals?.currency || 'SEK')}</span></div>
-                            <div className={styles.lineItem}><span>VAT (moms)</span><span>{formatCurrency(selectedOrder.totals?.tax || 0, selectedOrder.totals?.currency || 'SEK')}</span></div>
-                            <div className={styles.lineItem}><span>Total (incl. VAT / Gross)</span><span>{formatCurrency(selectedOrder.totals?.total || 0, selectedOrder.totals?.currency || 'SEK')}</span></div>
-                        </section>
+                            ) : null}
 
-                        <section className={styles.section}>
-                            <h4>Internal notes</h4>
-                            <textarea value={drawerNote} onChange={(event) => setDrawerNote(event.target.value)} rows={4} disabled={selectedOrderReadOnly} />
-                        </section>
+                            {detailsLoading ? (
+                                <div className={styles.drawerLoading}>
+                                    <div className={styles.drawerSkeleton} />
+                                    <div className={styles.drawerSkeleton} />
+                                    <div className={styles.drawerSkeleton} />
+                                </div>
+                            ) : null}
+
+                            {!detailsLoading ? (
+                                <>
+                                    <section className={styles.section}>
+                                        <h4>Order</h4>
+                                        <div className={styles.row}><span>Order #</span><span>{displayOrderNumber(selectedOrder)}</span><button type="button" onClick={() => handleCopy(displayOrderNumber(selectedOrder), 'Order number')}>Copy</button></div>
+                                        <div className={styles.row}><span>Order ID</span><span className={styles.mono}>{toDisplayValue(selectedOrder.id)}</span><button type="button" onClick={() => handleCopy(selectedOrder.id, 'Order ID')}>Copy</button></div>
+                                        <div className={styles.row}><span>Created</span><span>{selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleString() : '—'}</span></div>
+                                        <div className={styles.row}><span>Updated</span><span>{selectedOrder.updatedAt ? new Date(selectedOrder.updatedAt).toLocaleString() : '—'}</span></div>
+                                        <div className={styles.row}><span>Status</span><span>{formatStatusBadge(selectedOrder.status)}</span></div>
+                                        <div className={styles.statusRow}>
+                                            <select value={drawerStatus} onChange={(event) => setDrawerStatus(event.target.value)} disabled={selectedOrderReadOnly || saving}>
+                                                {STATUS_OPTIONS.map((status) => (
+                                                    <option key={status} value={status} disabled={!canTransition(selectedOrder.status, status, selectedOrder)}>{status.replaceAll('_', ' ')}</option>
+                                                ))}
+                                            </select>
+                                            <button type="button" onClick={handleSaveStatus} disabled={selectedOrderReadOnly || saving}>{saving ? 'Saving…' : 'Save'}</button>
+                                        </div>
+                                    </section>
+
+                                    {readOnlyMessage ? <p className={styles.cancelledWarning}>{readOnlyMessage}</p> : null}
+
+                                    <section className={styles.section}>
+                                        <h4>Payment</h4>
+                                        <div className={styles.row}><span>Status</span><span>{toDisplayValue(selectedOrder.paymentStatus)}</span></div>
+                                        <div className={styles.row}><span>Mode</span><span>{toDisplayValue(selectedOrder.paymentMode || 'PAY_NOW')}</span></div>
+                                        <div className={styles.row}><span>Method</span><span>{toDisplayValue(selectedOrder.paymentMethod ?? selectedOrderPayment?.method)}</span></div>
+                                        <div className={styles.row}><span>Reference</span><span>{toDisplayValue(selectedOrder.paymentReference ?? selectedOrderPayment?.reference)}</span></div>
+                                    </section>
+
+                                    <section className={styles.section}>
+                                        <h4>Customer</h4>
+                                        <div className={styles.row}><span>Name</span><span>{toDisplayValue(selectedOrder.customer?.name)}</span></div>
+                                        <div className={styles.row}><span>Email</span><span>{toDisplayValue(selectedOrder.customer?.email)}</span></div>
+                                        <div className={styles.row}><span>Phone</span><span>{toDisplayValue(selectedOrder.customer?.phone)}</span></div>
+                                    </section>
+
+                                    <section className={styles.section}>
+                                        <h4>Fulfillment</h4>
+                                        <div className={styles.row}><span>Type</span><span>{isPickupOrder(selectedOrder) ? 'Pickup' : 'Shipping'}</span></div>
+                                        {isPickupOrder(selectedOrder) ? (
+                                            <div className={styles.row}><span>Location</span><span>{toDisplayValue(selectedOrder.pickupLocation)}</span></div>
+                                        ) : (
+                                            <>
+                                                {toAddressLines(selectedOrder.shippingAddress).length > 0 ? toAddressLines(selectedOrder.shippingAddress).map((line) => (
+                                                    <div className={styles.row} key={line}><span>Address</span><span>{line}</span></div>
+                                                )) : <div className={styles.row}><span>Address</span><span>—</span></div>}
+                                            </>
+                                        )}
+                                    </section>
+
+                                    <section className={styles.section}>
+                                        <h4>Items</h4>
+                                        {(selectedOrder.items || []).map((item) => (
+                                            <div key={item.id} className={styles.lineItem}>
+                                                <span>{item.name} × {item.quantity}</span>
+                                                <span>{formatCurrency(item.lineTotal, selectedOrder.totals?.currency || 'SEK')}</span>
+                                            </div>
+                                        ))}
+                                    </section>
+
+                                    <section className={styles.section}>
+                                        <h4>Totals</h4>
+                                        <div className={styles.lineItem}><span>Subtotal</span><span>{formatCurrency(selectedOrder.totals?.subtotal || 0, selectedOrder.totals?.currency || 'SEK')}</span></div>
+                                        {(selectedOrder.totals?.shipping ?? 0) > 0 ? <div className={styles.lineItem}><span>Shipping</span><span>{formatCurrency(selectedOrder.totals?.shipping || 0, selectedOrder.totals?.currency || 'SEK')}</span></div> : null}
+                                        {(selectedOrder.totals?.tax ?? 0) > 0 ? <div className={styles.lineItem}><span>VAT</span><span>{formatCurrency(selectedOrder.totals?.tax || 0, selectedOrder.totals?.currency || 'SEK')}</span></div> : null}
+                                        <div className={styles.lineItem}><span>Total</span><span>{formatCurrency(selectedOrder.totals?.total || 0, selectedOrder.totals?.currency || 'SEK')}</span></div>
+                                        <div className={styles.lineItem}><span>Paid</span><span>{normalizeKey(selectedOrder.paymentStatus) === 'PAID' ? formatCurrency(selectedOrder.totals?.total || 0, selectedOrder.totals?.currency || 'SEK') : '—'}</span></div>
+                                    </section>
+
+                                    <section className={styles.section}>
+                                        <h4>Internal notes</h4>
+                                        <textarea value={drawerNote} onChange={(event) => setDrawerNote(event.target.value)} rows={4} disabled={selectedOrderReadOnly} />
+                                    </section>
+                                </>
+                            ) : null}
+                        </div>
                     </>
                 ) : (
                     <div className={styles.drawerPlaceholder}>Open an order to see details.</div>

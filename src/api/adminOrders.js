@@ -84,6 +84,12 @@ const normalizeItems = (items) => {
     });
 };
 
+const sanitizeFormattedOrderNumber = (value) => {
+    const formatted = String(value || '').trim();
+    if (!formatted) return '';
+    return formatted.replace(/^HL-HL-/i, 'HL-');
+};
+
 export const normalizeAdminOrder = (order = {}) => {
     const id = order?.id ?? order?.orderId ?? order?._id ?? order?.orderNumber ?? '';
     const items = normalizeItems(order?.items ?? order?.lineItems ?? order?.lines);
@@ -101,7 +107,10 @@ export const normalizeAdminOrder = (order = {}) => {
 
     return {
         id,
-        orderNumber: order?.orderNumber ?? order?.displayOrderNumber ?? id,
+        formattedOrderNumber: sanitizeFormattedOrderNumber(
+            order?.formattedOrderNumber ?? order?.formatted_order_number ?? order?.displayOrderNumber,
+        ),
+        orderNumber: order?.orderNumber ?? id,
         createdAt: order?.createdAt ?? order?.placedAt ?? order?.date ?? '',
         status: order?.status ?? order?.deliveryStatus ?? order?.fulfillmentStatus ?? 'RECEIVED',
         paymentStatus: order?.paymentStatus ?? payment?.status ?? order?.status ?? 'PENDING',
@@ -133,6 +142,8 @@ export const normalizeAdminOrder = (order = {}) => {
         raw: order,
     };
 };
+
+const parseOrderPayload = (payload) => payload?.order ?? payload?.data ?? payload;
 
 export async function listAdminOrders(
     token,
@@ -232,4 +243,32 @@ export async function updateAdminOrderStatus(token, orderId, status, { note } = 
     }
 
     throw lastError || new Error('Failed to update order status');
+}
+
+export async function getAdminOrderDetails(token, orderId, { signal } = {}) {
+    if (!orderId) throw new Error('Order ID is required');
+
+    const encodedId = encodeURIComponent(orderId);
+    const candidates = [
+        `${ADMIN_ORDERS_URL}/${encodedId}`,
+        `${API_BASE}/api/admin/orders/${encodedId}`,
+    ];
+
+    let lastError = null;
+    for (const url of candidates) {
+        try {
+            const res = await authFetch(url, { method: 'GET', headers: authHeaders(token), signal }, { token });
+            const payload = await parseApiResponse(res, 'Failed to load order details');
+            return normalizeAdminOrder(parseOrderPayload(payload));
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    if (shouldUseMockFallback(lastError)) {
+        const match = mockOrders.find((item) => String(item.id) === String(orderId));
+        if (match) return normalizeAdminOrder(match);
+    }
+
+    throw lastError || new Error('Failed to load order details');
 }

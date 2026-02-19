@@ -25,9 +25,7 @@
   padding: 0.5rem 0;
 }
 
-.filtersRow > * {
-  min-width: 0;
-}
+.filtersRow > * { min-width: 0; }
 .filtersRow input,
 .filtersRow select,
 .section textarea,
@@ -38,17 +36,9 @@
   font: inherit;
 }
 
-.searchInput {
-  flex: 1 1 320px;
-}
-
-.statusSelect {
-  flex: 0 1 220px;
-}
-
-.filterSelect {
-  flex: 0 1 180px;
-}
+.searchInput { flex: 1 1 320px; }
+.statusSelect { flex: 0 1 220px; }
+.filterSelect { flex: 0 1 180px; }
 
 .toggleLabel {
   display: inline-flex;
@@ -58,27 +48,9 @@
   font-size: 0.9rem;
 }
 
-.densityToggle {
-  display: inline-flex;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.densityBtn {
-  border: 0;
-  background: #fff;
-  padding: 0.4rem 0.65rem;
-  cursor: pointer;
-  font-size: 0.85rem;
-  color: #334155;
-}
-
-.densityBtnActive {
-  background: #e2e8f0;
-  color: #0f172a;
-  font-weight: 600;
-}
+.densityToggle { display: inline-flex; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; }
+.densityBtn { border: 0; background: #fff; padding: 0.4rem 0.65rem; cursor: pointer; font-size: 0.85rem; color: #334155; }
+.densityBtnActive { background: #e2e8f0; color: #0f172a; font-weight: 600; }
 
 .muted { color: #64748b; font-size: 0.82rem; margin-top: 0.15rem; }
 
@@ -102,29 +74,35 @@
 .badgePurple { background: #f3e8ff; color: #6b21a8; border-color: #d8b4fe; }
 .badgeNeutral { background: #e2e8f0; color: #334155; border-color: #cbd5e1; }
 
-.openBtn {
-  border: 0;
-  border-radius: 8px;
-  padding: 0.32rem 0.62rem;
-  background: #1d4ed8;
-  color: white;
-  cursor: pointer;
-}
+.openBtn { border: 0; border-radius: 8px; padding: 0.32rem 0.62rem; background: #1d4ed8; color: white; cursor: pointer; }
 
 .drawer {
   position: fixed;
-  right: -360px;
+  right: -420px;
   top: 0;
-  width: 360px;
+  width: 420px;
   height: 100vh;
   background: #fff;
   border-left: 1px solid #e2e8f0;
   transition: right 0.2s ease;
-  overflow: auto;
-  padding: 0.8rem;
+  display: flex;
+  flex-direction: column;
 }
 .drawerOpen { right: 0; }
-.drawerHeader { display: flex; justify-content: space-between; align-items: center; }
+.drawerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 1;
+}
+.drawerHeader h2 { margin: 0; font-size: 1.05rem; }
+.drawerContent { overflow-y: auto; padding: 0 0.85rem 1rem; }
 .section { margin-top: 0.9rem; border-top: 1px solid #e2e8f0; padding-top: 0.8rem; }
 .section h4 { margin: 0 0 0.5rem; }
 .cancelledWarning {
@@ -136,35 +114,50 @@
   border-radius: 10px;
   padding: 0.5rem 0.6rem;
 }
-.paymentWarning {
-  margin-top: 0.35rem;
-  color: #92400e;
-  font-size: 0.8rem;
+.statusRow { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
+.statusRow button { border: 0; background: #0f766e; color: white; border-radius: 8px; padding: 0.45rem 0.75rem; }
+
+.row {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.35rem;
+  color: #334155;
 }
-.statusRow { display: flex; gap: 0.5rem; }
-.statusRow button {
-  border: 0;
-  background: #0f766e;
-  color: white;
+.row span:last-of-type { text-align: right; word-break: break-word; color: #0f172a; }
+.row button {
+  border: 1px solid #cbd5e1;
+  background: #fff;
   border-radius: 8px;
-  padding: 0.45rem 0.75rem;
+  color: #334155;
+  padding: 0.2rem 0.45rem;
+  cursor: pointer;
 }
-.lineItem { display: flex; justify-content: space-between; margin-bottom: 0.3rem; }
-.toast {
-  position: fixed;
-  right: 1rem;
-  bottom: 1rem;
-  color: white;
-  padding: 0.55rem 0.8rem;
-  border-radius: 10px;
-}
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; }
+
+.lineItem { display: flex; justify-content: space-between; margin-bottom: 0.35rem; gap: 0.5rem; }
+.toast { position: fixed; right: 1rem; bottom: 1rem; color: white; padding: 0.55rem 0.8rem; border-radius: 10px; }
 .toastSuccess { background: #166534; }
 .toastError { background: #991b1b; }
 .empty { color: #64748b; font-size: 0.9rem; padding: 0.5rem; }
 .skeletonCard { height: 120px; border-radius: 10px; background: linear-gradient(90deg, #e2e8f0, #f1f5f9, #e2e8f0); margin-bottom: 0.5rem; }
 .error { color: #b91c1c; margin-bottom: 0.5rem; }
 .noAccess { padding: 1rem; }
-.drawerPlaceholder { color: #64748b; margin-top: 2rem; text-align: center; }
+.drawerPlaceholder { color: #64748b; margin-top: 2rem; text-align: center; padding: 1rem; }
+
+.detailsErrorBox {
+  margin-top: 1rem;
+  padding: 0.65rem;
+  border-radius: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+.detailsErrorBox p { margin: 0 0 0.45rem; }
+.detailsErrorBox button { border: 0; border-radius: 8px; background: #b91c1c; color: #fff; padding: 0.35rem 0.55rem; }
+.drawerLoading { margin-top: 1rem; display: grid; gap: 0.55rem; }
+.drawerSkeleton { height: 72px; border-radius: 10px; background: linear-gradient(90deg, #e2e8f0, #f1f5f9, #e2e8f0); }
 
 .boardWrap {
   margin-right: 0;
@@ -179,13 +172,8 @@
   height: calc(100vh - 205px);
 }
 
-.boardWrapCompact {
-  overflow-x: hidden;
-}
-
-.boardWrapWithDrawer {
-  margin-right: 360px;
-}
+.boardWrapCompact { overflow-x: hidden; }
+.boardWrapWithDrawer { margin-right: 420px; }
 
 .board {
   display: grid;
@@ -198,9 +186,7 @@
   align-content: start;
 }
 
-.boardCompact {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
+.boardCompact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 .column {
   min-width: 0;
@@ -222,25 +208,10 @@
   background: #fff;
 }
 
-.columnHeader h3 {
-  margin: 0;
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  color: #475569;
-}
+.columnHeader h3 { margin: 0; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.02em; color: #475569; }
+.columnHeader span { font-size: 0.75rem; color: #475569; background: #e2e8f0; border-radius: 999px; padding: 0.1rem 0.45rem; }
 
-.columnHeader span {
-  font-size: 0.75rem;
-  color: #475569;
-  background: #e2e8f0;
-  border-radius: 999px;
-  padding: 0.1rem 0.45rem;
-}
-
-.rowCancelled {
-  opacity: 0.68;
-}
+.rowCancelled { opacity: 0.68; }
 
 .columnContent {
   flex: 1 1 auto;
@@ -262,86 +233,20 @@
   gap: 0.45rem;
 }
 
-.orderCardCompact {
-  padding: 0.42rem;
-  gap: 0.3rem;
-}
+.orderCardCompact { padding: 0.42rem; gap: 0.3rem; }
 
 .cardOrder,
 .cardCustomer,
-.cardTotal {
-  margin: 0;
-}
+.cardTotal { margin: 0; }
 
-.cardOrder {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #0f172a;
-}
+.cardOrder { font-size: 0.9rem; font-weight: 600; color: #0f172a; }
+.orderCardCompact .cardOrder { font-size: 0.82rem; }
 
-.orderCardCompact .cardOrder {
-  font-size: 0.82rem;
-}
+.cardCustomer { color: #334155; font-size: 0.84rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.orderCardCompact .cardCustomer { font-size: 0.78rem; }
 
-.cardCustomer {
-  color: #334155;
-  font-size: 0.84rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+.cardTotal { color: #0f172a; font-size: 0.85rem; }
+.orderCardCompact .cardTotal { font-size: 0.78rem; }
 
-.orderCardCompact .cardCustomer {
-  font-size: 0.78rem;
-}
-
-.cardTotal {
-  color: #0f172a;
-  font-size: 0.85rem;
-}
-
-.orderCardCompact .cardTotal {
-  font-size: 0.78rem;
-}
-
-.cardBadges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-}
-
-.orderCardCompact .badge {
-  font-size: 0.64rem;
-  padding: 0.1rem 0.42rem;
-}
-
-.tableSkeleton {
-  height: 20px;
-  border-radius: 6px;
-  background: linear-gradient(90deg, #e2e8f0, #f1f5f9, #e2e8f0);
-}
-
-@media (max-width: 1200px) {
-  .boardWrapWithDrawer { margin-right: 0; }
-  .drawer { width: 100%; right: -100%; }
-}
-
-@media (max-width: 520px) {
-  .filtersRow {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .statusSelect,
-  .searchInput,
-  .filterSelect {
-    width: 100%;
-  }
-}
-
-.skeletonCard { min-height: 94px; }
-
-.orderCardCompact .openBtn {
-  font-size: 0.74rem;
-  padding: 0.24rem 0.5rem;
-}
+.cardBadges { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.orderCardCompact .badge { font-size: 0.64rem; padding: 0.1rem 0.42rem; }
