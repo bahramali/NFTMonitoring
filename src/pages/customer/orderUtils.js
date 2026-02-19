@@ -75,7 +75,7 @@ export const normalizeOrderList = (payload) => {
     return list.map((order) => ({
         id: order.orderId ?? order.id ?? order.orderNumber ?? order.reference ?? '',
         orderNumber: order.orderNumber ?? order.reference ?? order.orderId ?? order.id ?? '',
-        status: order.displayStatus ?? order.orderStatus ?? order.mappedStatus ?? order.status ?? order.state ?? 'PENDING',
+        status: (order.orderStatus ?? order.order_status) ?? order.displayStatus ?? order.mappedStatus ?? order.status ?? order.state ?? 'PENDING',
         total: pickAmount(order, ['totalAmount', 'total', 'amount'], ['totalCents', 'totalAmountCents']),
         currency: order.currency ?? order.totalCurrency ?? 'SEK',
         createdAt: order.placedAt ?? order.createdAt ?? order.created ?? order.timestamp,
@@ -99,7 +99,11 @@ export const normalizeOrder = (payload) => {
     const normalized = normalizeOrderList([base])[0] || {};
     const payment = base.payment ?? {};
     const paymentMode = toStatusKey(normalized.paymentMode || base.paymentMode || base.payment_mode || payment.mode || '');
-    const orderStatus = base.orderStatus ?? payload?.orderStatus ?? payload?.summary?.orderStatus ?? base.summary?.orderStatus ?? null;
+    const orderStatus = base.orderStatus ?? base.order_status
+        ?? payload?.orderStatus ?? payload?.order_status
+        ?? payload?.summary?.orderStatus ?? payload?.summary?.order_status
+        ?? base.summary?.orderStatus ?? base.summary?.order_status
+        ?? null;
 
     const result = {
         ...normalized,
