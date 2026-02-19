@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { listAdminOrders, updateAdminOrderStatus } from '../../api/adminOrders.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { formatCurrency } from '../../utils/currency.js';
@@ -6,6 +6,8 @@ import { PERMISSIONS, hasPerm } from '../../utils/permissions.js';
 import styles from './AdminOrders.module.css';
 
 const STATUS_OPTIONS = ['RECEIVED', 'PREPARING', 'SHIPPING', 'READY_FOR_PICKUP', 'DELIVERED', 'CANCELLED'];
+const COLLAPSE_PRIORITY = ['CANCELLED', 'READY_FOR_PICKUP', 'DELIVERED', 'SHIPPING', 'PREPARING', 'RECEIVED'];
+const MIN_COLUMN_WIDTH = 240;
 const PAYMENT_FILTERS = ['ALL', 'PAID', 'PENDING', 'FAILED'];
 const DENSITY_STORAGE_KEY = 'admin-orders-board-density';
 
@@ -114,6 +116,8 @@ export default function AdminOrders() {
         const saved = window.localStorage.getItem(DENSITY_STORAGE_KEY);
         return saved === 'compact' ? 'compact' : 'comfortable';
     });
+    const [boardWidth, setBoardWidth] = useState(0);
+    const boardWrapRef = useRef(null);
 
     const hasAccess = hasPerm({ permissions }, PERMISSIONS.ORDERS_MANAGE);
 
@@ -201,6 +205,52 @@ export default function AdminOrders() {
         });
         return groups;
     }, [filteredOrders]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const element = boardWrapRef.current;
+        if (!element) return;
+
+        const updateWidth = () => setBoardWidth(element.clientWidth || 0);
+        updateWidth();
+
+        const observer = new ResizeObserver(updateWidth);
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, []);
+
+    const boardColumns = useMemo(() => {
+        const maxColumns = Math.max(1, Math.floor((boardWidth || MIN_COLUMN_WIDTH) / MIN_COLUMN_WIDTH));
+        const visibleStatuses = [...STATUS_OPTIONS];
+        const collapsedStatuses = [];
+
+        while (visibleStatuses.length > maxColumns) {
+            const toCollapse = COLLAPSE_PRIORITY.find((status) => visibleStatuses.includes(status));
+            if (!toCollapse) break;
+            collapsedStatuses.push(toCollapse);
+            visibleStatuses.splice(visibleStatuses.indexOf(toCollapse), 1);
+        }
+
+        const visibleColumns = visibleStatuses.map((status) => ({
+            key: status,
+            label: status === 'CANCELLED' ? 'Cancelled' : status.replaceAll('_', ' '),
+            orders: ordersByStatus[status] || [],
+            collapsed: false,
+        }));
+
+        if (collapsedStatuses.length) {
+            const collapsedSet = new Set(collapsedStatuses);
+            const collapsedOrders = filteredOrders.filter((order) => collapsedSet.has(normalizeBoardStatus(order.status)));
+            visibleColumns.push({
+                key: 'COLLAPSED',
+                label: `More (${collapsedStatuses.length})`,
+                orders: collapsedOrders,
+                collapsed: true,
+            });
+        }
+
+        return visibleColumns;
+    }, [boardWidth, filteredOrders, ordersByStatus]);
 
     const showToast = (type, message) => {
         setToast({ type, message, id: Date.now() });
@@ -303,20 +353,20 @@ export default function AdminOrders() {
 
             {error ? <div className={styles.error}>{error}</div> : null}
 
-            <div className={styles.boardWrap}>
-                <div className={styles.board}>
-                    {STATUS_OPTIONS.map((status) => {
-                        const columnOrders = ordersByStatus[status] || [];
+            <div className={styles.boardWrap} ref={boardWrapRef}>
+                <div className={styles.board} style={{ '--board-columns': boardColumns.length }}>
+                    {boardColumns.map((column) => {
+                        const columnOrders = column.orders || [];
                         return (
-                            <section key={status} className={styles.column}>
+                            <section key={column.key} className={styles.column}>
                                 <header className={styles.columnHeader}>
-                                    <h3>{status === 'CANCELLED' ? 'Cancelled' : status.replaceAll('_', ' ')}</h3>
+                                    <h3>{column.label}</h3>
                                     <span>{columnOrders.length}</span>
                                 </header>
                                 <div className={styles.columnContent}>
                                     {loading ? (
                                         Array.from({ length: 4 }, (_, index) => (
-                                            <div key={`${status}-loading-${index}`} className={styles.skeletonCard} />
+                                            <div key={`${column.key}-loading-${index}`} className={styles.skeletonCard} />
                                         ))
                                     ) : columnOrders.length === 0 ? (
                                         <p className={styles.empty}>No orders</p>
@@ -332,6 +382,7 @@ export default function AdminOrders() {
                                             <p className={styles.cardTotal}>{formatCurrency(order.totals?.total || 0, order.totals?.currency || 'SEK')}</p>
                                             <div className={styles.cardBadges}>
                                                 <span className={`${styles.badge} ${statusBadgeClass(order.status)}`}>Status: {formatStatusBadge(order.status)}</span>
+                                                {column.collapsed ? <span className={`${styles.badge} ${styles.badgeNeutral}`}>Stage: {formatStatusBadge(order.status)}</span> : null}
                                                 <span className={`${styles.badge} ${paymentColorClass(paymentLabel)}`}>Payment: {paymentLabel}</span>
                                                 {!isCompact ? <span className={`${styles.badge} ${deliveryColorClass(order)}`}>Delivery: {deliveryBadgeText(order)}</span> : null}
                                             </div>
