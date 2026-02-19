@@ -5,14 +5,16 @@ import { formatCurrency } from '../../utils/currency.js';
 import { PERMISSIONS, hasPerm } from '../../utils/permissions.js';
 import styles from './AdminOrders.module.css';
 
-const STATUS_OPTIONS = ['RECEIVED', 'PREPARING', 'SHIPPING', 'READY_FOR_PICKUP', 'DELIVERED', 'CANCELLED_BY_CUSTOMER'];
+const STATUS_OPTIONS = ['RECEIVED', 'PREPARING', 'SHIPPING', 'READY_FOR_PICKUP', 'DELIVERED', 'CANCELLED'];
 const PAYMENT_FILTERS = ['ALL', 'PAID', 'PENDING', 'FAILED'];
 const DENSITY_STORAGE_KEY = 'admin-orders-board-density';
 
 const normalizeKey = (value) => String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
 
 const isPickupOrder = (order) => normalizeKey(order?.fulfillmentType).includes('PICKUP');
-const isCancelledByCustomer = (order) => ['CANCELLED_BY_CUSTOMER', 'CANCELLED'].includes(normalizeKey(order?.status));
+const isCancelledStatus = (value) => ['CANCELLED_BY_CUSTOMER', 'CANCELLED'].includes(normalizeKey(value));
+const isCancelledByCustomer = (order) => isCancelledStatus(order?.status);
+const normalizeBoardStatus = (status) => (isCancelledStatus(status) ? 'CANCELLED' : normalizeKey(status));
 
 const deliveryBadgeText = (order) => (isPickupOrder(order) ? 'Pickup' : 'Shipping');
 
@@ -131,7 +133,10 @@ export default function AdminOrders() {
         }
 
         if (statusFilter !== 'ALL') {
-            list = list.filter((order) => normalizeKey(order.status) === statusFilter);
+            list = list.filter((order) => {
+                if (statusFilter === 'CANCELLED') return isCancelledByCustomer(order);
+                return normalizeKey(order.status) === statusFilter;
+            });
         } else if (!showCancelled) {
             list = list.filter((order) => !isCancelledByCustomer(order));
         }
@@ -163,7 +168,7 @@ export default function AdminOrders() {
     const ordersByStatus = useMemo(() => {
         const groups = STATUS_OPTIONS.reduce((acc, status) => ({ ...acc, [status]: [] }), {});
         filteredOrders.forEach((order) => {
-            const key = normalizeKey(order.status);
+            const key = normalizeBoardStatus(order.status);
             if (groups[key]) {
                 groups[key].push(order);
             }
@@ -235,7 +240,7 @@ export default function AdminOrders() {
                 <select className={styles.statusSelect} value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
                     <option value="ALL">All statuses</option>
                     {STATUS_OPTIONS.map((status) => (
-                        <option key={status} value={status}>{status === 'CANCELLED_BY_CUSTOMER' ? 'Cancelled' : status.replaceAll('_', ' ')}</option>
+                        <option key={status} value={status}>{status === 'CANCELLED' ? 'Cancelled' : status.replaceAll('_', ' ')}</option>
                     ))}
                 </select>
                 <select className={styles.filterSelect} value={paymentFilter} onChange={(event) => setPaymentFilter(event.target.value)}>
@@ -279,7 +284,7 @@ export default function AdminOrders() {
                         return (
                             <section key={status} className={styles.column}>
                                 <header className={styles.columnHeader}>
-                                    <h3>{status === 'CANCELLED_BY_CUSTOMER' ? 'Cancelled' : status.replaceAll('_', ' ')}</h3>
+                                    <h3>{status === 'CANCELLED' ? 'Cancelled' : status.replaceAll('_', ' ')}</h3>
                                     <span>{columnOrders.length}</span>
                                 </header>
                                 <div className={styles.columnContent}>
