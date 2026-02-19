@@ -8,13 +8,19 @@ import styles from './AdminOrders.module.css';
 const STATUS_OPTIONS = ['RECEIVED', 'PREPARING', 'SHIPPING', 'READY_FOR_PICKUP', 'DELIVERED', 'CANCELLED'];
 const PAYMENT_FILTERS = ['ALL', 'PAID', 'PENDING', 'FAILED'];
 const DENSITY_STORAGE_KEY = 'admin-orders-board-density';
+const COMPACT_STAGES_STORAGE_KEY = 'admin-orders-compact-stages';
 
 const normalizeKey = (value) => String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
 
 const isPickupOrder = (order) => normalizeKey(order?.fulfillmentType).includes('PICKUP');
 const isCancelledStatus = (value) => ['CANCELLED_BY_CUSTOMER', 'CANCELLED'].includes(normalizeKey(value));
 const isCancelledByCustomer = (order) => isCancelledStatus(order?.status);
-const normalizeBoardStatus = (status) => (isCancelledStatus(status) ? 'CANCELLED' : normalizeKey(status));
+const normalizeBoardStatus = (status) => {
+    const key = normalizeKey(status);
+    if (isCancelledStatus(status)) return 'CANCELLED';
+    if (key === 'COMPLETED') return 'DELIVERED';
+    return key;
+};
 
 const STATUS_BADGE_LABELS = {
     RECEIVED: 'Received',
@@ -114,6 +120,11 @@ export default function AdminOrders() {
         const saved = window.localStorage.getItem(DENSITY_STORAGE_KEY);
         return saved === 'compact' ? 'compact' : 'comfortable';
     });
+    const [compactStages, setCompactStages] = useState(() => {
+        if (typeof window === 'undefined') return true;
+        const saved = window.localStorage.getItem(COMPACT_STAGES_STORAGE_KEY);
+        return saved !== 'off';
+    });
 
     const hasAccess = hasPerm({ permissions }, PERMISSIONS.ORDERS_MANAGE);
 
@@ -191,6 +202,10 @@ export default function AdminOrders() {
         window.localStorage.setItem(DENSITY_STORAGE_KEY, density);
     }, [density]);
 
+    useEffect(() => {
+        window.localStorage.setItem(COMPACT_STAGES_STORAGE_KEY, compactStages ? 'on' : 'off');
+    }, [compactStages]);
+
     const ordersByStatus = useMemo(() => {
         const groups = STATUS_OPTIONS.reduce((acc, status) => ({ ...acc, [status]: [] }), {});
         filteredOrders.forEach((order) => {
@@ -203,13 +218,39 @@ export default function AdminOrders() {
     }, [filteredOrders]);
 
     const boardColumns = useMemo(() => {
+        if (compactStages) {
+            return [
+                {
+                    key: 'RECEIVED',
+                    label: 'Received',
+                    orders: ordersByStatus.RECEIVED || [],
+                },
+                {
+                    key: 'IN_PROGRESS',
+                    label: 'In progress',
+                    orders: [
+                        ...(ordersByStatus.PREPARING || []),
+                        ...(ordersByStatus.SHIPPING || []),
+                        ...(ordersByStatus.READY_FOR_PICKUP || []),
+                    ],
+                },
+                {
+                    key: 'DONE',
+                    label: 'Done',
+                    orders: [
+                        ...(ordersByStatus.DELIVERED || []),
+                        ...(ordersByStatus.CANCELLED || []),
+                    ],
+                },
+            ];
+        }
+
         return STATUS_OPTIONS.map((status) => ({
             key: status,
             label: status === 'CANCELLED' ? 'Cancelled' : status.replaceAll('_', ' '),
             orders: ordersByStatus[status] || [],
-            collapsed: false,
         }));
-    }, [ordersByStatus]);
+    }, [compactStages, ordersByStatus]);
 
     const showToast = (type, message) => {
         setToast({ type, message, id: Date.now() });
@@ -308,12 +349,20 @@ export default function AdminOrders() {
                         Compact
                     </button>
                 </div>
+                <label className={styles.toggleLabel}>
+                    <input
+                        type="checkbox"
+                        checked={compactStages}
+                        onChange={(event) => setCompactStages(event.target.checked)}
+                    />
+                    Compact stages
+                </label>
             </section>
 
             {error ? <div className={styles.error}>{error}</div> : null}
 
-            <div className={styles.boardWrap}>
-                <div className={styles.board}>
+            <div className={`${styles.boardWrap} ${compactStages ? styles.boardWrapCompact : ''}`}>
+                <div className={`${styles.board} ${compactStages ? styles.boardCompact : ''}`}>
                     {boardColumns.map((column) => {
                         const columnOrders = column.orders || [];
                         return (
@@ -341,7 +390,6 @@ export default function AdminOrders() {
                                             <p className={styles.cardTotal}>{formatCurrency(order.totals?.total || 0, order.totals?.currency || 'SEK')}</p>
                                             <div className={styles.cardBadges}>
                                                 <span className={`${styles.badge} ${statusBadgeClass(order.status)}`}>Status: {formatStatusBadge(order.status)}</span>
-                                                {column.collapsed ? <span className={`${styles.badge} ${styles.badgeNeutral}`}>Stage: {formatStatusBadge(order.status)}</span> : null}
                                                 <span className={`${styles.badge} ${paymentColorClass(paymentLabel)}`}>Payment: {paymentLabel}</span>
                                                 {!isCompact ? <span className={`${styles.badge} ${deliveryColorClass(order)}`}>Delivery: {deliveryBadgeText(order)}</span> : null}
                                             </div>
