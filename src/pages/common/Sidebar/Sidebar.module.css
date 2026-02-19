@@ -1,7 +1,7 @@
 .sidebar {
     height: auto;
     min-height: 100vh;
-    width: 22rem;
+    width: 18rem;
     background: #0f1a2b;
     color: #e8edf6;
     display: flex;
@@ -147,6 +147,19 @@
     white-space: nowrap;
 }
 
+
+.srOnlyLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 @keyframes shimmer {
     100% {
         transform: translateX(100%);
@@ -204,13 +217,13 @@
 
 @media (max-width: 1200px) {
     .sidebar {
-        width: 20rem;
+        width: 16rem;
     }
 }
 
 @media (max-width: 1024px) {
     .sidebar {
-        width: 18rem;
+        width: 15rem;
     }
 }
 

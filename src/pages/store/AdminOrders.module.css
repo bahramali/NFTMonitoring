@@ -167,11 +167,11 @@
 .drawerPlaceholder { color: #64748b; margin-top: 2rem; text-align: center; }
 
 .boardWrap {
-  margin-right: 360px;
+  margin-right: 0;
   min-width: 0;
   width: 100%;
   flex: 1 1 auto;
-  overflow-x: auto;
+  overflow-x: hidden;
   overflow-y: hidden;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
@@ -183,9 +183,13 @@
   overflow-x: hidden;
 }
 
+.boardWrapWithDrawer {
+  margin-right: 360px;
+}
+
 .board {
   display: grid;
-  grid-template-columns: repeat(6, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   grid-auto-rows: minmax(0, 1fr);
   gap: 0.9rem;
   width: 100%;
@@ -318,7 +322,7 @@
 }
 
 @media (max-width: 1200px) {
-  .boardWrap { margin-right: 0; }
+  .boardWrapWithDrawer { margin-right: 0; }
   .drawer { width: 100%; right: -100%; }
 }
 

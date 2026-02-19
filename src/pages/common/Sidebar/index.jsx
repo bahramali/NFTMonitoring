@@ -6,7 +6,7 @@ import { PERMISSIONS, hasPerm, hasStoreAdminAccess } from "../../../utils/permis
 import styles from "./Sidebar.module.css";
 
 const DEFAULT_VIEWPORT_WIDTH = 1024;
-const BREAKPOINTS = { mobile: 768, collapse: 1024 };
+const BREAKPOINTS = { mobile: 768, collapse: 1440 };
 
 const getWindowWidth = () => (typeof window === "undefined" ? DEFAULT_VIEWPORT_WIDTH : window.innerWidth);
 
@@ -288,6 +288,7 @@ export default function Sidebar() {
                                     <NavLink key={to} to={to} className={linkClass}>
                                         <span className={styles.icon}>{icon}</span>
                                         {!collapsed && <span className={styles.text}>{label}</span>}
+                                        {collapsed && <span className={styles.srOnlyLabel}>{label}</span>}
                                     </NavLink>
                                 );
                             })}
