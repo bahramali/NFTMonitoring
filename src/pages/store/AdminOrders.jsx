@@ -7,7 +7,7 @@ import styles from './AdminOrders.module.css';
 
 const STATUS_OPTIONS = ['RECEIVED', 'PREPARING', 'SHIPPING', 'READY_FOR_PICKUP', 'DELIVERED', 'CANCELLED_BY_CUSTOMER'];
 const PAYMENT_FILTERS = ['ALL', 'PAID', 'PENDING', 'FAILED'];
-const PAGE_SIZE = 50;
+const DENSITY_STORAGE_KEY = 'admin-orders-board-density';
 
 const normalizeKey = (value) => String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
 
@@ -81,7 +81,11 @@ export default function AdminOrders() {
     const [showCancelled, setShowCancelled] = useState(false);
     const [dateRange, setDateRange] = useState({ from: '', to: '' });
     const [sortBy, setSortBy] = useState('newest');
-    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+    const [density, setDensity] = useState(() => {
+        if (typeof window === 'undefined') return 'comfortable';
+        const saved = window.localStorage.getItem(DENSITY_STORAGE_KEY);
+        return saved === 'compact' ? 'compact' : 'comfortable';
+    });
 
     const hasAccess = hasPerm({ permissions }, PERMISSIONS.ORDERS_MANAGE);
 
@@ -153,10 +157,19 @@ export default function AdminOrders() {
     }, [dateRange, orders, paymentFilter, search, showCancelled, sortBy, statusFilter]);
 
     useEffect(() => {
-        setVisibleCount(PAGE_SIZE);
-    }, [search, statusFilter, paymentFilter, showCancelled, dateRange.from, dateRange.to, sortBy]);
+        window.localStorage.setItem(DENSITY_STORAGE_KEY, density);
+    }, [density]);
 
-    const visibleOrders = useMemo(() => filteredOrders.slice(0, visibleCount), [filteredOrders, visibleCount]);
+    const ordersByStatus = useMemo(() => {
+        const groups = STATUS_OPTIONS.reduce((acc, status) => ({ ...acc, [status]: [] }), {});
+        filteredOrders.forEach((order) => {
+            const key = normalizeKey(order.status);
+            if (groups[key]) {
+                groups[key].push(order);
+            }
+        });
+        return groups;
+    }, [filteredOrders]);
 
     const showToast = (type, message) => {
         setToast({ type, message, id: Date.now() });
@@ -204,7 +217,7 @@ export default function AdminOrders() {
     };
 
     const readOnlyMessage = selectedOrderReadOnly ? 'Cancelled by customer (read-only).' : '';
-    const canLoadMore = filteredOrders.length > visibleCount;
+    const isCompact = density === 'compact';
 
     if (!hasAccess) {
         return <div className={styles.noAccess}>You need Orders Manage permission to view this page.</div>;
@@ -239,75 +252,66 @@ export default function AdminOrders() {
                     <input type="checkbox" checked={showCancelled} onChange={(event) => setShowCancelled(event.target.checked)} />
                     Show cancelled orders
                 </label>
+                <div className={styles.densityToggle} role="group" aria-label="Card density">
+                    <button
+                        type="button"
+                        className={`${styles.densityBtn} ${!isCompact ? styles.densityBtnActive : ''}`}
+                        onClick={() => setDensity('comfortable')}
+                    >
+                        Comfortable
+                    </button>
+                    <button
+                        type="button"
+                        className={`${styles.densityBtn} ${isCompact ? styles.densityBtnActive : ''}`}
+                        onClick={() => setDensity('compact')}
+                    >
+                        Compact
+                    </button>
+                </div>
             </section>
 
             {error ? <div className={styles.error}>{error}</div> : null}
 
-            <div className={styles.tableWrap}>
-                <table className={styles.table}>
-                    <thead>
-                        <tr>
-                            <th>Order #</th>
-                            <th>Status</th>
-                            <th>Customer</th>
-                            <th>Total</th>
-                            <th>Payment</th>
-                            <th>Delivery</th>
-                            <th>Created date</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loading ? (
-                            Array.from({ length: 10 }, (_, index) => (
-                                <tr key={`loading-${index}`}>
-                                    <td colSpan={8}><div className={styles.tableSkeleton} /></td>
-                                </tr>
-                            ))
-                        ) : filteredOrders.length === 0 ? (
-                            <tr>
-                                <td className={styles.emptyTable} colSpan={8}>No orders match current filters</td>
-                            </tr>
-                        ) : visibleOrders.map((order) => (
-                            <tr
-                                key={order.id}
-                                className={`${styles.row} ${isCancelledByCustomer(order) ? styles.rowCancelled : ''}`}
-                                onClick={() => setSelectedId(order.id)}
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={(event) => {
-                                    if (event.key === 'Enter' || event.key === ' ') {
-                                        event.preventDefault();
-                                        setSelectedId(order.id);
-                                    }
-                                }}
-                            >
-                                <td>#{order.orderNumber}</td>
-                                <td><span className={`${styles.badge} ${statusBadgeClass(order.status)}`}>{normalizeKey(order.status)}</span></td>
-                                <td>
-                                    <div>{order.customer?.name || 'Unknown'}</div>
-                                    <div className={styles.muted}>{order.customer?.email || '—'}</div>
-                                </td>
-                                <td>{formatCurrency(order.totals?.total || 0, order.totals?.currency || 'SEK')}</td>
-                                <td><span className={`${styles.badge} ${paymentColorClass(order.paymentStatus)}`}>{normalizeKey(order.paymentStatus)}</span></td>
-                                <td><span className={`${styles.badge} ${styles.badgeNeutral}`}>{deliveryBadgeText(order)}</span></td>
-                                <td>{order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}</td>
-                                <td>
-                                    <button type="button" onClick={(event) => { event.stopPropagation(); setSelectedId(order.id); }} className={styles.openBtn}>Open</button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-
-            {!loading && canLoadMore ? (
-                <div className={styles.loadMoreWrap}>
-                    <button type="button" className={styles.loadMoreBtn} onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}>
-                        Load more
-                    </button>
+            <div className={styles.boardWrap}>
+                <div className={styles.board}>
+                    {STATUS_OPTIONS.map((status) => {
+                        const columnOrders = ordersByStatus[status] || [];
+                        return (
+                            <section key={status} className={styles.column}>
+                                <header className={styles.columnHeader}>
+                                    <h3>{status === 'CANCELLED_BY_CUSTOMER' ? 'Cancelled' : status.replaceAll('_', ' ')}</h3>
+                                    <span>{columnOrders.length}</span>
+                                </header>
+                                <div className={styles.columnContent}>
+                                    {loading ? (
+                                        Array.from({ length: 4 }, (_, index) => (
+                                            <div key={`${status}-loading-${index}`} className={styles.skeletonCard} />
+                                        ))
+                                    ) : columnOrders.length === 0 ? (
+                                        <p className={styles.empty}>No orders</p>
+                                    ) : columnOrders.map((order) => (
+                                        <article
+                                            key={order.id}
+                                            className={`${styles.orderCard} ${isCompact ? styles.orderCardCompact : ''} ${isCancelledByCustomer(order) ? styles.rowCancelled : ''}`}
+                                        >
+                                            <p className={styles.cardOrder}>#{order.orderNumber}</p>
+                                            <p className={styles.cardCustomer} title={order.customer?.name || 'Unknown'}>{order.customer?.name || 'Unknown'}</p>
+                                            <p className={styles.cardTotal}>{formatCurrency(order.totals?.total || 0, order.totals?.currency || 'SEK')}</p>
+                                            <div className={styles.cardBadges}>
+                                                <span className={`${styles.badge} ${statusBadgeClass(order.status)}`}>{normalizeKey(order.status)}</span>
+                                                <span className={`${styles.badge} ${paymentColorClass(order.paymentStatus)}`}>{normalizeKey(order.paymentStatus)}</span>
+                                                {!isCompact ? <span className={`${styles.badge} ${styles.badgeNeutral}`}>{deliveryBadgeText(order)}</span> : null}
+                                            </div>
+                                            {!isCompact ? <p className={styles.muted}>{order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}</p> : null}
+                                            <button type="button" onClick={() => setSelectedId(order.id)} className={styles.openBtn}>Open</button>
+                                        </article>
+                                    ))}
+                                </div>
+                            </section>
+                        );
+                    })}
                 </div>
-            ) : null}
+            </div>
 
             <aside className={`${styles.drawer} ${selectedOrder ? styles.drawerOpen : ''}`}>
                 {selectedOrder ? (
