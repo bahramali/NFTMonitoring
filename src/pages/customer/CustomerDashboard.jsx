@@ -6,6 +6,7 @@ import { fetchCustomerAddresses } from '../../api/customerAddresses.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import usePasswordReset from '../../hooks/usePasswordReset.js';
 import { extractAddressList, formatAddressLine, normalizeAddress } from './addressUtils.js';
+import { getOrderDisplayNumber } from './orderUtils.js';
 import { formatCurrency } from '../../utils/currency.js';
 import styles from './CustomerDashboard.module.css';
 
@@ -44,6 +45,7 @@ export default function CustomerDashboard() {
     );
 
     const latestOrder = sortedOrders[0] || null;
+    const latestOrderDisplayNumber = getOrderDisplayNumber(latestOrder);
     const accountName = loadingProfile ? 'Loading…' : profile?.fullName || profile?.displayName || '—';
     const accountEmail = loadingProfile ? 'Loading…' : profile?.email || '—';
     const accountPhone = loadingProfile ? 'Loading…' : profile?.phoneNumber || '—';
@@ -104,7 +106,7 @@ export default function CustomerDashboard() {
                     <AccountCard title="Recent order" subtitle="Quick actions">
                         {latestOrder ? (
                             <div className={styles.recentOrder}>
-                                <p><strong>Order #{latestOrder.id}</strong></p>
+                                <p><strong>Order {latestOrderDisplayNumber}</strong></p>
                                 <p>{new Date(latestOrder.createdAt || Date.now()).toLocaleDateString()}</p>
                                 <p>Total: <strong>{formatCurrency(latestOrder.total, latestOrder.currency)}</strong></p>
                                 <Link to={`/account/orders/${encodeURIComponent(latestOrder.id)}`} className={styles.primaryButton}>View</Link>

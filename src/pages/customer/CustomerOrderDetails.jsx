@@ -13,7 +13,7 @@ import OrderStatusPill from '../../components/orders/OrderStatusPill.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
 import { formatCurrency } from '../../utils/currency.js';
-import { canCancelOrder, normalizeOrder } from './orderUtils.js';
+import { canCancelOrder, getOrderDisplayNumber, normalizeOrder } from './orderUtils.js';
 import styles from './CustomerOrderDetails.module.css';
 
 const toStatusKey = (value) => String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
@@ -99,6 +99,7 @@ export default function CustomerOrderDetails() {
     }, [toastMessage]);
 
     const activeOrder = order || existingOrder;
+    const displayOrderNumber = getOrderDisplayNumber(activeOrder);
     const statusValue = activeOrder?.status;
     const orderStatusValue = activeOrder?.orderStatus;
     const effectiveStatus = activeOrder?.orderStatus ?? activeOrder?.status;
@@ -323,7 +324,7 @@ export default function CustomerOrderDetails() {
         <div className={styles.page}>
             <div className={styles.summaryHeader}>
                 <div>
-                    <h1>Order #{activeOrder?.orderNumber || activeOrder?.id}</h1>
+                    <h1>Order {displayOrderNumber}</h1>
                     <p>Placed {activeOrder?.createdAt ? new Date(activeOrder.createdAt).toLocaleString() : '—'}</p>
                 </div>
                 <OrderStatusPill status={activeOrder?.orderStatus ?? activeOrder?.status} />

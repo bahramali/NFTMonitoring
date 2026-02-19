@@ -13,6 +13,12 @@ export const CANCELLABLE_ORDER_STATUSES = new Set([
 
 export const canCancelOrder = (status) => CANCELLABLE_ORDER_STATUSES.has(toStatusKey(status));
 
+export const getOrderDisplayNumber = (order) => {
+    if (order?.formattedOrderNumber) return String(order.formattedOrderNumber);
+    if (order?.orderNumber) return `HL-${order.orderNumber}`;
+    return `#${order?.id ?? ''}`;
+};
+
 const toNumber = (value) => {
     if (value == null || value === '') return null;
     const parsed = Number(value);
@@ -75,6 +81,7 @@ export const normalizeOrderList = (payload) => {
     return list.map((order) => ({
         id: order.orderId ?? order.id ?? order.orderNumber ?? order.reference ?? '',
         orderNumber: order.orderNumber ?? order.reference ?? order.orderId ?? order.id ?? '',
+        formattedOrderNumber: order.formattedOrderNumber ?? order.formatted_order_number ?? order.displayOrderNumber ?? '',
         status: (order.orderStatus ?? order.order_status) ?? order.displayStatus ?? order.mappedStatus ?? order.status ?? order.state ?? 'PENDING',
         total: pickAmount(order, ['totalAmount', 'total', 'amount'], ['totalCents', 'totalAmountCents']),
         currency: order.currency ?? order.totalCurrency ?? 'SEK',

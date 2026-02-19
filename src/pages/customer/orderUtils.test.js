@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { canCancelOrder, normalizeOrder, normalizeOrderList } from './orderUtils.js';
+import { canCancelOrder, getOrderDisplayNumber, normalizeOrder, normalizeOrderList } from './orderUtils.js';
 
 describe('normalizeOrder invoice mode details', () => {
     it('normalizes pay-later invoice details and defaults status to UNPAID', () => {
@@ -53,5 +53,20 @@ describe('status normalization precedence', () => {
 
         expect(order.orderStatus).toBe('CANCELLED_BY_CUSTOMER');
         expect(order.status).toBe('CANCELLED_BY_CUSTOMER');
+    });
+});
+
+
+describe('getOrderDisplayNumber', () => {
+    it('uses formatted order number when available', () => {
+        expect(getOrderDisplayNumber({ formattedOrderNumber: 'HL-1771338326964', orderNumber: 123, id: 'uuid' })).toBe('HL-1771338326964');
+    });
+
+    it('falls back to HL-prefixed order number', () => {
+        expect(getOrderDisplayNumber({ orderNumber: 1771338326964, id: 'uuid' })).toBe('HL-1771338326964');
+    });
+
+    it('falls back to UUID when no formatted or numeric order number exists', () => {
+        expect(getOrderDisplayNumber({ id: '14d96268-5021-4621-a9ed-b719817fc9a2' })).toBe('#14d96268-5021-4621-a9ed-b719817fc9a2');
     });
 });

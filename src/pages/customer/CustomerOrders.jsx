@@ -4,7 +4,7 @@ import { cancelMyOrder } from '../../api/customer.js';
 import OrderRow from '../../components/orders/OrderRow.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import useRedirectToLogin from '../../hooks/useRedirectToLogin.js';
-import { canCancelOrder } from './orderUtils.js';
+import { canCancelOrder, getOrderDisplayNumber } from './orderUtils.js';
 import styles from './CustomerOrders.module.css';
 
 const toStatusKey = (value) => String(value || '').trim().toUpperCase().replace(/\s+/g, '_');
@@ -58,7 +58,10 @@ export default function CustomerOrders() {
         }
         if (search.trim()) {
             const q = search.trim().toLowerCase();
-            list = list.filter((order) => String(order.id || '').toLowerCase().includes(q));
+            list = list.filter((order) => {
+                const displayNumber = getOrderDisplayNumber(order).toLowerCase();
+                return displayNumber.includes(q) || String(order.id || '').toLowerCase().includes(q);
+            });
         }
         list.sort((a, b) => {
             const delta = Date.parse(a.createdAt || 0) - Date.parse(b.createdAt || 0);
