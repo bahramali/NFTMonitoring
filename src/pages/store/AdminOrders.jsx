@@ -8,6 +8,8 @@ import styles from './AdminOrders.module.css';
 const COLUMNS = ['RECEIVED', 'PREPARING', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED'];
 const STATUS_OPTIONS = ['RECEIVED', 'PREPARING', 'SHIPPING', 'READY_FOR_PICKUP', 'DELIVERED', 'CANCELLED_BY_CUSTOMER'];
 const PAYMENT_FILTERS = ['ALL', 'PAID', 'PENDING', 'FAILED'];
+const VIEW_MODES = { TABLE: 'table', BOARD: 'board' };
+const VIEW_MODE_STORAGE_KEY = 'adminOrdersViewMode';
 
 const normalizeKey = (value) => String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
 const statusToColumn = (status) => {
@@ -87,6 +89,11 @@ export default function AdminOrders() {
     const [showCancelled, setShowCancelled] = useState(false);
     const [dateRange, setDateRange] = useState({ from: '', to: '' });
     const [sortBy, setSortBy] = useState('newest');
+    const [viewMode, setViewMode] = useState(() => {
+        if (typeof window === 'undefined') return VIEW_MODES.TABLE;
+        const persisted = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+        return persisted === VIEW_MODES.BOARD ? VIEW_MODES.BOARD : VIEW_MODES.TABLE;
+    });
 
     const hasAccess = hasPerm({ permissions }, PERMISSIONS.ORDERS_MANAGE);
 
@@ -107,6 +114,11 @@ export default function AdminOrders() {
     useEffect(() => {
         loadOrders();
     }, [loadOrders]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, viewMode);
+    }, [viewMode]);
 
     const selectedOrder = useMemo(() => orders.find((item) => String(item.id) === String(selectedId)) || null, [orders, selectedId]);
     const selectedOrderPayment = selectedOrder?.raw?.payment ?? {};
@@ -241,39 +253,108 @@ export default function AdminOrders() {
                     <input type="checkbox" checked={showCancelled} onChange={(event) => setShowCancelled(event.target.checked)} />
                     Show cancelled orders
                 </label>
+                <div className={styles.viewModeToggle} role="group" aria-label="Admin orders view mode">
+                    <button
+                        type="button"
+                        className={`${styles.viewModeButton} ${viewMode === VIEW_MODES.TABLE ? styles.viewModeButtonActive : ''}`}
+                        onClick={() => setViewMode(VIEW_MODES.TABLE)}
+                    >
+                        Table
+                    </button>
+                    <button
+                        type="button"
+                        className={`${styles.viewModeButton} ${viewMode === VIEW_MODES.BOARD ? styles.viewModeButtonActive : ''}`}
+                        onClick={() => setViewMode(VIEW_MODES.BOARD)}
+                    >
+                        Board
+                    </button>
+                </div>
             </section>
 
             {error ? <div className={styles.error}>{error}</div> : null}
 
-            <div className={styles.board}>
-                {COLUMNS.map((column) => (
-                    <div key={column} className={styles.column}>
-                        <h3>{columnLabel(column, byColumn[column][0])}</h3>
-                        {loading ? (
-                            <div className={styles.skeletonList}>{Array.from({ length: 3 }, (_, i) => <div key={i} className={styles.skeletonCard} />)}</div>
-                        ) : byColumn[column].length === 0 ? (
-                            <div className={styles.empty}>No orders in this stage</div>
-                        ) : (
-                            byColumn[column].map((order) => (
-                                <article key={order.id} className={`${styles.card} ${isCancelledByCustomer(order) ? styles.cardCancelled : ''}`}>
-                                    <div className={styles.cardTitle}>#{order.orderNumber}</div>
-                                    <div className={styles.muted}>{order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}</div>
-                                    <div className={styles.muted}>{order.customer?.name || 'Unknown'} • {order.customer?.email || '—'}</div>
-                                    <div className={styles.total}>{formatCurrency(order.totals?.total || 0, order.totals?.currency || 'SEK')}</div>
-                                    <div className={styles.badges}>
+            {viewMode === VIEW_MODES.BOARD ? (
+                <div className={styles.board}>
+                    {COLUMNS.map((column) => (
+                        <div key={column} className={styles.column}>
+                            <h3>{columnLabel(column, byColumn[column][0])}</h3>
+                            {loading ? (
+                                <div className={styles.skeletonList}>{Array.from({ length: 3 }, (_, i) => <div key={i} className={styles.skeletonCard} />)}</div>
+                            ) : byColumn[column].length === 0 ? (
+                                <div className={styles.empty}>No orders in this stage</div>
+                            ) : (
+                                byColumn[column].map((order) => (
+                                    <article key={order.id} className={`${styles.card} ${isCancelledByCustomer(order) ? styles.cardCancelled : ''}`}>
+                                        <div className={styles.cardTopRow}>
+                                            <div className={styles.cardTitle}>#{order.orderNumber}</div>
+                                            <div className={styles.total}>{formatCurrency(order.totals?.total || 0, order.totals?.currency || 'SEK')}</div>
+                                        </div>
+                                        <div className={styles.muted}>{order.customer?.name || 'Unknown'} • {normalizeKey(order.paymentStatus)}</div>
+                                        <div className={styles.muted}>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '—'} • {isPickupOrder(order) ? 'Pickup' : 'Shipping'}</div>
+                                        <div className={styles.badges}>
+                                            <span className={`${styles.badge} ${paymentColorClass(order.paymentStatus)}`}>{normalizeKey(order.paymentStatus)}</span>
+                                            <span className={styles.badge}>{order.paymentMode || 'PAY_NOW'}</span>
+                                            {isCancelledByCustomer(order) ? <span className={`${styles.badge} ${styles.badgeCancelled}`}>Cancelled</span> : null}
+                                        </div>
+                                        <button type="button" onClick={() => setSelectedId(order.id)} className={styles.openBtn} disabled={isCancelledByCustomer(order)}>Open</button>
+                                    </article>
+                                ))
+                            )}
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className={styles.tableWrap}>
+                    <table className={styles.table}>
+                        <thead>
+                            <tr>
+                                <th>Order</th>
+                                <th>Created</th>
+                                <th>Customer</th>
+                                <th>Fulfillment</th>
+                                <th>Status</th>
+                                <th>Payment</th>
+                                <th>Total</th>
+                                <th aria-label="Actions" />
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {loading ? (
+                                Array.from({ length: 7 }, (_, index) => (
+                                    <tr key={`loading-${index}`}>
+                                        <td colSpan={8}><div className={styles.tableSkeleton} /></td>
+                                    </tr>
+                                ))
+                            ) : filteredOrders.length === 0 ? (
+                                <tr>
+                                    <td className={styles.emptyTable} colSpan={8}>No orders match current filters</td>
+                                </tr>
+                            ) : filteredOrders.map((order) => (
+                                <tr key={order.id} className={isCancelledByCustomer(order) ? styles.rowCancelled : ''}>
+                                    <td>#{order.orderNumber}</td>
+                                    <td>{order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}</td>
+                                    <td>
+                                        <div>{order.customer?.name || 'Unknown'}</div>
+                                        <div className={styles.muted}>{order.customer?.email || '—'}</div>
+                                    </td>
+                                    <td>
+                                        <div>{isPickupOrder(order) ? 'Pickup' : 'Shipping'}</div>
+                                        <div className={styles.muted}>{summarizeAddress(order)}</div>
+                                    </td>
+                                    <td>{normalizeKey(order.status)}</td>
+                                    <td>
                                         <span className={`${styles.badge} ${paymentColorClass(order.paymentStatus)}`}>{normalizeKey(order.paymentStatus)}</span>
-                                        <span className={styles.badge}>{order.paymentMode || 'PAY_NOW'}</span>
-                                        <span className={styles.badge}>{isPickupOrder(order) ? 'PICKUP' : 'SHIPPING'}</span>
-                                        {isCancelledByCustomer(order) ? <span className={`${styles.badge} ${styles.badgeCancelled}`}>Cancelled by customer</span> : null}
-                                    </div>
-                                    <div className={styles.muted}>{summarizeAddress(order)}</div>
-                                    <button type="button" onClick={() => setSelectedId(order.id)} className={styles.openBtn} disabled={isCancelledByCustomer(order)}>Open</button>
-                                </article>
-                            ))
-                        )}
-                    </div>
-                ))}
-            </div>
+                                    </td>
+                                    <td>{formatCurrency(order.totals?.total || 0, order.totals?.currency || 'SEK')}</td>
+                                    <td>
+                                        <button type="button" onClick={() => setSelectedId(order.id)} className={styles.openBtn} disabled={isCancelledByCustomer(order)}>Open</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
 
             <aside className={`${styles.drawer} ${selectedOrder ? styles.drawerOpen : ''}`}>
                 {selectedOrder ? (
