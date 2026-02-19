@@ -361,7 +361,9 @@ export default function AdminOrders() {
 
             {error ? <div className={styles.error}>{error}</div> : null}
 
-            <div className={`${styles.boardWrap} ${compactStages ? styles.boardWrapCompact : ''}`}>
+            <div
+                className={`${styles.boardWrap} ${compactStages ? styles.boardWrapCompact : ''} ${selectedOrder ? styles.boardWrapWithDrawer : ''}`}
+            >
                 <div className={`${styles.board} ${compactStages ? styles.boardCompact : ''}`}>
                     {boardColumns.map((column) => {
                         const columnOrders = column.orders || [];
