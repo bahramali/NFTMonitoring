@@ -130,17 +130,30 @@ export default function AdminOrders() {
 
     const loadOrders = useCallback(async () => {
         if (!token) return;
+        const includeCancelled = showCancelled || statusFilter === 'CANCELLED';
+        const backendStatus = statusFilter !== 'ALL'
+            ? (statusFilter === 'CANCELLED' ? null : statusFilter)
+            : null;
+
         setLoading(true);
         setError('');
         try {
-            const list = await listAdminOrders(token);
+            const list = await listAdminOrders(token, {
+                includeCancelled,
+                status: backendStatus,
+                paymentStatus: paymentFilter !== 'ALL' ? paymentFilter : null,
+                q: search.trim() || null,
+                dateFrom: dateRange.from || null,
+                dateTo: dateRange.to || null,
+                sort: sortBy || null,
+            });
             setOrders(list);
         } catch (err) {
             setError(err?.message || 'Unable to load orders');
         } finally {
             setLoading(false);
         }
-    }, [token]);
+    }, [dateRange.from, dateRange.to, paymentFilter, search, showCancelled, sortBy, statusFilter, token]);
 
     useEffect(() => {
         loadOrders();
