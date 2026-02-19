@@ -16,22 +16,48 @@ const isCancelledStatus = (value) => ['CANCELLED_BY_CUSTOMER', 'CANCELLED'].incl
 const isCancelledByCustomer = (order) => isCancelledStatus(order?.status);
 const normalizeBoardStatus = (status) => (isCancelledStatus(status) ? 'CANCELLED' : normalizeKey(status));
 
-const deliveryBadgeText = (order) => (isPickupOrder(order) ? 'Pickup' : 'Shipping');
+const STATUS_BADGE_LABELS = {
+    RECEIVED: 'Received',
+    PREPARING: 'Preparing',
+    SHIPPING: 'Shipping',
+    READY_FOR_PICKUP: 'Preparing',
+    DELIVERED: 'Delivered',
+    COMPLETED: 'Delivered',
+    CANCELLED: 'Cancelled',
+    CANCELLED_BY_CUSTOMER: 'Cancelled',
+};
+
+const formatStatusBadge = (status) => {
+    const key = normalizeKey(status);
+    return STATUS_BADGE_LABELS[key] || 'Received';
+};
+
+const deliveryBadgeText = (order) => (isPickupOrder(order) ? 'PICKUP' : 'SHIPPING');
+
+const paymentBadgeText = (order) => {
+    const paymentKey = normalizeKey(order?.paymentStatus);
+    const modeKey = normalizeKey(order?.paymentMode);
+    if (['PAID', 'PAYMENT_SUCCEEDED', 'COMPLETED', 'PROCESSING'].includes(paymentKey)) return 'PAID';
+    if (['PAY_LATER', 'INVOICE'].includes(modeKey)) return 'INVOICE';
+    return 'UNPAID';
+};
 
 const statusBadgeClass = (status) => {
     const key = normalizeKey(status);
-    if (['DELIVERED', 'COMPLETED'].includes(key)) return styles.badgeGreen;
     if (['CANCELLED_BY_CUSTOMER', 'CANCELLED'].includes(key)) return styles.badgeRed;
+    if (['DELIVERED', 'COMPLETED'].includes(key)) return styles.badgeGreen;
     if (['SHIPPING', 'READY_FOR_PICKUP', 'IN_TRANSIT'].includes(key)) return styles.badgeBlue;
+    if (['PREPARING'].includes(key)) return styles.badgeYellow;
     return styles.badgeNeutral;
 };
 
-const paymentColorClass = (status) => {
-    const key = normalizeKey(status);
-    if (['PAID', 'PAYMENT_SUCCEEDED'].includes(key)) return styles.badgeGreen;
-    if (['FAILED', 'PAYMENT_FAILED'].includes(key)) return styles.badgeRed;
-    return styles.badgeYellow;
+const paymentColorClass = (paymentLabel) => {
+    if (paymentLabel === 'PAID') return styles.badgeGreen;
+    if (paymentLabel === 'INVOICE') return styles.badgePurple;
+    return styles.badgeRedSoft;
 };
+
+const deliveryColorClass = (order) => (isPickupOrder(order) ? styles.badgePurple : styles.badgeBlue);
 
 const summarizeAddress = (order) => {
     if (isPickupOrder(order)) {
@@ -294,23 +320,26 @@ export default function AdminOrders() {
                                         ))
                                     ) : columnOrders.length === 0 ? (
                                         <p className={styles.empty}>No orders</p>
-                                    ) : columnOrders.map((order) => (
-                                        <article
-                                            key={order.id}
-                                            className={`${styles.orderCard} ${isCompact ? styles.orderCardCompact : ''} ${isCancelledByCustomer(order) ? styles.rowCancelled : ''}`}
-                                        >
+                                    ) : columnOrders.map((order) => {
+                                        const paymentLabel = paymentBadgeText(order);
+                                        return (
+                                            <article
+                                                key={order.id}
+                                                className={`${styles.orderCard} ${isCompact ? styles.orderCardCompact : ''} ${isCancelledByCustomer(order) ? styles.rowCancelled : ''}`}
+                                            >
                                             <p className={styles.cardOrder}>#{order.orderNumber}</p>
                                             <p className={styles.cardCustomer} title={order.customer?.name || 'Unknown'}>{order.customer?.name || 'Unknown'}</p>
                                             <p className={styles.cardTotal}>{formatCurrency(order.totals?.total || 0, order.totals?.currency || 'SEK')}</p>
                                             <div className={styles.cardBadges}>
-                                                <span className={`${styles.badge} ${statusBadgeClass(order.status)}`}>{normalizeKey(order.status)}</span>
-                                                <span className={`${styles.badge} ${paymentColorClass(order.paymentStatus)}`}>{normalizeKey(order.paymentStatus)}</span>
-                                                {!isCompact ? <span className={`${styles.badge} ${styles.badgeNeutral}`}>{deliveryBadgeText(order)}</span> : null}
+                                                <span className={`${styles.badge} ${statusBadgeClass(order.status)}`}>Status: {formatStatusBadge(order.status)}</span>
+                                                <span className={`${styles.badge} ${paymentColorClass(paymentLabel)}`}>Payment: {paymentLabel}</span>
+                                                {!isCompact ? <span className={`${styles.badge} ${deliveryColorClass(order)}`}>Delivery: {deliveryBadgeText(order)}</span> : null}
                                             </div>
                                             {!isCompact ? <p className={styles.muted}>{order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}</p> : null}
                                             <button type="button" onClick={() => setSelectedId(order.id)} className={styles.openBtn}>Open</button>
-                                        </article>
-                                    ))}
+                                            </article>
+                                        );
+                                    })}
                                 </div>
                             </section>
                         );
