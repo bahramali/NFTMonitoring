@@ -17,6 +17,12 @@ const STATUS_VARIANTS = {
         badgeVariant: 'warning',
         primaryActionType: 'view-order',
     },
+    PAYMENT_PENDING: {
+        label: 'Payment pending',
+        description: 'We’re confirming your payment. This can take up to a minute. We’ll email you when it’s confirmed.',
+        badgeVariant: 'warning',
+        primaryActionType: 'view-order',
+    },
     RECEIVED: {
         label: 'Received',
         description: 'We’ve received your order. You can still cancel it until we start preparing it.',
@@ -58,6 +64,18 @@ const STATUS_VARIANTS = {
         description: 'Your order is being prepared.',
         badgeVariant: 'info',
         primaryActionType: 'view-order',
+    },
+    PREPARING: {
+        label: 'Preparing',
+        description: 'Your order is being prepared.',
+        badgeVariant: 'info',
+        primaryActionType: 'view-order',
+    },
+    SHIPPING: {
+        label: 'Shipping',
+        description: 'Your order is on the way.',
+        badgeVariant: 'info',
+        primaryActionType: 'track-order',
     },
     SHIPPED: {
         label: 'Shipped',
