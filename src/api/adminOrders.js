@@ -134,11 +134,44 @@ export const normalizeAdminOrder = (order = {}) => {
     };
 };
 
-export async function listAdminOrders(token, { signal } = {}) {
+export async function listAdminOrders(
+    token,
+    {
+        includeCancelled,
+        status,
+        paymentStatus,
+        q,
+        dateFrom,
+        dateTo,
+        page,
+        size,
+        sort,
+        signal,
+    } = {},
+) {
+    const query = new URLSearchParams();
+    const queryParams = {
+        includeCancelled,
+        status,
+        paymentStatus,
+        q,
+        dateFrom,
+        dateTo,
+        page,
+        size,
+        sort,
+    };
+
+    Object.entries(queryParams).forEach(([key, value]) => {
+        if (value == null || value === '') return;
+        query.append(key, String(value));
+    });
+
+    const suffix = query.toString();
     const candidates = [
-        `${ADMIN_ORDERS_URL}`,
-        `${API_BASE}/api/admin/orders`,
-        `${API_BASE}/api/store/admin/orders`,
+        `${ADMIN_ORDERS_URL}${suffix ? `?${suffix}` : ''}`,
+        `${API_BASE}/api/admin/orders${suffix ? `?${suffix}` : ''}`,
+        `${API_BASE}/api/store/admin/orders${suffix ? `?${suffix}` : ''}`,
     ];
 
     let lastError = null;
