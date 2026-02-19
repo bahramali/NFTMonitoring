@@ -5,13 +5,14 @@ import { formatCurrency } from '../../utils/currency.js';
 import { PERMISSIONS, hasPerm } from '../../utils/permissions.js';
 import styles from './AdminOrders.module.css';
 
-const COLUMNS = ['RECEIVED', 'PREPARING', 'IN_TRANSIT', 'DELIVERED'];
-const STATUS_OPTIONS = ['RECEIVED', 'PREPARING', 'SHIPPING', 'READY_FOR_PICKUP', 'DELIVERED'];
+const COLUMNS = ['RECEIVED', 'PREPARING', 'IN_TRANSIT', 'DELIVERED', 'CANCELLED'];
+const STATUS_OPTIONS = ['RECEIVED', 'PREPARING', 'SHIPPING', 'READY_FOR_PICKUP', 'DELIVERED', 'CANCELLED_BY_CUSTOMER'];
 const PAYMENT_FILTERS = ['ALL', 'PAID', 'PENDING', 'FAILED'];
 
 const normalizeKey = (value) => String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
 const statusToColumn = (status) => {
     const key = normalizeKey(status);
+    if (['CANCELLED_BY_CUSTOMER', 'CANCELLED'].includes(key)) return 'CANCELLED';
     if (['SHIPPING', 'SHIPPED', 'READY_FOR_PICKUP', 'IN_TRANSIT'].includes(key)) return 'IN_TRANSIT';
     if (['DELIVERED', 'COMPLETED'].includes(key)) return 'DELIVERED';
     if (['PREPARING', 'PROCESSING'].includes(key)) return 'PREPARING';
@@ -19,12 +20,13 @@ const statusToColumn = (status) => {
 };
 
 const isPickupOrder = (order) => normalizeKey(order?.fulfillmentType).includes('PICKUP');
-const isCancelledByCustomer = (order) => normalizeKey(order?.status) === 'CANCELLED_BY_CUSTOMER';
+const isCancelledByCustomer = (order) => ['CANCELLED_BY_CUSTOMER', 'CANCELLED'].includes(normalizeKey(order?.status));
 
 const columnLabel = (key, order) => {
     if (key === 'IN_TRANSIT') return isPickupOrder(order) ? 'Ready for pickup' : 'Shipping';
     if (key === 'RECEIVED') return 'Received';
     if (key === 'PREPARING') return 'Preparing';
+    if (key === 'CANCELLED') return 'Cancelled';
     return 'Delivered';
 };
 
@@ -82,6 +84,7 @@ export default function AdminOrders() {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
     const [paymentFilter, setPaymentFilter] = useState('ALL');
+    const [showCancelled, setShowCancelled] = useState(false);
     const [dateRange, setDateRange] = useState({ from: '', to: '' });
     const [sortBy, setSortBy] = useState('newest');
 
@@ -130,6 +133,8 @@ export default function AdminOrders() {
 
         if (statusFilter !== 'ALL') {
             list = list.filter((order) => normalizeKey(order.status) === statusFilter);
+        } else if (!showCancelled) {
+            list = list.filter((order) => !isCancelledByCustomer(order));
         }
 
         if (paymentFilter !== 'ALL') {
@@ -150,7 +155,7 @@ export default function AdminOrders() {
         });
 
         return list;
-    }, [dateRange, orders, paymentFilter, search, sortBy, statusFilter]);
+    }, [dateRange, orders, paymentFilter, search, showCancelled, sortBy, statusFilter]);
 
     const byColumn = useMemo(() => {
         return COLUMNS.reduce((acc, column) => ({ ...acc, [column]: filteredOrders.filter((o) => statusToColumn(o.status) === column) }), {});
@@ -201,7 +206,7 @@ export default function AdminOrders() {
         }
     };
 
-    const readOnlyMessage = selectedOrderReadOnly ? 'This order was cancelled by the customer and is read-only.' : '';
+    const readOnlyMessage = selectedOrderReadOnly ? 'Cancelled by customer (read-only).' : '';
 
     if (!hasAccess) {
         return <div className={styles.noAccess}>You need Orders Manage permission to view this page.</div>;
@@ -218,7 +223,9 @@ export default function AdminOrders() {
                 <input className={styles.searchInput} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search #, email, or customer" />
                 <select className={styles.statusSelect} value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
                     <option value="ALL">All statuses</option>
-                    {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status.replaceAll('_', ' ')}</option>)}
+                    {STATUS_OPTIONS.map((status) => (
+                        <option key={status} value={status}>{status === 'CANCELLED_BY_CUSTOMER' ? 'Cancelled' : status.replaceAll('_', ' ')}</option>
+                    ))}
                 </select>
                 <select className={styles.filterSelect} value={paymentFilter} onChange={(event) => setPaymentFilter(event.target.value)}>
                     {PAYMENT_FILTERS.map((status) => <option key={status} value={status}>{status}</option>)}
@@ -230,6 +237,10 @@ export default function AdminOrders() {
                     <option value="oldest">Oldest</option>
                     <option value="total">Total</option>
                 </select>
+                <label className={styles.toggleLabel}>
+                    <input type="checkbox" checked={showCancelled} onChange={(event) => setShowCancelled(event.target.checked)} />
+                    Show cancelled orders
+                </label>
             </section>
 
             {error ? <div className={styles.error}>{error}</div> : null}
@@ -244,7 +255,7 @@ export default function AdminOrders() {
                             <div className={styles.empty}>No orders in this stage</div>
                         ) : (
                             byColumn[column].map((order) => (
-                                <article key={order.id} className={styles.card}>
+                                <article key={order.id} className={`${styles.card} ${isCancelledByCustomer(order) ? styles.cardCancelled : ''}`}>
                                     <div className={styles.cardTitle}>#{order.orderNumber}</div>
                                     <div className={styles.muted}>{order.createdAt ? new Date(order.createdAt).toLocaleString() : '—'}</div>
                                     <div className={styles.muted}>{order.customer?.name || 'Unknown'} • {order.customer?.email || '—'}</div>
@@ -253,9 +264,10 @@ export default function AdminOrders() {
                                         <span className={`${styles.badge} ${paymentColorClass(order.paymentStatus)}`}>{normalizeKey(order.paymentStatus)}</span>
                                         <span className={styles.badge}>{order.paymentMode || 'PAY_NOW'}</span>
                                         <span className={styles.badge}>{isPickupOrder(order) ? 'PICKUP' : 'SHIPPING'}</span>
+                                        {isCancelledByCustomer(order) ? <span className={`${styles.badge} ${styles.badgeCancelled}`}>Cancelled by customer</span> : null}
                                     </div>
                                     <div className={styles.muted}>{summarizeAddress(order)}</div>
-                                    <button type="button" onClick={() => setSelectedId(order.id)} className={styles.openBtn}>Open</button>
+                                    <button type="button" onClick={() => setSelectedId(order.id)} className={styles.openBtn} disabled={isCancelledByCustomer(order)}>Open</button>
                                 </article>
                             ))
                         )}
@@ -289,7 +301,7 @@ export default function AdminOrders() {
                             </div>
                         </section>
 
-                        {readOnlyMessage ? <p className={styles.muted}>{readOnlyMessage}</p> : null}
+                        {readOnlyMessage ? <p className={styles.cancelledWarning}>{readOnlyMessage}</p> : null}
 
                         <section className={styles.section}>
                             <h4>Payment</h4>
