@@ -178,6 +178,7 @@ export default function ProductAdmin() {
   const [editingVariantIds, setEditingVariantIds] = useState({});
   const [draftVariantsById, setDraftVariantsById] = useState({});
   const [variantValidationById, setVariantValidationById] = useState({});
+  const [variantDeleteError, setVariantDeleteError] = useState(null);
 
   const hasAccess = hasPerm({ permissions }, PERMISSIONS.PRODUCTS_MANAGE);
   const createMode = productId === "new";
@@ -247,6 +248,7 @@ export default function ProductAdmin() {
     setEditingVariantIds({});
     setDraftVariantsById({});
     setVariantValidationById({});
+    setVariantDeleteError(null);
     setFormSnapshot(JSON.stringify(nextForm));
     setVariantSnapshot(
       JSON.stringify({ defaultVariantId: nextDefault, variants: nextVariants }),
@@ -492,6 +494,7 @@ export default function ProductAdmin() {
     setEditingVariantIds({});
     setDraftVariantsById({});
     setVariantValidationById({});
+    setVariantDeleteError(null);
   };
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
@@ -1059,21 +1062,137 @@ export default function ProductAdmin() {
                             <button
                               className={styles.dangerLink}
                               onClick={async () => {
-                                if (variant.id)
+                                setVariantDeleteError(null);
+                                if (!variant.id) {
+                                  setVariantRows((prev) =>
+                                    prev.filter(
+                                      (row) => (row.id || row.localId) !== key,
+                                    ),
+                                  );
+                                  return;
+                                }
+                                try {
                                   await deleteProductVariant(
                                     detailId,
                                     variant.id,
                                     token,
                                   );
-                                setVariantRows((prev) =>
-                                  prev.filter(
-                                    (row) => (row.id || row.localId) !== key,
-                                  ),
-                                );
+                                  setVariantRows((prev) =>
+                                    prev.filter(
+                                      (row) => (row.id || row.localId) !== key,
+                                    ),
+                                  );
+                                } catch (error) {
+                                  const errorCode =
+                                    error?.payload?.code ||
+                                    error?.payload?.errorCode ||
+                                    error?.payload?.error?.code;
+                                  if (
+                                    error?.status === 409 &&
+                                    errorCode === "VARIANT_IN_CART"
+                                  ) {
+                                    setVariantDeleteError({
+                                      key,
+                                      variantId: variant.id,
+                                      message:
+                                        "This variant exists in one or more active carts. Please deactivate it instead.",
+                                      canDeactivate: true,
+                                      deactivating: false,
+                                    });
+                                    return;
+                                  }
+                                  if (error?.status === 409) {
+                                    setVariantDeleteError({
+                                      key,
+                                      variantId: variant.id,
+                                      message:
+                                        error?.message ||
+                                        "Unable to delete this variant due to a conflict. Please try again.",
+                                      canDeactivate: false,
+                                      deactivating: false,
+                                    });
+                                    return;
+                                  }
+                                  setListError(
+                                    error?.message ||
+                                      "Unable to delete variant right now.",
+                                  );
+                                }
                               }}
                             >
                               Delete
                             </button>
+                            {variantDeleteError?.key === key ? (
+                              <div>
+                                <p className={styles.inlineError}>
+                                  {variantDeleteError.message}
+                                </p>
+                                {variantDeleteError.canDeactivate ? (
+                                  <button
+                                    className={styles.linkButton}
+                                    disabled={variantDeleteError.deactivating}
+                                    onClick={async () => {
+                                      if (!detailId || !variant.id) return;
+                                      setVariantDeleteError((prev) =>
+                                        prev?.key === key
+                                          ? { ...prev, deactivating: true }
+                                          : prev,
+                                      );
+                                      try {
+                                        await updateProductVariant(
+                                          detailId,
+                                          variant.id,
+                                          {
+                                            weightGrams: parseIntegerInput(
+                                              variant.weight,
+                                            ),
+                                            priceSek: parseDecimalInput(
+                                              variant.price,
+                                            ),
+                                            stockQuantity: parseIntegerInput(
+                                              variant.stock,
+                                            ),
+                                            sku: variant.sku || "",
+                                            imageUrl: normalizeUrl(
+                                              variant.imageUrl,
+                                            ),
+                                            active: false,
+                                          },
+                                          token,
+                                        );
+                                        setVariantRows((prev) =>
+                                          prev.map((row) => {
+                                            const rowKey =
+                                              row.id || row.localId;
+                                            return rowKey === key
+                                              ? { ...row, active: false }
+                                              : row;
+                                          }),
+                                        );
+                                        setVariantDeleteError(null);
+                                      } catch (error) {
+                                        setVariantDeleteError((prev) =>
+                                          prev?.key === key
+                                            ? {
+                                                ...prev,
+                                                deactivating: false,
+                                                message:
+                                                  error?.message ||
+                                                  "Unable to deactivate variant right now.",
+                                                canDeactivate: false,
+                                              }
+                                            : prev,
+                                        );
+                                      }
+                                    }}
+                                  >
+                                    {variantDeleteError.deactivating
+                                      ? "Deactivating…"
+                                      : "Deactivate variant"}
+                                  </button>
+                                ) : null}
+                              </div>
+                            ) : null}
                           </td>
                         </tr>
                       );
