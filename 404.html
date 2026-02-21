@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>HydroLeaf</title>
+  <script>
+    const redirect = window.location.pathname + window.location.search + window.location.hash;
+    sessionStorage.redirect = redirect;
+
+    const pathSegments = window.location.pathname.split('/').filter(Boolean);
+    const isGhPages = pathSegments[0] === 'NFTMonitoring';
+    const appBase = isGhPages ? '/NFTMonitoring/' : '/';
+
+    window.location.replace(appBase);
+  </script>
+</head>
+<body></body>
+</html>
